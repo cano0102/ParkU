@@ -10,7 +10,7 @@ import { Badge } from '../components/ui/badge';
 import { Switch } from '../components/ui/switch';
 import { toast } from 'sonner';
 import { Textarea } from '../components/ui/textarea';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 
 export function Parqueaderos() {
   const navigate = useNavigate();

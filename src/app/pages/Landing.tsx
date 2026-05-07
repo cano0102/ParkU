@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from 'react-router-dom';
 
 type SlotStatus = "libre" | "ocupado" | "reservado" | "discap";
-
 type Slot = { id: string; status: SlotStatus };
 
 const SENA_GREEN = "#009e3d";
@@ -77,20 +77,21 @@ function useAnimated() {
 }
 
 export default function SenaLanding() {
+  // ✅ useNavigate inside the component
+  const navigate = useNavigate();
   const visible = useAnimated();
   const [hoveredRole, setHoveredRole] = useState<number | null>(null);
   const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
   const [hoveredBenefit, setHoveredBenefit] = useState<number | null>(null);
 
-  const libre   = slots.filter(s => s.status === "libre").length;
-  const ocupado = slots.filter(s => s.status === "ocupado").length;
+  const libre    = slots.filter(s => s.status === "libre").length;
+  const ocupado  = slots.filter(s => s.status === "ocupado").length;
   const reservado = slots.filter(s => s.status === "reservado").length;
   const pct = Math.round((ocupado / slots.length) * 100);
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;900&family=Barlow+Condensed:wght@700;900&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Barlow', sans-serif; }
         .sena-landing { font-family: 'Barlow', sans-serif; color: #1a1a1a; background: #fff; overflow-x: hidden; }
@@ -101,7 +102,6 @@ export default function SenaLanding() {
         .fade-up.d3 { transition-delay: 0.4s; }
         .fade-up.d4 { transition-delay: 0.55s; }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
         .pulse-dot { animation: pulse 2s infinite; }
       `}</style>
 
@@ -124,6 +124,7 @@ export default function SenaLanding() {
               <span style={{ color: SENA_GREEN }}>SENA</span> · ParkU
             </span>
           </div>
+
           <div style={{ display: "flex", gap: "2rem" }}>
             {["Inicio", "Funciones", "Usuarios", "Soporte"].map(l => (
               <a key={l} href="#" style={{ color: "#ccc", fontSize: 14, fontWeight: 500, textDecoration: "none", letterSpacing: 0.5 }}
@@ -131,14 +132,19 @@ export default function SenaLanding() {
                 onMouseLeave={e => (e.target as HTMLElement).style.color = "#ccc"}>{l}</a>
             ))}
           </div>
-          <button style={{
-            background: SENA_GREEN, color: "#fff", border: "none",
-            padding: "9px 22px", borderRadius: 4, fontFamily: "'Barlow', sans-serif",
-            fontWeight: 600, fontSize: 14, cursor: "pointer", letterSpacing: 0.5,
-          }}
+
+          {/* ✅ navigate('/login') — absolute path */}
+          <button
+            onClick={() => navigate("/login")}
+            style={{
+              background: SENA_GREEN, color: "#fff", border: "none",
+              padding: "9px 22px", borderRadius: 4, fontFamily: "'Barlow', sans-serif",
+              fontWeight: 600, fontSize: 14, cursor: "pointer", letterSpacing: 0.5,
+            }}
             onMouseEnter={e => e.currentTarget.style.background = SENA_DARK}
-            onMouseLeave={e => e.currentTarget.style.background = SENA_GREEN}>
-            Iniciar Sesión 
+            onMouseLeave={e => e.currentTarget.style.background = SENA_GREEN}
+          >
+            Iniciar Sesión
           </button>
         </nav>
 
@@ -147,7 +153,6 @@ export default function SenaLanding() {
           minHeight: "100vh", background: "#0a0a0a",
           display: "flex", alignItems: "center", paddingTop: 64, position: "relative", overflow: "hidden",
         }}>
-          {/* diagonal background */}
           <div style={{
             position: "absolute", top: 0, right: 0, width: "55%", height: "100%",
             background: "linear-gradient(135deg,#001a0a 0%,#003d1a 50%,#006628 100%)",
@@ -159,7 +164,6 @@ export default function SenaLanding() {
             padding: "4rem 2.5rem", display: "grid", gridTemplateColumns: "1fr 1fr",
             gap: "4rem", alignItems: "center", width: "100%",
           }}>
-
             {/* LEFT */}
             <div>
               <div className={`fade-up ${visible ? "visible" : ""}`}
@@ -181,9 +185,13 @@ export default function SenaLanding() {
               </p>
 
               <div className={`fade-up d3 ${visible ? "visible" : ""}`} style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                <button style={{ background: SENA_GREEN, color: "#fff", padding: "14px 32px", borderRadius: 4, border: "none", fontFamily: "'Barlow', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 8 }}
+                {/* ✅ navigate('/login') */}
+                <button
+                  onClick={() => navigate("/login")}
+                  style={{ background: SENA_GREEN, color: "#fff", padding: "14px 32px", borderRadius: 4, border: "none", fontFamily: "'Barlow', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 8 }}
                   onMouseEnter={e => { e.currentTarget.style.background = SENA_DARK; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = SENA_GREEN; e.currentTarget.style.transform = "translateY(0)"; }}>
+                  onMouseLeave={e => { e.currentTarget.style.background = SENA_GREEN; e.currentTarget.style.transform = "translateY(0)"; }}
+                >
                   Acceder al Sistema
                 </button>
               </div>
@@ -287,7 +295,6 @@ export default function SenaLanding() {
             <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 48, textTransform: "uppercase", marginBottom: "3rem" }}>Todo lo que<br />necesitas</h2>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "center" }}>
-              {/* list */}
               <div>
                 {features.map((f, i) => (
                   <div key={f.num}
@@ -303,7 +310,6 @@ export default function SenaLanding() {
                 ))}
               </div>
 
-              {/* dashboard preview */}
               <div style={{ background: "#0a0a0a", borderRadius: 8, padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
                 <div style={{ display: "flex", gap: "1rem" }}>
                   {[["142","#4ddb8a","Vehículos hoy",71],[" 23","#ffaa00","Reservas activas",45]].map(([num,col,lbl,pct]) => (
@@ -383,14 +389,20 @@ export default function SenaLanding() {
               <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)" }}>Inicia sesión con tus credenciales institucionales SENA y accede al sistema de parqueadero de tu regional.</p>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              <button style={{ background: "#fff", color: SENA_GREEN, padding: "16px 36px", borderRadius: 4, border: "none", fontFamily: "'Barlow', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 8 }}
+              {/* ✅ navigate('/login') */}
+              <button
+                onClick={() => navigate("/login")}
+                style={{ background: "#fff", color: SENA_GREEN, padding: "16px 36px", borderRadius: 4, border: "none", fontFamily: "'Barlow', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}
                 onMouseEnter={e => { e.currentTarget.style.background = "#f0fff5"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.transform = "translateY(0)"; }}>
+                onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.transform = "translateY(0)"; }}
+              >
                 Iniciar Sesión en el Sistema
               </button>
-              <button style={{ background: "transparent", color: "#fff", padding: "16px 36px", borderRadius: 4, border: "2px solid rgba(255,255,255,0.5)", fontFamily: "'Barlow', sans-serif", fontWeight: 600, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}
+              <button
+                style={{ background: "transparent", color: "#fff", padding: "16px 36px", borderRadius: 4, border: "2px solid rgba(255,255,255,0.5)", fontFamily: "'Barlow', sans-serif", fontWeight: 600, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = "#fff"}
-                onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"}>
+                onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"}
+              >
                 Contactar Soporte
               </button>
             </div>
