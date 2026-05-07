@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { MainLayout } from './layouts/MainLayout';
-import { Landing } from './pages/Landing';
+import Landing from './pages/Landing';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
