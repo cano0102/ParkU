@@ -1,428 +1,1456 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+import {
+  ShieldCheck,
+  CarFront,
+  BarChart3,
+  BellRing,
+  ArrowRight,
+  CheckCircle2,
+  Cpu,
+  ScanLine,
+  Building2,
+  Clock3,
+  MapPinned,
+  Activity,
+  Camera,
+  Smartphone,
+  ChevronRight,
+  BadgeCheck,
+  Sparkles,
+  LockKeyhole,
+  LayoutDashboard,
+  Zap,
+} from "lucide-react";
+
+import logoSena from "../../styles/images/logoSena.png";
 
 type SlotStatus = "libre" | "ocupado" | "reservado" | "discap";
-type Slot = { id: string; status: SlotStatus };
 
-const SENA_GREEN = "#009e3d";
-const SENA_DARK = "#007a30";
+type Slot = {
+  id: string;
+  status: SlotStatus;
+};
+
+const COLORS = {
+  primary: "#39A900",
+  primaryDark: "#2D7D00",
+  primarySoft: "#EAF7E3",
+
+  background: "#F3F6F8",
+  surface: "#FFFFFF",
+
+  text: "#0F172A",
+  textSoft: "#334155",
+  textLight: "#475569",
+
+  border: "#DDE3EA",
+
+  success: "#16A34A",
+  warning: "#F59E0B",
+  danger: "#DC2626",
+  info: "#2563EB",
+};
 
 const slots: Slot[] = [
-  { id: "A01", status: "ocupado" }, { id: "A02", status: "ocupado" }, { id: "A03", status: "libre" },
-  { id: "A04", status: "libre" }, { id: "A05", status: "ocupado" },
-  { id: "B01", status: "libre" }, { id: "B02", status: "reservado" }, { id: "B03", status: "ocupado" },
-  { id: "B04", status: "libre" }, { id: "B05", status: "libre" },
-  { id: "C01", status: "ocupado" }, { id: "C02", status: "libre" }, { id: "C03", status: "libre" },
-  { id: "C04", status: "ocupado" }, { id: "C05", status: "reservado" },
-  { id: "D01", status: "libre" }, { id: "D02", status: "ocupado" }, { id: "D03", status: "discap" },
-  { id: "D04", status: "libre" }, { id: "D05", status: "ocupado" },
+  { id: "A01", status: "ocupado" },
+  { id: "A02", status: "ocupado" },
+  { id: "A03", status: "libre" },
+  { id: "A04", status: "libre" },
+  { id: "A05", status: "ocupado" },
+  { id: "B01", status: "libre" },
+  { id: "B02", status: "reservado" },
+  { id: "B03", status: "ocupado" },
+  { id: "B04", status: "libre" },
+  { id: "B05", status: "libre" },
+  { id: "C01", status: "ocupado" },
+  { id: "C02", status: "libre" },
+  { id: "C03", status: "libre" },
+  { id: "C04", status: "ocupado" },
+  { id: "C05", status: "reservado" },
+  { id: "D01", status: "libre" },
+  { id: "D02", status: "ocupado" },
+  { id: "D03", status: "discap" },
+  { id: "D04", status: "libre" },
+  { id: "D05", status: "ocupado" },
 ];
 
 const slotColors = {
-  libre:    { bg: "rgba(0,158,61,0.15)",  border: "rgba(0,158,61,0.5)",   color: "#4ddb8a" },
-  ocupado:  { bg: "rgba(200,40,40,0.15)", border: "rgba(200,40,40,0.4)",  color: "#ff6b6b" },
-  reservado:{ bg: "rgba(255,170,0,0.12)", border: "rgba(255,170,0,0.4)",  color: "#ffaa00" },
-  discap:   { bg: "rgba(0,120,255,0.15)", border: "rgba(0,120,255,0.4)",  color: "#5ba8ff" },
+  libre: {
+    bg: "#DCFCE7",
+    color: "#16A34A",
+  },
+  ocupado: {
+    bg: "#FEE2E2",
+    color: "#DC2626",
+  },
+  reservado: {
+    bg: "#FEF3C7",
+    color: "#D97706",
+  },
+  discap: {
+    bg: "#DBEAFE",
+    color: "#2563EB",
+  },
 };
 
-const movements = [
-  { plate: "ABC 123", location: "Celda A03", type: "ENTRADA" },
-  { plate: "XYZ 456", location: "Celda B04", type: "SALIDA" },
-  { plate: "MNO 789", location: "Celda D03", type: "ENTRADA" },
-  { plate: "PQR 321", location: "Celda A02", type: "SALIDA" },
-  { plate: "STU 654", location: "Moto Z01",  type: "ENTRADA" },
-];
-
 const benefits = [
-  { icon: "🔐", title: "Control de Acceso Total", desc: "Gestiona quién entra y sale del parqueadero con validación automática de placas y carnés institucionales.", tag: "Seguridad" },
-  { icon: "⚡", title: "Gestión en Tiempo Real",  desc: "Monitorea la disponibilidad, ocupación y movimientos del parqueadero al instante, desde cualquier dispositivo.", tag: "Eficiencia" },
-  { icon: "📅", title: "Reservas Anticipadas",    desc: "Permite a instructores y aprendices reservar su celda con anticipación y evitar filas en la entrada.", tag: "Comodidad" },
-  { icon: "📈", title: "Reportes y Estadísticas", desc: "Genera informes detallados de uso, picos de ocupación y tendencias para tomar mejores decisiones.", tag: "Análisis" },
-  { icon: "♿", title: "Celdas Priorizadas",       desc: "Gestión automática de celdas de discapacidad, motocicletas y vehículos especiales con asignación inteligente.", tag: "Inclusión" },
-  { icon: "🚨", title: "Gestión de Incidentes",   desc: "Registro y seguimiento de incidentes vehiculares con notificaciones inmediatas al personal de seguridad.", tag: "Respuesta" },
-];
-
-const features = [
-  { num: "01", name: "Control de Entrada y Salida",      desc: "Registro automático con cámara, lector QR o carné SENA para agilizar el flujo vehicular." },
-  { num: "02", name: "Asignación Inteligente de Celdas", desc: "El sistema asigna automáticamente la celda disponible más cercana según el perfil del usuario." },
-  { num: "03", name: "Panel Administrativo Completo",     desc: "Vista centralizada del parqueadero, historial de movimientos y herramientas de configuración avanzada." },
-  { num: "04", name: "Reconocimiento de Placas (LPR)",   desc: "Identificación automática de vehículos registrados para acceso sin fricciones." },
-  { num: "05", name: "Notificaciones y Alertas",          desc: "Alertas en tiempo real para vehículos no autorizados, reservas vencidas e incidentes." },
-];
-
-const roles = [
   {
-    icon: "👔", name: "Administrador",
-    desc: "Control total de la plataforma. Configura el sistema, gestiona usuarios y genera reportes institucionales.",
-    perms: ["Gestión completa de celdas", "Administración de usuarios", "Reportes avanzados", "Configuración del sistema", "Gestión de incidentes"],
+    icon: ShieldCheck,
+    title: "Seguridad Institucional",
+    desc: "Acceso inteligente y control automatizado para toda la regional.",
   },
   {
-    icon: "🎓", name: "Instructor",
-    desc: "Acceso prioritario con gestión de reservas y visualización del estado actual del parqueadero en tiempo real.",
-    perms: ["Reserva anticipada de celdas", "Vista del mapa en tiempo real", "Historial personal", "Acceso prioritario garantizado"],
+    icon: ScanLine,
+    title: "Reconocimiento de Placas",
+    desc: "Ingreso automático mediante lectura LPR y QR institucional.",
   },
   {
-    icon: "🎒", name: "Aprendiz",
-    desc: "Consulta disponibilidad, realiza reservas y recibe notificaciones sobre el estado de su celda asignada.",
-    perms: ["Consulta de disponibilidad", "Reserva de celda", "Notificaciones push", "QR de acceso personal"],
+    icon: Activity,
+    title: "Monitoreo en Tiempo Real",
+    desc: "Visualización operativa del parqueadero en vivo.",
+  },
+  {
+    icon: Smartphone,
+    title: "Acceso Multiplataforma",
+    desc: "Compatible con escritorio, tablet y dispositivos móviles.",
+  },
+  {
+    icon: BellRing,
+    title: "Alertas Inteligentes",
+    desc: "Notificaciones instantáneas y eventos críticos.",
+  },
+  {
+    icon: BarChart3,
+    title: "Analítica Avanzada",
+    desc: "Reportes y métricas institucionales en tiempo real.",
   },
 ];
 
-const stripItems = ["🛡️ Acceso Seguro y Controlado", "📊 Reportes en Tiempo Real", "📱 Interfaz Intuitiva", "🚗 Reconocimiento de Placas"];
+const modules = [
+  {
+    title: "Gestión Vehicular",
+    icon: CarFront,
+    desc: "Registro y control automatizado de vehículos.",
+  },
+  {
+    title: "Administración",
+    icon: Building2,
+    desc: "Configuración institucional y gestión de usuarios.",
+  },
+  {
+    title: "Vigilancia Inteligente",
+    icon: Camera,
+    desc: "Monitoreo visual integrado en tiempo real.",
+  },
+  {
+    title: "IA Operativa",
+    icon: Cpu,
+    desc: "Predicción y optimización de ocupación.",
+  },
+];
 
 function useAnimated() {
   const [visible, setVisible] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setVisible(true), 100); return () => clearTimeout(t); }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 100);
+
+    return () => clearTimeout(t);
+  }, []);
+
   return visible;
 }
 
 export default function SenaLanding() {
-  // ✅ useNavigate inside the component
   const navigate = useNavigate();
-  const visible = useAnimated();
-  const [hoveredRole, setHoveredRole] = useState<number | null>(null);
-  const [hoveredFeature, setHoveredFeature] = useState<number | null>(null);
-  const [hoveredBenefit, setHoveredBenefit] = useState<number | null>(null);
 
-  const libre    = slots.filter(s => s.status === "libre").length;
-  const ocupado  = slots.filter(s => s.status === "ocupado").length;
-  const reservado = slots.filter(s => s.status === "reservado").length;
-  const pct = Math.round((ocupado / slots.length) * 100);
+  const visible = useAnimated();
+
+  const libres = slots.filter((s) => s.status === "libre").length;
+  const ocupados = slots.filter((s) => s.status === "ocupado").length;
+  const reservas = slots.filter((s) => s.status === "reservado").length;
 
   return (
     <>
       <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Barlow', sans-serif; }
-        .sena-landing { font-family: 'Barlow', sans-serif; color: #1a1a1a; background: #fff; overflow-x: hidden; }
-        .fade-up { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.7s ease; }
-        .fade-up.visible { opacity: 1; transform: translateY(0); }
-        .fade-up.d1 { transition-delay: 0.1s; }
-        .fade-up.d2 { transition-delay: 0.25s; }
-        .fade-up.d3 { transition-delay: 0.4s; }
-        .fade-up.d4 { transition-delay: 0.55s; }
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        .pulse-dot { animation: pulse 2s infinite; }
+
+      *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+      }
+
+      html{
+        scroll-behavior:smooth;
+      }
+
+      body{
+        font-family:'Inter',sans-serif;
+        background:${COLORS.background};
+        color:${COLORS.text};
+      }
+
+      button{
+        transition:.25s ease;
+      }
+
+      button:hover{
+        transform:translateY(-2px);
+      }
+
+      ::selection{
+        background:#39A900;
+        color:white;
+      }
+
+      .container{
+        max-width:1280px;
+        margin:auto;
+        padding:0 2rem;
+      }
+
+      .glass{
+        background:rgba(255,255,255,.96);
+        backdrop-filter:blur(16px);
+        border:1px solid rgba(15,23,42,.06);
+        box-shadow:0 10px 40px rgba(0,0,0,.05);
+      }
+
+      .card{
+        transition:.3s ease;
+      }
+
+      .card:hover{
+        transform:translateY(-8px);
+        box-shadow:0 20px 50px rgba(15,23,42,.08);
+      }
+
+      .fade-up{
+        opacity:0;
+        transform:translateY(40px);
+        transition:all .8s ease;
+      }
+
+      .fade-up.visible{
+        opacity:1;
+        transform:translateY(0);
+      }
+
+      .hero-blur{
+        position:absolute;
+        width:700px;
+        height:700px;
+        border-radius:50%;
+        background:#39A90015;
+        filter:blur(120px);
+        top:-200px;
+        right:-120px;
+      }
+
+      .tag{
+        display:inline-flex;
+        align-items:center;
+        gap:8px;
+        padding:10px 18px;
+        border-radius:999px;
+        background:${COLORS.primarySoft};
+        color:${COLORS.primaryDark};
+        font-weight:700;
+        font-size:14px;
+      }
+
+      @media(max-width:980px){
+
+        .hero-grid,
+        .modules-grid,
+        .cta-grid{
+          grid-template-columns:1fr !important;
+        }
+
+        .nav-links{
+          display:none !important;
+        }
+
+        .hero-title{
+          font-size:4rem !important;
+        }
+      }
+
+      @media(max-width:640px){
+
+        .hero-title{
+          font-size:3rem !important;
+        }
+
+        .section-title{
+          font-size:2.5rem !important;
+        }
+      }
+
       `}</style>
 
-      <div className="sena-landing">
+      <div
+        style={{
+          overflow: "hidden",
+          background: COLORS.background,
+        }}
+      >
+        {/* NAVBAR */}
 
-        {/* ── NAV ── */}
-        <nav style={{
-          position: "fixed", top: 0, left: 0, right: 0, zIndex: 100,
-          background: "#0a0a0a", borderBottom: `3px solid ${SENA_GREEN}`,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "0 2.5rem", height: 64,
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-            <div style={{
-              width: 38, height: 38, background: SENA_GREEN, borderRadius: 6,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 15, color: "#fff",
-            }}>S</div>
-            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 18, color: "#fff", letterSpacing: 1 }}>
-              <span style={{ color: SENA_GREEN }}>SENA</span> · ParkU
-            </span>
-          </div>
-
-          <div style={{ display: "flex", gap: "2rem" }}>
-            {["Inicio", "Funciones", "Usuarios", "Soporte"].map(l => (
-              <a key={l} href="#" style={{ color: "#ccc", fontSize: 14, fontWeight: 500, textDecoration: "none", letterSpacing: 0.5 }}
-                onMouseEnter={e => (e.target as HTMLElement).style.color = SENA_GREEN}
-                onMouseLeave={e => (e.target as HTMLElement).style.color = "#ccc"}>{l}</a>
-            ))}
-          </div>
-
-          {/* ✅ navigate('/login') — absolute path */}
-          <button
-            onClick={() => navigate("/login")}
+        <nav
+          style={{
+            position: "fixed",
+            top: 0,
+            width: "100%",
+            zIndex: 100,
+            backdropFilter: "blur(16px)",
+            background: "rgba(255,255,255,.92)",
+            borderBottom: "1px solid rgba(0,0,0,.05)",
+          }}
+        >
+          <div
+            className="container"
             style={{
-              background: SENA_GREEN, color: "#fff", border: "none",
-              padding: "9px 22px", borderRadius: 4, fontFamily: "'Barlow', sans-serif",
-              fontWeight: 600, fontSize: 14, cursor: "pointer", letterSpacing: 0.5,
+              height: 82,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
             }}
-            onMouseEnter={e => e.currentTarget.style.background = SENA_DARK}
-            onMouseLeave={e => e.currentTarget.style.background = SENA_GREEN}
           >
-            Iniciar Sesión
-          </button>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+              }}
+            >
+              <img
+                src={logoSena}
+                alt="SENA"
+                style={{
+                  width: 56,
+                }}
+              />
+
+              <div>
+                <div
+                  style={{
+                    fontWeight: 900,
+                    fontSize: 16,
+                    color: COLORS.text,
+                  }}
+                >
+                  PARKU SENA
+                </div>
+
+                <div
+                  style={{
+                    color: COLORS.textLight,
+                    fontSize: 12,
+                  }}
+                >
+                  Sistema Institucional
+                </div>
+              </div>
+            </div>
+
+            <div
+              className="nav-links"
+              style={{
+                display: "flex",
+                gap: "2rem",
+                color: COLORS.textSoft,
+                fontWeight: 600,
+              }}
+            >
+              <span>Inicio</span>
+              <span>Funciones</span>
+              <span>Dashboard</span>
+              <span>Soporte</span>
+            </div>
+
+            <button
+              onClick={() => navigate("/login")}
+              style={{
+                border: "none",
+                background: COLORS.primary,
+                color: "#fff",
+                padding: "14px 26px",
+                borderRadius: 16,
+                fontWeight: 800,
+                cursor: "pointer",
+                fontSize: 15,
+                letterSpacing: ".2px",
+                boxShadow: "0 10px 25px rgba(57,169,0,.2)",
+              }}
+            >
+              Ingresar
+            </button>
+          </div>
         </nav>
 
-        {/* ── HERO ── */}
-        <section style={{
-          minHeight: "100vh", background: "#0a0a0a",
-          display: "flex", alignItems: "center", paddingTop: 64, position: "relative", overflow: "hidden",
-        }}>
-          <div style={{
-            position: "absolute", top: 0, right: 0, width: "55%", height: "100%",
-            background: "linear-gradient(135deg,#001a0a 0%,#003d1a 50%,#006628 100%)",
-            clipPath: "polygon(12% 0%,100% 0%,100% 100%,0% 100%)",
-          }} />
+        {/* HERO */}
 
-          <div style={{
-            position: "relative", zIndex: 2, maxWidth: 1200, margin: "0 auto",
-            padding: "4rem 2.5rem", display: "grid", gridTemplateColumns: "1fr 1fr",
-            gap: "4rem", alignItems: "center", width: "100%",
-          }}>
+        <section
+          style={{
+            minHeight: "100vh",
+            position: "relative",
+            paddingTop: 140,
+            background:
+              "linear-gradient(180deg,#ffffff 0%,#f4f8f4 40%,#eef5ef 100%)",
+          }}
+        >
+          <div className="hero-blur" />
+
+          <div
+            className="container hero-grid"
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.1fr .9fr",
+              gap: "5rem",
+              alignItems: "center",
+            }}
+          >
             {/* LEFT */}
-            <div>
-              <div className={`fade-up ${visible ? "visible" : ""}`}
-                style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(0,158,61,0.15)", border: "1px solid rgba(0,158,61,0.4)", borderRadius: 2, padding: "6px 14px", fontSize: 12, fontWeight: 600, color: "#4ddb8a", letterSpacing: 2, textTransform: "uppercase", marginBottom: "1.5rem" }}>
-                <span className="pulse-dot" style={{ width: 6, height: 6, background: "#4ddb8a", borderRadius: "50%", display: "inline-block" }} />
-                Sistema activo
+
+            <div
+              className={`fade-up ${visible ? "visible" : ""}`}
+            >
+              <div className="tag">
+                <BadgeCheck size={16} />
+                Plataforma Institucional Activa
               </div>
 
-              <h1 className={`fade-up d1 ${visible ? "visible" : ""}`}
-                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 72, lineHeight: 0.95, color: "#fff", textTransform: "uppercase", letterSpacing: -1, marginBottom: "1.5rem" }}>
-                Control de<br />
-                <span style={{ color: SENA_GREEN }}>Parqueadero</span><br />
-                SENA
+              <h1
+                className="hero-title"
+                style={{
+                  fontSize: "clamp(3rem,8vw,6.5rem)",
+                  lineHeight: .92,
+                  letterSpacing: "-0.05em",
+                  marginTop: "2rem",
+                  marginBottom: "1.5rem",
+                  fontWeight: 900,
+                  color: COLORS.text,
+                }}
+              >
+                Gestión
+                <br />
+
+                <span
+                  style={{
+                    color: COLORS.primary,
+                  }}
+                >
+                  Inteligente
+                </span>
+
+                <br />
+                de Parqueaderos
               </h1>
 
-              <p className={`fade-up d2 ${visible ? "visible" : ""}`}
-                style={{ fontSize: 17, color: "#aaa", lineHeight: 1.65, marginBottom: "2.5rem", maxWidth: 480 }}>
-                Plataforma institucional para la gestión inteligente del acceso vehicular. Diseñada para aprendices, instructores y administradores del Servicio Nacional de Aprendizaje.
+              <p
+                style={{
+                  fontSize: 18,
+                  color: COLORS.textLight,
+                  lineHeight: 1.8,
+                  maxWidth: 650,
+                  marginBottom: "2.5rem",
+                }}
+              >
+                Plataforma moderna desarrollada para optimizar
+                el acceso vehicular institucional mediante
+                automatización, monitoreo en tiempo real,
+                reservas inteligentes y control administrativo.
               </p>
 
-              <div className={`fade-up d3 ${visible ? "visible" : ""}`} style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
-                {/* ✅ navigate('/login') */}
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1rem",
+                  flexWrap: "wrap",
+                }}
+              >
                 <button
                   onClick={() => navigate("/login")}
-                  style={{ background: SENA_GREEN, color: "#fff", padding: "14px 32px", borderRadius: 4, border: "none", fontFamily: "'Barlow', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", letterSpacing: 0.5, display: "flex", alignItems: "center", gap: 8 }}
-                  onMouseEnter={e => { e.currentTarget.style.background = SENA_DARK; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = SENA_GREEN; e.currentTarget.style.transform = "translateY(0)"; }}
+                  style={{
+                    border: "none",
+                    background: COLORS.primary,
+                    color: "#fff",
+                    padding: "18px 30px",
+                    borderRadius: 16,
+                    fontWeight: 800,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    fontSize: 15,
+                    letterSpacing: ".2px",
+                    boxShadow: "0 14px 30px rgba(57,169,0,.25)",
+                  }}
                 >
                   Acceder al Sistema
+                  <ArrowRight size={18} />
+                </button>
+
+                <button
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    background: "#fff",
+                    color: COLORS.text,
+                    padding: "18px 30px",
+                    borderRadius: 16,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    fontSize: 15,
+                  }}
+                >
+                  Ver Módulos
                 </button>
               </div>
 
-              <div className={`fade-up d4 ${visible ? "visible" : ""}`} style={{ display: "flex", gap: "2rem", marginTop: "3rem" }}>
-                {[["200+", "Celdas gestionadas"], ["24/7", "Monitoreo continuo"], ["3", "Roles de usuario"]].map(([num, label]) => (
-                  <div key={label} style={{ borderLeft: `3px solid ${SENA_GREEN}`, paddingLeft: "1rem" }}>
-                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 36, color: "#fff", lineHeight: 1 }}>{num}</div>
-                    <div style={{ fontSize: 12, color: "#777", letterSpacing: 1, textTransform: "uppercase", marginTop: 4 }}>{label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+              {/* STATS */}
 
-            {/* RIGHT – parking map */}
-            <div className={`fade-up d2 ${visible ? "visible" : ""}`}>
-              <div style={{ background: "rgba(0,0,0,0.5)", border: "1px solid rgba(0,158,61,0.3)", borderRadius: 8, padding: "1.5rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#fff", letterSpacing: 1, textTransform: "uppercase" }}>Mapa en Tiempo Real</span>
-                  <span style={{ fontSize: 12, color: "#4ddb8a", fontWeight: 600 }}>● En línea</span>
-                </div>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(180px,1fr))",
+                  gap: "1rem",
+                  marginTop: "4rem",
+                }}
+              >
+                {[
+                  ["+250", "Celdas Activas", Sparkles],
+                  ["24/7", "Monitoreo", Activity],
+                  ["98%", "Disponibilidad", Zap],
+                ].map(([n, l, Icon]: any) => (
+                  <div
+                    key={l}
+                    className="glass card"
+                    style={{
+                      padding: "1.5rem",
+                      borderRadius: 24,
+                    }}
+                  >
+                    <Icon
+                      size={24}
+                      color={COLORS.primary}
+                    />
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 6 }}>
-                  {slots.map(s => {
-                    const c = slotColors[s.status];
-                    return (
-                      <div key={s.id} style={{
-                        aspectRatio: "1.6", borderRadius: 4, border: `1px solid ${c.border}`,
-                        background: c.bg, display: "flex", alignItems: "center", justifyContent: "center",
-                        fontSize: 10, fontWeight: 700, color: c.color, letterSpacing: 0.5, cursor: "default",
-                        transition: "transform 0.15s",
+                    <div
+                      style={{
+                        fontSize: 36,
+                        fontWeight: 900,
+                        color: COLORS.primary,
+                        marginTop: 14,
                       }}
-                        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.08)"}
-                        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
-                      >{s.id}</div>
-                    );
-                  })}
-                </div>
-
-                <div style={{ display: "flex", gap: "1rem", marginTop: "1rem", flexWrap: "wrap" }}>
-                  {[["#4ddb8a","Libre"],["#ff6b6b","Ocupado"],["#ffaa00","Reservado"],["#5ba8ff","Discapacidad"]].map(([col, lbl]) => (
-                    <div key={lbl} style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#aaa" }}>
-                      <div style={{ width: 8, height: 8, borderRadius: 2, background: col }} />
-                      {lbl}
+                    >
+                      {n}
                     </div>
-                  ))}
-                </div>
 
-                <div style={{ marginTop: "1.25rem", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", justifyContent: "space-between" }}>
-                  {([
-                    [libre, "#4ddb8a", "Libres"],
-                    [ocupado, "#ff6b6b", "Ocupados"],
-                    [reservado, "#ffaa00", "Reservados"],
-                    [pct + "%", "#aaa", "Ocupación"],
-                  ] as [string | number, string, string][]).map(([n, col, lbl]) => (
-                    <div key={lbl} style={{ textAlign: "center" }}>
-                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 24, color: col }}>{n}</div>
-                      <div style={{ fontSize: 11, color: "#777" }}>{lbl}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── STRIP ── */}
-        <div style={{ background: SENA_GREEN, padding: "1.25rem 2.5rem", display: "flex", alignItems: "center", justifyContent: "center", gap: "3rem", flexWrap: "wrap" }}>
-          {stripItems.map(item => (
-            <div key={item} style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>{item}</div>
-          ))}
-        </div>
-
-        {/* ── BENEFITS ── */}
-        <section style={{ padding: "5rem 2.5rem", background: "#f4f4f4" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: SENA_GREEN, letterSpacing: 3, textTransform: "uppercase", marginBottom: "0.75rem" }}>¿Por qué elegir ParkU?</div>
-            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 48, textTransform: "uppercase", marginBottom: "1rem" }}>Beneficios para<br />tu institución</h2>
-            <p style={{ fontSize: 17, color: "#555", maxWidth: 580, lineHeight: 1.65, marginBottom: "3rem" }}>Optimiza el flujo vehicular y la seguridad del campus con una solución pensada para el SENA.</p>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "1.5px", background: "#ddd", border: "1.5px solid #ddd" }}>
-              {benefits.map((b, i) => (
-                <div key={b.title}
-                  style={{ background: hoveredBenefit === i ? "#fafff7" : "#fff", padding: "2.5rem 2rem", transition: "background 0.2s", cursor: "default" }}
-                  onMouseEnter={() => setHoveredBenefit(i)}
-                  onMouseLeave={() => setHoveredBenefit(null)}>
-                  <div style={{ fontSize: 24, marginBottom: "1.25rem", width: 52, height: 52, borderRadius: 6, background: "#e6f7ee", display: "flex", alignItems: "center", justifyContent: "center" }}>{b.icon}</div>
-                  <div style={{ fontWeight: 700, fontSize: 18, marginBottom: "0.5rem" }}>{b.title}</div>
-                  <div style={{ fontSize: 15, color: "#555", lineHeight: 1.6 }}>{b.desc}</div>
-                  <div style={{ display: "inline-block", marginTop: "1rem", fontSize: 11, fontWeight: 700, color: SENA_GREEN, letterSpacing: 1.5, textTransform: "uppercase", borderBottom: `2px solid ${SENA_GREEN}`, paddingBottom: 2 }}>{b.tag}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── FEATURES ── */}
-        <section style={{ padding: "5rem 2.5rem" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: SENA_GREEN, letterSpacing: 3, textTransform: "uppercase", marginBottom: "0.75rem" }}>Funcionalidades del Sistema</div>
-            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 48, textTransform: "uppercase", marginBottom: "3rem" }}>Todo lo que<br />necesitas</h2>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "5rem", alignItems: "center" }}>
-              <div>
-                {features.map((f, i) => (
-                  <div key={f.num}
-                    style={{ display: "flex", gap: "1rem", padding: "1.25rem 0", borderBottom: "1px solid #eee", borderTop: i === 0 ? "1px solid #eee" : "none", cursor: "default", paddingLeft: hoveredFeature === i ? 8 : 0, transition: "padding-left 0.2s" }}
-                    onMouseEnter={() => setHoveredFeature(i)}
-                    onMouseLeave={() => setHoveredFeature(null)}>
-                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 28, color: SENA_GREEN, minWidth: 40, lineHeight: 1, opacity: 0.5 }}>{f.num}</div>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{f.name}</div>
-                      <div style={{ fontSize: 14, color: "#555" }}>{f.desc}</div>
+                    <div
+                      style={{
+                        color: COLORS.textLight,
+                        marginTop: 6,
+                      }}
+                    >
+                      {l}
                     </div>
                   </div>
                 ))}
               </div>
+            </div>
 
-              <div style={{ background: "#0a0a0a", borderRadius: 8, padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <div style={{ display: "flex", gap: "1rem" }}>
-                  {[["142","#4ddb8a","Vehículos hoy",71],[" 23","#ffaa00","Reservas activas",45]].map(([num,col,lbl,pct]) => (
-                    <div key={lbl} style={{ flex: 1, borderRadius: 6, padding: "1rem", background: col === "#4ddb8a" ? "rgba(0,158,61,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${col === "#4ddb8a" ? "rgba(0,158,61,0.3)" : "rgba(255,255,255,0.08)"}` }}>
-                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 32, color: SENA_GREEN }}>{num}</div>
-                      <div style={{ fontSize: 12, color: "#666", textTransform: "uppercase", letterSpacing: 1, marginTop: 2 }}>{lbl}</div>
-                      <div style={{ height: 6, borderRadius: 3, marginTop: "1rem", background: "rgba(255,255,255,0.08)", overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: pct + "%", background: col, borderRadius: 3 }} />
+            {/* RIGHT */}
+
+            <div
+              className="glass fade-up visible"
+              style={{
+                borderRadius: 32,
+                padding: "2rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "2rem",
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 24,
+                      color: COLORS.text,
+                    }}
+                  >
+                    Dashboard Operativo
+                  </div>
+
+                  <div
+                    style={{
+                      color: COLORS.textLight,
+                      marginTop: 4,
+                    }}
+                  >
+                    Estado institucional en tiempo real
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    color: COLORS.success,
+                    fontWeight: 700,
+                  }}
+                >
+                  ● Online
+                </div>
+              </div>
+
+              {/* MINI CARDS */}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "1rem",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                {[
+                  [
+                    Clock3,
+                    "3s",
+                    "Tiempo promedio acceso",
+                  ],
+                  [
+                    MapPinned,
+                    "7",
+                    "Parqueaderos activos",
+                  ],
+                ].map(([Icon, n, l], i) => {
+                  const Comp = Icon as any;
+
+                  return (
+                    <div
+                      key={i}
+                      style={{
+                        background: "#fff",
+                        borderRadius: 22,
+                        padding: "1.2rem",
+                        border: `1px solid ${COLORS.border}`,
+                        boxShadow:
+                          "0 10px 30px rgba(15,23,42,.04)",
+                      }}
+                    >
+                      <Comp
+                        size={22}
+                        color={COLORS.primary}
+                      />
+
+                      <div
+                        style={{
+                          fontSize: 32,
+                          fontWeight: 900,
+                          marginTop: 14,
+                          color: COLORS.text,
+                        }}
+                      >
+                        {n}
+                      </div>
+
+                      <div
+                        style={{
+                          color: COLORS.textLight,
+                          marginTop: 4,
+                          fontSize: 14,
+                        }}
+                      >
+                        {l}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* PARKING GRID */}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(5,1fr)",
+                  gap: 10,
+                }}
+              >
+                {slots.map((slot) => {
+                  const c = slotColors[slot.status];
+
+                  return (
+                    <div
+                      key={slot.id}
+                      style={{
+                        aspectRatio: "1.2",
+                        borderRadius: 18,
+                        background: c.bg,
+                        color: c.color,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: 800,
+                        boxShadow:
+                          "0 4px 14px rgba(0,0,0,.04)",
+                      }}
+                    >
+                      {slot.id}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* BOTTOM STATS */}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3,1fr)",
+                  gap: "1rem",
+                  marginTop: "1.5rem",
+                }}
+              >
+                {[
+                  [libres, "Libres"],
+                  [ocupados, "Ocupados"],
+                  [reservas, "Reservas"],
+                ].map(([n, l]) => (
+                  <div
+                    key={l}
+                    style={{
+                      background: "#fff",
+                      borderRadius: 18,
+                      padding: "1rem",
+                      border: `1px solid ${COLORS.border}`,
+                      boxShadow:
+                        "0 10px 30px rgba(15,23,42,.04)",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 28,
+                        fontWeight: 900,
+                        color: COLORS.primary,
+                      }}
+                    >
+                      {n}
+                    </div>
+
+                    <div
+                      style={{
+                        color: COLORS.textLight,
+                        marginTop: 4,
+                        fontSize: 14,
+                      }}
+                    >
+                      {l}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* TRUST BAR */}
+
+        <section
+          style={{
+            padding: "2rem 0",
+            background: "#fff",
+            borderTop: `1px solid ${COLORS.border}`,
+            borderBottom: `1px solid ${COLORS.border}`,
+          }}
+        >
+          <div
+            className="container"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "2rem",
+              alignItems: "center",
+            }}
+          >
+            {[
+              "Acceso Inteligente",
+              "Reconocimiento LPR",
+              "Control Institucional",
+              "Monitoreo 24/7",
+            ].map((item) => (
+              <div
+                key={item}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  fontWeight: 700,
+                  color: COLORS.textSoft,
+                }}
+              >
+                <CheckCircle2
+                  size={18}
+                  color={COLORS.primary}
+                />
+
+                {item}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* BENEFITS */}
+
+        <section
+          style={{
+            padding: "7rem 0",
+          }}
+        >
+          <div className="container">
+            <div
+              style={{
+                color: COLORS.primary,
+                fontWeight: 800,
+                letterSpacing: 2,
+                textTransform: "uppercase",
+                marginBottom: 16,
+              }}
+            >
+              Beneficios Institucionales
+            </div>
+
+            <h2
+              className="section-title"
+              style={{
+                fontSize: "clamp(3rem,5vw,5rem)",
+                lineHeight: 1,
+                fontWeight: 900,
+                marginBottom: "1rem",
+                color: COLORS.text,
+              }}
+            >
+              Tecnología moderna
+              <br />
+              para el SENA
+            </h2>
+
+            <p
+              style={{
+                color: COLORS.textLight,
+                maxWidth: 760,
+                lineHeight: 1.8,
+                fontSize: 18,
+                marginBottom: "4rem",
+              }}
+            >
+              Solución diseñada para optimizar movilidad,
+              seguridad y administración institucional.
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns:
+                  "repeat(auto-fit,minmax(320px,1fr))",
+                gap: "1.5rem",
+              }}
+            >
+              {benefits.map((b) => {
+                const Icon = b.icon;
+
+                return (
+                  <div
+                    key={b.title}
+                    className="glass card"
+                    style={{
+                      borderRadius: 28,
+                      padding: "2rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 72,
+                        height: 72,
+                        borderRadius: 24,
+                        background: COLORS.primarySoft,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        marginBottom: "1.5rem",
+                      }}
+                    >
+                      <Icon
+                        size={34}
+                        color={COLORS.primary}
+                      />
+                    </div>
+
+                    <h3
+                      style={{
+                        fontSize: 24,
+                        fontWeight: 900,
+                        marginBottom: ".8rem",
+                        color: COLORS.text,
+                      }}
+                    >
+                      {b.title}
+                    </h3>
+
+                    <p
+                      style={{
+                        color: COLORS.textLight,
+                        lineHeight: 1.8,
+                      }}
+                    >
+                      {b.desc}
+                    </p>
+
+                    <div
+                      style={{
+                        marginTop: "1.5rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        color: COLORS.primary,
+                        fontWeight: 700,
+                      }}
+                    >
+                      Ver más
+                      <ChevronRight size={18} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* MODULES */}
+
+        <section
+          style={{
+            padding: "7rem 0",
+            background: "#fff",
+          }}
+        >
+          <div className="container">
+            <div
+              className="modules-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "5rem",
+                alignItems: "center",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    color: COLORS.primary,
+                    fontWeight: 800,
+                    marginBottom: 16,
+                    letterSpacing: 2,
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Módulos Inteligentes
+                </div>
+
+                <h2
+                  className="section-title"
+                  style={{
+                    fontSize: "clamp(3rem,5vw,4.5rem)",
+                    lineHeight: 1,
+                    fontWeight: 900,
+                    marginBottom: "1.5rem",
+                    color: COLORS.text,
+                  }}
+                >
+                  Ecosistema
+                  <br />
+                  operativo
+                </h2>
+
+                <p
+                  style={{
+                    color: COLORS.textLight,
+                    lineHeight: 1.8,
+                    fontSize: 18,
+                    marginBottom: "3rem",
+                  }}
+                >
+                  Arquitectura modular moderna enfocada en
+                  escalabilidad, automatización y control.
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1rem",
+                  }}
+                >
+                  {[
+                    "Ingreso mediante QR institucional",
+                    "Validación automática de acceso",
+                    "Asignación inteligente de celdas",
+                    "Monitoreo y alertas operativas",
+                  ].map((item, i) => (
+                    <div
+                      key={item}
+                      style={{
+                        display: "flex",
+                        gap: "1rem",
+                        alignItems: "center",
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: "50%",
+                          background: COLORS.primary,
+                          color: "#fff",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontWeight: 800,
+                          flexShrink: 0,
+                        }}
+                      >
+                        {i + 1}
+                      </div>
+
+                      <div
+                        style={{
+                          color: COLORS.textSoft,
+                          fontWeight: 600,
+                        }}
+                      >
+                        {item}
                       </div>
                     </div>
                   ))}
                 </div>
+              </div>
 
-                <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 6, padding: "1rem" }}>
-                  <div style={{ fontSize: 11, color: "#555", textTransform: "uppercase", letterSpacing: 1, marginBottom: 10, fontWeight: 700 }}>Últimos movimientos</div>
-                  {movements.map(m => (
-                    <div key={m.plate} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)", fontSize: 12, color: "#aaa" }}>
-                      <span>{m.plate} · {m.location}</span>
-                      <span style={{
-                        padding: "2px 8px", borderRadius: 2, fontSize: 10, fontWeight: 700,
-                        background: m.type === "ENTRADA" ? "rgba(0,158,61,0.2)" : "rgba(200,40,40,0.2)",
-                        color: m.type === "ENTRADA" ? "#4ddb8a" : "#ff6b6b",
-                      }}>{m.type}</span>
+              {/* RIGHT */}
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(240px,1fr))",
+                  gap: "1.5rem",
+                }}
+              >
+                {modules.map((m) => {
+                  const Icon = m.icon;
+
+                  return (
+                    <div
+                      key={m.title}
+                      className="glass card"
+                      style={{
+                        borderRadius: 28,
+                        padding: "2rem",
+                      }}
+                    >
+                      <Icon
+                        size={36}
+                        color={COLORS.primary}
+                      />
+
+                      <h3
+                        style={{
+                          marginTop: "1.5rem",
+                          fontWeight: 900,
+                          fontSize: 22,
+                          marginBottom: ".8rem",
+                          color: COLORS.text,
+                        }}
+                      >
+                        {m.title}
+                      </h3>
+
+                      <p
+                        style={{
+                          color: COLORS.textLight,
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        {m.desc}
+                      </p>
                     </div>
-                  ))}
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* EXTRA SECTION */}
+
+        <section
+          style={{
+            padding: "7rem 0",
+          }}
+        >
+          <div className="container">
+            <div
+              className="glass"
+              style={{
+                borderRadius: 40,
+                padding: "4rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(auto-fit,minmax(250px,1fr))",
+                  gap: "2rem",
+                }}
+              >
+                {[
+                  {
+                    icon: LockKeyhole,
+                    title: "Seguridad Avanzada",
+                  },
+                  {
+                    icon: LayoutDashboard,
+                    title: "Dashboard Ejecutivo",
+                  },
+                  {
+                    icon: Sparkles,
+                    title: "Experiencia Moderna",
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div key={item.title}>
+                      <Icon
+                        size={42}
+                        color={COLORS.primary}
+                      />
+
+                      <h3
+                        style={{
+                          marginTop: "1rem",
+                          fontSize: 24,
+                          fontWeight: 900,
+                          color: COLORS.text,
+                        }}
+                      >
+                        {item.title}
+                      </h3>
+
+                      <p
+                        style={{
+                          marginTop: ".8rem",
+                          color: COLORS.textLight,
+                          lineHeight: 1.8,
+                        }}
+                      >
+                        Plataforma diseñada con estándares
+                        modernos para operación institucional.
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA */}
+
+        <section
+          style={{
+            padding: "7rem 0",
+          }}
+        >
+          <div className="container">
+            <div
+              style={{
+                borderRadius: 40,
+                overflow: "hidden",
+                position: "relative",
+                background:
+                  "linear-gradient(135deg,#39A900,#2D7D00)",
+              }}
+            >
+              <div
+                style={{
+                  position: "absolute",
+                  width: 600,
+                  height: 600,
+                  borderRadius: "50%",
+                  background: "rgba(255,255,255,.08)",
+                  top: -250,
+                  right: -100,
+                  filter: "blur(40px)",
+                }}
+              />
+
+              <div
+                className="cta-grid"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr auto",
+                  gap: "3rem",
+                  alignItems: "center",
+                  padding: "5rem",
+                  position: "relative",
+                  zIndex: 2,
+                }}
+              >
+                <div>
+                  <h2
+                    style={{
+                      fontSize: "clamp(3rem,5vw,5rem)",
+                      lineHeight: 1,
+                      fontWeight: 900,
+                      color: "#fff",
+                      marginBottom: "1.5rem",
+                    }}
+                  >
+                    Moderniza tu
+                    <br />
+                    parqueadero hoy
+                  </h2>
+
+                  <p
+                    style={{
+                      color: "rgba(255,255,255,.92)",
+                      lineHeight: 1.8,
+                      fontSize: 18,
+                      maxWidth: 760,
+                    }}
+                  >
+                    Accede al sistema institucional y mejora
+                    la gestión vehicular de tu regional.
+                  </p>
                 </div>
 
-                <div style={{ display: "flex", gap: "1rem" }}>
-                  {[["98%","#5ba8ff","Sistema en línea"],["3s","#4ddb8a","Tiempo acceso"]].map(([num,col,lbl]) => (
-                    <div key={lbl} style={{ flex: 1, borderRadius: 6, padding: "1rem", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 24, color: col }}>{num}</div>
-                      <div style={{ fontSize: 12, color: "#666", textTransform: "uppercase", letterSpacing: 1 }}>{lbl}</div>
-                    </div>
-                  ))}
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "1rem",
+                  }}
+                >
+                  <button
+                    onClick={() => navigate("/login")}
+                    style={{
+                      border: "none",
+                      background: "#fff",
+                      color: COLORS.primary,
+                      padding: "18px 30px",
+                      borderRadius: 16,
+                      fontWeight: 800,
+                      cursor: "pointer",
+                      fontSize: 15,
+                    }}
+                  >
+                    Iniciar Sesión
+                  </button>
+
+                  <button
+                    style={{
+                      border:
+                        "1px solid rgba(255,255,255,.3)",
+                      background: "transparent",
+                      color: "#fff",
+                      padding: "18px 30px",
+                      borderRadius: 16,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Contactar Soporte
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── ROLES ── */}
-        <section style={{ padding: "5rem 2.5rem", background: "#0a0a0a" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto" }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#4ddb8a", letterSpacing: 3, textTransform: "uppercase", marginBottom: "0.75rem" }}>Diseñado para todos</div>
-            <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 48, textTransform: "uppercase", color: "#fff", marginBottom: "1rem" }}>Perfiles de usuario<br />del sistema</h2>
-            <p style={{ fontSize: 17, color: "#777", maxWidth: 580, lineHeight: 1.65, marginBottom: "3rem" }}>Cada rol tiene acceso a las herramientas que necesita, sin complejidad innecesaria.</p>
+        {/* FOOTER */}
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 1, background: "rgba(255,255,255,0.06)" }}>
-              {roles.map((r, i) => (
-                <div key={r.name}
-                  style={{ background: hoveredRole === i ? "#0d0d0d" : "#0a0a0a", padding: "2.5rem 2rem", borderTop: `3px solid ${hoveredRole === i ? SENA_GREEN : "transparent"}`, transition: "all 0.2s", cursor: "default" }}
-                  onMouseEnter={() => setHoveredRole(i)}
-                  onMouseLeave={() => setHoveredRole(null)}>
-                  <div style={{ fontSize: "2.5rem", marginBottom: "1.25rem" }}>{r.icon}</div>
-                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 24, color: "#fff", textTransform: "uppercase", marginBottom: "0.5rem", letterSpacing: 0.5 }}>{r.name}</div>
-                  <div style={{ fontSize: 14, color: "#666", lineHeight: 1.65 }}>{r.desc}</div>
-                  <div style={{ marginTop: "1.5rem", display: "flex", flexDirection: "column", gap: 6 }}>
-                    {r.perms.map(p => (
-                      <div key={p} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#888" }}>
-                        <span style={{ width: 5, height: 5, background: SENA_GREEN, borderRadius: "50%", display: "inline-block", flexShrink: 0 }} />
-                        {p}
-                      </div>
-                    ))}
+        <footer
+          style={{
+            background: "#FFFFFF",
+            borderTop: `1px solid ${COLORS.border}`,
+            padding: "5rem 0 2rem",
+          }}
+        >
+          <div
+            className="container"
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit,minmax(260px,1fr))",
+              gap: "4rem",
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: 14,
+                  alignItems: "center",
+                  marginBottom: "1.5rem",
+                }}
+              >
+                <img
+                  src={logoSena}
+                  alt="SENA"
+                  style={{
+                    width: 54,
+                  }}
+                />
+
+                <div>
+                  <div
+                    style={{
+                      fontWeight: 900,
+                      fontSize: 18,
+                      color: COLORS.text,
+                    }}
+                  >
+                    PARKU SENA
+                  </div>
+
+                  <div
+                    style={{
+                      color: COLORS.textLight,
+                      fontSize: 14,
+                    }}
+                  >
+                    Sistema Institucional
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
-        </section>
+              </div>
 
-        {/* ── CTA ── */}
-        <section style={{ background: SENA_GREEN, padding: "5rem 2.5rem", position: "relative", overflow: "hidden" }}>
-          <div style={{ position: "absolute", right: "-2rem", top: "50%", transform: "translateY(-50%)", fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 200, color: "rgba(255,255,255,0.07)", letterSpacing: -5, pointerEvents: "none", lineHeight: 1 }}>SENA</div>
-          <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr auto", gap: "3rem", alignItems: "center", position: "relative" }}>
+              <p
+                style={{
+                  color: COLORS.textLight,
+                  lineHeight: 1.9,
+                  maxWidth: 400,
+                }}
+              >
+                Plataforma moderna diseñada para optimizar
+                la administración vehicular institucional.
+              </p>
+            </div>
+
             <div>
-              <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 52, color: "#fff", textTransform: "uppercase", lineHeight: 1, marginBottom: "1rem" }}>¿Listo para empezar<br />a gestionar?</h2>
-              <p style={{ fontSize: 16, color: "rgba(255,255,255,0.75)" }}>Inicia sesión con tus credenciales institucionales SENA y accede al sistema de parqueadero de tu regional.</p>
+              <div
+                style={{
+                  fontWeight: 900,
+                  marginBottom: "1.2rem",
+                  color: COLORS.text,
+                  fontSize: 18,
+                }}
+              >
+                Navegación
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 14,
+                  color: COLORS.textLight,
+                  fontWeight: 500,
+                }}
+              >
+                <span>Inicio</span>
+                <span>Beneficios</span>
+                <span>Módulos</span>
+                <span>Dashboard</span>
+              </div>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-              {/* ✅ navigate('/login') */}
-              <button
-                onClick={() => navigate("/login")}
-                style={{ background: "#fff", color: SENA_GREEN, padding: "16px 36px", borderRadius: 4, border: "none", fontFamily: "'Barlow', sans-serif", fontWeight: 700, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}
-                onMouseEnter={e => { e.currentTarget.style.background = "#f0fff5"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-                onMouseLeave={e => { e.currentTarget.style.background = "#fff"; e.currentTarget.style.transform = "translateY(0)"; }}
+
+            <div>
+              <div
+                style={{
+                  fontWeight: 900,
+                  marginBottom: "1.2rem",
+                  color: COLORS.text,
+                  fontSize: 18,
+                }}
               >
-                Iniciar Sesión en el Sistema
-              </button>
-              <button
-                style={{ background: "transparent", color: "#fff", padding: "16px 36px", borderRadius: 4, border: "2px solid rgba(255,255,255,0.5)", fontFamily: "'Barlow', sans-serif", fontWeight: 600, fontSize: 15, cursor: "pointer", whiteSpace: "nowrap" }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = "#fff"}
-                onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.5)"}
+                Estado del Sistema
+              </div>
+
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  color: COLORS.success,
+                  fontWeight: 700,
+                  background: "#ECFDF3",
+                  width: "fit-content",
+                  padding: "10px 16px",
+                  borderRadius: 999,
+                }}
               >
-                Contactar Soporte
-              </button>
+                <CheckCircle2 size={18} />
+                Operativo 24/7
+              </div>
             </div>
           </div>
-        </section>
 
-        {/* ── FOOTER ── */}
-        <footer style={{ background: "#050505", borderTop: "1px solid #111", padding: "2.5rem" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: 13, color: "#555" }}>© 2025 SENA — Servicio Nacional de Aprendizaje · Sistema de Gestión de Parqueadero</div>
-            <div style={{ display: "flex", gap: "1.5rem" }}>
-              {["Privacidad", "Términos", "Soporte TIC"].map(l => (
-                <a key={l} href="#" style={{ fontSize: 13, color: "#555", textDecoration: "none" }}
-                  onMouseEnter={e => (e.target as HTMLElement).style.color = SENA_GREEN}
-                  onMouseLeave={e => (e.target as HTMLElement).style.color = "#555"}>{l}</a>
-              ))}
+          <div
+            className="container"
+            style={{
+              marginTop: "4rem",
+              paddingTop: "2rem",
+              borderTop: `1px solid ${COLORS.border}`,
+              display: "flex",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "1rem",
+            }}
+          >
+            <div
+              style={{
+                color: COLORS.textLight,
+                fontSize: 14,
+              }}
+            >
+              © 2026 SENA · Servicio Nacional de Aprendizaje
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "1.5rem",
+                color: COLORS.textLight,
+                fontSize: 14,
+              }}
+            >
+              <span>Privacidad</span>
+              <span>Términos</span>
+              <span>Soporte TIC</span>
             </div>
           </div>
         </footer>
-
       </div>
     </>
   );
