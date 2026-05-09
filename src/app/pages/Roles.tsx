@@ -119,9 +119,7 @@ export function Roles() {
         .includes(search.toLowerCase());
 
       const matchesEstado =
-        filterEstado === "todos"
-          ? true
-          : rol.estado === filterEstado;
+        filterEstado === "todos" ? true : rol.estado === filterEstado;
 
       return matchesSearch && matchesEstado;
     });
@@ -175,9 +173,7 @@ export function Roles() {
     }
 
     if (
-      confirm(
-        "¿Desea eliminar este rol? Esta acción no se puede deshacer."
-      )
+      confirm("¿Desea eliminar este rol? Esta acción no se puede deshacer.")
     ) {
       deleteRol(rol.id);
 
@@ -194,9 +190,7 @@ export function Roles() {
     toast.success("Rol duplicado correctamente");
   };
 
-  const handleTogglePermiso = (
-    permiso: keyof typeof formData.permisos
-  ) => {
+  const handleTogglePermiso = (permiso: keyof typeof formData.permisos) => {
     setFormData({
       ...formData,
 
@@ -208,9 +202,7 @@ export function Roles() {
     });
   };
 
-  const countActivePermisos = (
-    permisos: typeof formData.permisos
-  ) => {
+  const countActivePermisos = (permisos: typeof formData.permisos) => {
     return Object.values(permisos).filter(Boolean).length;
   };
 
@@ -236,9 +228,7 @@ export function Roles() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">
-            Gestión de Roles
-          </h1>
+          <h1 className="text-3xl font-bold text-white">Gestión de Roles</h1>
 
           <p className="text-sm text-gray-400 mt-1">
             Administra permisos y accesos del sistema
@@ -259,9 +249,7 @@ export function Roles() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Roles Totales
-            </div>
+            <div className="text-sm text-gray-400">Roles Totales</div>
 
             <div className="text-3xl font-bold text-white mt-1">
               {roles.length}
@@ -271,24 +259,17 @@ export function Roles() {
 
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Roles Activos
-            </div>
+            <div className="text-sm text-gray-400">Roles Activos</div>
 
             <div className="text-3xl font-bold text-green-500 mt-1">
-              {
-                roles.filter((r) => r.estado === "activo")
-                  .length
-              }
+              {roles.filter((r) => r.estado === "activo").length}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Roles Protegidos
-            </div>
+            <div className="text-sm text-gray-400">Roles Protegidos</div>
 
             <div className="text-3xl font-bold text-red-500 mt-1">
               {ROLES_PROTEGIDOS.length}
@@ -298,9 +279,7 @@ export function Roles() {
 
         <Card className="bg-zinc-900 border-zinc-800">
           <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Permisos del Sistema
-            </div>
+            <div className="text-sm text-gray-400">Permisos del Sistema</div>
 
             <div className="text-3xl font-bold text-blue-500 mt-1">
               {Object.keys(initialPermisos).length}
@@ -326,9 +305,7 @@ export function Roles() {
         <select
           className="bg-zinc-900 border border-zinc-800 rounded-md px-3 text-sm text-white"
           value={filterEstado}
-          onChange={(e) =>
-            setFilterEstado(e.target.value as any)
-          }
+          onChange={(e) => setFilterEstado(e.target.value as any)}
         >
           <option value="todos">Todos</option>
 
@@ -342,13 +319,9 @@ export function Roles() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         {filteredRoles.map((rol) => {
-          const permisosActivos = countActivePermisos(
-            rol.permisos
-          );
+          const permisosActivos = countActivePermisos(rol.permisos);
 
-          const protegido = ROLES_PROTEGIDOS.includes(
-            rol.nombre
-          );
+          const protegido = ROLES_PROTEGIDOS.includes(rol.nombre);
 
           return (
             <Card
@@ -368,9 +341,7 @@ export function Roles() {
                       </CardTitle>
 
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge
-                          className={getRolColor(rol.nombre)}
-                        >
+                        <Badge className={getRolColor(rol.nombre)}>
                           {rol.estado}
                         </Badge>
 
@@ -404,9 +375,7 @@ export function Roles() {
                       >
                         {
                           Object.values(PERMISOS)
-                            .flatMap((group) =>
-                              Object.entries(group)
-                            )
+                            .flatMap((group) => Object.entries(group))
                             .find(([k]) => k === key)?.[1]
                         }
                       </Badge>
@@ -428,8 +397,8 @@ export function Roles() {
                   </div>
 
                   <div>
-                    {permisosActivos}/
-                    {Object.keys(rol.permisos).length} permisos
+                    {permisosActivos}/{Object.keys(rol.permisos).length}{" "}
+                    permisos
                   </div>
                 </div>
 
@@ -489,133 +458,318 @@ export function Roles() {
       {/* DIALOG */}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl bg-zinc-950 border-zinc-800 text-white">
-          <DialogHeader>
-            <DialogTitle>
-              {editingRol
-                ? "Editar Rol"
-                : "Crear Nuevo Rol"}
+        <DialogContent className="w-[95vw] max-w-6xl bg-zinc-950 border-zinc-800 text-white overflow-hidden p-0">
+          {/* HEADER */}
+
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-zinc-800">
+            <DialogTitle className="text-lg font-semibold">
+              {editingRol ? "Editar Rol" : "Crear Nuevo Rol"}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>
-            <div className="space-y-5 py-4">
-              <div>
-                <Label>Nombre del Rol</Label>
+            <div className="p-5 space-y-4">
+              {/* TOP SECTION */}
 
-                <Input
-                  className="bg-zinc-900 border-zinc-800 mt-2"
-                  value={formData.nombre}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      nombre: e.target.value,
-                    })
-                  }
-                />
-              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {/* NOMBRE */}
 
-              <div>
-                <Label>Descripción</Label>
+                <div>
+                  <Label className="text-xs text-gray-400">
+                    Nombre del Rol
+                  </Label>
 
-                <Textarea
-                  className="bg-zinc-900 border-zinc-800 mt-2"
-                  value={formData.descripcion}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      descripcion: e.target.value,
-                    })
-                  }
-                />
+                  <Input
+                    className="bg-zinc-900 border-zinc-800 mt-1 h-9 text-sm"
+                    value={formData.nombre}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        nombre: e.target.value,
+                      })
+                    }
+                  />
+                </div>
+
+                {/* DESCRIPCIÓN */}
+
+                <div>
+                  <Label className="text-xs text-gray-400">Descripción</Label>
+
+                  <Textarea
+                    className="bg-zinc-900 border-zinc-800 mt-1 h-9 min-h-[36px] resize-none text-sm"
+                    value={formData.descripcion}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        descripcion: e.target.value,
+                      })
+                    }
+                  />
+                </div>
               </div>
 
               {/* PERMISOS */}
 
-              <div className="space-y-4">
-                {Object.entries(PERMISOS).map(
-                  ([grupo, permisos]) => (
-                    <div
-                      key={grupo}
-                      className="border border-zinc-800 rounded-lg p-4"
-                    >
-                      <div className="text-sm font-semibold text-green-500 uppercase mb-4">
-                        {grupo}
-                      </div>
+              <div className="grid grid-cols-4 gap-2">
+                {Object.entries(PERMISOS).map(([grupo, permisos]) => (
+                  <div
+                    key={grupo}
+                    className="border border-zinc-800 rounded-md p-2 bg-zinc-900/30"
+                  >
+                    {/* TITULO */}
 
-                      <div className="grid grid-cols-2 gap-4">
-                        {Object.entries(permisos).map(
-                          ([key, label]) => (
-                            <div
-                              key={key}
-                              className="flex items-center gap-2"
-                            >
-                              <Checkbox
-                                checked={
-                                  formData.permisos[
-                                    key as keyof typeof formData.permisos
-                                  ]
-                                }
-                                onCheckedChange={() =>
-                                  handleTogglePermiso(
-                                    key as keyof typeof formData.permisos
-                                  )
-                                }
-                              />
-
-                              <span className="text-sm">
-                                {label}
-                              </span>
-                            </div>
-                          )
-                        )}
-                      </div>
+                    <div className="text-[10px] font-semibold text-green-500 uppercase mb-2 tracking-wider">
+                      {grupo}
                     </div>
-                  )
-                )}
+
+                    {/* ITEMS */}
+
+                    <div className="space-y-1">
+                      {Object.entries(permisos).map(([key, label]) => (
+                        <div key={key} className="flex items-center gap-2 h-6">
+                          <Checkbox
+                            checked={
+                              formData.permisos[
+                                key as keyof typeof formData.permisos
+                              ]
+                            }
+                            onCheckedChange={() =>
+                              handleTogglePermiso(
+                                key as keyof typeof formData.permisos,
+                              )
+                            }
+                          />
+
+                          <span className="text-[11px] text-gray-300 leading-none">
+                            {label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* ESTADO */}
+
+              {/* ESTADO */}
+
+              <div className="flex items-center justify-between border border-zinc-800 rounded-md px-3 py-2 bg-zinc-900/40">
+                <div>
+                  <div className="text-xs text-gray-400">Estado del Rol</div>
+
+                  <div className="text-sm text-white">
+                    {formData.estado === "activo" ? "Activo" : "Inactivo"}
+                  </div>
+                </div>
+
                 <Switch
                   checked={formData.estado === "activo"}
                   onCheckedChange={(checked) =>
                     setFormData({
                       ...formData,
-                      estado: checked
-                        ? "activo"
-                        : "inactivo",
+                      estado: checked ? "activo" : "inactivo",
                     })
                   }
+                  disabled={!editingRol}
                 />
-
-                <span className="text-sm">
-                  {formData.estado === "activo"
-                    ? "Rol Activo"
-                    : "Rol Inactivo"}
-                </span>
               </div>
             </div>
 
-            <DialogFooter>
+            {/* FOOTER */}
+
+            <DialogFooter className="px-5 py-3 border-t border-zinc-800 bg-zinc-950">
               <Button
                 type="button"
                 variant="outline"
-                className="border-zinc-700"
+                className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800"
                 onClick={() => setDialogOpen(false)}
               >
                 Cancelar
               </Button>
 
-              <Button
-                type="submit"
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {editingRol
-                  ? "Actualizar Rol"
-                  : "Crear Rol"}
+              <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                {editingRol ? "Actualizar Rol" : "Crear Rol"}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* VER DETALLE */}
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="w-[88vw] max-w-2xl bg-zinc-950 border border-zinc-800 text-white p-0 overflow-hidden rounded-lg scale-[0.92]">
+          {/* HEADER */}
+
+          <DialogHeader className="px-3 py-2 border-b border-zinc-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-md bg-green-500/10 flex items-center justify-center">
+                  <Shield className="h-4 w-4 text-green-500" />
+                </div>
+
+                <div>
+                  <DialogTitle className="text-sm font-semibold text-white">
+                    {viewingRol?.nombre}
+                  </DialogTitle>
+
+                  <div className="flex gap-2 mt-1">
+                    <Badge className={getRolColor(viewingRol?.nombre || "")}>
+                      {viewingRol?.estado}
+                    </Badge>
+
+                    {viewingRol &&
+                      ROLES_PROTEGIDOS.includes(viewingRol.nombre) && (
+                        <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
+                          <Lock className="h-3 w-3 mr-1" />
+                          Protegido
+                        </Badge>
+                      )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* BODY */}
+
+          {viewingRol && (
+            <div className="p-3 space-y-3">
+              {/* DESCRIPCION */}
+
+              <div className="bg-zinc-900 border border-zinc-800 rounded-md p-3">
+                <div className="text-[10px] uppercase text-gray-500 mb-1">
+                  Descripción
+                </div>
+
+                <p className="text-xs text-gray-300 leading-relaxed">
+                  {viewingRol.descripcion}
+                </p>
+              </div>
+
+              {/* STATS */}
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-md p-2">
+                  <div className="text-[10px] text-gray-500 uppercase">
+                    Usuarios
+                  </div>
+
+                  <div className="text-base font-semibold text-white mt-1">
+                    12
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900 border border-zinc-800 rounded-md p-2">
+                  <div className="text-[10px] text-gray-500 uppercase">
+                    Permisos
+                  </div>
+
+                  <div className="text-base font-semibold text-green-500 mt-1">
+                    {countActivePermisos(viewingRol.permisos)}
+                  </div>
+                </div>
+
+                <div className="bg-zinc-900 border border-zinc-800 rounded-md p-2">
+                  <div className="text-[10px] text-gray-500 uppercase">
+                    Estado
+                  </div>
+
+                  <div className="mt-1">
+                    <Badge
+                      className={
+                        viewingRol.estado === "activo"
+                          ? "bg-green-500/10 text-green-500 border-green-500/20"
+                          : "bg-red-500/10 text-red-500 border-red-500/20"
+                      }
+                    >
+                      {viewingRol.estado}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* PERMISOS */}
+
+              <div>
+                <h3 className="text-xs font-semibold text-white mb-2">
+                  Permisos del Rol
+                </h3>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {Object.entries(PERMISOS).map(([grupo, permisos]) => (
+                    <div
+                      key={grupo}
+                      className="bg-zinc-900 border border-zinc-800 rounded-md p-2"
+                    >
+                      {/* TITULO */}
+
+                      <div className="text-[10px] uppercase tracking-wider text-green-500 font-semibold mb-2">
+                        {grupo}
+                      </div>
+
+                      {/* ITEMS */}
+
+                      <div className="space-y-1">
+                        {Object.entries(permisos).map(([key, label]) => {
+                          const activo =
+                            viewingRol.permisos[
+                              key as keyof typeof viewingRol.permisos
+                            ];
+
+                          return (
+                            <div
+                              key={key}
+                              className={`flex items-center justify-between rounded px-2 py-[3px] text-[11px] ${
+                                activo
+                                  ? "bg-green-500/10 text-green-400"
+                                  : "bg-zinc-800 text-gray-500"
+                              }`}
+                            >
+                              <span>{label}</span>
+
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  activo ? "bg-green-400" : "bg-gray-600"
+                                }`}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* FOOTER */}
+
+          <DialogFooter className="px-3 py-2 border-t border-zinc-800 bg-zinc-950">
+            <Button
+              variant="outline"
+              className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 h-8 text-xs"
+              onClick={() => setViewDialogOpen(false)}
+            >
+              Cerrar
+            </Button>
+
+            {viewingRol && (
+              <Button
+                className="bg-green-600 hover:bg-green-700 h-8 text-xs"
+                onClick={() => {
+                  setViewDialogOpen(false);
+                  handleOpenDialog(viewingRol);
+                }}
+              >
+                <Pencil className="h-3 w-3 mr-2" />
+                Editar
+              </Button>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
