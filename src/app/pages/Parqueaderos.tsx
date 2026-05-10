@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Textarea } from '../components/ui/textarea';
 import { useNavigate } from 'react-router-dom';
 
-export function Parqueaderos() {
+export function Parqueaderos() { 
   const navigate = useNavigate();
   const { parqueaderos, addParqueadero, updateParqueadero, deleteParqueadero, celdas } = useData();
   const [dialogOpen, setDialogOpen] = useState(false);
