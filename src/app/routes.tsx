@@ -15,7 +15,6 @@ import { Asignaciones } from './pages/Asignaciones';
 import { ControlSalidaPage } from './pages/ControlSalida';
 import { Reservas } from './pages/Reservas';
 import { Incidentes } from './pages/Incidentes';
-import { ReconocimientoPlacas } from './pages/ReconocimientoPlacas';
 import { Perfil } from './pages/Perfil';
 import { NotFound } from './pages/NotFound';
 
@@ -91,10 +90,6 @@ export const router = createBrowserRouter([
       {
         path: 'incidentes',
         element: <Incidentes />,
-      },
-      {
-        path: 'reconocimiento-placas',
-        element: <ReconocimientoPlacas />,
       },
       {
         path: '*',
