@@ -12,6 +12,10 @@ import {
   Phone,
   Copy,
   Lock,
+  Users,
+  UserCheck,
+  UserX,
+  Layers3,
 } from "lucide-react";
 
 import { Button } from "../components/ui/button";
@@ -19,8 +23,6 @@ import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "../components/ui/card";
 
 import { Input } from "../components/ui/input";
@@ -162,9 +164,8 @@ export function Usuarios() {
   };
 
   const handleDelete = (usuario: Usuario) => {
-    const protegido = USUARIOS_PROTEGIDOS.includes(
-      usuario.correo
-    );
+    const protegido =
+      USUARIOS_PROTEGIDOS.includes(usuario.correo);
 
     if (protegido) {
       toast.error(
@@ -221,290 +222,117 @@ export function Usuarios() {
   const getRoleColor = (rol: string) => {
     switch (rol) {
       case "Administrador":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
+        return "bg-red-100 text-red-700 border-red-200";
 
       case "Supervisor":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return "bg-blue-100 text-blue-700 border-blue-200";
 
       case "Operador":
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+        return "bg-amber-100 text-amber-700 border-amber-200";
 
       default:
-        return "bg-green-500/10 text-green-500 border-green-500/20";
+        return "bg-green-100 text-green-700 border-green-200";
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 p-5 bg-[#F5F7F5] min-h-screen">
       {/* HEADER */}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">
-            Gestión de Usuarios
-          </h1>
+      <div className="rounded-3xl bg-gradient-to-r from-[#39A900] to-[#2D7D00] p-7 text-white shadow-lg">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-white/15 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <Shield className="h-4 w-4" />
+              Administración Institucional
+            </div>
 
-          <p className="text-sm text-gray-400 mt-1">
-            Administra usuarios y accesos del sistema
-          </p>
+            <h1 className="text-4xl font-black leading-tight">
+              Gestión de Usuarios
+            </h1>
+
+            <p className="text-sm text-white/80 mt-2 max-w-2xl">
+              Administra usuarios, accesos, roles y permisos
+              del sistema institucional SENA.
+            </p>
+          </div>
+
+          <Button
+            onClick={() => handleOpenDialog()}
+            className="bg-white text-[#2D7D00] hover:bg-white/90 h-12 px-6 rounded-xl font-bold"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Usuario
+          </Button>
         </div>
-
-        <Button
-          onClick={() => handleOpenDialog()}
-          className="bg-green-600 hover:bg-green-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Usuario
-        </Button>
       </div>
 
       {/* STATS */}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Usuarios Totales
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+        {[
+          {
+            label: "Usuarios Totales",
+            value: usuarios.length,
+            icon: Users,
+            color: "text-[#39A900]",
+            bg: "bg-green-100",
+          },
 
-            <div className="text-3xl font-bold text-white mt-1">
-              {usuarios.length}
-            </div>
-          </CardContent>
-        </Card>
+          {
+            label: "Usuarios Activos",
+            value: usuarios.filter(
+              (u) => u.estado === "activo"
+            ).length,
+            icon: UserCheck,
+            color: "text-blue-600",
+            bg: "bg-blue-100",
+          },
 
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Usuarios Activos
-            </div>
+          {
+            label: "Usuarios Inactivos",
+            value: usuarios.filter(
+              (u) => u.estado === "inactivo"
+            ).length,
+            icon: UserX,
+            color: "text-red-600",
+            bg: "bg-red-100",
+          },
 
-            <div className="text-3xl font-bold text-green-500 mt-1">
-              {
-                usuarios.filter(
-                  (u) => u.estado === "activo"
-                ).length
-              }
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Administradores
-            </div>
-
-            <div className="text-3xl font-bold text-red-500 mt-1">
-              {
-                usuarios.filter(
-                  (u) => u.rol === "Administrador"
-                ).length
-              }
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">
-              Roles Disponibles
-            </div>
-
-            <div className="text-3xl font-bold text-blue-500 mt-1">
-              {roles.length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* FILTROS */}
-
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-
-          <Input
-            placeholder="Buscar usuario..."
-            value={searchTerm}
-            onChange={(e) =>
-              setSearchTerm(e.target.value)
-            }
-            className="pl-10 bg-zinc-900 border-zinc-800"
-          />
-        </div>
-
-        <select
-          className="bg-zinc-900 border border-zinc-800 rounded-md px-3 text-sm text-white"
-          value={filterEstado}
-          onChange={(e) =>
-            setFilterEstado(e.target.value as any)
-          }
-        >
-          <option value="todos">Todos</option>
-
-          <option value="activo">Activos</option>
-
-          <option value="inactivo">Inactivos</option>
-        </select>
-      </div>
-
-      {/* GRID */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {filteredUsuarios.map((usuario) => {
-          const protegido =
-            USUARIOS_PROTEGIDOS.includes(
-              usuario.correo
-            );
+          {
+            label: "Roles Disponibles",
+            value: roles.length,
+            icon: Layers3,
+            color: "text-amber-600",
+            bg: "bg-amber-100",
+          },
+        ].map((item) => {
+          const Icon = item.icon;
 
           return (
             <Card
-              key={usuario.id}
-              className="bg-zinc-900 border-zinc-800 hover:border-green-600 transition-all"
+              key={item.label}
+              className="border-0 shadow-sm rounded-2xl bg-white"
             >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <div className="flex gap-3">
-                    <div className="w-14 h-14 rounded-full bg-green-500/10 flex items-center justify-center">
-                      <UserCircle className="h-8 w-8 text-green-500" />
-                    </div>
-
-                    <div>
-                      <CardTitle className="text-white text-lg">
-                        {usuario.nombre}
-                      </CardTitle>
-
-                      <div className="flex gap-2 mt-1">
-                        <Badge
-                          className={getRoleColor(
-                            usuario.rol
-                          )}
-                        >
-                          {usuario.rol}
-                        </Badge>
-
-                        <Badge
-                          variant={
-                            usuario.estado === "activo"
-                              ? "default"
-                              : "secondary"
-                          }
-                        >
-                          {usuario.estado}
-                        </Badge>
-
-                        {protegido && (
-                          <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
-                            <Lock className="h-3 w-3 mr-1" />
-                            Protegido
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-
-              <CardContent>
-                {/* INFO */}
-
-                <div className="space-y-3 mb-5">
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <Mail className="h-4 w-4 text-gray-500" />
-                    {usuario.correo}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <Phone className="h-4 w-4 text-gray-500" />
-                    {usuario.numero}
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-gray-300">
-                    <Shield className="h-4 w-4 text-gray-500" />
-                    {usuario.tipoDocumento} -{" "}
-                    {usuario.identificacion}
-                  </div>
-                </div>
-
-                {/* ESTADO */}
-
-                <div className="flex items-center justify-between border border-zinc-800 rounded-lg p-3 mb-4">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-white">
-                      Estado
+                    <div className="text-sm text-gray-500">
+                      {item.label}
                     </div>
 
-                    <div className="text-xs text-gray-500">
-                      Activar / Desactivar acceso
+                    <div className="text-3xl font-black text-gray-900 mt-2">
+                      {item.value}
                     </div>
                   </div>
 
-                  <Switch
-                    checked={
-                      usuario.estado === "activo"
-                    }
-                    onCheckedChange={(checked) =>
-                      handleChangeEstado(
-                        usuario.id,
-                        checked
-                          ? "activo"
-                          : "inactivo"
-                      )
-                    }
-                  />
-                </div>
-
-                {/* ACTIONS */}
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
-                    onClick={() =>
-                      handleViewUsuario(usuario)
-                    }
+                  <div
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center ${item.bg}`}
                   >
-                    <Eye className="h-3 w-3 mr-1" />
-                    Ver
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
-                    onClick={() =>
-                      handleOpenDialog(usuario)
-                    }
-                  >
-                    <Pencil className="h-3 w-3 mr-1" />
-                    Editar
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-zinc-700 bg-zinc-800 text-blue-400 hover:bg-zinc-700"
-                    onClick={() =>
-                      handleDuplicate(usuario)
-                    }
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-
-                  {!protegido && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-zinc-700 bg-zinc-800 text-red-500 hover:bg-red-500/10"
-                      onClick={() =>
-                        handleDelete(usuario)
-                      }
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
+                    <Icon
+                      className={`h-6 w-6 ${item.color}`}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -512,12 +340,237 @@ export function Usuarios() {
         })}
       </div>
 
+      {/* FILTROS */}
+
+      <Card className="border-0 shadow-sm rounded-2xl bg-white">
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
+
+              <Input
+                placeholder="Buscar usuario..."
+                value={searchTerm}
+                onChange={(e) =>
+                  setSearchTerm(e.target.value)
+                }
+                className="pl-10 h-11 border-gray-200 rounded-xl"
+              />
+            </div>
+
+            <select
+              className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm"
+              value={filterEstado}
+              onChange={(e) =>
+                setFilterEstado(e.target.value as any)
+              }
+            >
+              <option value="todos">Todos</option>
+
+              <option value="activo">Activos</option>
+
+              <option value="inactivo">Inactivos</option>
+            </select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* TABLA */}
+
+      <Card className="border-0 shadow-sm rounded-3xl bg-white overflow-hidden">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-[#F8FAF8] border-b border-gray-100">
+                <tr className="text-left">
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                    Usuario
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                    Contacto
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                    Rol
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                    Estado
+                  </th>
+
+                  <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredUsuarios.map((usuario) => {
+                  const protegido =
+                    USUARIOS_PROTEGIDOS.includes(
+                      usuario.correo
+                    );
+
+                  return (
+                    <tr
+                      key={usuario.id}
+                      className="border-b border-gray-100 hover:bg-[#F8FAF8] transition-colors"
+                    >
+                      {/* USER */}
+
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-4">
+                          <div className="w-14 h-14 rounded-2xl bg-[#39A900]/10 flex items-center justify-center">
+                            <UserCircle className="h-8 w-8 text-[#39A900]" />
+                          </div>
+
+                          <div>
+                            <div className="font-bold text-gray-900">
+                              {usuario.nombre}
+                            </div>
+
+                            <div className="text-sm text-gray-500 mt-1">
+                              {usuario.tipoDocumento} ·{" "}
+                              {usuario.identificacion}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* CONTACTO */}
+
+                      <td className="px-6 py-5">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
+                            <Mail className="h-4 w-4 text-gray-400" />
+                            {usuario.correo}
+                          </div>
+
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
+                            <Phone className="h-4 w-4 text-gray-400" />
+                            {usuario.numero}
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* ROL */}
+
+                      <td className="px-6 py-5">
+                        <div className="flex flex-col gap-2">
+                          <Badge
+                            className={`w-fit border ${getRoleColor(
+                              usuario.rol
+                            )}`}
+                          >
+                            {usuario.rol}
+                          </Badge>
+
+                          {protegido && (
+                            <Badge className="w-fit bg-red-100 text-red-700 border border-red-200">
+                              <Lock className="h-3 w-3 mr-1" />
+                              Protegido
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* ESTADO */}
+
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-4">
+                          <Badge
+                            className={
+                              usuario.estado === "activo"
+                                ? "bg-green-100 text-green-700 border border-green-200"
+                                : "bg-red-100 text-red-700 border border-red-200"
+                            }
+                          >
+                            {usuario.estado}
+                          </Badge>
+
+                          <Switch
+                            checked={
+                              usuario.estado === "activo"
+                            }
+                            onCheckedChange={(checked) =>
+                              handleChangeEstado(
+                                usuario.id,
+                                checked
+                                  ? "activo"
+                                  : "inactivo"
+                              )
+                            }
+                          />
+                        </div>
+                      </td>
+
+                      {/* ACTIONS */}
+
+                      <td className="px-6 py-5">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="rounded-xl border-gray-200"
+                            onClick={() =>
+                              handleViewUsuario(usuario)
+                            }
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="rounded-xl border-gray-200"
+                            onClick={() =>
+                              handleOpenDialog(usuario)
+                            }
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="rounded-xl border-gray-200 text-blue-600"
+                            onClick={() =>
+                              handleDuplicate(usuario)
+                            }
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+
+                          {!protegido && (
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="rounded-xl border-red-200 text-red-600 hover:bg-red-50"
+                              onClick={() =>
+                                handleDelete(usuario)
+                              }
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* DIALOG CREAR / EDITAR */}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl bg-zinc-950 border-zinc-800 text-white">
-          <DialogHeader>
-            <DialogTitle>
+        <DialogContent className="max-w-3xl bg-white border-0 rounded-3xl p-0 overflow-hidden">
+          <DialogHeader className="bg-gradient-to-r from-[#39A900] to-[#2D7D00] px-6 py-5">
+            <DialogTitle className="text-white text-2xl font-bold">
               {editingUsuario
                 ? "Editar Usuario"
                 : "Nuevo Usuario"}
@@ -525,7 +578,7 @@ export function Usuarios() {
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="p-6 grid grid-cols-2 gap-5">
               <div className="space-y-2">
                 <Label>Tipo Documento</Label>
 
@@ -538,7 +591,7 @@ export function Usuarios() {
                     })
                   }
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                  <SelectTrigger className="h-11 rounded-xl border-gray-200">
                     <SelectValue />
                   </SelectTrigger>
 
@@ -566,7 +619,7 @@ export function Usuarios() {
                 <Label>Identificación</Label>
 
                 <Input
-                  className="bg-zinc-900 border-zinc-800"
+                  className="h-11 rounded-xl border-gray-200"
                   value={formData.identificacion}
                   onChange={(e) =>
                     setFormData({
@@ -582,7 +635,7 @@ export function Usuarios() {
                 <Label>Nombre Completo</Label>
 
                 <Input
-                  className="bg-zinc-900 border-zinc-800"
+                  className="h-11 rounded-xl border-gray-200"
                   value={formData.nombre}
                   onChange={(e) =>
                     setFormData({
@@ -598,7 +651,7 @@ export function Usuarios() {
 
                 <Input
                   type="email"
-                  className="bg-zinc-900 border-zinc-800"
+                  className="h-11 rounded-xl border-gray-200"
                   value={formData.correo}
                   onChange={(e) =>
                     setFormData({
@@ -614,18 +667,13 @@ export function Usuarios() {
 
                 <Input
                   type="password"
-                  className="bg-zinc-900 border-zinc-800"
+                  className="h-11 rounded-xl border-gray-200"
                   value={formData.password}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
                       password: e.target.value,
                     })
-                  }
-                  placeholder={
-                    editingUsuario
-                      ? "Sin cambios"
-                      : ""
                   }
                 />
               </div>
@@ -634,7 +682,7 @@ export function Usuarios() {
                 <Label>Teléfono</Label>
 
                 <Input
-                  className="bg-zinc-900 border-zinc-800"
+                  className="h-11 rounded-xl border-gray-200"
                   value={formData.numero}
                   onChange={(e) =>
                     setFormData({
@@ -657,7 +705,7 @@ export function Usuarios() {
                     })
                   }
                 >
-                  <SelectTrigger className="bg-zinc-900 border-zinc-800">
+                  <SelectTrigger className="h-11 rounded-xl border-gray-200">
                     <SelectValue placeholder="Seleccionar rol" />
                   </SelectTrigger>
 
@@ -679,13 +727,13 @@ export function Usuarios() {
                 </Select>
               </div>
 
-              <div className="col-span-2 flex items-center justify-between border border-zinc-800 rounded-lg p-4">
+              <div className="col-span-2 flex items-center justify-between rounded-2xl border border-gray-200 p-4 bg-[#F8FAF8]">
                 <div>
-                  <div className="text-sm text-white">
+                  <div className="font-semibold text-gray-900">
                     Estado del Usuario
                   </div>
 
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-gray-500">
                     Controla el acceso al sistema
                   </div>
                 </div>
@@ -706,11 +754,11 @@ export function Usuarios() {
               </div>
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="px-6 py-5 border-t bg-gray-50">
               <Button
                 type="button"
                 variant="outline"
-                className="border-zinc-700"
+                className="rounded-xl"
                 onClick={() => setDialogOpen(false)}
               >
                 Cancelar
@@ -718,7 +766,7 @@ export function Usuarios() {
 
               <Button
                 type="submit"
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-[#39A900] hover:bg-[#2D7D00] rounded-xl"
               >
                 {editingUsuario
                   ? "Actualizar Usuario"
@@ -735,107 +783,92 @@ export function Usuarios() {
         open={viewDialogOpen}
         onOpenChange={setViewDialogOpen}
       >
-        <DialogContent className="max-w-md bg-zinc-950 border-zinc-800 text-white">
-          <DialogHeader>
-            <DialogTitle>
-              Información del Usuario
-            </DialogTitle>
-          </DialogHeader>
-
+        <DialogContent className="max-w-lg bg-white border-0 rounded-3xl overflow-hidden p-0">
           {viewingUsuario && (
-            <div className="space-y-5 py-4">
-              <div className="flex flex-col items-center">
-                <div className="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center mb-3">
-                  <UserCircle className="h-14 w-14 text-green-500" />
-                </div>
-
-                <h2 className="text-xl font-bold">
-                  {viewingUsuario.nombre}
-                </h2>
-
-                <div className="flex gap-2 mt-2">
-                  <Badge
-                    className={getRoleColor(
-                      viewingUsuario.rol
-                    )}
-                  >
-                    {viewingUsuario.rol}
-                  </Badge>
-
-                  <Badge
-                    variant={
-                      viewingUsuario.estado ===
-                      "activo"
-                        ? "default"
-                        : "secondary"
-                    }
-                  >
-                    {viewingUsuario.estado}
-                  </Badge>
-                </div>
-              </div>
-
-              <div className="space-y-4 border border-zinc-800 rounded-lg p-4">
-                <div>
-                  <div className="text-xs text-gray-500">
-                    Correo
+            <>
+              <div className="bg-gradient-to-r from-[#39A900] to-[#2D7D00] px-6 py-8 text-white">
+                <div className="flex flex-col items-center">
+                  <div className="w-24 h-24 rounded-3xl bg-white/15 flex items-center justify-center mb-4">
+                    <UserCircle className="h-14 w-14" />
                   </div>
 
-                  <div className="text-sm">
-                    {viewingUsuario.correo}
-                  </div>
-                </div>
+                  <h2 className="text-2xl font-black">
+                    {viewingUsuario.nombre}
+                  </h2>
 
-                <div>
-                  <div className="text-xs text-gray-500">
-                    Documento
-                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Badge
+                      className={`border ${getRoleColor(
+                        viewingUsuario.rol
+                      )}`}
+                    >
+                      {viewingUsuario.rol}
+                    </Badge>
 
-                  <div className="text-sm">
-                    {
-                      viewingUsuario.tipoDocumento
-                    }{" "}
-                    -{" "}
-                    {
-                      viewingUsuario.identificacion
-                    }
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-gray-500">
-                    Teléfono
-                  </div>
-
-                  <div className="text-sm">
-                    {viewingUsuario.numero}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="text-xs text-gray-500">
-                    Rol
-                  </div>
-
-                  <div className="text-sm">
-                    {viewingUsuario.rol}
+                    <Badge
+                      className={
+                        viewingUsuario.estado ===
+                        "activo"
+                          ? "bg-green-100 text-green-700 border border-green-200"
+                          : "bg-red-100 text-red-700 border border-red-200"
+                      }
+                    >
+                      {viewingUsuario.estado}
+                    </Badge>
                   </div>
                 </div>
               </div>
-            </div>
+
+              <div className="p-6 space-y-4">
+                {[
+                  {
+                    label: "Correo",
+                    value: viewingUsuario.correo,
+                  },
+
+                  {
+                    label: "Documento",
+                    value: `${viewingUsuario.tipoDocumento} - ${viewingUsuario.identificacion}`,
+                  },
+
+                  {
+                    label: "Teléfono",
+                    value: viewingUsuario.numero,
+                  },
+
+                  {
+                    label: "Rol",
+                    value: viewingUsuario.rol,
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="rounded-2xl border border-gray-200 p-4"
+                  >
+                    <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
+                      {item.label}
+                    </div>
+
+                    <div className="font-semibold text-gray-900">
+                      {item.value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <DialogFooter className="px-6 py-5 border-t bg-gray-50">
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() =>
+                    setViewDialogOpen(false)
+                  }
+                >
+                  Cerrar
+                </Button>
+              </DialogFooter>
+            </>
           )}
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              className="border-zinc-700"
-              onClick={() =>
-                setViewDialogOpen(false)
-              }
-            >
-              Cerrar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

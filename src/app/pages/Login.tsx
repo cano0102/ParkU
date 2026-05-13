@@ -1,26 +1,47 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 import {
-  ParkingCircle,
+  ArrowLeft,
   Eye,
   EyeOff,
-  ArrowLeft,
-} from 'lucide-react';
+  ShieldCheck,
+  ArrowRight,
+  BadgeCheck,
+} from "lucide-react";
 
-import { useAuth } from '../context/AuthContext';
-import { toast } from 'sonner';
+import { useAuth } from "../context/AuthContext";
+import { toast } from "sonner";
 
-import { signInWithPopup } from 'firebase/auth';
-import { auth, provider } from '../../firebase/config';
+import { signInWithPopup } from "firebase/auth";
+import { auth, provider } from "../../firebase/config";
 
-const SENA_GREEN = '#009e3d';
-const SENA_DARK = '#007a30';
+const COLORS = {
+  primary: "#39A900",
+  primaryDark: "#2D7D00",
+  background: "#F5F7F8",
+  surface: "#FFFFFF",
+  text: "#0F172A",
+  textLight: "#64748B",
+  border: "#E2E8F0",
+};
+
+function useAnimated() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  return visible;
+}
 
 export function Login() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [password, setPassword] =
-    useState('');
+    useState("");
 
   const [showPassword, setShowPassword] =
     useState(false);
@@ -36,9 +57,12 @@ export function Login() {
 
   const navigate = useNavigate();
 
-  React.useEffect(() => {
-    if (isAuthenticated)
-      navigate('/app/dashboard');
+  const visible = useAnimated();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate("/app/dashboard");
+    }
   }, [isAuthenticated, navigate]);
 
   const handleLogin = async (
@@ -55,17 +79,17 @@ export function Login() {
       );
 
       if (success) {
-        toast.success('Acceso concedido');
+        toast.success("Acceso concedido");
 
-        navigate('/app/dashboard');
+        navigate("/app/dashboard");
       } else {
         toast.error(
-          'Credenciales inválidas'
+          "Credenciales inválidas"
         );
       }
     } catch {
       toast.error(
-        'Error al iniciar sesión'
+        "Error al iniciar sesión"
       );
     } finally {
       setLoading(false);
@@ -88,458 +112,635 @@ export function Login() {
         `Bienvenido ${result.user.displayName}`
       );
 
-      navigate('/app/dashboard');
+      navigate("/app/dashboard");
     } catch (error) {
       console.log(error);
 
-      toast.error('Error con Google');
+      toast.error("Error con Google");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#0a0a0a',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontFamily: "'Barlow', sans-serif",
-        padding: '2rem',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Background accent */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '40%',
-          height: '100%',
-          background:
-            'linear-gradient(135deg, #001a0a 0%, #003d1a 60%, #006628 100%)',
-          clipPath:
-            'polygon(20% 0%, 100% 0%, 100% 100%, 0% 100%)',
-          opacity: 0.4,
-        }}
-      />
+    <>
+      <style>{`
 
-      {/* BOTON VOLVER */}
-      <button
-        onClick={() => navigate('/')}
-        style={{
-          position: 'absolute',
-          top: 30,
-          left: 30,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          background:
-            'rgba(255,255,255,0.05)',
-          border:
-            '1px solid rgba(255,255,255,0.08)',
-          color: '#fff',
-          padding: '10px 14px',
-          borderRadius: 6,
-          cursor: 'pointer',
-          fontSize: 13,
-          fontWeight: 600,
-          fontFamily:
-            "'Barlow', sans-serif",
-          transition: 'all 0.2s ease',
-          zIndex: 10,
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background =
-            'rgba(0,158,61,0.15)';
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
-          e.currentTarget.style.borderColor =
-            SENA_GREEN;
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background =
-            'rgba(255,255,255,0.05)';
+      *{
+        margin:0;
+        padding:0;
+        box-sizing:border-box;
+      }
 
-          e.currentTarget.style.borderColor =
-            'rgba(255,255,255,0.08)';
-        }}
-      >
-        <ArrowLeft size={16} />
-        Volver al inicio
-      </button>
+      body{
+        font-family:'Montserrat',sans-serif;
+        background:${COLORS.background};
+      }
+
+      .fade{
+        opacity:0;
+        transform:translateY(30px);
+        transition:.8s ease;
+      }
+
+      .fade.active{
+        opacity:1;
+        transform:translateY(0);
+      }
+
+      input{
+        font-family:'Montserrat',sans-serif;
+      }
+
+      button{
+        font-family:'Montserrat',sans-serif;
+        transition:.25s ease;
+      }
+
+      button:hover{
+        transform:translateY(-2px);
+      }
+
+      input:focus{
+        border-color:${COLORS.primary} !important;
+        box-shadow:0 0 0 4px rgba(57,169,0,.12);
+      }
+
+      @media(max-width:900px){
+
+        .login-grid{
+          grid-template-columns:1fr !important;
+        }
+
+        .login-left{
+          display:none !important;
+        }
+
+      }
+
+      `}</style>
 
       <div
         style={{
-          position: 'relative',
-          zIndex: 2,
-          width: '100%',
-          maxWidth: 420,
+          minHeight: "100vh",
+          background:
+            "linear-gradient(180deg,#ffffff 0%,#F3F8F1 100%)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "2rem",
+          position: "relative",
+          overflow: "hidden",
         }}
       >
-        {/* Card */}
-        <div
+        {/* BACK BUTTON */}
+
+        <button
+          onClick={() => navigate("/")}
           style={{
-            background: '#0d0d0d',
-            border:
-              '1px solid rgba(255,255,255,0.08)',
-            borderTop: `3px solid ${SENA_GREEN}`,
-            borderRadius: 4,
-            padding: '2.5rem',
+            position: "absolute",
+            top: 30,
+            left: 30,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            border: `1px solid ${COLORS.border}`,
+            background: "#fff",
+            color: COLORS.text,
+            padding: "14px 18px",
+            borderRadius: 14,
+            cursor: "pointer",
+            fontWeight: 700,
+            zIndex: 20,
           }}
         >
-          {/* Logo */}
+          <ArrowLeft size={18} />
+          Volver al inicio
+        </button>
+
+        {/* BG */}
+
+        <div
+          style={{
+            position: "absolute",
+            width: 500,
+            height: 500,
+            borderRadius: "50%",
+            background:
+              "rgba(57,169,0,.08)",
+            top: -120,
+            right: -120,
+            filter: "blur(10px)",
+          }}
+        />
+
+        <div
+          className={`fade ${
+            visible ? "active" : ""
+          }`}
+          style={{
+            width: "100%",
+            maxWidth: 1180,
+            display: "grid",
+            gridTemplateColumns:
+              "1fr .9fr",
+            overflow: "hidden",
+            borderRadius: 36,
+            background: "#fff",
+            border: `1px solid ${COLORS.border}`,
+            boxShadow:
+              "0 25px 70px rgba(15,23,42,.08)",
+          }}
+        >
+          {/* LEFT */}
+
           <div
+            className="login-left"
             style={{
-              textAlign: 'center',
-              marginBottom: '2rem',
-            }}
-          >
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                background: SENA_GREEN,
-                borderRadius: 6,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '1rem',
-              }}
-            >
-              <ParkingCircle
-                size={28}
-                color="#fff"
-              />
-            </div>
-
-            <div
-              style={{
-                fontFamily:
-                  "'Barlow Condensed', sans-serif",
-                fontWeight: 900,
-                fontSize: 32,
-                color: '#fff',
-                textTransform: 'uppercase',
-                letterSpacing: 1,
-                lineHeight: 1,
-              }}
-            >
-              <span
-                style={{
-                  color: SENA_GREEN,
-                }}
-              >
-                SENA
-              </span>{' '}
-              · ParkU
-            </div>
-
-            <div
-              style={{
-                fontSize: 12,
-                color: '#555',
-                letterSpacing: 2,
-                textTransform: 'uppercase',
-                marginTop: 6,
-              }}
-            >
-              Sistema de Parqueadero
-            </div>
-          </div>
-
-          {/* Label */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
+              padding: "5rem",
               background:
-                'rgba(0,158,61,0.1)',
-              border:
-                '1px solid rgba(0,158,61,0.3)',
-              borderRadius: 2,
-              padding: '4px 10px',
-              marginBottom: '1.5rem',
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#4ddb8a',
-              letterSpacing: 2,
-              textTransform: 'uppercase',
+                "linear-gradient(135deg,#39A900,#2D7D00)",
+              color: "#fff",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            <span
+            <div
               style={{
-                width: 5,
-                height: 5,
-                background: '#4ddb8a',
-                borderRadius: '50%',
-                display: 'inline-block',
+                position: "absolute",
+                width: 400,
+                height: 400,
+                borderRadius: "50%",
+                background:
+                  "rgba(255,255,255,.08)",
+                top: -150,
+                right: -120,
               }}
             />
 
-            Acceso Institucional
-          </div>
-
-          {/* Form */}
-          <form
-            onSubmit={handleLogin}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '1.25rem',
-            }}
-          >
-            {/* Email */}
-            <div>
-              <label
+            <div
+              style={{
+                position: "relative",
+                zIndex: 2,
+              }}
+            >
+              <div
                 style={{
-                  display: 'block',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  letterSpacing: 2,
-                  textTransform:
-                    'uppercase',
-                  marginBottom: 6,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background:
+                    "rgba(255,255,255,.12)",
+                  padding: "10px 18px",
+                  borderRadius: 999,
+                  fontWeight: 800,
+                  marginBottom: "2rem",
                 }}
               >
-                Correo Electrónico
-              </label>
+                <BadgeCheck size={18} />
+                Plataforma Oficial SENA
+              </div>
 
-              <input
-                type="email"
-                value={email}
-                onChange={(e) =>
-                  setEmail(
-                    e.target.value
-                  )
-                }
-                placeholder="correo@sena.edu.co"
-                required
+              <h1
                 style={{
-                  width: '100%',
-                  padding:
-                    '10px 14px',
-                  background: '#1a1a1a',
-                  border:
-                    '1px solid rgba(255,255,255,0.08)',
-                  borderRadius: 4,
-                  color: '#e8e8e8',
-                  fontSize: 14,
-                  fontFamily:
-                    "'Barlow', sans-serif",
-                  outline: 'none',
-                  transition:
-                    'border-color 0.15s',
-                  boxSizing:
-                    'border-box',
-                }}
-              />
-            </div>
-
-            {/* Password */}
-            <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: 10,
-                  fontWeight: 700,
-                  color: '#ffffff',
-                  letterSpacing: 2,
-                  textTransform:
-                    'uppercase',
-                  marginBottom: 6,
+                  fontSize:
+                    "clamp(3rem,5vw,5rem)",
+                  lineHeight: .95,
+                  fontWeight: 900,
+                  marginBottom: "2rem",
                 }}
               >
-                Contraseña
-              </label>
+                Bienvenido
+                <br />
+                a ParkU
+              </h1>
+
+              <p
+                style={{
+                  fontSize: 18,
+                  lineHeight: 1.8,
+                  color:
+                    "rgba(255,255,255,.92)",
+                  maxWidth: 500,
+                }}
+              >
+                Sistema institucional para
+                la gestión inteligente de
+                parqueaderos, accesos y
+                monitoreo vehicular del
+                SENA.
+              </p>
 
               <div
                 style={{
-                  position: 'relative',
+                  marginTop: "4rem",
+                  display: "grid",
+                  gap: "1rem",
                 }}
               >
-                <input
-                  type={
-                    showPassword
-                      ? 'text'
-                      : 'password'
-                  }
-                  value={password}
-                  onChange={(e) =>
-                    setPassword(
-                      e.target.value
-                    )
-                  }
-                  placeholder="••••••••"
-                  required
-                  style={{
-                    width: '100%',
-                    padding:
-                      '10px 40px 10px 14px',
-                    background:
-                      '#1a1a1a',
-                    border:
-                      '1px solid rgba(255,255,255,0.08)',
-                    borderRadius: 4,
-                    color: '#e8e8e8',
-                    fontSize: 14,
-                    outline: 'none',
-                  }}
-                />
+                {[
+                  "Control de acceso seguro",
+                  "Monitoreo en tiempo real",
+                  "Gestión automatizada",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      background:
+                        "rgba(255,255,255,.08)",
+                      padding: "16px 18px",
+                      borderRadius: 18,
+                    }}
+                  >
+                    <ShieldCheck
+                      size={20}
+                    />
 
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowPassword(
-                      !showPassword
-                    )
-                  }
-                  style={{
-                    position:
-                      'absolute',
-                    right: 12,
-                    top: '50%',
-                    transform:
-                      'translateY(-50%)',
-                    background:
-                      'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#ffffff',
-                  }}
-                >
-                  {showPassword ? (
-                    <EyeOff size={15} />
-                  ) : (
-                    <Eye size={15} />
-                  )}
-                </button>
+                    <span
+                      style={{
+                        fontWeight: 700,
+                      }}
+                    >
+                      {item}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
 
-            {/* Forgot */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent:
-                  'flex-end',
-              }}
-            >
-              <Link
-                to="/forgot-password"
-                style={{
-                  fontSize: 12,
-                  color: SENA_GREEN,
-                  textDecoration:
-                    'none',
-                  fontWeight: 600,
-                }}
-              >
-                ¿Olvidaste tu contraseña?
-              </Link>
-            </div>
-
-            {/* Login button */}
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                background: loading
-                  ? '#333'
-                  : SENA_GREEN,
-                color: '#fff',
-                border: 'none',
-                padding: '12px',
-                borderRadius: 4,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: loading
-                  ? 'not-allowed'
-                  : 'pointer',
-                textTransform:
-                  'uppercase',
-              }}
-            >
-              {loading
-                ? 'Verificando...'
-                : 'Iniciar Sesión'}
-            </button>
-
-            {/* Google */}
-            <button
-              type="button"
-              onClick={
-                handleGoogleLogin
-              }
-              style={{
-                background: '#fff',
-                color: '#111',
-                border: 'none',
-                padding: '12px',
-                borderRadius: 4,
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: 'pointer',
-                marginTop: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent:
-                  'center',
-                gap: '10px',
-              }}
-            >
-              <img
-                src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                alt="Google"
-                style={{
-                  width: 18,
-                  height: 18,
-                }}
-              />
-
-              Continuar con Google
-            </button>
-          </form>
+          {/* RIGHT */}
 
           <div
             style={{
-              marginTop: '1.5rem',
-              paddingTop: '1.5rem',
-              borderTop:
-                '1px solid rgba(255,255,255,0.06)',
+              padding:
+                "4rem clamp(2rem,4vw,4rem)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <p
+            <div
               style={{
-                fontSize: 11,
-                color: '#ffffff',
-                textAlign: 'center',
+                width: "100%",
+                maxWidth: 420,
               }}
             >
-              Usa cualquier correo y contraseña
-              para acceder al demo
-            </p>
+              {/* HEADER */}
+
+              <div
+                style={{
+                  marginBottom: "2.5rem",
+                }}
+              >
+                <div
+                  style={{
+                    color: COLORS.primary,
+                    fontWeight: 800,
+                    marginBottom: 14,
+                    letterSpacing: 1,
+                  }}
+                >
+                  ACCESO INSTITUCIONAL
+                </div>
+
+                <h2
+                  style={{
+                    fontSize:
+                      "clamp(2.5rem,5vw,3.5rem)",
+                    fontWeight: 900,
+                    color: COLORS.text,
+                    lineHeight: 1,
+                    marginBottom: "1rem",
+                  }}
+                >
+                  Iniciar
+                  <br />
+                  Sesión
+                </h2>
+
+                <p
+                  style={{
+                    color:
+                      COLORS.textLight,
+                    lineHeight: 1.8,
+                  }}
+                >
+                  Ingresa tus credenciales
+                  institucionales para
+                  acceder al sistema ParkU.
+                </p>
+              </div>
+
+              {/* FORM */}
+
+              <form
+                onSubmit={handleLogin}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1.4rem",
+                }}
+              >
+                {/* EMAIL */}
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: 10,
+                      fontWeight: 700,
+                      color: COLORS.text,
+                    }}
+                  >
+                    Correo Electrónico
+                  </label>
+
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) =>
+                      setEmail(
+                        e.target.value
+                      )
+                    }
+                    placeholder="correo@sena.edu.co"
+                    required
+                    style={{
+                      width: "100%",
+                      padding:
+                        "18px 18px",
+                      borderRadius: 16,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                      fontSize: 15,
+                      outline: "none",
+                      transition:
+                        ".25s ease",
+                    }}
+                  />
+                </div>
+
+                {/* PASSWORD */}
+
+                <div>
+                  <label
+                    style={{
+                      display: "block",
+                      marginBottom: 10,
+                      fontWeight: 700,
+                      color: COLORS.text,
+                    }}
+                  >
+                    Contraseña
+                  </label>
+
+                  <div
+                    style={{
+                      position: "relative",
+                    }}
+                  >
+                    <input
+                      type={
+                        showPassword
+                          ? "text"
+                          : "password"
+                      }
+                      value={password}
+                      onChange={(e) =>
+                        setPassword(
+                          e.target.value
+                        )
+                      }
+                      placeholder="••••••••"
+                      required
+                      style={{
+                        width: "100%",
+                        padding:
+                          "18px 55px 18px 18px",
+                        borderRadius: 16,
+                        border: `1px solid ${COLORS.border}`,
+                        background: "#fff",
+                        fontSize: 15,
+                        outline: "none",
+                        transition:
+                          ".25s ease",
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowPassword(
+                          !showPassword
+                        )
+                      }
+                      style={{
+                        position:
+                          "absolute",
+                        top: "50%",
+                        right: 16,
+                        transform:
+                          "translateY(-50%)",
+                        background:
+                          "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color:
+                          COLORS.textLight,
+                      }}
+                    >
+                      {showPassword ? (
+                        <EyeOff
+                          size={18}
+                        />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* FORGOT */}
+
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "flex-end",
+                  }}
+                >
+                  <Link
+                    to="/forgot-password"
+                    style={{
+                      color:
+                        COLORS.primary,
+                      textDecoration:
+                        "none",
+                      fontWeight: 700,
+                      fontSize: 14,
+                    }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </Link>
+                </div>
+
+                {/* LOGIN */}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    border: "none",
+                    background:
+                      loading
+                        ? "#94A3B8"
+                        : COLORS.primary,
+                    color: "#fff",
+                    padding:
+                      "18px 24px",
+                    borderRadius: 18,
+                    fontWeight: 800,
+                    cursor: loading
+                      ? "not-allowed"
+                      : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      "center",
+                    gap: 10,
+                    fontSize: 15,
+                    boxShadow:
+                      "0 10px 25px rgba(57,169,0,.2)",
+                  }}
+                >
+                  {loading
+                    ? "Verificando..."
+                    : "Ingresar"}
+                </button>
+
+                   <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    border: "none",
+                    background:
+                      loading
+                        ? "#94A3B8"
+                        : COLORS.primary,
+                    color: "#fff",
+                    padding:
+                      "18px 24px",
+                    borderRadius: 18,
+                    fontWeight: 800,
+                    cursor: loading
+                      ? "not-allowed"
+                      : "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      "center",
+                    gap: 10,
+                    fontSize: 15,
+                    boxShadow:
+                      "0 10px 25px rgba(57,169,0,.2)",
+                  }}
+                >
+                  {loading
+                    ? "Verificando..."
+                    : "Registrarse"}
+                </button>
+
+                {/* GOOGLE */}
+
+                <button
+                  type="button"
+                  onClick={
+                    handleGoogleLogin
+                  }
+                  disabled={loading}
+                  style={{
+                    border: `1px solid ${COLORS.border}`,
+                    background: "#fff",
+                    color: COLORS.text,
+                    padding:
+                      "18px 24px",
+                    borderRadius: 18,
+                    fontWeight: 700,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent:
+                      "center",
+                    gap: 12,
+                    fontSize: 15,
+                  }}
+                >
+                  <img
+                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+                    alt="Google"
+                    style={{
+                      width: 20,
+                      height: 20,
+                    }}
+                  />
+
+                  Continuar con Google
+                </button>
+              </form>
+
+              {/* FOOTER */}
+
+              <div
+                style={{
+                  marginTop: "2rem",
+                  paddingTop: "2rem",
+                  borderTop: `1px solid ${COLORS.border}`,
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    background: "#ECFDF3",
+                    padding: "16px 18px",
+                    borderRadius: 16,
+                    color:
+                      COLORS.primaryDark,
+                    fontWeight: 700,
+                    fontSize: 14,
+                  }}
+                >
+                  <ShieldCheck
+                    size={18}
+                  />
+                  Plataforma protegida y
+                  segura
+                </div>
+
+                <p
+                  style={{
+                    marginTop: "1.5rem",
+                    textAlign: "center",
+                    color:
+                      COLORS.textLight,
+                    fontSize: 13,
+                  }}
+                >
+                  © 2026 · Plataforma
+                  Institucional ParkU
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-
-        <p
-          style={{
-            textAlign: 'center',
-            marginTop: '1.5rem',
-            fontSize: 11,
-            color: '#ffffff',
-            letterSpacing: 1,
-          }}
-        >
-          © 2026 SENA — Servicio Nacional de
-          Aprendizaje
-        </p>
       </div>
-    </div>
+    </>
   );
 }

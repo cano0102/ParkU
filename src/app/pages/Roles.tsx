@@ -10,6 +10,11 @@ import {
   Copy,
   Lock,
   Users,
+  CheckCircle2,
+  XCircle,
+  Sparkles,
+  Layers3,
+  ShieldCheck,
 } from "lucide-react";
 
 import { Button } from "../components/ui/button";
@@ -17,8 +22,6 @@ import { Button } from "../components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "../components/ui/card";
 
 import { Input } from "../components/ui/input";
@@ -119,7 +122,9 @@ export function Roles() {
         .includes(search.toLowerCase());
 
       const matchesEstado =
-        filterEstado === "todos" ? true : rol.estado === filterEstado;
+        filterEstado === "todos"
+          ? true
+          : rol.estado === filterEstado;
 
       return matchesSearch && matchesEstado;
     });
@@ -173,11 +178,11 @@ export function Roles() {
     }
 
     if (
-      confirm("¿Desea eliminar este rol? Esta acción no se puede deshacer.")
+      confirm("¿Desea eliminar este rol?")
     ) {
       deleteRol(rol.id);
 
-      toast.success("Rol eliminado correctamente");
+      toast.success("Rol eliminado");
     }
   };
 
@@ -187,267 +192,386 @@ export function Roles() {
       nombre: `${rol.nombre} Copia`,
     });
 
-    toast.success("Rol duplicado correctamente");
+    toast.success("Rol duplicado");
   };
 
-  const handleTogglePermiso = (permiso: keyof typeof formData.permisos) => {
+  const handleTogglePermiso = (
+    permiso: keyof typeof formData.permisos,
+  ) => {
     setFormData({
       ...formData,
 
       permisos: {
         ...formData.permisos,
 
-        [permiso]: !formData.permisos[permiso],
+        [permiso]:
+          !formData.permisos[permiso],
       },
     });
   };
 
-  const countActivePermisos = (permisos: typeof formData.permisos) => {
-    return Object.values(permisos).filter(Boolean).length;
+  const countActivePermisos = (
+    permisos: typeof formData.permisos,
+  ) => {
+    return Object.values(permisos).filter(Boolean)
+      .length;
   };
 
   const getRolColor = (rol: string) => {
     switch (rol) {
       case "Administrador":
-        return "bg-red-500/10 text-red-500 border-red-500/20";
+        return "bg-red-50 text-red-600 border-red-200";
 
       case "Supervisor":
-        return "bg-blue-500/10 text-blue-500 border-blue-500/20";
+        return "bg-blue-50 text-blue-600 border-blue-200";
 
       case "Operador":
-        return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+        return "bg-yellow-50 text-yellow-700 border-yellow-200";
 
       default:
-        return "bg-green-500/10 text-green-500 border-green-500/20";
+        return "bg-green-50 text-green-700 border-green-200";
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* HEADER */}
+      {/* HERO */}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-white">Gestión de Roles</h1>
+      <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#39A900] to-[#2D7D00] p-7 text-white">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
 
-          <p className="text-sm text-gray-400 mt-1">
-            Administra permisos y accesos del sistema
-          </p>
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
+              <ShieldCheck className="h-4 w-4" />
+              Seguridad y permisos
+            </div>
+
+            <h1 className="text-4xl font-black leading-none md:text-5xl">
+              Gestión de Roles
+            </h1>
+
+            <p className="mt-4 max-w-2xl text-sm text-white/85 md:text-base">
+              Administra accesos, permisos y niveles
+              de seguridad del sistema institucional.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:w-[340px]">
+            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+              <div className="text-xs text-white/70">
+                Roles activos
+              </div>
+
+              <div className="mt-1 text-3xl font-black">
+                {
+                  roles.filter(
+                    (r) => r.estado === "activo",
+                  ).length
+                }
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+              <div className="text-xs text-white/70">
+                Protegidos
+              </div>
+
+              <div className="mt-1 text-3xl font-black">
+                {ROLES_PROTEGIDOS.length}
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+              <div className="text-xs text-white/70">
+                Permisos
+              </div>
+
+              <div className="mt-1 text-3xl font-black">
+                {
+                  Object.keys(initialPermisos)
+                    .length
+                }
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
+              <div className="text-xs text-white/70">
+                Roles totales
+              </div>
+
+              <div className="mt-1 text-3xl font-black">
+                {roles.length}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TOP BAR */}
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-1 gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-3.5 h-4 w-4 text-zinc-400" />
+
+            <Input
+              placeholder="Buscar rol..."
+              className="h-11 rounded-xl border-zinc-200 bg-white pl-10 shadow-sm"
+              value={search}
+              onChange={(e) =>
+                setSearch(e.target.value)
+              }
+            />
+          </div>
+
+          <select
+            className="h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm shadow-sm outline-none"
+            value={filterEstado}
+            onChange={(e) =>
+              setFilterEstado(e.target.value as any)
+            }
+          >
+            <option value="todos">
+              Todos
+            </option>
+
+            <option value="activo">
+              Activos
+            </option>
+
+            <option value="inactivo">
+              Inactivos
+            </option>
+          </select>
         </div>
 
         <Button
           onClick={() => handleOpenDialog()}
-          className="bg-green-600 hover:bg-green-700"
+          className="h-11 rounded-xl bg-[#39A900] px-5 hover:bg-[#2D7D00]"
         >
-          <Plus className="h-4 w-4 mr-2" />
+          <Plus className="mr-2 h-4 w-4" />
           Nuevo Rol
         </Button>
       </div>
 
-      {/* RESUMEN */}
+      {/* GRID */}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">Roles Totales</div>
-
-            <div className="text-3xl font-bold text-white mt-1">
-              {roles.length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">Roles Activos</div>
-
-            <div className="text-3xl font-bold text-green-500 mt-1">
-              {roles.filter((r) => r.estado === "activo").length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">Roles Protegidos</div>
-
-            <div className="text-3xl font-bold text-red-500 mt-1">
-              {ROLES_PROTEGIDOS.length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-zinc-900 border-zinc-800">
-          <CardContent className="p-5">
-            <div className="text-sm text-gray-400">Permisos del Sistema</div>
-
-            <div className="text-3xl font-bold text-blue-500 mt-1">
-              {Object.keys(initialPermisos).length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* FILTROS */}
-
-      <div className="flex gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
-
-          <Input
-            placeholder="Buscar rol..."
-            className="pl-10 bg-zinc-900 border-zinc-800"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <select
-          className="bg-zinc-900 border border-zinc-800 rounded-md px-3 text-sm text-white"
-          value={filterEstado}
-          onChange={(e) => setFilterEstado(e.target.value as any)}
-        >
-          <option value="todos">Todos</option>
-
-          <option value="activo">Activos</option>
-
-          <option value="inactivo">Inactivos</option>
-        </select>
-      </div>
-
-      {/* LISTADO */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 2xl:grid-cols-3">
         {filteredRoles.map((rol) => {
-          const permisosActivos = countActivePermisos(rol.permisos);
+          const permisosActivos =
+            countActivePermisos(
+              rol.permisos,
+            );
 
-          const protegido = ROLES_PROTEGIDOS.includes(rol.nombre);
+          const protegido =
+            ROLES_PROTEGIDOS.includes(
+              rol.nombre,
+            );
 
           return (
             <Card
               key={rol.id}
-              className="bg-zinc-900 border-zinc-800 hover:border-green-600 transition-all"
+              className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
             >
-              <CardHeader className="pb-2">
-                <div className="flex justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-lg bg-green-500/10 flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-green-500" />
+              {/* TOP */}
+
+              <div className="border-b border-zinc-100 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#39A900]/10">
+                      <Shield className="h-6 w-6 text-[#39A900]" />
                     </div>
 
                     <div>
-                      <CardTitle className="text-white text-lg">
+                      <h2 className="text-xl font-bold text-zinc-900">
                         {rol.nombre}
-                      </CardTitle>
+                      </h2>
 
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge className={getRolColor(rol.nombre)}>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Badge
+                          className={getRolColor(
+                            rol.nombre,
+                          )}
+                        >
                           {rol.estado}
                         </Badge>
 
                         {protegido && (
-                          <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
-                            <Lock className="h-3 w-3 mr-1" />
+                          <Badge className="border-red-200 bg-red-50 text-red-600">
+                            <Lock className="mr-1 h-3 w-3" />
                             Protegido
                           </Badge>
                         )}
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
 
-              <CardContent>
-                <p className="text-sm text-gray-400 mb-4 line-clamp-2">
+                  <div className="rounded-xl bg-zinc-100 px-3 py-2 text-right">
+                    <div className="text-xs text-zinc-500">
+                      Permisos
+                    </div>
+
+                    <div className="text-lg font-black text-[#39A900]">
+                      {permisosActivos}
+                    </div>
+                  </div>
+                </div>
+
+                <p className="mt-4 line-clamp-2 text-sm leading-relaxed text-zinc-500">
                   {rol.descripcion}
                 </p>
+              </div>
+
+              {/* BODY */}
+
+              <CardContent className="space-y-5 p-5">
+                {/* PROGRESS */}
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between text-xs">
+                    <span className="font-medium text-zinc-500">
+                      Nivel de acceso
+                    </span>
+
+                    <span className="font-bold text-zinc-900">
+                      {
+                        Math.round(
+                          (permisosActivos /
+                            Object.keys(
+                              rol.permisos,
+                            ).length) *
+                            100,
+                        )
+                      }
+                      %
+                    </span>
+                  </div>
+
+                  <div className="h-2 overflow-hidden rounded-full bg-zinc-100">
+                    <div
+                      className="h-full rounded-full bg-[#39A900]"
+                      style={{
+                        width: `${
+                          (permisosActivos /
+                            Object.keys(
+                              rol.permisos,
+                            ).length) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
 
                 {/* PERMISOS */}
 
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2">
                   {Object.entries(rol.permisos)
-                    .filter(([_, value]) => value)
-                    .slice(0, 4)
+                    .filter(
+                      ([_, value]) => value,
+                    )
+                    .slice(0, 5)
                     .map(([key]) => (
                       <Badge
                         key={key}
-                        className="bg-zinc-800 text-gray-300 border-zinc-700"
+                        className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-zinc-700"
                       >
                         {
-                          Object.values(PERMISOS)
-                            .flatMap((group) => Object.entries(group))
-                            .find(([k]) => k === key)?.[1]
+                          Object.values(
+                            PERMISOS,
+                          )
+                            .flatMap((group) =>
+                              Object.entries(
+                                group,
+                              ),
+                            )
+                            .find(
+                              ([k]) =>
+                                k === key,
+                            )?.[1]
                         }
                       </Badge>
                     ))}
 
-                  {permisosActivos > 4 && (
-                    <Badge className="bg-green-500/10 text-green-500 border-green-500/20">
-                      +{permisosActivos - 4}
+                  {permisosActivos > 5 && (
+                    <Badge className="rounded-full border border-[#39A900]/20 bg-[#39A900]/10 text-[#39A900]">
+                      +
+                      {permisosActivos - 5}
                     </Badge>
                   )}
                 </div>
 
-                {/* INFO */}
+                {/* FOOT */}
 
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Users className="h-3 w-3" />
-                    12 usuarios
+                <div className="flex items-center justify-between border-t border-zinc-100 pt-4">
+                  <div className="flex items-center gap-4 text-sm text-zinc-500">
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      12 usuarios
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <Layers3 className="h-4 w-4" />
+                      {
+                        Object.keys(
+                          rol.permisos,
+                        ).length
+                      }
+                    </div>
                   </div>
 
-                  <div>
-                    {permisosActivos}/{Object.keys(rol.permisos).length}{" "}
-                    permisos
-                  </div>
-                </div>
-
-                {/* ACTIONS */}
-
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
-                    onClick={() => {
-                      setViewingRol(rol);
-
-                      setViewDialogOpen(true);
-                    }}
-                  >
-                    <Eye className="h-3 w-3 mr-1" />
-                    Ver
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700"
-                    onClick={() => handleOpenDialog(rol)}
-                  >
-                    <Pencil className="h-3 w-3 mr-1" />
-                    Editar
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-zinc-700 bg-zinc-800 text-blue-400 hover:bg-zinc-700"
-                    onClick={() => handleDuplicate(rol)}
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
-
-                  {!protegido && (
+                  <div className="flex gap-2">
                     <Button
+                      size="icon"
                       variant="outline"
-                      size="sm"
-                      className="border-zinc-700 bg-zinc-800 text-red-500 hover:bg-red-500/10"
-                      onClick={() => handleDelete(rol)}
+                      className="border-zinc-200"
+                      onClick={() => {
+                        setViewingRol(rol);
+
+                        setViewDialogOpen(
+                          true,
+                        );
+                      }}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Eye className="h-4 w-4" />
                     </Button>
-                  )}
+
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="border-zinc-200"
+                      onClick={() =>
+                        handleOpenDialog(rol)
+                      }
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+
+                    <Button
+                      size="icon"
+                      variant="outline"
+                      className="border-zinc-200 text-blue-600"
+                      onClick={() =>
+                        handleDuplicate(rol)
+                      }
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+
+                    {!protegido && (
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="border-red-200 text-red-600 hover:bg-red-50"
+                        onClick={() =>
+                          handleDelete(rol)
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -455,54 +579,61 @@ export function Roles() {
         })}
       </div>
 
-      {/* DIALOG */}
+      {/* CREATE / EDIT */}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[95vw] max-w-6xl bg-zinc-950 border-zinc-800 text-white overflow-hidden p-0">
-          {/* HEADER */}
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+      >
+        <DialogContent className="max-w-5xl overflow-hidden rounded-3xl border-none bg-white p-0">
+          <DialogHeader className="border-b border-zinc-100 px-6 py-5">
+            <DialogTitle className="flex items-center gap-2 text-2xl font-black text-zinc-900">
+              <Sparkles className="h-5 w-5 text-[#39A900]" />
 
-          <DialogHeader className="px-5 pt-5 pb-3 border-b border-zinc-800">
-            <DialogTitle className="text-lg font-semibold">
-              {editingRol ? "Editar Rol" : "Crear Nuevo Rol"}
+              {editingRol
+                ? "Editar Rol"
+                : "Nuevo Rol"}
             </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit}>
-            <div className="p-5 space-y-4">
-              {/* TOP SECTION */}
+            <div className="space-y-6 p-6">
+              {/* TOP */}
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* NOMBRE */}
-
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 <div>
-                  <Label className="text-xs text-gray-400">
-                    Nombre del Rol
+                  <Label className="text-zinc-700">
+                    Nombre del rol
                   </Label>
 
                   <Input
-                    className="bg-zinc-900 border-zinc-800 mt-1 h-9 text-sm"
+                    className="mt-2 h-11 rounded-xl border-zinc-200"
                     value={formData.nombre}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        nombre: e.target.value,
+                        nombre:
+                          e.target.value,
                       })
                     }
                   />
                 </div>
 
-                {/* DESCRIPCIÓN */}
-
                 <div>
-                  <Label className="text-xs text-gray-400">Descripción</Label>
+                  <Label className="text-zinc-700">
+                    Descripción
+                  </Label>
 
                   <Textarea
-                    className="bg-zinc-900 border-zinc-800 mt-1 h-9 min-h-[36px] resize-none text-sm"
-                    value={formData.descripcion}
+                    className="mt-2 rounded-xl border-zinc-200"
+                    value={
+                      formData.descripcion
+                    }
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        descripcion: e.target.value,
+                        descripcion:
+                          e.target.value,
                       })
                     }
                   />
@@ -511,265 +642,275 @@ export function Roles() {
 
               {/* PERMISOS */}
 
-              <div className="grid grid-cols-4 gap-2">
-                {Object.entries(PERMISOS).map(([grupo, permisos]) => (
-                  <div
-                    key={grupo}
-                    className="border border-zinc-800 rounded-md p-2 bg-zinc-900/30"
-                  >
-                    {/* TITULO */}
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
+                {Object.entries(PERMISOS).map(
+                  ([grupo, permisos]) => (
+                    <div
+                      key={grupo}
+                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
+                    >
+                      <div className="mb-4 flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-[#39A900]" />
 
-                    <div className="text-[10px] font-semibold text-green-500 uppercase mb-2 tracking-wider">
-                      {grupo}
+                        <h3 className="text-sm font-bold uppercase tracking-wide text-zinc-900">
+                          {grupo}
+                        </h3>
+                      </div>
+
+                      <div className="space-y-3">
+                        {Object.entries(
+                          permisos,
+                        ).map(
+                          ([key, label]) => (
+                            <div
+                              key={key}
+                              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 py-2"
+                            >
+                              <span className="text-sm text-zinc-700">
+                                {label}
+                              </span>
+
+                              <Checkbox
+                                checked={
+                                  formData
+                                    .permisos[
+                                    key as keyof typeof formData.permisos
+                                  ]
+                                }
+                                onCheckedChange={() =>
+                                  handleTogglePermiso(
+                                    key as keyof typeof formData.permisos,
+                                  )
+                                }
+                              />
+                            </div>
+                          ),
+                        )}
+                      </div>
                     </div>
-
-                    {/* ITEMS */}
-
-                    <div className="space-y-1">
-                      {Object.entries(permisos).map(([key, label]) => (
-                        <div key={key} className="flex items-center gap-2 h-6">
-                          <Checkbox
-                            checked={
-                              formData.permisos[
-                                key as keyof typeof formData.permisos
-                              ]
-                            }
-                            onCheckedChange={() =>
-                              handleTogglePermiso(
-                                key as keyof typeof formData.permisos,
-                              )
-                            }
-                          />
-
-                          <span className="text-[11px] text-gray-300 leading-none">
-                            {label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
 
               {/* ESTADO */}
 
-              {/* ESTADO */}
-
-              <div className="flex items-center justify-between border border-zinc-800 rounded-md px-3 py-2 bg-zinc-900/40">
+              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
                 <div>
-                  <div className="text-xs text-gray-400">Estado del Rol</div>
+                  <div className="text-sm font-semibold text-zinc-900">
+                    Estado del rol
+                  </div>
 
-                  <div className="text-sm text-white">
-                    {formData.estado === "activo" ? "Activo" : "Inactivo"}
+                  <div className="mt-1 text-sm text-zinc-500">
+                    Activa o desactiva el
+                    acceso.
                   </div>
                 </div>
 
-                <Switch
-                  checked={formData.estado === "activo"}
-                  onCheckedChange={(checked) =>
-                    setFormData({
-                      ...formData,
-                      estado: checked ? "activo" : "inactivo",
-                    })
-                  }
-                  disabled={!editingRol}
-                />
+                <div className="flex items-center gap-3">
+                  {formData.estado ===
+                  "activo" ? (
+                    <Badge className="border-green-200 bg-green-50 text-green-600">
+                      <CheckCircle2 className="mr-1 h-3 w-3" />
+                      Activo
+                    </Badge>
+                  ) : (
+                    <Badge className="border-red-200 bg-red-50 text-red-600">
+                      <XCircle className="mr-1 h-3 w-3" />
+                      Inactivo
+                    </Badge>
+                  )}
+
+                  <Switch
+                    checked={
+                      formData.estado ===
+                      "activo"
+                    }
+                    onCheckedChange={(
+                      checked,
+                    ) =>
+                      setFormData({
+                        ...formData,
+                        estado: checked
+                          ? "activo"
+                          : "inactivo",
+                      })
+                    }
+                  />
+                </div>
               </div>
             </div>
 
-            {/* FOOTER */}
-
-            <DialogFooter className="px-5 py-3 border-t border-zinc-800 bg-zinc-950">
+            <DialogFooter className="border-t border-zinc-100 bg-zinc-50 px-6 py-4">
               <Button
                 type="button"
                 variant="outline"
-                className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800"
-                onClick={() => setDialogOpen(false)}
+                className="border-zinc-200"
+                onClick={() =>
+                  setDialogOpen(false)
+                }
               >
                 Cancelar
               </Button>
 
-              <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                {editingRol ? "Actualizar Rol" : "Crear Rol"}
+              <Button
+                type="submit"
+                className="bg-[#39A900] hover:bg-[#2D7D00]"
+              >
+                {editingRol
+                  ? "Actualizar Rol"
+                  : "Crear Rol"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* VER DETALLE */}
+      {/* VIEW */}
 
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="w-[88vw] max-w-2xl bg-zinc-950 border border-zinc-800 text-white p-0 overflow-hidden rounded-lg scale-[0.92]">
-          {/* HEADER */}
-
-          <DialogHeader className="px-3 py-2 border-b border-zinc-800">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-md bg-green-500/10 flex items-center justify-center">
-                  <Shield className="h-4 w-4 text-green-500" />
-                </div>
-
-                <div>
-                  <DialogTitle className="text-sm font-semibold text-white">
-                    {viewingRol?.nombre}
-                  </DialogTitle>
-
-                  <div className="flex gap-2 mt-1">
-                    <Badge className={getRolColor(viewingRol?.nombre || "")}>
-                      {viewingRol?.estado}
-                    </Badge>
-
-                    {viewingRol &&
-                      ROLES_PROTEGIDOS.includes(viewingRol.nombre) && (
-                        <Badge className="bg-red-500/10 text-red-500 border-red-500/20">
-                          <Lock className="h-3 w-3 mr-1" />
-                          Protegido
-                        </Badge>
-                      )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </DialogHeader>
-
-          {/* BODY */}
-
+      <Dialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+      >
+        <DialogContent className="max-w-3xl overflow-hidden rounded-3xl border-none bg-white p-0">
           {viewingRol && (
-            <div className="p-3 space-y-3">
-              {/* DESCRIPCION */}
+            <>
+              <div className="bg-gradient-to-r from-[#39A900] to-[#2D7D00] p-6 text-white">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                      <Shield className="h-8 w-8" />
+                    </div>
 
-              <div className="bg-zinc-900 border border-zinc-800 rounded-md p-3">
-                <div className="text-[10px] uppercase text-gray-500 mb-1">
-                  Descripción
-                </div>
+                    <div>
+                      <h2 className="text-3xl font-black">
+                        {viewingRol.nombre}
+                      </h2>
 
-                <p className="text-xs text-gray-300 leading-relaxed">
-                  {viewingRol.descripcion}
-                </p>
-              </div>
+                      <div className="mt-2 flex gap-2">
+                        <Badge className="border-white/20 bg-white/15 text-white">
+                          {
+                            viewingRol.estado
+                          }
+                        </Badge>
 
-              {/* STATS */}
-
-              <div className="grid grid-cols-3 gap-2">
-                <div className="bg-zinc-900 border border-zinc-800 rounded-md p-2">
-                  <div className="text-[10px] text-gray-500 uppercase">
-                    Usuarios
-                  </div>
-
-                  <div className="text-base font-semibold text-white mt-1">
-                    12
-                  </div>
-                </div>
-
-                <div className="bg-zinc-900 border border-zinc-800 rounded-md p-2">
-                  <div className="text-[10px] text-gray-500 uppercase">
-                    Permisos
-                  </div>
-
-                  <div className="text-base font-semibold text-green-500 mt-1">
-                    {countActivePermisos(viewingRol.permisos)}
-                  </div>
-                </div>
-
-                <div className="bg-zinc-900 border border-zinc-800 rounded-md p-2">
-                  <div className="text-[10px] text-gray-500 uppercase">
-                    Estado
-                  </div>
-
-                  <div className="mt-1">
-                    <Badge
-                      className={
-                        viewingRol.estado === "activo"
-                          ? "bg-green-500/10 text-green-500 border-green-500/20"
-                          : "bg-red-500/10 text-red-500 border-red-500/20"
-                      }
-                    >
-                      {viewingRol.estado}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-
-              {/* PERMISOS */}
-
-              <div>
-                <h3 className="text-xs font-semibold text-white mb-2">
-                  Permisos del Rol
-                </h3>
-
-                <div className="grid grid-cols-2 gap-2">
-                  {Object.entries(PERMISOS).map(([grupo, permisos]) => (
-                    <div
-                      key={grupo}
-                      className="bg-zinc-900 border border-zinc-800 rounded-md p-2"
-                    >
-                      {/* TITULO */}
-
-                      <div className="text-[10px] uppercase tracking-wider text-green-500 font-semibold mb-2">
-                        {grupo}
-                      </div>
-
-                      {/* ITEMS */}
-
-                      <div className="space-y-1">
-                        {Object.entries(permisos).map(([key, label]) => {
-                          const activo =
-                            viewingRol.permisos[
-                              key as keyof typeof viewingRol.permisos
-                            ];
-
-                          return (
-                            <div
-                              key={key}
-                              className={`flex items-center justify-between rounded px-2 py-[3px] text-[11px] ${
-                                activo
-                                  ? "bg-green-500/10 text-green-400"
-                                  : "bg-zinc-800 text-gray-500"
-                              }`}
-                            >
-                              <span>{label}</span>
-
-                              <div
-                                className={`w-2 h-2 rounded-full ${
-                                  activo ? "bg-green-400" : "bg-gray-600"
-                                }`}
-                              />
-                            </div>
-                          );
-                        })}
+                        {ROLES_PROTEGIDOS.includes(
+                          viewingRol.nombre,
+                        ) && (
+                          <Badge className="border-red-200 bg-red-500/20 text-white">
+                            Protegido
+                          </Badge>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  </div>
+
+                  <div className="rounded-2xl bg-white/10 px-4 py-3 text-right">
+                    <div className="text-xs text-white/70">
+                      Permisos activos
+                    </div>
+
+                    <div className="text-3xl font-black">
+                      {countActivePermisos(
+                        viewingRol.permisos,
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
+
+              <div className="space-y-5 p-6">
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
+                  <div className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-500">
+                    Descripción
+                  </div>
+
+                  <p className="text-sm leading-relaxed text-zinc-700">
+                    {
+                      viewingRol.descripcion
+                    }
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  {Object.entries(PERMISOS).map(
+                    ([grupo, permisos]) => (
+                      <div
+                        key={grupo}
+                        className="rounded-2xl border border-zinc-200 p-4"
+                      >
+                        <h3 className="mb-4 text-sm font-black uppercase tracking-wide text-zinc-900">
+                          {grupo}
+                        </h3>
+
+                        <div className="space-y-2">
+                          {Object.entries(
+                            permisos,
+                          ).map(
+                            ([key, label]) => {
+                              const activo =
+                                viewingRol
+                                  .permisos[
+                                  key as keyof typeof viewingRol.permisos
+                                ];
+
+                              return (
+                                <div
+                                  key={key}
+                                  className={`flex items-center justify-between rounded-xl px-3 py-2 ${
+                                    activo
+                                      ? "bg-[#39A900]/10 text-[#2D7D00]"
+                                      : "bg-zinc-100 text-zinc-400"
+                                  }`}
+                                >
+                                  <span className="text-sm font-medium">
+                                    {label}
+                                  </span>
+
+                                  <div
+                                    className={`h-2.5 w-2.5 rounded-full ${
+                                      activo
+                                        ? "bg-[#39A900]"
+                                        : "bg-zinc-300"
+                                    }`}
+                                  />
+                                </div>
+                              );
+                            },
+                          )}
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
+              </div>
+
+              <DialogFooter className="border-t border-zinc-100 bg-zinc-50 px-6 py-4">
+                <Button
+                  variant="outline"
+                  className="border-zinc-200"
+                  onClick={() =>
+                    setViewDialogOpen(false)
+                  }
+                >
+                  Cerrar
+                </Button>
+
+                <Button
+                  className="bg-[#39A900] hover:bg-[#2D7D00]"
+                  onClick={() => {
+                    setViewDialogOpen(false);
+
+                    handleOpenDialog(
+                      viewingRol,
+                    );
+                  }}
+                >
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Editar
+                </Button>
+              </DialogFooter>
+            </>
           )}
-
-          {/* FOOTER */}
-
-          <DialogFooter className="px-3 py-2 border-t border-zinc-800 bg-zinc-950">
-            <Button
-              variant="outline"
-              className="border-zinc-700 bg-zinc-900 hover:bg-zinc-800 h-8 text-xs"
-              onClick={() => setViewDialogOpen(false)}
-            >
-              Cerrar
-            </Button>
-
-            {viewingRol && (
-              <Button
-                className="bg-green-600 hover:bg-green-700 h-8 text-xs"
-                onClick={() => {
-                  setViewDialogOpen(false);
-                  handleOpenDialog(viewingRol);
-                }}
-              >
-                <Pencil className="h-3 w-3 mr-2" />
-                Editar
-              </Button>
-            )}
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
