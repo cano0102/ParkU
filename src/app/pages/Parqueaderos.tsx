@@ -1,478 +1,695 @@
-import React, { useState } from 'react';
-import { Plus, Pencil, Trash2, Eye, ParkingCircle, MapPin, Search, Grid3x3 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { useData, Parqueadero } from '../context/DataContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
-import { Badge } from '../components/ui/badge';
-import { Switch } from '../components/ui/switch';
-import { toast } from 'sonner';
-import { Textarea } from '../components/ui/textarea';
-import { useNavigate } from 'react-router-dom';
+/* =========================================================
+   PARQUEADEROS UI MODERNO - CRUD COMPLETO
+   ========================================================= */
 
-export function Parqueaderos() { 
-  const navigate = useNavigate();
-  const { parqueaderos, addParqueadero, updateParqueadero, deleteParqueadero, celdas } = useData();
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editingParqueadero, setEditingParqueadero] = useState<Parqueadero | null>(null);
-  const [viewingParqueadero, setViewingParqueadero] = useState<Parqueadero | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  
-  const [formData, setFormData] = useState({
-    nombre: '',
-    direccion: '',
-    capacidad: 0,
-    horaInicio: '06:00',
-    horaFin: '22:00',
-    celdasCarros: 0,
-    celdasMotos: 0,
-    celdasMovilidadReducida: 0,
-    descripcion: '',
-    estado: 'activo' as 'activo' | 'inactivo'
+import React, { useMemo, useState } from "react";
+
+import {
+  Car,
+  Plus,
+  Pencil,
+  Trash2,
+  CheckCircle2,
+  XCircle,
+  BadgeCheck,
+  X,
+} from "lucide-react";
+
+export default function Parqueaderos() {
+  /* =====================================================
+     STATES
+     ===================================================== */
+
+  const [createOpen, setCreateOpen] =
+    useState(false);
+
+  const [editOpen, setEditOpen] =
+    useState(false);
+
+  const [
+    parqueaderoSeleccionado,
+    setParqueaderoSeleccionado,
+  ] = useState<any>(null);
+
+  const [parqueaderos, setParqueaderos] =
+    useState([
+      {
+        id: 1,
+        nombre:
+          "CARRIL 01 - ZONA CENTRAL",
+        total: 12,
+        celdas: [
+          {
+            codigo: "A01",
+            estado: "libre",
+          },
+          {
+            codigo: "A02",
+            estado: "ocupado",
+          },
+          {
+            codigo: "A03",
+            estado: "ocupado",
+          },
+          {
+            codigo: "A04",
+            estado: "sena",
+          },
+          {
+            codigo: "A05",
+            estado: "libre",
+          },
+          {
+            codigo: "A06",
+            estado: "libre",
+          },
+          {
+            codigo: "A07",
+            estado: "ocupado",
+          },
+          {
+            codigo: "A08",
+            estado: "ocupado",
+          },
+        ],
+      },
+
+      {
+        id: 2,
+        nombre:
+          "CARRIL 03 - ZONA NORTE",
+        total: 12,
+        celdas: [
+          {
+            codigo: "C01",
+            estado: "ocupado",
+          },
+          {
+            codigo: "C02",
+            estado: "sena",
+          },
+          {
+            codigo: "C03",
+            estado: "libre",
+          },
+          {
+            codigo: "C04",
+            estado: "libre",
+          },
+          {
+            codigo: "C05",
+            estado: "ocupado",
+          },
+          {
+            codigo: "C06",
+            estado: "ocupado",
+          },
+          {
+            codigo: "C07",
+            estado: "libre",
+          },
+          {
+            codigo: "C08",
+            estado: "ocupado",
+          },
+        ],
+      },
+    ]);
+
+  const [form, setForm] = useState({
+    nombre: "",
+    total: 10,
   });
 
-  const handleOpenDialog = (parqueadero?: Parqueadero) => {
-    if (parqueadero) {
-      setEditingParqueadero(parqueadero);
-      setFormData({
-        nombre: parqueadero.nombre,
-        direccion: parqueadero.direccion,
-        capacidad: parqueadero.capacidad,
-        horaInicio: parqueadero.horaInicio,
-        horaFin: parqueadero.horaFin,
-        celdasCarros: parqueadero.celdasCarros,
-        celdasMotos: parqueadero.celdasMotos,
-        celdasMovilidadReducida: parqueadero.celdasMovilidadReducida,
-        descripcion: parqueadero.descripcion,
-        estado: parqueadero.estado
-      });
-    } else {
-      setEditingParqueadero(null);
-      setFormData({
-        nombre: '',
-        direccion: '',
-        capacidad: 0,
-        horaInicio: '06:00',
-        horaFin: '22:00',
-        celdasCarros: 0,
-        celdasMotos: 0,
-        celdasMovilidadReducida: 0,
-        descripcion: '',
-        estado: 'activo'
-      });
+  /* =====================================================
+     STATS
+     ===================================================== */
+
+  const stats = useMemo(() => {
+    const todas =
+      parqueaderos.flatMap(
+        (p) => p.celdas,
+      );
+
+    return {
+      disponibles: todas.filter(
+        (c) => c.estado === "libre",
+      ).length,
+
+      ocupados: todas.filter(
+        (c) =>
+          c.estado === "ocupado",
+      ).length,
+
+      reservados: todas.filter(
+        (c) => c.estado === "sena",
+      ).length,
+
+      total: todas.length,
+    };
+  }, [parqueaderos]);
+
+  /* =====================================================
+     HELPERS
+     ===================================================== */
+
+  const getCeldaStyle = (
+    estado: string,
+  ) => {
+    switch (estado) {
+      case "libre":
+        return `
+          border-2 border-dashed border-green-400
+          bg-green-50
+          text-green-700
+        `;
+
+      case "ocupado":
+        return `
+          bg-zinc-900
+          text-white
+          border-b-4 border-red-500
+        `;
+
+      case "sena":
+        return `
+          bg-yellow-50
+          text-yellow-700
+          border border-yellow-300
+        `;
+
+      default:
+        return `
+          bg-white
+        `;
     }
-    setDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  /* =====================================================
+     CREAR
+     ===================================================== */
 
-    const totalCeldas = formData.celdasCarros + formData.celdasMotos + formData.celdasMovilidadReducida;
+  const handleCreate = () => {
+    if (!form.nombre) return;
 
-    if (totalCeldas === 0) {
-      toast.error('Debe crear al menos una celda');
-      return;
-    }
+    const nuevo = {
+      id: Date.now(),
 
-    if (editingParqueadero) {
-      updateParqueadero(editingParqueadero.id, { ...formData, capacidad: totalCeldas });
-      toast.success('Parqueadero actualizado correctamente');
-    } else {
-      addParqueadero({ ...formData, capacidad: totalCeldas });
-      toast.success(`Parqueadero creado correctamente con ${totalCeldas} celdas`);
-    }
+      nombre: form.nombre,
 
-    setDialogOpen(false);
+      total: form.total,
+
+      celdas: Array.from({
+        length: form.total,
+      }).map((_, index) => ({
+        codigo: `P${index + 1}`,
+        estado: "libre",
+      })),
+    };
+
+    setParqueaderos([
+      ...parqueaderos,
+      nuevo,
+    ]);
+
+    setCreateOpen(false);
+
+    setForm({
+      nombre: "",
+      total: 10,
+    });
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm('¿Estás seguro de eliminar este parqueadero?')) {
-      deleteParqueadero(id);
-      toast.success('Parqueadero eliminado exitosamente');
-    }
+  /* =====================================================
+     EDITAR
+     ===================================================== */
+
+  const openEdit = (
+    parqueadero: any,
+  ) => {
+    setParqueaderoSeleccionado(
+      parqueadero,
+    );
+
+    setForm({
+      nombre: parqueadero.nombre,
+      total: parqueadero.total,
+    });
+
+    setEditOpen(true);
   };
 
-  const handleChangeEstado = (id: string, nuevoEstado: 'activo' | 'inactivo') => {
-    updateParqueadero(id, { estado: nuevoEstado });
-    toast.success(`Parqueadero ${nuevoEstado === 'activo' ? 'activado' : 'desactivado'} exitosamente`);
+  const handleEdit = () => {
+    setParqueaderos((prev) =>
+      prev.map((p) =>
+        p.id ===
+        parqueaderoSeleccionado.id
+          ? {
+              ...p,
+              nombre: form.nombre,
+              total: form.total,
+            }
+          : p,
+      ),
+    );
+
+    setEditOpen(false);
   };
 
-  const handleViewParqueadero = (parqueadero: Parqueadero) => {
-    setViewingParqueadero(parqueadero);
-    setViewDialogOpen(true);
+  /* =====================================================
+     ELIMINAR
+     ===================================================== */
+
+  const handleDelete = (
+    id: number,
+  ) => {
+    const confirmar = window.confirm(
+      "¿Eliminar parqueadero?",
+    );
+
+    if (!confirmar) return;
+
+    setParqueaderos((prev) =>
+      prev.filter((p) => p.id !== id),
+    );
   };
 
-  const getCeldasParqueadero = (parqueaderoId: string) => {
-    return celdas.filter(c => c.parqueaderoId === parqueaderoId);
-  };
+  /* =====================================================
+     CAMBIAR ESTADO CELDA
+     ===================================================== */
 
-  const filteredParqueaderos = parqueaderos.filter(parqueadero =>
-    parqueadero.nombre.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const cambiarEstadoCelda = (
+    parqueaderoId: number,
+    codigo: string,
+  ) => {
+    setParqueaderos((prev) =>
+      prev.map((parq) => {
+        if (parq.id !== parqueaderoId)
+          return parq;
+
+        return {
+          ...parq,
+
+          celdas: parq.celdas.map(
+            (celda) => {
+              if (
+                celda.codigo !== codigo
+              )
+                return celda;
+
+              const siguienteEstado =
+                celda.estado ===
+                "libre"
+                  ? "ocupado"
+                  : celda.estado ===
+                    "ocupado"
+                  ? "sena"
+                  : "libre";
+
+              return {
+                ...celda,
+                estado:
+                  siguienteEstado,
+              };
+            },
+          ),
+        };
+      }),
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Parqueaderos</h1>
-          <p className="text-sm text-gray-600 mt-1">Administra los parqueaderos del campus</p>
+    <div className="min-h-screen bg-[#ECEDE5] p-5">
+      {/* =====================================================
+          HERO
+         ===================================================== */}
+
+      <div className="overflow-hidden rounded-[30px] bg-gradient-to-r from-[#39A900] to-[#2F8500] p-7 text-white shadow-xl">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h1 className="text-4xl font-black">
+              Panel de Control de
+              Estacionamiento
+            </h1>
+
+            <p className="mt-3 max-w-2xl text-sm text-white/90">
+              Gestión centralizada de
+              celdas y vehículos en
+              tiempo real para el SENA.
+            </p>
+          </div>
+
+          <button
+            onClick={() =>
+              setCreateOpen(true)
+            }
+            className="
+              flex items-center gap-2
+              rounded-2xl bg-white px-6 py-4
+              font-semibold text-zinc-800
+              shadow-lg transition-all
+              hover:scale-105
+            "
+          >
+            <Plus className="h-5 w-5" />
+            Nuevo Ingreso
+          </button>
         </div>
-        <Button onClick={() => handleOpenDialog()} className="bg-green-600 hover:bg-green-700">
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Parqueadero
-        </Button>
-      </div>
 
-      {/* Búsqueda */}
-      <Card className="p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Buscar parqueadero por nombre..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-      </Card>
+        {/* STATS */}
 
-      {/* Lista de Parqueaderos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {filteredParqueaderos.map((parqueadero) => {
-          const celdasParq = getCeldasParqueadero(parqueadero.id);
-          const celdasOcupadas = celdasParq.filter(c => c.estado === 'ocupada').length;
-          const ocupacion = celdasParq.length > 0 ? (celdasOcupadas / celdasParq.length) * 100 : 0;
-
-          return (
-            <Card key={parqueadero.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                      <ParkingCircle className="h-6 w-6 text-white" />
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">{parqueadero.nombre}</CardTitle>
-                      <div className="flex items-center gap-2 mt-1">
-                        <MapPin className="h-3 w-3 text-gray-400" />
-                        <p className="text-sm text-gray-500">{parqueadero.direccion}</p>
-                      </div>
-                    </div>
-                  </div>
-                  <Badge variant={parqueadero.estado === 'activo' ? 'default' : 'secondary'}>
-                    {parqueadero.estado}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {/* Estadísticas */}
-                  <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-green-600">{celdasParq.length}</p>
-                      <p className="text-xs text-gray-500">Total Celdas</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-blue-600">{celdasOcupadas}</p>
-                      <p className="text-xs text-gray-500">Ocupadas</p>
-                    </div>
-                    <div className="text-center">
-                      <p className="text-2xl font-bold text-orange-600">{ocupacion.toFixed(0)}%</p>
-                      <p className="text-xs text-gray-500">Ocupación</p>
-                    </div>
-                  </div>
-
-                  {/* Información */}
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div>
-                      <p className="text-gray-500 text-xs">Celdas Carros</p>
-                      <p className="font-medium">{parqueadero.celdasCarros}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Celdas Motos</p>
-                      <p className="font-medium">{parqueadero.celdasMotos}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Movilidad Reducida</p>
-                      <p className="font-medium">{parqueadero.celdasMovilidadReducida}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-500 text-xs">Horario</p>
-                      <p className="font-medium text-xs">{parqueadero.horaInicio} - {parqueadero.horaFin}</p>
-                    </div>
-                  </div>
-
-                  {/* Estado Switch */}
-                  <div className="flex items-center gap-2 pt-2 border-t">
-                    <span className="text-sm text-gray-500">Estado:</span>
-                    <Switch
-                      checked={parqueadero.estado === 'activo'}
-                      onCheckedChange={(checked) => 
-                        handleChangeEstado(parqueadero.id, checked ? 'activo' : 'inactivo')
-                      }
-                    />
-                  </div>
-
-                  {/* Acciones */}
-                  <div className="flex gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-                      onClick={() => navigate(`/app/celdas?parqueadero=${parqueadero.id}`)}
-                    >
-                      <Grid3x3 className="h-4 w-4 mr-1" />
-                      Celdas
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleViewParqueadero(parqueadero)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Ver
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1"
-                      onClick={() => handleOpenDialog(parqueadero)}
-                    >
-                      <Pencil className="h-4 w-4 mr-1" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(parqueadero.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Dialog Crear/Editar */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingParqueadero ? 'Editar Parqueadero' : 'Registrar Nuevo Parqueadero'}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="nombre">Nombre del Parqueadero</Label>
-                <Input
-                  id="nombre"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  placeholder="Ej: Parqueadero Central"
-                  required
-                />
+        <div className="mt-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {[
+            {
+              title: "DISPONIBLES",
+              value:
+                stats.disponibles,
+              icon: (
+                <CheckCircle2 className="h-5 w-5" />
+              ),
+            },
+            {
+              title: "OCUPADOS",
+              value: stats.ocupados,
+              icon: (
+                <XCircle className="h-5 w-5" />
+              ),
+            },
+            {
+              title: "RESERVADOS",
+              value:
+                stats.reservados,
+              icon: (
+                <BadgeCheck className="h-5 w-5" />
+              ),
+            },
+            {
+              title: "TOTAL",
+              value: stats.total,
+              icon: (
+                <Car className="h-5 w-5" />
+              ),
+            },
+          ].map((item) => (
+            <div
+              key={item.title}
+              className="
+                rounded-[24px]
+                bg-green-500/20
+                p-5
+              "
+            >
+              <div className="flex items-center gap-2 text-sm font-semibold text-white/80">
+                {item.icon}
+                {item.title}
               </div>
 
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="direccion">Dirección</Label>
-                <Input
-                  id="direccion"
-                  value={formData.direccion}
-                  onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                  placeholder="Ej: Calle 100 # 50-30"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2 col-span-2">
-                <Label className="text-sm font-semibold">Configuración de Celdas</Label>
-                <p className="text-xs text-gray-500">Define la cantidad de celdas que se crearán automáticamente</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="celdasCarros">Celdas para Carros</Label>
-                <Input
-                  id="celdasCarros"
-                  type="number"
-                  value={formData.celdasCarros}
-                  onChange={(e) => setFormData({ ...formData, celdasCarros: parseInt(e.target.value) || 0 })}
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="celdasMotos">Celdas para Motos</Label>
-                <Input
-                  id="celdasMotos"
-                  type="number"
-                  value={formData.celdasMotos}
-                  onChange={(e) => setFormData({ ...formData, celdasMotos: parseInt(e.target.value) || 0 })}
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="celdasMovilidadReducida">Celdas de Movilidad Reducida</Label>
-                <Input
-                  id="celdasMovilidadReducida"
-                  type="number"
-                  value={formData.celdasMovilidadReducida}
-                  onChange={(e) => setFormData({ ...formData, celdasMovilidadReducida: parseInt(e.target.value) || 0 })}
-                  min="0"
-                  required
-                />
-              </div>
-
-              <div className="col-span-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-800">
-                  <span className="font-semibold">Total de celdas: </span>
-                  {formData.celdasCarros + formData.celdasMotos + formData.celdasMovilidadReducida}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="horaInicio">Hora de Inicio</Label>
-                <Input
-                  id="horaInicio"
-                  type="time"
-                  value={formData.horaInicio}
-                  onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="horaFin">Hora de Cierre</Label>
-                <Input
-                  id="horaFin"
-                  type="time"
-                  value={formData.horaFin}
-                  onChange={(e) => setFormData({ ...formData, horaFin: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2 col-span-2">
-                <Label htmlFor="descripcion">Descripción</Label>
-                <Textarea
-                  id="descripcion"
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  placeholder="Descripción del parqueadero"
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Estado</Label>
-                <div className="flex items-center gap-2 h-10">
-                  <Switch
-                    checked={formData.estado === 'activo'}
-                    onCheckedChange={(checked) => 
-                      setFormData({ ...formData, estado: checked ? 'activo' : 'inactivo' })
-                    }
-                  />
-                  <span className="text-sm text-gray-600">
-                    {formData.estado === 'activo' ? 'Activo' : 'Inactivo'}
-                  </span>
-                </div>
+              <div className="mt-3 text-5xl font-black">
+                {item.value}
               </div>
             </div>
+          ))}
+        </div>
+      </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                {editingParqueadero ? 'Actualizar' : 'Registrar'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* =====================================================
+          GRID
+         ===================================================== */}
 
-      {/* Dialog Ver Detalle */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Detalle del Parqueadero</DialogTitle>
-          </DialogHeader>
-          {viewingParqueadero && (() => {
-            const celdasParq = getCeldasParqueadero(viewingParqueadero.id);
-            const celdasOcupadas = celdasParq.filter(c => c.estado === 'ocupada').length;
-            
-            return (
-              <div className="space-y-4 py-4">
-                <div className="flex items-center gap-4 pb-4 border-b">
-                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
-                    <ParkingCircle className="h-10 w-10 text-white" />
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
+        {parqueaderos.map(
+          (parqueadero) => (
+            <div
+              key={parqueadero.id}
+              className="rounded-[28px] bg-[#F5F5EF] p-5 shadow-sm"
+            >
+              {/* HEADER */}
+
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-green-500" />
+
+                    <h2 className="text-sm font-black tracking-wide text-green-800">
+                      {
+                        parqueadero.nombre
+                      }
+                    </h2>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-lg">{viewingParqueadero.nombre}</h3>
-                    <Badge variant={viewingParqueadero.estado === 'activo' ? 'default' : 'secondary'}>
-                      {viewingParqueadero.estado}
-                    </Badge>
+
+                  <div className="mt-1 text-sm font-bold text-zinc-500">
+                    {
+                      parqueadero.total
+                    }{" "}
+                    CELDAS
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <div>
-                    <Label className="text-gray-500">Dirección</Label>
-                    <p className="text-gray-900">{viewingParqueadero.direccion}</p>
-                  </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div>
-                      <Label className="text-gray-500 text-xs">Celdas Carros</Label>
-                      <p className="text-gray-900 font-medium">{viewingParqueadero.celdasCarros}</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-500 text-xs">Celdas Motos</Label>
-                      <p className="text-gray-900 font-medium">{viewingParqueadero.celdasMotos}</p>
-                    </div>
-                    <div>
-                      <Label className="text-gray-500 text-xs">Movilidad Reducida</Label>
-                      <p className="text-gray-900 font-medium">{viewingParqueadero.celdasMovilidadReducida}</p>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500">Horario de Operación</Label>
-                    <p className="text-gray-900 font-medium">
-                      {viewingParqueadero.horaInicio} - {viewingParqueadero.horaFin}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-gray-500">Ocupación Actual</Label>
-                    <p className="text-gray-900 font-medium">
-                      {celdasOcupadas} / {celdasParq.length} celdas ocupadas
-                    </p>
-                  </div>
-                  {viewingParqueadero.descripcion && (
-                    <div>
-                      <Label className="text-gray-500">Descripción</Label>
-                      <p className="text-gray-900">{viewingParqueadero.descripcion}</p>
-                    </div>
-                  )}
+                {/* ACTIONS */}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() =>
+                      openEdit(
+                        parqueadero,
+                      )
+                    }
+                    className="
+                    rounded-xl
+                    border
+                    border-zinc-200
+                    bg-white
+                    p-3
+                    text-zinc-700
+                  "
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      handleDelete(
+                        parqueadero.id,
+                      )
+                    }
+                    className="
+                    rounded-xl
+                    border
+                    border-red-200
+                    bg-red-50
+                    p-3
+                    text-red-600
+                  "
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
               </div>
-            );
-          })()}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
-              Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+
+              {/* CELDAS */}
+
+              <div className="grid grid-cols-4 gap-4">
+                {parqueadero.celdas.map(
+                  (celda) => (
+                    <button
+                      key={celda.codigo}
+                      onClick={() =>
+                        cambiarEstadoCelda(
+                          parqueadero.id,
+                          celda.codigo,
+                        )
+                      }
+                      className={`
+                      h-[95px]
+                      rounded-[22px]
+                      p-3
+                      transition-all
+                      hover:scale-105
+                      ${getCeldaStyle(
+                        celda.estado,
+                      )}
+                    `}
+                    >
+                      <div className="flex h-full flex-col items-center justify-between">
+                        <div className="text-lg font-black">
+                          {
+                            celda.codigo
+                          }
+                        </div>
+
+                        <div>
+                          {celda.estado ===
+                          "libre" ? (
+                            <Plus className="h-6 w-6" />
+                          ) : (
+                            <Car className="h-6 w-6" />
+                          )}
+                        </div>
+
+                        <div className="text-[10px] font-bold uppercase tracking-widest">
+                          {celda.estado ===
+                          "libre"
+                            ? "LIBRE"
+                            : celda.estado ===
+                              "sena"
+                            ? "SENA VIP"
+                            : "OCUPADO"}
+                        </div>
+                      </div>
+                    </button>
+                  ),
+                )}
+              </div>
+            </div>
+          ),
+        )}
+      </div>
+
+      {/* =====================================================
+          MODAL CREAR
+         ===================================================== */}
+
+      {createOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-2xl font-black">
+                Nuevo Parqueadero
+              </h2>
+
+              <button
+                onClick={() =>
+                  setCreateOpen(false)
+                }
+              >
+                <X />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <input
+                placeholder="Nombre"
+                value={form.nombre}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    nombre:
+                      e.target.value,
+                  })
+                }
+                className="
+                  h-12 w-full rounded-xl
+                  border border-zinc-200
+                  px-4 outline-none
+                "
+              />
+
+              <input
+                type="number"
+                placeholder="Total"
+                value={form.total}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    total: Number(
+                      e.target.value,
+                    ),
+                  })
+                }
+                className="
+                  h-12 w-full rounded-xl
+                  border border-zinc-200
+                  px-4 outline-none
+                "
+              />
+            </div>
+
+            <button
+              onClick={handleCreate}
+              className="
+                mt-6 h-12 w-full rounded-xl
+                bg-[#39A900]
+                font-bold text-white
+              "
+            >
+              Crear Parqueadero
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================
+          MODAL EDITAR
+         ===================================================== */}
+
+      {editOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-2xl font-black">
+                Editar Parqueadero
+              </h2>
+
+              <button
+                onClick={() =>
+                  setEditOpen(false)
+                }
+              >
+                <X />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <input
+                placeholder="Nombre"
+                value={form.nombre}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    nombre:
+                      e.target.value,
+                  })
+                }
+                className="
+                  h-12 w-full rounded-xl
+                  border border-zinc-200
+                  px-4 outline-none
+                "
+              />
+
+              <input
+                type="number"
+                placeholder="Total"
+                value={form.total}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    total: Number(
+                      e.target.value,
+                    ),
+                  })
+                }
+                className="
+                  h-12 w-full rounded-xl
+                  border border-zinc-200
+                  px-4 outline-none
+                "
+              />
+            </div>
+
+            <button
+              onClick={handleEdit}
+              className="
+                mt-6 h-12 w-full rounded-xl
+                bg-blue-600
+                font-bold text-white
+              "
+            >
+              Guardar Cambios
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

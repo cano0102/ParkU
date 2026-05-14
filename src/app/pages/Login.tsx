@@ -197,29 +197,6 @@ export function Login() {
       >
         {/* BACK BUTTON */}
 
-        <button
-          onClick={() => navigate("/")}
-          style={{
-            position: "absolute",
-            top: 30,
-            left: 30,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            border: `1px solid ${COLORS.border}`,
-            background: "#fff",
-            color: COLORS.text,
-            padding: "14px 18px",
-            borderRadius: 14,
-            cursor: "pointer",
-            fontWeight: 700,
-            zIndex: 20,
-          }}
-        >
-          <ArrowLeft size={18} />
-          Volver al inicio
-        </button>
-
         {/* BG */}
 
         <div
@@ -255,6 +232,29 @@ export function Login() {
           }}
         >
           {/* LEFT */}
+
+             <button
+          onClick={() => navigate("/")}
+          style={{
+            position: "absolute",
+            top: 30,
+            left: 30,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            border: `1px solid ${COLORS.border}`,
+            background: "#fff",
+            color: COLORS.text,
+            padding: "14px 18px",
+            borderRadius: 14,
+            cursor: "pointer",
+            fontWeight: 700,
+            zIndex: 20,
+          }}
+        >
+          <ArrowLeft size={18} />
+          Volver al inicio
+        </button>
 
           <div
             className="login-left"
