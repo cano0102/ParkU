@@ -6,7 +6,6 @@ import {
   Eye,
   EyeOff,
   ShieldCheck,
-  ArrowRight,
   BadgeCheck,
 } from "lucide-react";
 
@@ -40,8 +39,7 @@ function useAnimated() {
 
 export function Login() {
   const [email, setEmail] = useState("");
-  const [password, setPassword] =
-    useState("");
+  const [password, setPassword] = useState("");
 
   const [showPassword, setShowPassword] =
     useState(false);
@@ -195,8 +193,6 @@ export function Login() {
           overflow: "hidden",
         }}
       >
-        {/* BACK BUTTON */}
-
         {/* BG */}
 
         <div
@@ -216,7 +212,7 @@ export function Login() {
         <div
           className={`fade ${
             visible ? "active" : ""
-          }`}
+          } login-grid`}
           style={{
             width: "100%",
             maxWidth: 1180,
@@ -233,40 +229,21 @@ export function Login() {
         >
           {/* LEFT */}
 
-             <button
-          onClick={() => navigate("/")}
-          style={{
-            position: "absolute",
-            top: 30,
-            left: 30,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            border: `1px solid ${COLORS.border}`,
-            background: "#fff",
-            color: COLORS.text,
-            padding: "14px 18px",
-            borderRadius: 14,
-            cursor: "pointer",
-            fontWeight: 700,
-            zIndex: 20,
-          }}
-        >
-          <ArrowLeft size={18} />
-          Volver al inicio
-        </button>
-
           <div
             className="login-left"
             style={{
-              padding: "5rem",
+              padding: "3rem 4rem",
               background:
                 "linear-gradient(135deg,#39A900,#2D7D00)",
               color: "#fff",
               position: "relative",
               overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
+            {/* BG CIRCLE */}
+
             <div
               style={{
                 position: "absolute",
@@ -280,34 +257,82 @@ export function Login() {
               }}
             />
 
+            {/* CONTENT */}
+
             <div
               style={{
                 position: "relative",
                 zIndex: 2,
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
               }}
             >
+              {/* TOP BAR */}
+
               <div
                 style={{
-                  display: "inline-flex",
+                  display: "flex",
                   alignItems: "center",
-                  gap: 8,
-                  background:
-                    "rgba(255,255,255,.12)",
-                  padding: "10px 18px",
-                  borderRadius: 999,
-                  fontWeight: 800,
-                  marginBottom: "2rem",
+                  justifyContent:
+                    "space-between",
+                  marginBottom: "3rem",
                 }}
               >
-                <BadgeCheck size={18} />
-                Plataforma Oficial SENA
+                <button
+                  onClick={() =>
+                    navigate("/")
+                  }
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "12px 18px",
+                    background:
+                      "rgba(255,255,255,.14)",
+                    border:
+                      "1px solid rgba(255,255,255,.12)",
+                    color: "#fff",
+                    borderRadius: 14,
+                    cursor: "pointer",
+                    fontWeight: 700,
+                    fontSize: 14,
+                    backdropFilter:
+                      "blur(10px)",
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  Volver
+                </button>
+
+                <div
+                  style={{
+                    display:
+                      "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background:
+                      "rgba(255,255,255,.12)",
+                    padding:
+                      "10px 18px",
+                    borderRadius: 999,
+                    fontWeight: 800,
+                    fontSize: 14,
+                  }}
+                >
+                  <BadgeCheck size={18} />
+                  Plataforma Oficial
+                  SENA
+                </div>
               </div>
+
+              {/* TITLE */}
 
               <h1
                 style={{
                   fontSize:
                     "clamp(3rem,5vw,5rem)",
-                  lineHeight: .95,
+                  lineHeight: 0.95,
                   fontWeight: 900,
                   marginBottom: "2rem",
                 }}
@@ -316,6 +341,8 @@ export function Login() {
                 <br />
                 a ParkU
               </h1>
+
+              {/* DESCRIPTION */}
 
               <p
                 style={{
@@ -326,12 +353,15 @@ export function Login() {
                   maxWidth: 500,
                 }}
               >
-                Sistema institucional para
-                la gestión inteligente de
+                Sistema institucional
+                para la gestión
+                inteligente de
                 parqueaderos, accesos y
                 monitoreo vehicular del
                 SENA.
               </p>
+
+              {/* FEATURES */}
 
               <div
                 style={{
@@ -349,11 +379,13 @@ export function Login() {
                     key={item}
                     style={{
                       display: "flex",
-                      alignItems: "center",
+                      alignItems:
+                        "center",
                       gap: 12,
                       background:
                         "rgba(255,255,255,.08)",
-                      padding: "16px 18px",
+                      padding:
+                        "16px 18px",
                       borderRadius: 18,
                     }}
                   >
@@ -400,7 +432,8 @@ export function Login() {
               >
                 <div
                   style={{
-                    color: COLORS.primary,
+                    color:
+                      COLORS.primary,
                     fontWeight: 800,
                     marginBottom: 14,
                     letterSpacing: 1,
@@ -431,9 +464,11 @@ export function Login() {
                     lineHeight: 1.8,
                   }}
                 >
-                  Ingresa tus credenciales
+                  Ingresa tus
+                  credenciales
                   institucionales para
-                  acceder al sistema ParkU.
+                  acceder al sistema
+                  ParkU.
                 </p>
               </div>
 
@@ -443,7 +478,8 @@ export function Login() {
                 onSubmit={handleLogin}
                 style={{
                   display: "flex",
-                  flexDirection: "column",
+                  flexDirection:
+                    "column",
                   gap: "1.4rem",
                 }}
               >
@@ -455,7 +491,8 @@ export function Login() {
                       display: "block",
                       marginBottom: 10,
                       fontWeight: 700,
-                      color: COLORS.text,
+                      color:
+                        COLORS.text,
                     }}
                   >
                     Correo Electrónico
@@ -477,11 +514,10 @@ export function Login() {
                         "18px 18px",
                       borderRadius: 16,
                       border: `1px solid ${COLORS.border}`,
-                      background: "#fff",
+                      background:
+                        "#fff",
                       fontSize: 15,
                       outline: "none",
-                      transition:
-                        ".25s ease",
                     }}
                   />
                 </div>
@@ -494,7 +530,8 @@ export function Login() {
                       display: "block",
                       marginBottom: 10,
                       fontWeight: 700,
-                      color: COLORS.text,
+                      color:
+                        COLORS.text,
                     }}
                   >
                     Contraseña
@@ -502,7 +539,8 @@ export function Login() {
 
                   <div
                     style={{
-                      position: "relative",
+                      position:
+                        "relative",
                     }}
                   >
                     <input
@@ -525,11 +563,10 @@ export function Login() {
                           "18px 55px 18px 18px",
                         borderRadius: 16,
                         border: `1px solid ${COLORS.border}`,
-                        background: "#fff",
+                        background:
+                          "#fff",
                         fontSize: 15,
                         outline: "none",
-                        transition:
-                          ".25s ease",
                       }}
                     />
 
@@ -550,7 +587,8 @@ export function Login() {
                         background:
                           "transparent",
                         border: "none",
-                        cursor: "pointer",
+                        cursor:
+                          "pointer",
                         color:
                           COLORS.textLight,
                       }}
@@ -586,7 +624,8 @@ export function Login() {
                       fontSize: 14,
                     }}
                   >
-                    ¿Olvidaste tu contraseña?
+                    ¿Olvidaste tu
+                    contraseña?
                   </Link>
                 </div>
 
@@ -609,11 +648,6 @@ export function Login() {
                     cursor: loading
                       ? "not-allowed"
                       : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent:
-                      "center",
-                    gap: 10,
                     fontSize: 15,
                     boxShadow:
                       "0 10px 25px rgba(57,169,0,.2)",
@@ -622,38 +656,6 @@ export function Login() {
                   {loading
                     ? "Verificando..."
                     : "Ingresar"}
-                </button>
-
-                   <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    border: "none",
-                    background:
-                      loading
-                        ? "#94A3B8"
-                        : COLORS.primary,
-                    color: "#fff",
-                    padding:
-                      "18px 24px",
-                    borderRadius: 18,
-                    fontWeight: 800,
-                    cursor: loading
-                      ? "not-allowed"
-                      : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent:
-                      "center",
-                    gap: 10,
-                    fontSize: 15,
-                    boxShadow:
-                      "0 10px 25px rgba(57,169,0,.2)",
-                  }}
-                >
-                  {loading
-                    ? "Verificando..."
-                    : "Registrarse"}
                 </button>
 
                 {/* GOOGLE */}
@@ -666,15 +668,18 @@ export function Login() {
                   disabled={loading}
                   style={{
                     border: `1px solid ${COLORS.border}`,
-                    background: "#fff",
-                    color: COLORS.text,
+                    background:
+                      "#fff",
+                    color:
+                      COLORS.text,
                     padding:
                       "18px 24px",
                     borderRadius: 18,
                     fontWeight: 700,
                     cursor: "pointer",
                     display: "flex",
-                    alignItems: "center",
+                    alignItems:
+                      "center",
                     justifyContent:
                       "center",
                     gap: 12,
@@ -690,7 +695,8 @@ export function Login() {
                     }}
                   />
 
-                  Continuar con Google
+                  Continuar con
+                  Google
                 </button>
               </form>
 
@@ -706,10 +712,13 @@ export function Login() {
                 <div
                   style={{
                     display: "flex",
-                    alignItems: "center",
+                    alignItems:
+                      "center",
                     gap: 10,
-                    background: "#ECFDF3",
-                    padding: "16px 18px",
+                    background:
+                      "#ECFDF3",
+                    padding:
+                      "16px 18px",
                     borderRadius: 16,
                     color:
                       COLORS.primaryDark,
@@ -720,8 +729,8 @@ export function Login() {
                   <ShieldCheck
                     size={18}
                   />
-                  Plataforma protegida y
-                  segura
+                  Plataforma protegida
+                  y segura
                 </div>
 
                 <p

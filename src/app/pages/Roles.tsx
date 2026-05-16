@@ -581,144 +581,147 @@ export function Roles() {
 
       {/* CREATE / EDIT */}
 
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      >
-        <DialogContent className="max-w-5xl overflow-hidden rounded-3xl border-none bg-white p-0">
-          <DialogHeader className="border-b border-zinc-100 px-6 py-5">
-            <DialogTitle className="flex items-center gap-2 text-2xl font-black text-zinc-900">
-              <Sparkles className="h-5 w-5 text-[#39A900]" />
+     {/* CREATE / EDIT */}
 
-              {editingRol
-                ? "Editar Rol"
-                : "Nuevo Rol"}
-            </DialogTitle>
-          </DialogHeader>
+{/* CREATE / EDIT */}
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6 p-6">
-              {/* TOP */}
+<Dialog
+  open={dialogOpen}
+  onOpenChange={setDialogOpen}
+>
+  <DialogContent className="max-h-[95vh] max-w-7xl overflow-hidden rounded-[32px] border-none bg-[#F5F7F4] p-0">
+    {/* HEADER */}
 
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-                <div>
-                  <Label className="text-zinc-700">
-                    Nombre del rol
-                  </Label>
+    <div className="relative overflow-hidden border-b border-zinc-200 bg-white px-8 py-6">
+      <div className="absolute right-0 top-0 h-40 w-40 rounded-full bg-[#39A900]/10 blur-3xl" />
 
-                  <Input
-                    className="mt-2 h-11 rounded-xl border-zinc-200"
-                    value={formData.nombre}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        nombre:
-                          e.target.value,
-                      })
-                    }
-                  />
-                </div>
+      <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <div className="mb-4 flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#39A900]/10">
+              <ShieldCheck className="h-6 w-6 text-[#39A900]" />
+            </div>
 
-                <div>
-                  <Label className="text-zinc-700">
-                    Descripción
-                  </Label>
+            <Badge className="border-[#39A900]/20 bg-[#39A900]/10 px-4 py-1 text-[#2D7D00]">
+              Seguridad avanzada
+            </Badge>
+          </div>
 
-                  <Textarea
-                    className="mt-2 rounded-xl border-zinc-200"
-                    value={
-                      formData.descripcion
-                    }
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        descripcion:
-                          e.target.value,
-                      })
-                    }
-                  />
-                </div>
+          <h2 className="text-4xl font-black tracking-tight text-zinc-900">
+            {editingRol
+              ? "Editar Rol"
+              : "Nuevo Rol"}
+          </h2>
+
+          <p className="mt-2 max-w-xl text-sm text-zinc-500">
+            Configura permisos, accesos y
+            restricciones del rol dentro del
+            sistema institucional.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 lg:w-[320px]">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-xs text-zinc-500">
+              Permisos activos
+            </div>
+
+            <div className="mt-1 text-3xl font-black text-[#39A900]">
+              {countActivePermisos(
+                formData.permisos,
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
+            <div className="text-xs text-zinc-500">
+              Nivel acceso
+            </div>
+
+            <div className="mt-1 text-3xl font-black text-zinc-900">
+              {Math.round(
+                (countActivePermisos(
+                  formData.permisos,
+                ) /
+                  Object.keys(
+                    formData.permisos,
+                  ).length) *
+                  100,
+              )}
+              %
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <form
+      onSubmit={handleSubmit}
+      className="overflow-y-auto"
+    >
+      <div className="grid grid-cols-1 gap-8 p-8 xl:grid-cols-[1.2fr_.8fr]">
+        {/* LEFT */}
+
+        <div className="space-y-6">
+          {/* INFO */}
+
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#39A900]/10">
+                <Sparkles className="h-5 w-5 text-[#39A900]" />
               </div>
 
-              {/* PERMISOS */}
+              <div>
+                <h3 className="text-lg font-black text-zinc-900">
+                  Información general
+                </h3>
 
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-4">
-                {Object.entries(PERMISOS).map(
-                  ([grupo, permisos]) => (
-                    <div
-                      key={grupo}
-                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4"
-                    >
-                      <div className="mb-4 flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full bg-[#39A900]" />
+                <p className="text-sm text-zinc-500">
+                  Datos principales del rol.
+                </p>
+              </div>
+            </div>
 
-                        <h3 className="text-sm font-bold uppercase tracking-wide text-zinc-900">
-                          {grupo}
-                        </h3>
-                      </div>
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              <div>
+                <Label className="text-sm font-semibold text-zinc-700">
+                  Nombre del rol
+                </Label>
 
-                      <div className="space-y-3">
-                        {Object.entries(
-                          permisos,
-                        ).map(
-                          ([key, label]) => (
-                            <div
-                              key={key}
-                              className="flex items-center justify-between rounded-xl border border-zinc-200 bg-white px-3 py-2"
-                            >
-                              <span className="text-sm text-zinc-700">
-                                {label}
-                              </span>
-
-                              <Checkbox
-                                checked={
-                                  formData
-                                    .permisos[
-                                    key as keyof typeof formData.permisos
-                                  ]
-                                }
-                                onCheckedChange={() =>
-                                  handleTogglePermiso(
-                                    key as keyof typeof formData.permisos,
-                                  )
-                                }
-                              />
-                            </div>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  ),
-                )}
+                <Input
+                  placeholder="Ej: Supervisor"
+                  className="mt-2 h-12 rounded-2xl border-zinc-200 bg-zinc-50"
+                  value={formData.nombre}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      nombre:
+                        e.target.value,
+                    })
+                  }
+                />
               </div>
 
-              {/* ESTADO */}
+              <div>
+                <Label className="text-sm font-semibold text-zinc-700">
+                  Estado
+                </Label>
 
-              <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <div>
-                  <div className="text-sm font-semibold text-zinc-900">
-                    Estado del rol
+                <div className="mt-2 flex h-12 items-center justify-between rounded-2xl border border-zinc-200 bg-zinc-50 px-4">
+                  <div className="flex items-center gap-2">
+                    {formData.estado ===
+                    "activo" ? (
+                      <Badge className="border-green-200 bg-green-50 text-green-600">
+                        <CheckCircle2 className="mr-1 h-3 w-3" />
+                        Activo
+                      </Badge>
+                    ) : (
+                      <Badge className="border-red-200 bg-red-50 text-red-600">
+                        <XCircle className="mr-1 h-3 w-3" />
+                        Inactivo
+                      </Badge>
+                    )}
                   </div>
-
-                  <div className="mt-1 text-sm text-zinc-500">
-                    Activa o desactiva el
-                    acceso.
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {formData.estado ===
-                  "activo" ? (
-                    <Badge className="border-green-200 bg-green-50 text-green-600">
-                      <CheckCircle2 className="mr-1 h-3 w-3" />
-                      Activo
-                    </Badge>
-                  ) : (
-                    <Badge className="border-red-200 bg-red-50 text-red-600">
-                      <XCircle className="mr-1 h-3 w-3" />
-                      Inactivo
-                    </Badge>
-                  )}
 
                   <Switch
                     checked={
@@ -740,30 +743,362 @@ export function Roles() {
               </div>
             </div>
 
-            <DialogFooter className="border-t border-zinc-100 bg-zinc-50 px-6 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="border-zinc-200"
-                onClick={() =>
-                  setDialogOpen(false)
-                }
-              >
-                Cancelar
-              </Button>
+            <div className="mt-5">
+              <Label className="text-sm font-semibold text-zinc-700">
+                Descripción
+              </Label>
 
-              <Button
-                type="submit"
-                className="bg-[#39A900] hover:bg-[#2D7D00]"
-              >
-                {editingRol
-                  ? "Actualizar Rol"
-                  : "Crear Rol"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+              <Textarea
+                placeholder="Describe el alcance y funciones del rol..."
+                className="mt-2 min-h-[120px] rounded-2xl border-zinc-200 bg-zinc-50"
+                value={
+                  formData.descripcion
+                }
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    descripcion:
+                      e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          {/* PERMISOS */}
+
+          <div className="rounded-[28px] border border-zinc-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-zinc-900">
+                  Gestión de permisos
+                </h3>
+
+                <p className="text-sm text-zinc-500">
+                  Controla accesos y módulos
+                  del sistema.
+                </p>
+              </div>
+
+              <div className="rounded-2xl bg-[#39A900]/10 px-4 py-2 text-sm font-bold text-[#2D7D00]">
+                {
+                  Object.keys(
+                    formData.permisos,
+                  ).length
+                }{" "}
+                módulos
+              </div>
+            </div>
+
+            <div className="grid gap-5 md:grid-cols-2">
+              {Object.entries(
+                PERMISOS,
+              ).map(
+                ([grupo, permisos]) => (
+                  <div
+                    key={grupo}
+                    className="rounded-[28px] border border-zinc-200 bg-zinc-50 p-5"
+                  >
+                    <div className="mb-5 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-black uppercase tracking-wide text-zinc-900">
+                          {grupo}
+                        </h3>
+
+                        <p className="text-xs text-zinc-500">
+                          Gestión y accesos
+                        </p>
+                      </div>
+
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#39A900]/10">
+                        <Shield className="h-4 w-4 text-[#39A900]" />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {Object.entries(
+                        permisos,
+                      ).map(
+                        ([key, label]) => {
+                          const activo =
+                            formData
+                              .permisos[
+                              key as keyof typeof formData.permisos
+                            ];
+
+                          return (
+                            <div
+                              key={key}
+                              className={`flex items-center justify-between rounded-2xl border p-4 transition-all ${
+                                activo
+                                  ? "border-[#39A900]/30 bg-[#39A900]/10"
+                                  : "border-zinc-200 bg-white"
+                              }`}
+                            >
+                              <div>
+                                <div className="font-semibold text-zinc-900">
+                                  {label}
+                                </div>
+
+                                <div className="text-xs text-zinc-500">
+                                  Acceso al
+                                  módulo
+                                </div>
+                              </div>
+
+                              <Checkbox
+                                checked={
+                                  activo
+                                }
+                                onCheckedChange={() =>
+                                  handleTogglePermiso(
+                                    key as keyof typeof formData.permisos,
+                                  )
+                                }
+                              />
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+                ),
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT */}
+
+        <div className="sticky top-0 h-fit">
+          <div className="overflow-hidden rounded-[32px] border border-zinc-200 bg-white shadow-xl">
+            {/* TOP */}
+
+            <div className="bg-gradient-to-br from-[#39A900] to-[#2D7D00] p-6 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
+                  <Shield className="h-7 w-7" />
+                </div>
+
+                <Badge className="border-white/20 bg-white/15 text-white">
+                  Vista previa
+                </Badge>
+              </div>
+
+              <div className="mt-6">
+                <div className="text-xs uppercase tracking-[0.25em] text-white/70">
+                  Rol
+                </div>
+
+                <h3 className="mt-2 text-4xl font-black leading-none">
+                  {formData.nombre ||
+                    "ADMINISTRADOR"}
+                </h3>
+
+                <p className="mt-3 text-sm text-white/80">
+                  {
+                    formData.descripcion
+                  }
+                </p>
+              </div>
+
+              {/* LEVEL */}
+
+              <div className="mt-6">
+                <div className="mb-2 flex items-center justify-between text-sm">
+                  <span className="text-white/80">
+                    Nivel de acceso
+                  </span>
+
+                  <span className="font-bold">
+                    {Math.round(
+                      (countActivePermisos(
+                        formData.permisos,
+                      ) /
+                        Object.keys(
+                          formData.permisos,
+                        ).length) *
+                        100,
+                    )}
+                    %
+                  </span>
+                </div>
+
+                <div className="h-3 overflow-hidden rounded-full bg-white/20">
+                  <div
+                    className="h-full rounded-full bg-white"
+                    style={{
+                      width: `${
+                        (countActivePermisos(
+                          formData.permisos,
+                        ) /
+                          Object.keys(
+                            formData
+                              .permisos,
+                          ).length) *
+                        100
+                      }%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {/* TAGS */}
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                {Object.entries(
+                  formData.permisos,
+                )
+                  .filter(
+                    ([_, value]) =>
+                      value,
+                  )
+                  .slice(0, 8)
+                  .map(([key]) => (
+                    <Badge
+                      key={key}
+                      className="rounded-full border-none bg-white/15 text-white backdrop-blur"
+                    >
+                      {
+                        Object.values(
+                          PERMISOS,
+                        )
+                          .flatMap(
+                            (group) =>
+                              Object.entries(
+                                group,
+                              ),
+                          )
+                          .find(
+                            ([k]) =>
+                              k === key,
+                          )?.[1]
+                      }
+                    </Badge>
+                  ))}
+              </div>
+            </div>
+
+            {/* BODY */}
+
+            <div className="space-y-5 p-6">
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
+                <div className="mb-2 text-xs font-bold uppercase tracking-wide text-zinc-500">
+                  Estado del rol
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {formData.estado ===
+                  "activo" ? (
+                    <>
+                      <div className="h-2.5 w-2.5 rounded-full bg-green-500" />
+
+                      <span className="font-semibold text-green-700">
+                        Rol activo y operativo
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="h-2.5 w-2.5 rounded-full bg-red-500" />
+
+                      <span className="font-semibold text-red-700">
+                        Rol deshabilitado
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wide text-zinc-500">
+                      Resumen
+                    </div>
+
+                    <div className="mt-1 text-lg font-black text-zinc-900">
+                      Accesos habilitados
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-[#39A900]/10 px-4 py-2 text-xl font-black text-[#39A900]">
+                    {countActivePermisos(
+                      formData.permisos,
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {Object.entries(
+                    formData.permisos,
+                  )
+                    .filter(
+                      ([_, value]) =>
+                        value,
+                    )
+                    .slice(0, 6)
+                    .map(([key]) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between rounded-xl bg-white px-4 py-3"
+                      >
+                        <span className="text-sm font-medium text-zinc-700">
+                          {
+                            Object.values(
+                              PERMISOS,
+                            )
+                              .flatMap(
+                                (
+                                  group,
+                                ) =>
+                                  Object.entries(
+                                    group,
+                                  ),
+                              )
+                              .find(
+                                ([k]) =>
+                                  k ===
+                                  key,
+                              )?.[1]
+                          }
+                        </span>
+
+                        <CheckCircle2 className="h-4 w-4 text-[#39A900]" />
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FOOTER */}
+
+      <DialogFooter className="sticky bottom-0 border-t border-zinc-200 bg-white/90 px-8 py-5 backdrop-blur">
+        <Button
+          type="button"
+          variant="outline"
+          className="h-12 rounded-2xl border-zinc-200 px-6"
+          onClick={() =>
+            setDialogOpen(false)
+          }
+        >
+          Cancelar
+        </Button>
+
+        <Button
+          type="submit"
+          className="h-12 rounded-2xl bg-[#39A900] px-8 text-sm font-bold hover:bg-[#2D7D00]"
+        >
+          {editingRol
+            ? "Actualizar Rol"
+            : "Crear Rol"}
+        </Button>
+      </DialogFooter>
+    </form>
+  </DialogContent>
+</Dialog>
 
       {/* VIEW */}
 

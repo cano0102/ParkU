@@ -24,6 +24,7 @@ import {
   PointElement,
   LineElement,
   Title,
+  Filler,
 } from "chart.js";
 
 import { Pie, Line } from "react-chartjs-2";
@@ -36,19 +37,20 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
-  Title
+  Title,
+  Filler
 );
 
 const COLORS = {
   primary: "#39A900",
   primaryDark: "#2D7D00",
   primarySoft: "rgba(57,169,0,.12)",
-  background: "#F4F7F2",
+  background: "#EEF3EC",
   surface: "#FFFFFF",
-  surfaceSoft: "#F8FAF7",
+  surfaceSoft: "#F7FAF5",
   text: "#111827",
   textLight: "#6B7280",
-  border: "rgba(15,23,42,.08)",
+  border: "rgba(15,23,42,.06)",
 };
 
 function StatCard({
@@ -58,6 +60,7 @@ function StatCard({
   icon: Icon,
   color = COLORS.primary,
   progress = 50,
+  rotate = "0deg",
 }: {
   label: string;
   value: number | string;
@@ -65,28 +68,30 @@ function StatCard({
   icon: React.ElementType;
   color?: string;
   progress?: number;
+  rotate?: string;
 }) {
   return (
     <div
       style={{
         background: COLORS.surface,
         border: `1px solid ${COLORS.border}`,
-        borderRadius: 20,
-        padding: "1.1rem",
+        borderRadius: 28,
+        padding: "1.2rem",
         position: "relative",
         overflow: "hidden",
-        boxShadow: "0 10px 25px rgba(57,169,0,.04)",
+        boxShadow: "0 15px 35px rgba(0,0,0,.04)",
+        transform: `rotate(${rotate})`,
       }}
     >
       <div
         style={{
           position: "absolute",
-          top: -30,
-          right: -30,
-          width: 100,
-          height: 100,
+          top: -40,
+          right: -40,
+          width: 130,
+          height: 130,
           borderRadius: "50%",
-          background: `${color}10`,
+          background: `${color}12`,
         }}
       />
 
@@ -94,7 +99,6 @@ function StatCard({
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginBottom: ".8rem",
           position: "relative",
           zIndex: 2,
         }}
@@ -105,8 +109,8 @@ function StatCard({
               color: COLORS.textLight,
               fontSize: 10,
               fontWeight: 800,
+              letterSpacing: 2,
               textTransform: "uppercase",
-              letterSpacing: 1.5,
               marginBottom: 8,
             }}
           >
@@ -115,10 +119,10 @@ function StatCard({
 
           <div
             style={{
-              fontSize: 32,
+              fontSize: 40,
               fontWeight: 900,
-              color: COLORS.text,
               lineHeight: 1,
+              color: COLORS.text,
               fontFamily: "'Barlow Condensed', sans-serif",
             }}
           >
@@ -128,9 +132,9 @@ function StatCard({
 
         <div
           style={{
-            width: 48,
-            height: 48,
-            borderRadius: 16,
+            width: 56,
+            height: 56,
+            borderRadius: 18,
             background: `${color}15`,
             display: "flex",
             alignItems: "center",
@@ -138,15 +142,15 @@ function StatCard({
             border: `1px solid ${color}25`,
           }}
         >
-          <Icon size={24} color={color} />
+          <Icon size={26} color={color} />
         </div>
       </div>
 
       <div
         style={{
+          marginTop: 14,
           color: COLORS.textLight,
-          fontSize: 12,
-          marginBottom: 12,
+          fontSize: 13,
         }}
       >
         {sub}
@@ -154,7 +158,8 @@ function StatCard({
 
       <div
         style={{
-          height: 5,
+          marginTop: 14,
+          height: 6,
           borderRadius: 999,
           background: "#E5E7EB",
           overflow: "hidden",
@@ -213,6 +218,9 @@ export function Dashboard() {
       (c) => c.estado === "en_parqueadero"
     ).length;
 
+  const movimientosRecientes =
+    controlesSalida.slice(-5).reverse();
+
   const alertas = [];
 
   if (ocupacionPorcentaje > 80) {
@@ -226,15 +234,6 @@ export function Dashboard() {
       `${celdasMantenimiento} celdas en mantenimiento`
     );
   }
-
-  if (incidentes.length > 0) {
-    alertas.push(
-      `${incidentes.length} incidentes registrados`
-    );
-  }
-
-  const movimientosRecientes =
-    controlesSalida.slice(-5).reverse();
 
   const pieData = {
     labels: [
@@ -261,6 +260,8 @@ export function Dashboard() {
         ],
 
         borderWidth: 0,
+        borderRadius: 10,
+        spacing: 4,
       },
     ],
   };
@@ -282,8 +283,11 @@ export function Dashboard() {
 
         borderColor: "#39A900",
         backgroundColor: "rgba(57,169,0,.12)",
-        tension: 0.4,
+        tension: 0.45,
         fill: true,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        pointBackgroundColor: "#39A900",
       },
     ],
   };
@@ -309,7 +313,7 @@ export function Dashboard() {
         },
 
         grid: {
-          color: "rgba(0,0,0,.05)",
+          display: false,
         },
       },
 
@@ -319,7 +323,7 @@ export function Dashboard() {
         },
 
         grid: {
-          color: "rgba(0,0,0,.05)",
+          color: "rgba(0,0,0,.04)",
         },
       },
     },
@@ -328,10 +332,9 @@ export function Dashboard() {
   return (
     <div
       style={{
-        padding: "1.25rem",
-        background: COLORS.background,
         minHeight: "100vh",
-        color: COLORS.text,
+        background: COLORS.background,
+        padding: "1.5rem",
         fontFamily: "'Barlow', sans-serif",
       }}
     >
@@ -341,81 +344,105 @@ export function Dashboard() {
         style={{
           background:
             "linear-gradient(135deg,#39A900 0%,#2D7D00 100%)",
-          borderRadius: 24,
-          padding: "1.8rem 2rem",
-          marginBottom: "1.5rem",
+          borderRadius: 40,
+          padding: "2rem",
           position: "relative",
           overflow: "hidden",
-          boxShadow: "0 15px 30px rgba(57,169,0,.15)",
+          marginBottom: "2rem",
+          boxShadow: "0 25px 50px rgba(57,169,0,.18)",
         }}
       >
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
+            position: "absolute",
+            right: -100,
+            top: -100,
+            width: 320,
+            height: 320,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,.08)",
+          }}
+        />
+
+        <div
+          style={{
+            position: "absolute",
+            left: -80,
+            bottom: -80,
+            width: 240,
+            height: 240,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,.05)",
+          }}
+        />
+
+        <div
+          style={{
+            position: "relative",
+            zIndex: 2,
+            display: "grid",
+            gridTemplateColumns: "1.2fr .9fr",
             gap: "2rem",
-            flexWrap: "wrap",
             alignItems: "center",
           }}
         >
-          <div style={{ flex: 1, minWidth: 320 }}>
+          <div>
             <div
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "8px 14px",
+                padding: "10px 16px",
                 borderRadius: 999,
-                background: "rgba(255,255,255,.15)",
+                background: "rgba(255,255,255,.14)",
                 border:
                   "1px solid rgba(255,255,255,.18)",
-                marginBottom: "1rem",
-                fontWeight: 700,
                 color: "#fff",
+                fontWeight: 700,
                 fontSize: 12,
-                letterSpacing: 1,
-                textTransform: "uppercase",
+                marginBottom: "1.2rem",
               }}
             >
-              <BadgeCheck size={14} />
-              Sistema Operativo Activo
+              <BadgeCheck size={15} />
+              SISTEMA ACTIVO
             </div>
 
             <h1
               style={{
-                fontSize: "clamp(2rem,4vw,3.2rem)",
-                lineHeight: 1,
                 margin: 0,
-                fontWeight: 900,
                 color: "#fff",
+                fontSize: "clamp(2.6rem,5vw,4.2rem)",
+                lineHeight: 0.95,
+                fontWeight: 900,
                 fontFamily:
                   "'Barlow Condensed', sans-serif",
               }}
             >
-              Dashboard Institucional
+              Dashboard
+              <br />
+              Institucional
             </h1>
 
             <p
               style={{
-                marginTop: ".8rem",
-                maxWidth: 700,
-                lineHeight: 1.6,
-                color: "rgba(255,255,255,.9)",
-                fontSize: 14,
+                marginTop: "1rem",
+                color: "rgba(255,255,255,.88)",
+                maxWidth: 650,
+                lineHeight: 1.7,
+                fontSize: 15,
               }}
             >
-              Monitoreo centralizado de
-              parqueaderos, accesos y ocupación
-              institucional SENA.
+              Monitoreo avanzado de ocupación,
+              accesos vehiculares, reservas y
+              estado operativo de los parqueaderos.
             </p>
           </div>
 
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(4,1fr)",
+              gridTemplateColumns: "repeat(2,1fr)",
               gap: "1rem",
-              minWidth: 500,
             }}
           >
             {[
@@ -425,19 +452,22 @@ export function Dashboard() {
                   0
                 )}%`,
               },
+
               {
                 label: "Vehículos",
                 value: vehiculosEnParqueadero,
               },
+
               {
                 label: "Reservas",
                 value: reservas.length,
               },
+
               {
                 label: "Alertas",
                 value: alertas.length,
               },
-            ].map((item) => (
+            ].map((item, index) => (
               <div
                 key={item.label}
                 style={{
@@ -445,9 +475,16 @@ export function Dashboard() {
                     "rgba(255,255,255,.14)",
                   border:
                     "1px solid rgba(255,255,255,.18)",
-                  borderRadius: 18,
-                  padding: "1rem",
+                  borderRadius:
+                    index % 2 === 0
+                      ? "32px 16px 32px 16px"
+                      : "16px 32px 16px 32px",
+                  padding: "1.2rem",
                   backdropFilter: "blur(10px)",
+                  transform:
+                    index % 2 === 0
+                      ? "translateY(10px)"
+                      : "translateY(-10px)",
                 }}
               >
                 <div
@@ -457,7 +494,7 @@ export function Dashboard() {
                     fontSize: 11,
                     textTransform: "uppercase",
                     letterSpacing: 1,
-                    marginBottom: 6,
+                    marginBottom: 8,
                   }}
                 >
                   {item.label}
@@ -466,7 +503,7 @@ export function Dashboard() {
                 <div
                   style={{
                     color: "#fff",
-                    fontSize: 30,
+                    fontSize: 38,
                     fontWeight: 900,
                     lineHeight: 1,
                     fontFamily:
@@ -487,9 +524,9 @@ export function Dashboard() {
         style={{
           display: "grid",
           gridTemplateColumns:
-            "repeat(auto-fit,minmax(220px,1fr))",
+            "repeat(auto-fit,minmax(240px,1fr))",
           gap: "1rem",
-          marginBottom: "1.5rem",
+          marginBottom: "2rem",
         }}
       >
         <StatCard
@@ -498,6 +535,7 @@ export function Dashboard() {
           sub={`${parqueaderos.length} parqueaderos`}
           icon={ParkingCircle}
           progress={100}
+          rotate="-1deg"
         />
 
         <StatCard
@@ -509,6 +547,7 @@ export function Dashboard() {
           icon={TrendingUp}
           color="#2563EB"
           progress={ocupacionPorcentaje}
+          rotate="1deg"
         />
 
         <StatCard
@@ -518,6 +557,7 @@ export function Dashboard() {
           icon={Car}
           color="#F59E0B"
           progress={70}
+          rotate="-1deg"
         />
 
         <StatCard
@@ -527,16 +567,17 @@ export function Dashboard() {
           icon={Users}
           color="#8B5CF6"
           progress={85}
+          rotate="1deg"
         />
       </div>
 
-      {/* CONTENT */}
+      {/* MAIN GRID */}
 
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1.4fr .9fr",
-          gap: "1rem",
+          gridTemplateColumns: "1.3fr .9fr",
+          gap: "1.4rem",
           alignItems: "start",
         }}
       >
@@ -545,7 +586,7 @@ export function Dashboard() {
         <div
           style={{
             display: "grid",
-            gap: "1rem",
+            gap: "1.4rem",
           }}
         >
           {/* ALERTAS */}
@@ -553,9 +594,10 @@ export function Dashboard() {
           <div
             style={{
               background: COLORS.surface,
+              borderRadius: "38px 18px 38px 18px",
+              padding: "1.6rem",
               border: `1px solid ${COLORS.border}`,
-              borderRadius: 22,
-              padding: "1.4rem",
+              boxShadow: "0 15px 30px rgba(0,0,0,.03)",
             }}
           >
             <div
@@ -582,12 +624,12 @@ export function Dashboard() {
                 <h2
                   style={{
                     margin: 0,
-                    fontSize: 20,
+                    fontSize: 22,
+                    fontWeight: 900,
                     color: COLORS.text,
-                    fontWeight: 800,
                   }}
                 >
-                  Alertas del Sistema
+                  Alertas
                 </h2>
               </div>
 
@@ -596,13 +638,13 @@ export function Dashboard() {
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
-                  color: COLORS.primary,
                   fontSize: 12,
                   fontWeight: 700,
+                  color: COLORS.primary,
                 }}
               >
                 <Clock3 size={14} />
-                Tiempo real
+                EN VIVO
               </div>
             </div>
 
@@ -610,13 +652,10 @@ export function Dashboard() {
               <div
                 style={{
                   background: "#ECFDF3",
-                  border:
-                    "1px solid rgba(57,169,0,.15)",
-                  padding: "14px 16px",
-                  borderRadius: 16,
+                  borderRadius: 18,
+                  padding: "1rem",
                   color: "#166534",
                   fontWeight: 700,
-                  fontSize: 14,
                 }}
               >
                 No hay alertas activas.
@@ -625,7 +664,7 @@ export function Dashboard() {
               <div
                 style={{
                   display: "grid",
-                  gap: ".75rem",
+                  gap: ".8rem",
                 }}
               >
                 {alertas.map((alerta, index) => (
@@ -633,13 +672,13 @@ export function Dashboard() {
                     key={index}
                     style={{
                       background: "#FEF2F2",
-                      border:
-                        "1px solid rgba(239,68,68,.1)",
-                      padding: "14px 16px",
-                      borderRadius: 16,
                       color: "#B91C1C",
-                      fontWeight: 600,
-                      fontSize: 14,
+                      padding: "1rem",
+                      borderRadius:
+                        index % 2 === 0
+                          ? "24px 12px 24px 12px"
+                          : "12px 24px 12px 24px",
+                      fontWeight: 700,
                     }}
                   >
                     {alerta}
@@ -654,57 +693,80 @@ export function Dashboard() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: "1rem",
+              gridTemplateColumns: "0.9fr 1.1fr",
+              gap: "1.4rem",
             }}
           >
+            {/* PIE */}
+
             <div
               style={{
                 background: COLORS.surface,
+                borderRadius: "42px 18px 42px 18px",
+                padding: "1.6rem",
                 border: `1px solid ${COLORS.border}`,
-                borderRadius: 22,
-                padding: "1.4rem",
+                minHeight: 420,
+                transform: "rotate(-1deg)",
               }}
             >
               <h2
                 style={{
                   margin: 0,
-                  marginBottom: "1rem",
-                  fontSize: 20,
+                  marginBottom: "1.2rem",
+                  fontSize: 22,
+                  fontWeight: 900,
                   color: COLORS.text,
-                  fontWeight: 800,
                 }}
               >
                 Estado de Celdas
               </h2>
 
-              <Pie data={pieData} />
+              <div
+                style={{
+                  height: 300,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Pie data={pieData} />
+              </div>
             </div>
+
+            {/* LINE */}
 
             <div
               style={{
                 background: COLORS.surface,
+                borderRadius: "18px 42px 18px 42px",
+                padding: "1.6rem",
                 border: `1px solid ${COLORS.border}`,
-                borderRadius: 22,
-                padding: "1.4rem",
+                minHeight: 420,
+                transform: "rotate(1deg)",
               }}
             >
               <h2
                 style={{
                   margin: 0,
-                  marginBottom: "1rem",
-                  fontSize: 20,
+                  marginBottom: "1.2rem",
+                  fontSize: 22,
+                  fontWeight: 900,
                   color: COLORS.text,
-                  fontWeight: 800,
                 }}
               >
                 Ocupación por Parqueadero
               </h2>
 
-              <Line
-                data={lineData}
-                options={chartOptions}
-              />
+              <div
+                style={{
+                  height: 300,
+                }}
+              >
+                <Line
+                  data={lineData}
+                  options={chartOptions}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -714,7 +776,7 @@ export function Dashboard() {
         <div
           style={{
             display: "grid",
-            gap: "1rem",
+            gap: "1.4rem",
           }}
         >
           {/* ACTIVIDAD */}
@@ -722,9 +784,9 @@ export function Dashboard() {
           <div
             style={{
               background: COLORS.surface,
+              borderRadius: "18px 42px 18px 42px",
+              padding: "1.6rem",
               border: `1px solid ${COLORS.border}`,
-              borderRadius: 22,
-              padding: "1.4rem",
             }}
           >
             <div
@@ -732,7 +794,7 @@ export function Dashboard() {
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                marginBottom: "1rem",
+                marginBottom: "1.2rem",
               }}
             >
               <Activity
@@ -743,105 +805,94 @@ export function Dashboard() {
               <h2
                 style={{
                   margin: 0,
-                  fontSize: 20,
-                  color: COLORS.text,
-                  fontWeight: 800,
+                  fontSize: 22,
+                  fontWeight: 900,
                 }}
               >
                 Actividad Reciente
               </h2>
             </div>
 
-            {movimientosRecientes.length === 0 ? (
-              <div
-                style={{
-                  color: COLORS.textLight,
-                  fontSize: 14,
-                }}
-              >
-                No hay movimientos registrados
-              </div>
-            ) : (
-              movimientosRecientes.map(
-                (movimiento: any) => (
-                  <div
-                    key={movimiento.id}
-                    style={{
-                      display: "flex",
-                      justifyContent:
-                        "space-between",
-                      alignItems: "center",
-                      padding: ".75rem 0",
-                      borderBottom:
-                        "1px solid rgba(0,0,0,.06)",
-                    }}
-                  >
-                    <div>
-                      <div
-                        style={{
-                          fontWeight: 800,
-                          color: COLORS.text,
-                          marginBottom: 4,
-                        }}
-                      >
-                        {movimiento.placa}
-                      </div>
-
-                      <div
-                        style={{
-                          color:
-                            COLORS.textLight,
-                          fontSize: 12,
-                        }}
-                      >
-                        {movimiento.estado ===
-                        "en_parqueadero"
-                          ? "Entrada registrada"
-                          : "Salida registrada"}
-                      </div>
+            {movimientosRecientes.map(
+              (movimiento: any, index) => (
+                <div
+                  key={movimiento.id}
+                  style={{
+                    display: "flex",
+                    justifyContent:
+                      "space-between",
+                    alignItems: "center",
+                    padding: "1rem 0",
+                    borderBottom:
+                      "1px solid rgba(0,0,0,.05)",
+                    transform:
+                      index % 2 === 0
+                        ? "translateX(4px)"
+                        : "translateX(-4px)",
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontWeight: 900,
+                        color: COLORS.text,
+                        marginBottom: 4,
+                      }}
+                    >
+                      {movimiento.placa}
                     </div>
 
                     <div
                       style={{
-                        padding: "7px 12px",
-                        borderRadius: 999,
-
-                        background:
-                          movimiento.estado ===
-                          "en_parqueadero"
-                            ? "rgba(57,169,0,.12)"
-                            : "rgba(245,158,11,.12)",
-
-                        color:
-                          movimiento.estado ===
-                          "en_parqueadero"
-                            ? "#166534"
-                            : "#92400E",
-
-                        fontSize: 11,
-
-                        fontWeight: 800,
+                        color: COLORS.textLight,
+                        fontSize: 13,
                       }}
                     >
                       {movimiento.estado ===
                       "en_parqueadero"
-                        ? "ACTIVO"
-                        : "SALIDA"}
+                        ? "Entrada registrada"
+                        : "Salida registrada"}
                     </div>
                   </div>
-                )
+
+                  <div
+                    style={{
+                      padding: "8px 14px",
+                      borderRadius: 999,
+                      background:
+                        movimiento.estado ===
+                        "en_parqueadero"
+                          ? "rgba(57,169,0,.12)"
+                          : "rgba(245,158,11,.12)",
+
+                      color:
+                        movimiento.estado ===
+                        "en_parqueadero"
+                          ? "#166534"
+                          : "#92400E",
+
+                      fontWeight: 800,
+                      fontSize: 11,
+                    }}
+                  >
+                    {movimiento.estado ===
+                    "en_parqueadero"
+                      ? "ACTIVO"
+                      : "SALIDA"}
+                  </div>
+                </div>
               )
             )}
           </div>
 
-          {/* CENTRO OPERATIVO */}
+          {/* CENTRO */}
 
           <div
             style={{
               background: COLORS.surface,
+              borderRadius: "42px 18px 42px 18px",
+              padding: "1.6rem",
               border: `1px solid ${COLORS.border}`,
-              borderRadius: 22,
-              padding: "1.4rem",
             }}
           >
             <div
@@ -849,7 +900,7 @@ export function Dashboard() {
                 display: "flex",
                 alignItems: "center",
                 gap: 10,
-                marginBottom: "1rem",
+                marginBottom: "1.2rem",
               }}
             >
               <ShieldAlert
@@ -860,9 +911,8 @@ export function Dashboard() {
               <h2
                 style={{
                   margin: 0,
-                  fontSize: 20,
-                  color: COLORS.text,
-                  fontWeight: 800,
+                  fontSize: 22,
+                  fontWeight: 900,
                 }}
               >
                 Centro Operativo
@@ -878,7 +928,7 @@ export function Dashboard() {
             >
               {[
                 {
-                  label: "Reservas activas",
+                  label: "Reservas",
                   value: reservas.length,
                   color: "#39A900",
                 },
@@ -890,7 +940,7 @@ export function Dashboard() {
                 },
 
                 {
-                  label: "Parqueaderos activos",
+                  label: "Activos",
                   value: parqueaderos.filter(
                     (p) => p.estado === "activo"
                   ).length,
@@ -898,19 +948,27 @@ export function Dashboard() {
                 },
 
                 {
-                  label: "Celdas disponibles",
+                  label: "Disponibles",
                   value: celdasDisponibles,
                   color: "#F59E0B",
                 },
-              ].map((item) => (
+              ].map((item, index) => (
                 <div
                   key={item.label}
                   style={{
                     background:
                       COLORS.surfaceSoft,
-                    border: `1px solid ${COLORS.border}`,
-                    borderRadius: 18,
+                    border:
+                      `1px solid ${COLORS.border}`,
+                    borderRadius:
+                      index % 2 === 0
+                        ? "26px 12px 26px 12px"
+                        : "12px 26px 12px 26px",
                     padding: "1rem",
+                    transform:
+                      index % 2 === 0
+                        ? "translateY(6px)"
+                        : "translateY(-6px)",
                   }}
                 >
                   <div
@@ -918,8 +976,8 @@ export function Dashboard() {
                       color: COLORS.textLight,
                       marginBottom: 10,
                       fontSize: 11,
-                      textTransform: "uppercase",
                       letterSpacing: 1,
+                      textTransform: "uppercase",
                       fontWeight: 700,
                     }}
                   >
@@ -928,10 +986,10 @@ export function Dashboard() {
 
                   <div
                     style={{
-                      fontSize: 34,
+                      fontSize: 42,
                       fontWeight: 900,
-                      color: item.color,
                       lineHeight: 1,
+                      color: item.color,
                       fontFamily:
                         "'Barlow Condensed', sans-serif",
                     }}
