@@ -114,6 +114,21 @@ export function MainLayout() {
     navigate('/login');
   };
 
+  /*
+    RUTAS DONDE QUIERES OCULTAR
+    HEADER + MENU FLOTANTE
+  */
+
+  const hideLayoutRoutes = [
+    '/app/usuarios/editar',
+    '/app/usuarios/nuevo',
+  ];
+
+  const hideLayout =
+    hideLayoutRoutes.some((route) =>
+      location.pathname.startsWith(route),
+    );
+
   return (
     <div
       style={{
@@ -124,231 +139,243 @@ export function MainLayout() {
     >
       {/* HEADER */}
 
-      <header
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-
-          height: 74,
-
-          background: 'rgba(255,255,255,.85)',
-
-          backdropFilter: 'blur(10px)',
-
-          borderBottom: `1px solid ${COLORS.border}`,
-
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-
-          padding: '0 1.5rem',
-        }}
-      >
-        {/* LEFT */}
-
-        <div
+      {!hideLayout && (
+        <header
           style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+
+            height: 74,
+
+            background:
+              'rgba(255,255,255,.85)',
+
+            backdropFilter: 'blur(10px)',
+
+            borderBottom: `1px solid ${COLORS.border}`,
+
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
+            justifyContent:
+              'space-between',
+
+            padding: '0 1.5rem',
           }}
         >
-          {/* LOGO */}
-
-          <div
-            style={{
-              width: 44,
-              height: 44,
-
-              borderRadius: 14,
-
-              background: COLORS.primarySoft,
-
-              border: `1px solid ${COLORS.primaryBorder}`,
-
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <ParkingCircle
-              size={22}
-              color={COLORS.primary}
-            />
-          </div>
-
-          <div>
-            <div
-              style={{
-                fontWeight: 700,
-
-                fontSize: 18,
-
-                color: COLORS.text,
-
-                letterSpacing: '-0.02em',
-              }}
-            >
-              ParkU
-            </div>
-
-            <div
-              style={{
-                fontSize: 12,
-
-                color: COLORS.textMuted,
-
-                fontWeight: 500,
-              }}
-            >
-              Gestión institucional SENA
-            </div>
-          </div>
-        </div>
-
-        {/* RIGHT */}
-
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '.8rem',
-          }}
-        >
-          {/* STATUS */}
+          {/* LEFT */}
 
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-
-              padding: '8px 12px',
-
-              borderRadius: 999,
-
-              background: COLORS.primarySoft,
-
-              border: `1px solid ${COLORS.primaryBorder}`,
+              gap: 12,
             }}
           >
-            <Clock3
-              size={14}
-              color={COLORS.primary}
-            />
-
-            <span
+            <div
               style={{
-                fontSize: 12,
+                width: 44,
+                height: 44,
 
-                color: COLORS.primary,
+                borderRadius: 14,
 
-                fontWeight: 600,
+                background:
+                  COLORS.primarySoft,
+
+                border: `1px solid ${COLORS.primaryBorder}`,
+
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent:
+                  'center',
               }}
             >
-              Sistema operativo
-            </span>
+              <ParkingCircle
+                size={22}
+                color={COLORS.primary}
+              />
+            </div>
+
+            <div>
+              <div
+                style={{
+                  fontWeight: 700,
+
+                  fontSize: 18,
+
+                  color: COLORS.text,
+
+                  letterSpacing:
+                    '-0.02em',
+                }}
+              >
+                ParkU
+              </div>
+
+              <div
+                style={{
+                  fontSize: 12,
+
+                  color:
+                    COLORS.textMuted,
+
+                  fontWeight: 500,
+                }}
+              >
+                Gestión institucional
+                SENA
+              </div>
+            </div>
           </div>
 
-          {/* USER */}
+          {/* RIGHT */}
 
           <div
             style={{
-              textAlign: 'right',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '.8rem',
             }}
           >
             <div
               style={{
-                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
 
-                color: COLORS.text,
+                padding: '8px 12px',
 
-                fontSize: 14,
+                borderRadius: 999,
+
+                background:
+                  COLORS.primarySoft,
+
+                border: `1px solid ${COLORS.primaryBorder}`,
               }}
             >
-              {user?.nombre}
+              <Clock3
+                size={14}
+                color={COLORS.primary}
+              />
+
+              <span
+                style={{
+                  fontSize: 12,
+
+                  color:
+                    COLORS.primary,
+
+                  fontWeight: 600,
+                }}
+              >
+                Sistema operativo
+              </span>
             </div>
 
             <div
               style={{
-                color: COLORS.textMuted,
-
-                fontSize: 12,
-
-                fontWeight: 500,
+                textAlign: 'right',
               }}
             >
-              {user?.rol}
+              <div
+                style={{
+                  fontWeight: 600,
+
+                  color: COLORS.text,
+
+                  fontSize: 14,
+                }}
+              >
+                {user?.nombre}
+              </div>
+
+              <div
+                style={{
+                  color:
+                    COLORS.textMuted,
+
+                  fontSize: 12,
+
+                  fontWeight: 500,
+                }}
+              >
+                {user?.rol}
+              </div>
             </div>
+
+            <button
+              onClick={() =>
+                navigate('/app/perfil')
+              }
+              style={{
+                width: 42,
+                height: 42,
+
+                borderRadius: 12,
+
+                border: `1px solid ${COLORS.border}`,
+
+                background: '#fff',
+
+                cursor: 'pointer',
+
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent:
+                  'center',
+
+                color: COLORS.textSoft,
+              }}
+            >
+              <User size={17} />
+            </button>
+
+            <button
+              onClick={handleLogout}
+              style={{
+                width: 42,
+                height: 42,
+
+                borderRadius: 12,
+
+                border: 'none',
+
+                background:
+                  COLORS.dangerBg,
+
+                cursor: 'pointer',
+
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent:
+                  'center',
+
+                color: COLORS.danger,
+              }}
+            >
+              <LogOut size={17} />
+            </button>
           </div>
-
-          {/* PROFILE */}
-
-          <button
-            onClick={() =>
-              navigate('/app/perfil')
-            }
-            style={{
-              width: 42,
-              height: 42,
-
-              borderRadius: 12,
-
-              border: `1px solid ${COLORS.border}`,
-
-              background: '#fff',
-
-              cursor: 'pointer',
-
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-
-              color: COLORS.textSoft,
-            }}
-          >
-            <User size={17} />
-          </button>
-
-          {/* LOGOUT */}
-
-          <button
-            onClick={handleLogout}
-            style={{
-              width: 42,
-              height: 42,
-
-              borderRadius: 12,
-
-              border: 'none',
-
-              background: COLORS.dangerBg,
-
-              cursor: 'pointer',
-
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-
-              color: COLORS.danger,
-            }}
-          >
-            <LogOut size={17} />
-          </button>
-        </div>
-      </header>
+        </header>
+      )}
 
       {/* MAIN */}
 
       <main
         style={{
-          paddingTop: 100,
-          paddingBottom: 120,
+          paddingTop: hideLayout
+            ? 0
+            : 100,
 
-          paddingInline: '1.8rem',
+          paddingBottom: hideLayout
+            ? 0
+            : 120,
+
+          paddingInline: hideLayout
+            ? 0
+            : '1.8rem',
 
           minHeight: '100vh',
         }}
@@ -358,99 +385,114 @@ export function MainLayout() {
 
       {/* FLOATING NAVIGATION */}
 
-      <div
-        style={{
-          position: 'fixed',
-
-          left: '50%',
-
-          bottom: 24,
-
-          transform: 'translateX(-50%)',
-
-          zIndex: 90,
-        }}
-      >
+      {!hideLayout && (
         <div
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
+            position: 'fixed',
 
-            padding: '10px',
+            left: '50%',
 
-            background: 'rgba(255,255,255,.88)',
+            bottom: 24,
 
-            backdropFilter: 'blur(14px)',
+            transform:
+              'translateX(-50%)',
 
-            border: `1px solid ${COLORS.border}`,
-
-            borderRadius: 22,
-
-            boxShadow:
-              '0 10px 30px rgba(15,23,42,.08)',
+            zIndex: 90,
           }}
         >
-          {menuItems.map((item) => {
-            const Icon = item.icon;
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
 
-            const isActive =
-              location.pathname === item.path;
+              padding: '10px',
 
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                title={item.label}
-                style={{
-                  width: isActive ? 120 : 46,
+              background:
+                'rgba(255,255,255,.88)',
 
-                  height: 46,
+              backdropFilter:
+                'blur(14px)',
 
-                  borderRadius: 16,
+              border: `1px solid ${COLORS.border}`,
 
-                  overflow: 'hidden',
+              borderRadius: 22,
 
-                  textDecoration: 'none',
+              boxShadow:
+                '0 10px 30px rgba(15,23,42,.08)',
+            }}
+          >
+            {menuItems.map((item) => {
+              const Icon = item.icon;
 
-                  background: isActive
-                    ? COLORS.primary
-                    : 'transparent',
+              const isActive =
+                location.pathname ===
+                item.path;
 
-                  color: isActive
-                    ? '#fff'
-                    : COLORS.textSoft,
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  title={item.label}
+                  style={{
+                    width: isActive
+                      ? 120
+                      : 46,
 
-                  transition: '.25s ease',
+                    height: 46,
 
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 10,
+                    borderRadius: 16,
 
-                  padding: '0 14px',
-                }}
-              >
-                <Icon size={18} />
+                    overflow: 'hidden',
 
-                {isActive && (
-                  <span
-                    style={{
-                      fontSize: 13,
+                    textDecoration:
+                      'none',
 
-                      fontWeight: 600,
+                    background:
+                      isActive
+                        ? COLORS.primary
+                        : 'transparent',
 
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {item.label}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
+                    color: isActive
+                      ? '#fff'
+                      : COLORS.textSoft,
+
+                    transition:
+                      '.25s ease',
+
+                    display: 'flex',
+                    alignItems:
+                      'center',
+                    justifyContent:
+                      'center',
+                    gap: 10,
+
+                    padding:
+                      '0 14px',
+                  }}
+                >
+                  <Icon size={18} />
+
+                  {isActive && (
+                    <span
+                      style={{
+                        fontSize: 13,
+
+                        fontWeight: 600,
+
+                        whiteSpace:
+                          'nowrap',
+                      }}
+                    >
+                      {item.label}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

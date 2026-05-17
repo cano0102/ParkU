@@ -1,8 +1,13 @@
 /* =========================================================
-   PARQUEADEROS UI MODERNO - CRUD COMPLETO
+   PARQUEADEROS UI MODERNO - FRONTEND COMPLETO
    ========================================================= */
 
-import React, { useMemo, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import {
   Car,
@@ -13,6 +18,8 @@ import {
   XCircle,
   BadgeCheck,
   X,
+  Camera,
+  User,
 } from "lucide-react";
 
 export default function Parqueaderos() {
@@ -27,9 +34,22 @@ export default function Parqueaderos() {
     useState(false);
 
   const [
+    ingresoOpen,
+    setIngresoOpen,
+  ] = useState(false);
+
+  const [scannerOpen, setScannerOpen] =
+    useState(false);
+
+  const videoRef = useRef(null);
+
+  const [
     parqueaderoSeleccionado,
     setParqueaderoSeleccionado,
-  ] = useState<any>(null);
+  ] = useState(null);
+
+  const [celdaSeleccionada, setCeldaSeleccionada] =
+    useState(null);
 
   const [parqueaderos, setParqueaderos] =
     useState([
@@ -37,80 +57,58 @@ export default function Parqueaderos() {
         id: 1,
         nombre:
           "CARRIL 01 - ZONA CENTRAL",
-        total: 12,
+
+        total: 8,
+
         celdas: [
           {
             codigo: "A01",
             estado: "libre",
           },
+
           {
             codigo: "A02",
             estado: "ocupado",
+
+            placa: "ABC123",
+
+            conductor:
+              "Carlos Ramirez",
           },
+
           {
             codigo: "A03",
-            estado: "ocupado",
+            estado: "libre",
           },
+
           {
             codigo: "A04",
             estado: "sena",
           },
+
           {
             codigo: "A05",
             estado: "libre",
           },
+
           {
             codigo: "A06",
             estado: "libre",
           },
+
           {
             codigo: "A07",
             estado: "ocupado",
+
+            placa: "XYZ987",
+
+            conductor:
+              "Laura Torres",
           },
+
           {
             codigo: "A08",
-            estado: "ocupado",
-          },
-        ],
-      },
-
-      {
-        id: 2,
-        nombre:
-          "CARRIL 03 - ZONA NORTE",
-        total: 12,
-        celdas: [
-          {
-            codigo: "C01",
-            estado: "ocupado",
-          },
-          {
-            codigo: "C02",
-            estado: "sena",
-          },
-          {
-            codigo: "C03",
             estado: "libre",
-          },
-          {
-            codigo: "C04",
-            estado: "libre",
-          },
-          {
-            codigo: "C05",
-            estado: "ocupado",
-          },
-          {
-            codigo: "C06",
-            estado: "ocupado",
-          },
-          {
-            codigo: "C07",
-            estado: "libre",
-          },
-          {
-            codigo: "C08",
-            estado: "ocupado",
           },
         ],
       },
@@ -120,6 +118,29 @@ export default function Parqueaderos() {
     nombre: "",
     total: 10,
   });
+
+  const [vehiculoForm, setVehiculoForm] =
+    useState({
+      placa: "",
+
+      conductor: "",
+    });
+
+  /* =====================================================
+     CONDUCTORES MOCK
+     ===================================================== */
+
+  const conductores = [
+    "Carlos Ramirez",
+
+    "Laura Torres",
+
+    "Andres Perez",
+
+    "Maria Gomez",
+
+    "Daniel Castro",
+  ];
 
   /* =====================================================
      STATS
@@ -150,11 +171,67 @@ export default function Parqueaderos() {
   }, [parqueaderos]);
 
   /* =====================================================
+     CAMERA
+     ===================================================== */
+
+  useEffect(() => {
+    if (scannerOpen) {
+      iniciarCamara();
+    }
+  }, [scannerOpen]);
+
+  const iniciarCamara = async () => {
+    try {
+      const stream =
+        await navigator.mediaDevices.getUserMedia(
+          {
+            video: {
+              facingMode:
+                "environment",
+            },
+          },
+        );
+
+      if (videoRef.current) {
+        videoRef.current.srcObject =
+          stream;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const cerrarCamara = () => {
+    const stream =
+      videoRef.current?.srcObject;
+
+    if (stream) {
+      stream
+        .getTracks()
+        .forEach((track) =>
+          track.stop(),
+        );
+    }
+  };
+
+  const tomarFoto = () => {
+    setVehiculoForm({
+      ...vehiculoForm,
+
+      placa: "ABC123",
+    });
+
+    cerrarCamara();
+
+    setScannerOpen(false);
+  };
+
+  /* =====================================================
      HELPERS
      ===================================================== */
 
   const getCeldaStyle = (
-    estado: string,
+    estado,
   ) => {
     switch (estado) {
       case "libre":
@@ -179,9 +256,7 @@ export default function Parqueaderos() {
         `;
 
       default:
-        return `
-          bg-white
-        `;
+        return "bg-white";
     }
   };
 
@@ -203,6 +278,7 @@ export default function Parqueaderos() {
         length: form.total,
       }).map((_, index) => ({
         codigo: `P${index + 1}`,
+
         estado: "libre",
       })),
     };
@@ -216,6 +292,7 @@ export default function Parqueaderos() {
 
     setForm({
       nombre: "",
+
       total: 10,
     });
   };
@@ -225,7 +302,7 @@ export default function Parqueaderos() {
      ===================================================== */
 
   const openEdit = (
-    parqueadero: any,
+    parqueadero,
   ) => {
     setParqueaderoSeleccionado(
       parqueadero,
@@ -233,6 +310,7 @@ export default function Parqueaderos() {
 
     setForm({
       nombre: parqueadero.nombre,
+
       total: parqueadero.total,
     });
 
@@ -246,7 +324,9 @@ export default function Parqueaderos() {
         parqueaderoSeleccionado.id
           ? {
               ...p,
+
               nombre: form.nombre,
+
               total: form.total,
             }
           : p,
@@ -257,12 +337,10 @@ export default function Parqueaderos() {
   };
 
   /* =====================================================
-     ELIMINAR
+     DELETE
      ===================================================== */
 
-  const handleDelete = (
-    id: number,
-  ) => {
+  const handleDelete = (id) => {
     const confirmar = window.confirm(
       "¿Eliminar parqueadero?",
     );
@@ -275,16 +353,48 @@ export default function Parqueaderos() {
   };
 
   /* =====================================================
-     CAMBIAR ESTADO CELDA
+     CLICK CELDA
      ===================================================== */
 
-  const cambiarEstadoCelda = (
-    parqueaderoId: number,
-    codigo: string,
+  const handleClickCelda = (
+    parqueaderoId,
+    celda,
   ) => {
+    if (celda.estado !== "libre")
+      return;
+
+    setCeldaSeleccionada({
+      parqueaderoId,
+
+      codigo: celda.codigo,
+    });
+
+    setVehiculoForm({
+      placa: "",
+
+      conductor: "",
+    });
+
+    setIngresoOpen(true);
+  };
+
+  /* =====================================================
+     REGISTRAR VEHICULO
+     ===================================================== */
+
+  const registrarVehiculo = () => {
+    if (
+      !vehiculoForm.placa ||
+      !vehiculoForm.conductor
+    )
+      return;
+
     setParqueaderos((prev) =>
       prev.map((parq) => {
-        if (parq.id !== parqueaderoId)
+        if (
+          parq.id !==
+          celdaSeleccionada.parqueaderoId
+        )
           return parq;
 
         return {
@@ -293,49 +403,45 @@ export default function Parqueaderos() {
           celdas: parq.celdas.map(
             (celda) => {
               if (
-                celda.codigo !== codigo
+                celda.codigo !==
+                celdaSeleccionada.codigo
               )
                 return celda;
 
-              const siguienteEstado =
-                celda.estado ===
-                "libre"
-                  ? "ocupado"
-                  : celda.estado ===
-                    "ocupado"
-                  ? "sena"
-                  : "libre";
-
               return {
                 ...celda,
-                estado:
-                  siguienteEstado,
+
+                estado: "ocupado",
+
+                placa:
+                  vehiculoForm.placa,
+
+                conductor:
+                  vehiculoForm.conductor,
               };
             },
           ),
         };
       }),
     );
+
+    setIngresoOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-[#ECEDE5] p-5">
-      {/* =====================================================
-          HERO
-         ===================================================== */}
+      {/* HERO */}
 
       <div className="overflow-hidden rounded-[30px] bg-gradient-to-r from-[#39A900] to-[#2F8500] p-7 text-white shadow-xl">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-black">
-              Panel de Control de
-              Estacionamiento
+              Panel de Parqueaderos
             </h1>
 
-            <p className="mt-3 max-w-2xl text-sm text-white/90">
-              Gestión centralizada de
-              celdas y vehículos en
-              tiempo real para el SENA.
+            <p className="mt-3 text-sm text-white/90">
+              Gestión moderna de
+              celdas vehiculares
             </p>
           </div>
 
@@ -347,12 +453,10 @@ export default function Parqueaderos() {
               flex items-center gap-2
               rounded-2xl bg-white px-6 py-4
               font-semibold text-zinc-800
-              shadow-lg transition-all
-              hover:scale-105
             "
           >
             <Plus className="h-5 w-5" />
-            Nuevo Ingreso
+            Nuevo Parqueadero
           </button>
         </div>
 
@@ -362,33 +466,28 @@ export default function Parqueaderos() {
           {[
             {
               title: "DISPONIBLES",
+
               value:
                 stats.disponibles,
-              icon: (
-                <CheckCircle2 className="h-5 w-5" />
-              ),
             },
+
             {
               title: "OCUPADOS",
+
               value: stats.ocupados,
-              icon: (
-                <XCircle className="h-5 w-5" />
-              ),
             },
+
             {
               title: "RESERVADOS",
+
               value:
                 stats.reservados,
-              icon: (
-                <BadgeCheck className="h-5 w-5" />
-              ),
             },
+
             {
               title: "TOTAL",
+
               value: stats.total,
-              icon: (
-                <Car className="h-5 w-5" />
-              ),
             },
           ].map((item) => (
             <div
@@ -399,8 +498,7 @@ export default function Parqueaderos() {
                 p-5
               "
             >
-              <div className="flex items-center gap-2 text-sm font-semibold text-white/80">
-                {item.icon}
+              <div className="text-sm font-semibold text-white/80">
                 {item.title}
               </div>
 
@@ -412,9 +510,7 @@ export default function Parqueaderos() {
         </div>
       </div>
 
-      {/* =====================================================
-          GRID
-         ===================================================== */}
+      {/* GRID */}
 
       <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
         {parqueaderos.map(
@@ -427,25 +523,19 @@ export default function Parqueaderos() {
 
               <div className="mb-5 flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <div className="h-3 w-3 rounded-full bg-green-500" />
+                  <h2 className="text-lg font-black text-green-800">
+                    {
+                      parqueadero.nombre
+                    }
+                  </h2>
 
-                    <h2 className="text-sm font-black tracking-wide text-green-800">
-                      {
-                        parqueadero.nombre
-                      }
-                    </h2>
-                  </div>
-
-                  <div className="mt-1 text-sm font-bold text-zinc-500">
+                  <div className="text-sm font-bold text-zinc-500">
                     {
                       parqueadero.total
                     }{" "}
                     CELDAS
                   </div>
                 </div>
-
-                {/* ACTIONS */}
 
                 <div className="flex gap-2">
                   <button
@@ -455,13 +545,10 @@ export default function Parqueaderos() {
                       )
                     }
                     className="
-                    rounded-xl
-                    border
-                    border-zinc-200
-                    bg-white
-                    p-3
-                    text-zinc-700
-                  "
+                      rounded-xl border
+                      border-zinc-200
+                      bg-white p-3
+                    "
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -473,13 +560,11 @@ export default function Parqueaderos() {
                       )
                     }
                     className="
-                    rounded-xl
-                    border
-                    border-red-200
-                    bg-red-50
-                    p-3
-                    text-red-600
-                  "
+                      rounded-xl
+                      border border-red-200
+                      bg-red-50 p-3
+                      text-red-600
+                    "
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -494,21 +579,21 @@ export default function Parqueaderos() {
                     <button
                       key={celda.codigo}
                       onClick={() =>
-                        cambiarEstadoCelda(
+                        handleClickCelda(
                           parqueadero.id,
-                          celda.codigo,
+                          celda,
                         )
                       }
                       className={`
-                      h-[95px]
-                      rounded-[22px]
-                      p-3
-                      transition-all
-                      hover:scale-105
-                      ${getCeldaStyle(
-                        celda.estado,
-                      )}
-                    `}
+                        h-[120px]
+                        rounded-[22px]
+                        p-3
+                        transition-all
+                        hover:scale-105
+                        ${getCeldaStyle(
+                          celda.estado,
+                        )}
+                      `}
                     >
                       <div className="flex h-full flex-col items-center justify-between">
                         <div className="text-lg font-black">
@@ -517,24 +602,28 @@ export default function Parqueaderos() {
                           }
                         </div>
 
-                        <div>
-                          {celda.estado ===
-                          "libre" ? (
-                            <Plus className="h-6 w-6" />
-                          ) : (
-                            <Car className="h-6 w-6" />
-                          )}
-                        </div>
+                        <Car className="h-7 w-7" />
 
-                        <div className="text-[10px] font-bold uppercase tracking-widest">
-                          {celda.estado ===
-                          "libre"
-                            ? "LIBRE"
-                            : celda.estado ===
-                              "sena"
-                            ? "SENA VIP"
-                            : "OCUPADO"}
-                        </div>
+                        {celda.estado ===
+                        "ocupado" ? (
+                          <div className="text-center">
+                            <div className="text-xs font-black">
+                              {
+                                celda.placa
+                              }
+                            </div>
+
+                            <div className="text-[10px]">
+                              {
+                                celda.conductor
+                              }
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="text-[10px] font-bold uppercase tracking-widest">
+                            {celda.estado}
+                          </div>
+                        )}
                       </div>
                     </button>
                   ),
@@ -546,147 +635,227 @@ export default function Parqueaderos() {
       </div>
 
       {/* =====================================================
-          MODAL CREAR
-         ===================================================== */}
+          MODAL INGRESO
+      ===================================================== */}
 
-      {createOpen && (
+      {ingresoOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5">
-          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-2xl font-black">
-                Nuevo Parqueadero
-              </h2>
+          <div className="w-full max-w-lg rounded-[32px] bg-white p-6 shadow-2xl">
+            {/* HEADER */}
+
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-black">
+                  Registrar Vehículo
+                </h2>
+
+                <p className="mt-1 text-sm text-zinc-500">
+                  Celda{" "}
+                  {
+                    celdaSeleccionada?.codigo
+                  }
+                </p>
+              </div>
 
               <button
                 onClick={() =>
-                  setCreateOpen(false)
+                  setIngresoOpen(false)
                 }
               >
                 <X />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <input
-                placeholder="Nombre"
-                value={form.nombre}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    nombre:
-                      e.target.value,
-                  })
-                }
-                className="
-                  h-12 w-full rounded-xl
-                  border border-zinc-200
-                  px-4 outline-none
-                "
-              />
+            {/* PLACA */}
 
-              <input
-                type="number"
-                placeholder="Total"
-                value={form.total}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    total: Number(
-                      e.target.value,
-                    ),
-                  })
-                }
-                className="
-                  h-12 w-full rounded-xl
-                  border border-zinc-200
-                  px-4 outline-none
-                "
-              />
+            <div className="mb-5">
+              <label className="mb-2 block text-sm font-bold text-zinc-700">
+                Matrícula
+              </label>
+
+              <div className="flex gap-3">
+                <input
+                  value={
+                    vehiculoForm.placa
+                  }
+                  onChange={(e) =>
+                    setVehiculoForm({
+                      ...vehiculoForm,
+
+                      placa:
+                        e.target.value.toUpperCase(),
+                    })
+                  }
+                  placeholder="ABC123"
+                  className="
+                    h-14 flex-1 rounded-2xl
+                    border border-zinc-200
+                    px-5 text-xl
+                    font-black uppercase
+                    outline-none
+                  "
+                />
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setScannerOpen(true)
+                  }
+                  className="
+                    flex items-center gap-2
+                    rounded-2xl bg-black
+                    px-5 font-bold text-white
+                  "
+                >
+                  <Camera className="h-5 w-5" />
+                  Escanear
+                </button>
+              </div>
             </div>
 
+            {/* CONDUCTOR */}
+
+            <div>
+              <label className="mb-2 block text-sm font-bold text-zinc-700">
+                Conductor
+              </label>
+
+              <select
+                value={
+                  vehiculoForm.conductor
+                }
+                onChange={(e) =>
+                  setVehiculoForm({
+                    ...vehiculoForm,
+
+                    conductor:
+                      e.target.value,
+                  })
+                }
+                className="
+                  h-14 w-full rounded-2xl
+                  border border-zinc-200
+                  px-5 outline-none
+                "
+              >
+                <option value="">
+                  Seleccionar
+                </option>
+
+                {conductores.map(
+                  (conductor) => (
+                    <option
+                      key={conductor}
+                    >
+                      {conductor}
+                    </option>
+                  ),
+                )}
+              </select>
+            </div>
+
+            {/* BUTTON */}
+
             <button
-              onClick={handleCreate}
+              onClick={
+                registrarVehiculo
+              }
               className="
-                mt-6 h-12 w-full rounded-xl
+                mt-7 h-14 w-full
+                rounded-2xl
                 bg-[#39A900]
-                font-bold text-white
+                font-black text-white
               "
             >
-              Crear Parqueadero
+              Registrar Vehículo
             </button>
           </div>
         </div>
       )}
 
       {/* =====================================================
-          MODAL EDITAR
-         ===================================================== */}
+          MODAL CAMARA
+      ===================================================== */}
 
-      {editOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5">
-          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-2xl font-black">
-                Editar Parqueadero
-              </h2>
+      {scannerOpen && (
+        <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/80 p-5">
+          <div className="w-full max-w-3xl overflow-hidden rounded-[32px] bg-white shadow-2xl">
+            {/* HEADER */}
+
+            <div className="flex items-center justify-between border-b border-zinc-200 p-5">
+              <div>
+                <h2 className="text-3xl font-black">
+                  Escanear Matrícula
+                </h2>
+
+                <p className="mt-1 text-sm text-zinc-500">
+                  Simulación de captura
+                </p>
+              </div>
 
               <button
-                onClick={() =>
-                  setEditOpen(false)
-                }
+                onClick={() => {
+                  cerrarCamara();
+
+                  setScannerOpen(
+                    false,
+                  );
+                }}
+                className="rounded-xl bg-zinc-100 p-2"
               >
                 <X />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <input
-                placeholder="Nombre"
-                value={form.nombre}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    nombre:
-                      e.target.value,
-                  })
-                }
-                className="
-                  h-12 w-full rounded-xl
-                  border border-zinc-200
-                  px-4 outline-none
-                "
+            {/* CAMERA */}
+
+            <div className="relative bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                className="h-[500px] w-full object-cover"
               />
 
-              <input
-                type="number"
-                placeholder="Total"
-                value={form.total}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    total: Number(
-                      e.target.value,
-                    ),
-                  })
-                }
-                className="
-                  h-12 w-full rounded-xl
-                  border border-zinc-200
-                  px-4 outline-none
-                "
-              />
+              {/* FRAME */}
+
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="h-[180px] w-[340px] rounded-[30px] border-4 border-green-500 shadow-[0_0_0_9999px_rgba(0,0,0,.45)]" />
+              </div>
             </div>
 
-            <button
-              onClick={handleEdit}
-              className="
-                mt-6 h-12 w-full rounded-xl
-                bg-blue-600
-                font-bold text-white
-              "
-            >
-              Guardar Cambios
-            </button>
+            {/* FOOTER */}
+
+            <div className="flex justify-center gap-3 p-5">
+              <button
+                onClick={() => {
+                  cerrarCamara();
+
+                  setScannerOpen(
+                    false,
+                  );
+                }}
+                className="
+                  h-14 rounded-2xl
+                  border border-zinc-300
+                  px-8 font-bold
+                "
+              >
+                Cancelar
+              </button>
+
+              <button
+                onClick={tomarFoto}
+                className="
+                  h-14 rounded-2xl
+                  bg-[#39A900]
+                  px-8 font-black
+                  text-white
+                "
+              >
+                Tomar Foto
+              </button>
+            </div>
           </div>
         </div>
       )}

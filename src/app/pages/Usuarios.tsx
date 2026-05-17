@@ -731,6 +731,10 @@ export function Usuarios() {
                         CE
                       </SelectItem>
 
+                      <SelectItem value="PPTE">
+                        PPTE
+                      </SelectItem>
+
                       <SelectItem value="PA">
                         Pasaporte
                       </SelectItem>
