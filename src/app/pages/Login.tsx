@@ -1,13 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-import {
-  ArrowLeft,
-  Eye,
-  EyeOff,
-  ShieldCheck,
-  BadgeCheck,
-} from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, ShieldCheck, BadgeCheck } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
@@ -41,17 +35,11 @@ export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const {
-    login,
-    googleLogin,
-    isAuthenticated,
-  } = useAuth();
+  const { login, googleLogin, isAuthenticated } = useAuth();
 
   const navigate = useNavigate();
 
@@ -63,32 +51,23 @@ export function Login() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleLogin = async (
-    e: React.FormEvent
-  ) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setLoading(true);
 
     try {
-      const success = await login(
-        email,
-        password
-      );
+      const success = await login(email, password);
 
       if (success) {
         toast.success("Acceso concedido");
 
         navigate("/app/dashboard");
       } else {
-        toast.error(
-          "Credenciales inválidas"
-        );
+        toast.error("Credenciales inválidas");
       }
     } catch {
-      toast.error(
-        "Error al iniciar sesión"
-      );
+      toast.error("Error al iniciar sesión");
     } finally {
       setLoading(false);
     }
@@ -98,17 +77,11 @@ export function Login() {
     try {
       setLoading(true);
 
-      const result =
-        await signInWithPopup(
-          auth,
-          provider
-        );
+      const result = await signInWithPopup(auth, provider);
 
       googleLogin(result.user);
 
-      toast.success(
-        `Bienvenido ${result.user.displayName}`
-      );
+      toast.success(`Bienvenido ${result.user.displayName}`);
 
       navigate("/app/dashboard");
     } catch (error) {
@@ -178,13 +151,36 @@ export function Login() {
 
       }
 
+      .mobile-back{
+  display:none;
+}
+
+@media(max-width:900px){
+
+  .login-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .login-left{
+    display:none !important;
+  }
+
+  .mobile-back{
+    display:flex !important;
+    align-items:center;
+    gap:8px;
+    width:max-content;
+    margin-bottom:1.5rem;
+  }
+
+}
+
       `}</style>
 
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(180deg,#ffffff 0%,#F3F8F1 100%)",
+          background: "linear-gradient(180deg,#ffffff 0%,#F3F8F1 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -201,8 +197,7 @@ export function Login() {
             width: 500,
             height: 500,
             borderRadius: "50%",
-            background:
-              "rgba(57,169,0,.08)",
+            background: "rgba(57,169,0,.08)",
             top: -120,
             right: -120,
             filter: "blur(10px)",
@@ -210,21 +205,17 @@ export function Login() {
         />
 
         <div
-          className={`fade ${
-            visible ? "active" : ""
-          } login-grid`}
+          className={`fade ${visible ? "active" : ""} login-grid`}
           style={{
             width: "100%",
             maxWidth: 1180,
             display: "grid",
-            gridTemplateColumns:
-              "1fr .9fr",
+            gridTemplateColumns: "1fr .9fr",
             overflow: "hidden",
             borderRadius: 36,
             background: "#fff",
             border: `1px solid ${COLORS.border}`,
-            boxShadow:
-              "0 25px 70px rgba(15,23,42,.08)",
+            boxShadow: "0 25px 70px rgba(15,23,42,.08)",
           }}
         >
           {/* LEFT */}
@@ -233,8 +224,7 @@ export function Login() {
             className="login-left"
             style={{
               padding: "3rem 4rem",
-              background:
-                "linear-gradient(135deg,#39A900,#2D7D00)",
+              background: "linear-gradient(135deg,#39A900,#2D7D00)",
               color: "#fff",
               position: "relative",
               overflow: "hidden",
@@ -250,8 +240,7 @@ export function Login() {
                 width: 400,
                 height: 400,
                 borderRadius: "50%",
-                background:
-                  "rgba(255,255,255,.08)",
+                background: "rgba(255,255,255,.08)",
                 top: -150,
                 right: -120,
               }}
@@ -274,72 +263,57 @@ export function Login() {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  justifyContent:
-                    "space-between",
+                  justifyContent: "space-between",
                   marginBottom: "3rem",
                 }}
               >
                 <button
-                  onClick={() =>
-                    navigate("/")
-                  }
+                  onClick={() => navigate("/")}
                   style={{
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
                     padding: "12px 18px",
-                    background:
-                      "rgba(255,255,255,.14)",
-                    border:
-                      "1px solid rgba(255,255,255,.12)",
+                    background: "rgba(255,255,255,.14)",
+                    border: "1px solid rgba(255,255,255,.12)",
                     color: "#fff",
                     borderRadius: 14,
                     cursor: "pointer",
                     fontWeight: 700,
                     fontSize: 14,
-                    backdropFilter:
-                      "blur(10px)",
+                    backdropFilter: "blur(10px)",
                   }}
                 >
                   <ArrowLeft size={16} />
                   Volver
                 </button>
-
-                <div
-                  style={{
-                    display:
-                      "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    background:
-                      "rgba(255,255,255,.12)",
-                    padding:
-                      "10px 18px",
-                    borderRadius: 999,
-                    fontWeight: 800,
-                    fontSize: 14,
-                  }}
-                >
-                  <BadgeCheck size={18} />
-                  Plataforma Oficial
-                  SENA
-                </div>
               </div>
 
               {/* TITLE */}
 
+              {/* SENA LOGO */}
+              <div style={{ marginBottom: "1.5rem" }}>
+                <img
+                  src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
+                  alt="Logo SENA"
+                  style={{
+                    height: 64,
+                    width: "auto",
+                    filter: "brightness(0) invert(1)",
+                    objectFit: "contain",
+                  }}
+                />
+              </div>
+
               <h1
                 style={{
-                  fontSize:
-                    "clamp(3rem,5vw,5rem)",
+                  fontSize: "clamp(3rem,5vw,5rem)",
                   lineHeight: 0.95,
                   fontWeight: 900,
                   marginBottom: "2rem",
                 }}
               >
-                Bienvenido
-                <br />
-                a ParkU
+                Bienvenido a ParkU
               </h1>
 
               {/* DESCRIPTION */}
@@ -348,17 +322,12 @@ export function Login() {
                 style={{
                   fontSize: 18,
                   lineHeight: 1.8,
-                  color:
-                    "rgba(255,255,255,.92)",
+                  color: "rgba(255,255,255,.92)",
                   maxWidth: 500,
                 }}
               >
-                Sistema institucional
-                para la gestión
-                inteligente de
-                parqueaderos, accesos y
-                monitoreo vehicular del
-                SENA.
+                Sistema institucional para la gestión inteligente de
+                parqueaderos, accesos y monitoreo vehicular del SENA.
               </p>
 
               {/* FEATURES */}
@@ -379,19 +348,14 @@ export function Login() {
                     key={item}
                     style={{
                       display: "flex",
-                      alignItems:
-                        "center",
+                      alignItems: "center",
                       gap: 12,
-                      background:
-                        "rgba(255,255,255,.08)",
-                      padding:
-                        "16px 18px",
+                      background: "rgba(255,255,255,.08)",
+                      padding: "16px 18px",
                       borderRadius: 18,
                     }}
                   >
-                    <ShieldCheck
-                      size={20}
-                    />
+                    <ShieldCheck size={20} />
 
                     <span
                       style={{
@@ -410,8 +374,7 @@ export function Login() {
 
           <div
             style={{
-              padding:
-                "4rem clamp(2rem,4vw,4rem)",
+              padding: "4rem clamp(2rem,4vw,4rem)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -425,15 +388,45 @@ export function Login() {
             >
               {/* HEADER */}
 
+              <button
+                type="button"
+                className="mobile-back"
+                onClick={() => navigate("/")}
+                style={{
+                  border: "none",
+                  background: "#F1F5F9",
+                  color: COLORS.text,
+                  padding: "12px 16px",
+                  borderRadius: 12,
+                  cursor: "pointer",
+                  fontWeight: 700,
+                }}
+              >
+                <ArrowLeft size={16} />
+                Volver
+              </button>
+
               <div
                 style={{
                   marginBottom: "2.5rem",
                 }}
               >
+                {/* SENA LOGO */}
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <img
+                    src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
+                    alt="Logo SENA"
+                    style={{
+                      height: 52,
+                      width: "auto",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+
                 <div
                   style={{
-                    color:
-                      COLORS.primary,
+                    color: COLORS.primary,
                     fontWeight: 800,
                     marginBottom: 14,
                     letterSpacing: 1,
@@ -444,31 +437,24 @@ export function Login() {
 
                 <h2
                   style={{
-                    fontSize:
-                      "clamp(2.5rem,5vw,3.5rem)",
+                    fontSize: "clamp(2.5rem,5vw,3.5rem)",
                     fontWeight: 900,
                     color: COLORS.text,
                     lineHeight: 1,
                     marginBottom: "1rem",
                   }}
                 >
-                  Iniciar
-                  <br />
-                  Sesión
+                  Iniciar Sesión
                 </h2>
 
                 <p
                   style={{
-                    color:
-                      COLORS.textLight,
+                    color: COLORS.textLight,
                     lineHeight: 1.8,
                   }}
                 >
-                  Ingresa tus
-                  credenciales
-                  institucionales para
-                  acceder al sistema
-                  ParkU.
+                  Ingresa tus credenciales institucionales para acceder al
+                  sistema ParkU.
                 </p>
               </div>
 
@@ -478,8 +464,7 @@ export function Login() {
                 onSubmit={handleLogin}
                 style={{
                   display: "flex",
-                  flexDirection:
-                    "column",
+                  flexDirection: "column",
                   gap: "1.4rem",
                 }}
               >
@@ -491,8 +476,7 @@ export function Login() {
                       display: "block",
                       marginBottom: 10,
                       fontWeight: 700,
-                      color:
-                        COLORS.text,
+                      color: COLORS.text,
                     }}
                   >
                     Correo Electrónico
@@ -501,21 +485,15 @@ export function Login() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) =>
-                      setEmail(
-                        e.target.value
-                      )
-                    }
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="correo@sena.edu.co"
                     required
                     style={{
                       width: "100%",
-                      padding:
-                        "18px 18px",
+                      padding: "18px 18px",
                       borderRadius: 16,
                       border: `1px solid ${COLORS.border}`,
-                      background:
-                        "#fff",
+                      background: "#fff",
                       fontSize: 15,
                       outline: "none",
                     }}
@@ -530,8 +508,7 @@ export function Login() {
                       display: "block",
                       marginBottom: 10,
                       fontWeight: 700,
-                      color:
-                        COLORS.text,
+                      color: COLORS.text,
                     }}
                   >
                     Contraseña
@@ -539,32 +516,21 @@ export function Login() {
 
                   <div
                     style={{
-                      position:
-                        "relative",
+                      position: "relative",
                     }}
                   >
                     <input
-                      type={
-                        showPassword
-                          ? "text"
-                          : "password"
-                      }
+                      type={showPassword ? "text" : "password"}
                       value={password}
-                      onChange={(e) =>
-                        setPassword(
-                          e.target.value
-                        )
-                      }
+                      onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
                       style={{
                         width: "100%",
-                        padding:
-                          "18px 55px 18px 18px",
+                        padding: "18px 55px 18px 18px",
                         borderRadius: 16,
                         border: `1px solid ${COLORS.border}`,
-                        background:
-                          "#fff",
+                        background: "#fff",
                         fontSize: 15,
                         outline: "none",
                       }}
@@ -572,34 +538,19 @@ export function Login() {
 
                     <button
                       type="button"
-                      onClick={() =>
-                        setShowPassword(
-                          !showPassword
-                        )
-                      }
+                      onClick={() => setShowPassword(!showPassword)}
                       style={{
-                        position:
-                          "absolute",
+                        position: "absolute",
                         top: "50%",
                         right: 16,
-                        transform:
-                          "translateY(-50%)",
-                        background:
-                          "transparent",
+                        transform: "translateY(-50%)",
+                        background: "transparent",
                         border: "none",
-                        cursor:
-                          "pointer",
-                        color:
-                          COLORS.textLight,
+                        cursor: "pointer",
+                        color: COLORS.textLight,
                       }}
                     >
-                      {showPassword ? (
-                        <EyeOff
-                          size={18}
-                        />
-                      ) : (
-                        <Eye size={18} />
-                      )}
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
@@ -609,23 +560,19 @@ export function Login() {
                 <div
                   style={{
                     display: "flex",
-                    justifyContent:
-                      "flex-end",
+                    justifyContent: "flex-end",
                   }}
                 >
                   <Link
                     to="/forgot-password"
                     style={{
-                      color:
-                        COLORS.primary,
-                      textDecoration:
-                        "none",
+                      color: COLORS.primary,
+                      textDecoration: "none",
                       fontWeight: 700,
                       fontSize: 14,
                     }}
                   >
-                    ¿Olvidaste tu
-                    contraseña?
+                    ¿Olvidaste tu contraseña?
                   </Link>
                 </div>
 
@@ -636,52 +583,36 @@ export function Login() {
                   disabled={loading}
                   style={{
                     border: "none",
-                    background:
-                      loading
-                        ? "#94A3B8"
-                        : COLORS.primary,
+                    background: loading ? "#94A3B8" : COLORS.primary,
                     color: "#fff",
-                    padding:
-                      "18px 24px",
+                    padding: "18px 24px",
                     borderRadius: 18,
                     fontWeight: 800,
-                    cursor: loading
-                      ? "not-allowed"
-                      : "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
                     fontSize: 15,
-                    boxShadow:
-                      "0 10px 25px rgba(57,169,0,.2)",
+                    boxShadow: "0 10px 25px rgba(57,169,0,.2)",
                   }}
                 >
-                  {loading
-                    ? "Verificando..."
-                    : "Ingresar"}
+                  {loading ? "Verificando..." : "Ingresar"}
                 </button>
 
                 {/* GOOGLE */}
 
                 <button
                   type="button"
-                  onClick={
-                    handleGoogleLogin
-                  }
+                  onClick={handleGoogleLogin}
                   disabled={loading}
                   style={{
                     border: `1px solid ${COLORS.border}`,
-                    background:
-                      "#fff",
-                    color:
-                      COLORS.text,
-                    padding:
-                      "18px 24px",
+                    background: "#fff",
+                    color: COLORS.text,
+                    padding: "18px 24px",
                     borderRadius: 18,
                     fontWeight: 700,
                     cursor: "pointer",
                     display: "flex",
-                    alignItems:
-                      "center",
-                    justifyContent:
-                      "center",
+                    alignItems: "center",
+                    justifyContent: "center",
                     gap: 12,
                     fontSize: 15,
                   }}
@@ -694,9 +625,7 @@ export function Login() {
                       height: 20,
                     }}
                   />
-
-                  Continuar con
-                  Google
+                  Continuar con Google
                 </button>
               </form>
 
@@ -709,41 +638,15 @@ export function Login() {
                   borderTop: `1px solid ${COLORS.border}`,
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems:
-                      "center",
-                    gap: 10,
-                    background:
-                      "#ECFDF3",
-                    padding:
-                      "16px 18px",
-                    borderRadius: 16,
-                    color:
-                      COLORS.primaryDark,
-                    fontWeight: 700,
-                    fontSize: 14,
-                  }}
-                >
-                  <ShieldCheck
-                    size={18}
-                  />
-                  Plataforma protegida
-                  y segura
-                </div>
-
                 <p
                   style={{
                     marginTop: "1.5rem",
                     textAlign: "center",
-                    color:
-                      COLORS.textLight,
+                    color: COLORS.textLight,
                     fontSize: 13,
                   }}
                 >
-                  © 2026 · Plataforma
-                  Institucional ParkU
+                  © 2026 · Plataforma Institucional ParkU
                 </p>
               </div>
             </div>
