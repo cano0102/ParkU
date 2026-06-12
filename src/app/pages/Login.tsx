@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 
-import { ArrowLeft, Eye, EyeOff, ShieldCheck, BadgeCheck } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
@@ -24,7 +24,6 @@ function useAnimated() {
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), 100);
-
     return () => clearTimeout(timer);
   }, []);
 
@@ -34,15 +33,11 @@ function useAnimated() {
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
-
   const [loading, setLoading] = useState(false);
 
   const { login, googleLogin, isAuthenticated } = useAuth();
-
   const navigate = useNavigate();
-
   const visible = useAnimated();
 
   useEffect(() => {
@@ -53,15 +48,11 @@ export function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setLoading(true);
-
     try {
       const success = await login(email, password);
-
       if (success) {
         toast.success("Acceso concedido");
-
         navigate("/app/dashboard");
       } else {
         toast.error("Credenciales inválidas");
@@ -76,17 +67,12 @@ export function Login() {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
-
       const result = await signInWithPopup(auth, provider);
-
       googleLogin(result.user);
-
       toast.success(`Bienvenido ${result.user.displayName}`);
-
       navigate("/app/dashboard");
     } catch (error) {
       console.log(error);
-
       toast.error("Error con Google");
     } finally {
       setLoading(false);
@@ -149,31 +135,15 @@ export function Login() {
           display:none !important;
         }
 
+        .mobile-back{
+          display:flex !important;
+          align-items:center;
+          gap:8px;
+          width:max-content;
+          margin-bottom:1.5rem;
+        }
+
       }
-
-      .mobile-back{
-  display:none;
-}
-
-@media(max-width:900px){
-
-  .login-grid{
-    grid-template-columns:1fr !important;
-  }
-
-  .login-left{
-    display:none !important;
-  }
-
-  .mobile-back{
-    display:flex !important;
-    align-items:center;
-    gap:8px;
-    width:max-content;
-    margin-bottom:1.5rem;
-  }
-
-}
 
       `}</style>
 
@@ -184,7 +154,7 @@ export function Login() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "2rem",
+          padding: "1.2rem",
           position: "relative",
           overflow: "hidden",
         }}
@@ -194,12 +164,12 @@ export function Login() {
         <div
           style={{
             position: "absolute",
-            width: 500,
-            height: 500,
+            width: 350,
+            height: 350,
             borderRadius: "50%",
-            background: "rgba(57,169,0,.08)",
-            top: -120,
-            right: -120,
+            background: "rgba(57,169,0,.07)",
+            top: -100,
+            right: -100,
             filter: "blur(10px)",
           }}
         />
@@ -208,14 +178,15 @@ export function Login() {
           className={`fade ${visible ? "active" : ""} login-grid`}
           style={{
             width: "100%",
-            maxWidth: 1180,
+            maxWidth: 820,
+            maxHeight: "92vh",
             display: "grid",
-            gridTemplateColumns: "1fr .9fr",
+            gridTemplateColumns: "1fr 1fr",
             overflow: "hidden",
-            borderRadius: 36,
+            borderRadius: 24,
             background: "#fff",
             border: `1px solid ${COLORS.border}`,
-            boxShadow: "0 25px 70px rgba(15,23,42,.08)",
+            boxShadow: "0 20px 55px rgba(15,23,42,.08)",
           }}
         >
           {/* LEFT */}
@@ -223,7 +194,7 @@ export function Login() {
           <div
             className="login-left"
             style={{
-              padding: "3rem 4rem",
+              padding: "2rem 2.2rem",
               background: "linear-gradient(135deg,#39A900,#2D7D00)",
               color: "#fff",
               position: "relative",
@@ -237,12 +208,12 @@ export function Login() {
             <div
               style={{
                 position: "absolute",
-                width: 400,
-                height: 400,
+                width: 280,
+                height: 280,
                 borderRadius: "50%",
                 background: "rgba(255,255,255,.08)",
-                top: -150,
-                right: -120,
+                top: -100,
+                right: -80,
               }}
             />
 
@@ -264,7 +235,7 @@ export function Login() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "space-between",
-                  marginBottom: "3rem",
+                  marginBottom: "1.5rem",
                 }}
               >
                 <button
@@ -273,31 +244,29 @@ export function Login() {
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "12px 18px",
+                    padding: "10px 14px",
                     background: "rgba(255,255,255,.14)",
                     border: "1px solid rgba(255,255,255,.12)",
                     color: "#fff",
-                    borderRadius: 14,
+                    borderRadius: 12,
                     cursor: "pointer",
                     fontWeight: 700,
-                    fontSize: 14,
+                    fontSize: 13,
                     backdropFilter: "blur(10px)",
                   }}
                 >
-                  <ArrowLeft size={16} />
+                  <ArrowLeft size={15} />
                   Volver
                 </button>
               </div>
 
-              {/* TITLE */}
-
               {/* SENA LOGO */}
-              <div style={{ marginBottom: "1.5rem" }}>
+              <div style={{ marginBottom: "1rem" }}>
                 <img
                   src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
                   alt="Logo SENA"
                   style={{
-                    height: 64,
+                    height: 46,
                     width: "auto",
                     filter: "brightness(0) invert(1)",
                     objectFit: "contain",
@@ -307,10 +276,10 @@ export function Login() {
 
               <h1
                 style={{
-                  fontSize: "clamp(3rem,5vw,5rem)",
+                  fontSize: "clamp(2rem,4vw,3rem)",
                   lineHeight: 0.95,
                   fontWeight: 900,
-                  marginBottom: "2rem",
+                  marginBottom: "1rem",
                 }}
               >
                 Bienvenido a ParkU
@@ -320,10 +289,10 @@ export function Login() {
 
               <p
                 style={{
-                  fontSize: 18,
-                  lineHeight: 1.8,
+                  fontSize: 14,
+                  lineHeight: 1.7,
                   color: "rgba(255,255,255,.92)",
-                  maxWidth: 500,
+                  maxWidth: 420,
                 }}
               >
                 Sistema institucional para la gestión inteligente de
@@ -334,9 +303,9 @@ export function Login() {
 
               <div
                 style={{
-                  marginTop: "4rem",
+                  marginTop: "1.8rem",
                   display: "grid",
-                  gap: "1rem",
+                  gap: "0.6rem",
                 }}
               >
                 {[
@@ -349,17 +318,18 @@ export function Login() {
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 12,
+                      gap: 10,
                       background: "rgba(255,255,255,.08)",
-                      padding: "16px 18px",
-                      borderRadius: 18,
+                      padding: "10px 14px",
+                      borderRadius: 12,
                     }}
                   >
-                    <ShieldCheck size={20} />
+                    <ShieldCheck size={17} />
 
                     <span
                       style={{
                         fontWeight: 700,
+                        fontSize: 13,
                       }}
                     >
                       {item}
@@ -374,16 +344,17 @@ export function Login() {
 
           <div
             style={{
-              padding: "4rem clamp(2rem,4vw,4rem)",
+              padding: "2rem clamp(1.5rem,3vw,2.5rem)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              overflowY: "auto",
             }}
           >
             <div
               style={{
                 width: "100%",
-                maxWidth: 420,
+                maxWidth: 360,
               }}
             >
               {/* HEADER */}
@@ -393,31 +364,35 @@ export function Login() {
                 className="mobile-back"
                 onClick={() => navigate("/")}
                 style={{
+                  display: "none",
+                  alignItems: "center",
+                  gap: 8,
                   border: "none",
                   background: "#F1F5F9",
                   color: COLORS.text,
-                  padding: "12px 16px",
-                  borderRadius: 12,
+                  padding: "10px 14px",
+                  borderRadius: 10,
                   cursor: "pointer",
                   fontWeight: 700,
+                  fontSize: 13,
                 }}
               >
-                <ArrowLeft size={16} />
+                <ArrowLeft size={15} />
                 Volver
               </button>
 
               <div
                 style={{
-                  marginBottom: "2.5rem",
+                  marginBottom: "1.5rem",
                 }}
               >
                 {/* SENA LOGO */}
-                <div style={{ marginBottom: "1.25rem" }}>
+                <div style={{ marginBottom: "0.8rem" }}>
                   <img
                     src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
                     alt="Logo SENA"
                     style={{
-                      height: 52,
+                      height: 38,
                       width: "auto",
                       objectFit: "contain",
                     }}
@@ -428,8 +403,9 @@ export function Login() {
                   style={{
                     color: COLORS.primary,
                     fontWeight: 800,
-                    marginBottom: 14,
+                    marginBottom: 10,
                     letterSpacing: 1,
+                    fontSize: 12,
                   }}
                 >
                   ACCESO INSTITUCIONAL
@@ -437,11 +413,11 @@ export function Login() {
 
                 <h2
                   style={{
-                    fontSize: "clamp(2.5rem,5vw,3.5rem)",
+                    fontSize: "clamp(1.8rem,4vw,2.4rem)",
                     fontWeight: 900,
                     color: COLORS.text,
                     lineHeight: 1,
-                    marginBottom: "1rem",
+                    marginBottom: "0.6rem",
                   }}
                 >
                   Iniciar Sesión
@@ -450,7 +426,8 @@ export function Login() {
                 <p
                   style={{
                     color: COLORS.textLight,
-                    lineHeight: 1.8,
+                    lineHeight: 1.6,
+                    fontSize: 13,
                   }}
                 >
                   Ingresa tus credenciales institucionales para acceder al
@@ -465,7 +442,7 @@ export function Login() {
                 style={{
                   display: "flex",
                   flexDirection: "column",
-                  gap: "1.4rem",
+                  gap: "1rem",
                 }}
               >
                 {/* EMAIL */}
@@ -474,9 +451,10 @@ export function Login() {
                   <label
                     style={{
                       display: "block",
-                      marginBottom: 10,
+                      marginBottom: 8,
                       fontWeight: 700,
                       color: COLORS.text,
+                      fontSize: 13,
                     }}
                   >
                     Correo Electrónico
@@ -490,11 +468,11 @@ export function Login() {
                     required
                     style={{
                       width: "100%",
-                      padding: "18px 18px",
-                      borderRadius: 16,
+                      padding: "14px 16px",
+                      borderRadius: 12,
                       border: `1px solid ${COLORS.border}`,
                       background: "#fff",
-                      fontSize: 15,
+                      fontSize: 14,
                       outline: "none",
                     }}
                   />
@@ -506,9 +484,10 @@ export function Login() {
                   <label
                     style={{
                       display: "block",
-                      marginBottom: 10,
+                      marginBottom: 8,
                       fontWeight: 700,
                       color: COLORS.text,
+                      fontSize: 13,
                     }}
                   >
                     Contraseña
@@ -527,11 +506,11 @@ export function Login() {
                       required
                       style={{
                         width: "100%",
-                        padding: "18px 55px 18px 18px",
-                        borderRadius: 16,
+                        padding: "14px 48px 14px 16px",
+                        borderRadius: 12,
                         border: `1px solid ${COLORS.border}`,
                         background: "#fff",
-                        fontSize: 15,
+                        fontSize: 14,
                         outline: "none",
                       }}
                     />
@@ -542,15 +521,16 @@ export function Login() {
                       style={{
                         position: "absolute",
                         top: "50%",
-                        right: 16,
+                        right: 14,
                         transform: "translateY(-50%)",
                         background: "transparent",
                         border: "none",
                         cursor: "pointer",
                         color: COLORS.textLight,
+                        padding: 2,
                       }}
                     >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
@@ -569,7 +549,7 @@ export function Login() {
                       color: COLORS.primary,
                       textDecoration: "none",
                       fontWeight: 700,
-                      fontSize: 14,
+                      fontSize: 13,
                     }}
                   >
                     ¿Olvidaste tu contraseña?
@@ -585,12 +565,12 @@ export function Login() {
                     border: "none",
                     background: loading ? "#94A3B8" : COLORS.primary,
                     color: "#fff",
-                    padding: "18px 24px",
-                    borderRadius: 18,
+                    padding: "14px 20px",
+                    borderRadius: 14,
                     fontWeight: 800,
                     cursor: loading ? "not-allowed" : "pointer",
-                    fontSize: 15,
-                    boxShadow: "0 10px 25px rgba(57,169,0,.2)",
+                    fontSize: 14,
+                    boxShadow: "0 8px 22px rgba(57,169,0,.2)",
                   }}
                 >
                   {loading ? "Verificando..." : "Ingresar"}
@@ -606,23 +586,23 @@ export function Login() {
                     border: `1px solid ${COLORS.border}`,
                     background: "#fff",
                     color: COLORS.text,
-                    padding: "18px 24px",
-                    borderRadius: 18,
+                    padding: "14px 20px",
+                    borderRadius: 14,
                     fontWeight: 700,
                     cursor: "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    gap: 12,
-                    fontSize: 15,
+                    gap: 10,
+                    fontSize: 13,
                   }}
                 >
                   <img
                     src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
                     alt="Google"
                     style={{
-                      width: 20,
-                      height: 20,
+                      width: 18,
+                      height: 18,
                     }}
                   />
                   Continuar con Google
@@ -633,17 +613,16 @@ export function Login() {
 
               <div
                 style={{
-                  marginTop: "2rem",
-                  paddingTop: "2rem",
+                  marginTop: "1.2rem",
+                  paddingTop: "1.2rem",
                   borderTop: `1px solid ${COLORS.border}`,
                 }}
               >
                 <p
                   style={{
-                    marginTop: "1.5rem",
                     textAlign: "center",
                     color: COLORS.textLight,
-                    fontSize: 13,
+                    fontSize: 12,
                   }}
                 >
                   © 2026 · Plataforma Institucional ParkU
