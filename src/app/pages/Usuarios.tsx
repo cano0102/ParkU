@@ -1,46 +1,29 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 import {
-  Plus,
-  Pencil,
-  Trash2,
-  Eye,
-  Search,
-  UserCircle,
-  Shield,
-  Mail,
-  Phone,
-  Lock,
-  Sparkles,
-  CheckCircle2,
-  XCircle,
-  UserCheck,
-  X,
-  Users,
-  UserX,
-  IdCard,
-  KeyRound,
-  ChevronDown,
+  Plus, Pencil, Trash2, Eye, Search,
+  UserCircle, Shield, Mail, Phone, Lock,
+  CheckCircle2, XCircle, UserCheck, X,
+  Users, UserX, IdCard, KeyRound, Eye as EyeIcon, EyeOff,
 } from "lucide-react";
 
-import { Button }                                    from "../components/ui/button";
-import { Input }                                     from "../components/ui/input";
-import { Label }                                     from "../components/ui/label";
-import { Switch }                                    from "../components/ui/switch";
-import { Badge }                                     from "../components/ui/badge";
-import { Dialog, DialogContent, DialogFooter }       from "../components/ui/dialog";
-import { Select, SelectContent, SelectItem,
-         SelectTrigger, SelectValue }                from "../components/ui/select";
-import { useData, Usuario }                          from "../context/DataContext";
-import { toast }                                     from "sonner";
+import { useData, Usuario } from "../context/DataContext";
+import { toast }            from "sonner";
 
-/* ─── constants ─── */
-const USUARIOS_PROTEGIDOS = [
-  "admin@sena.edu.co",
-  "superadmin@sena.edu.co",
-];
+/* ─── Paleta (idéntica a Roles/Login) ─── */
+const C = {
+  primary:     "#39A900",
+  primaryDark: "#2D7D00",
+  text:        "#0F172A",
+  textLight:   "#64748B",
+  border:      "#E2E8F0",
+  bg:          "#F8FAFC",
+};
 
-/* ─── role accent ─── */
+/* ─── Constantes ─── */
+const USUARIOS_PROTEGIDOS = ["admin@sena.edu.co", "superadmin@sena.edu.co"];
+
+/* ─── Helpers de estilo ─── */
 function getRoleAccent(rol: string) {
   switch (rol) {
     case "Administrador": return { bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA", dot: "#EF4444" };
@@ -51,663 +34,881 @@ function getRoleAccent(rol: string) {
   }
 }
 
-/* ─── avatar initials ─── */
-function getInitials(nombre: string) {
-  return nombre
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-}
-
-/* ─── avatar bg palette ─── */
-const AVATAR_COLORS = [
-  ["#39A900", "#2D7D00"],
-  ["#2563EB", "#1D4ED8"],
-  ["#8B5CF6", "#7C3AED"],
-  ["#F59E0B", "#D97706"],
-  ["#EF4444", "#DC2626"],
-  ["#0891B2", "#0E7490"],
+const AVATAR_PALETTE = [
+  ["#39A900","#2D7D00"], ["#2563EB","#1D4ED8"], ["#8B5CF6","#7C3AED"],
+  ["#F59E0B","#D97706"], ["#EF4444","#DC2626"], ["#0891B2","#0E7490"],
 ];
 
-function getAvatarColor(nombre: string) {
-  const idx = nombre.charCodeAt(0) % AVATAR_COLORS.length;
-  return AVATAR_COLORS[idx];
+function avatarColors(nombre: string): [string, string] {
+  const idx = (nombre.charCodeAt(0) || 0) % AVATAR_PALETTE.length;
+  return AVATAR_PALETTE[idx] as [string, string];
 }
 
-/* ════════════════════════════════════════
-   MAIN COMPONENT
-════════════════════════════════════════ */
-export default function Usuarios() {
-  const { usuarios, addUsuario, updateUsuario, deleteUsuario, roles } = useData();
+function initials(nombre: string) {
+  return nombre.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
+}
 
-  const [dialogOpen, setDialogOpen]           = useState(false);
-  const [viewDialogOpen, setViewDialogOpen]   = useState(false);
-  const [editingUsuario, setEditingUsuario]   = useState<Usuario | null>(null);
-  const [viewingUsuario, setViewingUsuario]   = useState<Usuario | null>(null);
-  const [search, setSearch]                   = useState("");
-  const [filterEstado, setFilterEstado]       = useState<"todos" | "activo" | "inactivo">("todos");
-  const [filterRol, setFilterRol]             = useState("todos");
+/* ══════════════════════════════════════════════════
+   MODAL reutilizable (igual que en Roles)
+══════════════════════════════════════════════════ */
+function Modal({
+  open, onClose, children, maxWidth = 680,
+}: {
+  open: boolean; onClose: () => void; children: React.ReactNode; maxWidth?: number;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [open, onClose]);
 
-  const [formData, setFormData] = useState({
-    correo: "",
-    password: "",
-    nombre: "",
-    numero: "",
-    rol: "",
-    tipoDocumento: "CC",
-    identificacion: "",
-    estado: "activo" as "activo" | "inactivo",
-  });
-
-  /* ─── derived ─── */
-  const totalActivos   = usuarios.filter((u) => u.estado === "activo").length;
-  const totalInactivos = usuarios.filter((u) => u.estado === "inactivo").length;
-
-  const filteredUsuarios = useMemo(() =>
-    usuarios.filter((u) => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        u.nombre.toLowerCase().includes(q) ||
-        u.correo.toLowerCase().includes(q) ||
-        u.identificacion.includes(search);
-      const matchesEstado = filterEstado === "todos" ? true : u.estado === filterEstado;
-      const matchesRol    = filterRol    === "todos" ? true : u.rol === filterRol;
-      return matchesSearch && matchesEstado && matchesRol;
-    }),
-    [usuarios, search, filterEstado, filterRol]
+  if (!open) return null;
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        background: "rgba(15,23,42,.45)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "100%", maxWidth,
+          maxHeight: "92vh", overflowY: "auto",
+          borderRadius: 24, background: "#fff",
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
+          animation: "modalIn .18s ease",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+      <style>{`
+        @keyframes modalIn{
+          from{opacity:0;transform:translateY(16px) scale(.97)}
+          to{opacity:1;transform:translateY(0) scale(1)}
+        }
+      `}</style>
+    </div>
   );
+}
 
-  /* ─── handlers ─── */
-  const handleOpenDialog = (usuario?: Usuario) => {
-    if (usuario) {
-      setEditingUsuario(usuario);
-      setFormData({
-        correo: usuario.correo,
-        password: usuario.password,
-        nombre: usuario.nombre,
-        numero: usuario.numero,
-        rol: usuario.rol,
-        tipoDocumento: usuario.tipoDocumento,
-        identificacion: usuario.identificacion,
-        estado: usuario.estado,
-      });
-    } else {
-      setEditingUsuario(null);
-      setFormData({ correo: "", password: "", nombre: "", numero: "", rol: "", tipoDocumento: "CC", identificacion: "", estado: "activo" });
-    }
-    setDialogOpen(true);
-  };
+/* ══════════════════════════════════════════════════
+   CAMPO reutilizable
+══════════════════════════════════════════════════ */
+function Field({
+  label, children, hint,
+}: {
+  label: string; children: React.ReactNode; hint?: string;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <label style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{label}</label>
+        {hint && <span style={{ fontSize: 10, color: C.textLight }}>{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", padding: "11px 14px", borderRadius: 11,
+  border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+  fontFamily: "inherit", background: C.bg, color: C.text,
+};
+
+const inputIconStyle: React.CSSProperties = {
+  ...inputStyle, paddingLeft: 38,
+};
+
+/* ══════════════════════════════════════════════════
+   FORM — Crear / Editar
+══════════════════════════════════════════════════ */
+function UsuarioForm({
+  initial, title, roles, onSave, onCancel,
+}: {
+  initial: FormState; title: string;
+  roles: { id: string; nombre: string }[];
+  onSave: (d: FormState) => void;
+  onCancel: () => void;
+}) {
+  const [form, setForm]         = useState<FormState>(initial);
+  const [showPass, setShowPass] = useState(false);
+  const isEdit                  = title.startsWith("Editar");
+
+  const set = (k: keyof FormState, v: string) =>
+    setForm((f) => ({ ...f, [k]: v }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nombre.trim()) { toast.error("El nombre es obligatorio"); return; }
-    if (!formData.correo.trim()) { toast.error("El correo es obligatorio"); return; }
-    if (editingUsuario) {
-      updateUsuario(editingUsuario.id, formData);
-      toast.success("Usuario actualizado correctamente");
-    } else {
-      addUsuario(formData);
-      toast.success("Usuario creado correctamente");
-    }
-    setDialogOpen(false);
+    if (!form.nombre.trim()) { toast.error("El nombre es obligatorio"); return; }
+    if (!form.correo.trim()) { toast.error("El correo es obligatorio"); return; }
+    onSave(form);
   };
 
-  const handleDelete = (usuario: Usuario) => {
-    if (USUARIOS_PROTEGIDOS.includes(usuario.correo)) { toast.error("Este usuario está protegido"); return; }
-    if (confirm("¿Desea eliminar este usuario?")) {
-      deleteUsuario(usuario.id);
-      toast.success("Usuario eliminado");
-    }
-  };
+  const iconColor = C.textLight;
 
-  const handleToggleEstado = (usuario: Usuario) => {
-    if (USUARIOS_PROTEGIDOS.includes(usuario.correo)) { toast.error("Este usuario está protegido"); return; }
-    updateUsuario(usuario.id, { ...usuario, estado: usuario.estado === "activo" ? "inactivo" : "activo" });
-  };
-
-  const uniqueRoles = Array.from(new Set(usuarios.map((u) => u.rol).filter(Boolean)));
-
-  /* ════════════════ RENDER ════════════════ */
   return (
-    <div className="space-y-5">
-
-      {/* ── HERO ── */}
-      <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-[#39A900] via-[#2F8F00] to-[#1F5F00] p-6 text-white shadow-xl sm:p-8">
-        {/* blobs */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-14 -left-14 h-48 w-48 rounded-full bg-white/6" />
-
-        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+    <form onSubmit={handleSubmit}>
+      {/* ── HEADER ── */}
+      <div style={{
+        padding: "1.4rem 1.8rem 1.2rem",
+        borderBottom: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{
+            width: 38, height: 38, borderRadius: 10,
+            background: "rgba(57,169,0,.1)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <UserCheck size={18} color={C.primary} />
+          </div>
           <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-4 py-1.5 text-[11px] font-bold uppercase tracking-widest backdrop-blur">
-              <Shield className="h-3.5 w-3.5" />
-              Gestión institucional
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+              Gestión de accesos
             </div>
-            <h1
-              className="text-4xl font-black leading-none md:text-5xl"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-            >
-              Gestión de Usuarios
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/78 md:text-base">
-              Administra cuentas, accesos, roles y permisos del sistema institucional.
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>{title}</h2>
+          </div>
+        </div>
+        <button type="button" onClick={onCancel} style={{
+          width: 34, height: 34, borderRadius: 9,
+          border: `1px solid ${C.border}`, background: "#fff",
+          cursor: "pointer", color: C.textLight,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* ── BODY ── */}
+      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+        {/* Sección: Documento */}
+        <section style={{ borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", background: C.bg, borderBottom: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: C.textLight, textTransform: "uppercase" }}>
+              Documento de identidad
             </p>
           </div>
-
-          {/* hero stats */}
-          <div className="grid grid-cols-2 gap-3 sm:w-[300px]">
-            {[
-              { label: "Total usuarios", value: usuarios.length,  icon: Users    },
-              { label: "Activos",        value: totalActivos,      icon: UserCheck },
-              { label: "Inactivos",      value: totalInactivos,    icon: UserX    },
-              { label: "Roles usados",   value: uniqueRoles.length, icon: Shield  },
-            ].map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-2xl border border-white/18 bg-white/12 p-4 backdrop-blur">
-                <div className="flex items-center gap-1.5">
-                  <Icon className="h-3 w-3 text-white/60" />
-                  <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60">{label}</span>
-                </div>
-                <div
-                  className="mt-1 text-3xl font-black"
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                >
-                  {value}
-                </div>
+          <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Field label="Tipo de documento">
+              <select
+                value={form.tipoDocumento}
+                onChange={(e) => set("tipoDocumento", e.target.value)}
+                style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+              >
+                <option value="CC">Cédula de Ciudadanía (CC)</option>
+                <option value="TI">Tarjeta de Identidad (TI)</option>
+                <option value="CE">Cédula de Extranjería (CE)</option>
+              </select>
+            </Field>
+            <Field label="Número de identificación">
+              <div style={{ position: "relative" }}>
+                <IdCard size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
+                <input
+                  placeholder="ej. 1001234567"
+                  value={form.identificacion}
+                  onChange={(e) => set("identificacion", e.target.value)}
+                  style={inputIconStyle}
+                />
               </div>
+            </Field>
+          </div>
+        </section>
+
+        {/* Sección: Datos personales */}
+        <section style={{ borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", background: C.bg, borderBottom: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: C.textLight, textTransform: "uppercase" }}>
+              Datos personales
+            </p>
+          </div>
+          <div style={{ padding: "1rem 1.2rem", display: "flex", flexDirection: "column", gap: 10 }}>
+            <Field label="Nombre completo">
+              <input
+                placeholder="ej. María García López"
+                value={form.nombre}
+                onChange={(e) => set("nombre", e.target.value)}
+                style={inputStyle}
+              />
+            </Field>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Field label="Correo electrónico">
+                <div style={{ position: "relative" }}>
+                  <Mail size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
+                  <input
+                    type="email" placeholder="correo@sena.edu.co"
+                    value={form.correo}
+                    onChange={(e) => set("correo", e.target.value)}
+                    style={inputIconStyle}
+                  />
+                </div>
+              </Field>
+              <Field label="Teléfono">
+                <div style={{ position: "relative" }}>
+                  <Phone size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
+                  <input
+                    placeholder="300 000 0000"
+                    value={form.numero}
+                    onChange={(e) => set("numero", e.target.value)}
+                    style={inputIconStyle}
+                  />
+                </div>
+              </Field>
+            </div>
+          </div>
+        </section>
+
+        {/* Sección: Credenciales */}
+        <section style={{ borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden" }}>
+          <div style={{ padding: "10px 14px", background: C.bg, borderBottom: `1px solid ${C.border}` }}>
+            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: C.textLight, textTransform: "uppercase" }}>
+              Credenciales y acceso
+            </p>
+          </div>
+          <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <Field label="Contraseña" hint={isEdit ? "vacío = sin cambios" : undefined}>
+              <div style={{ position: "relative" }}>
+                <KeyRound size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
+                <input
+                  type={showPass ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={form.password}
+                  onChange={(e) => set("password", e.target.value)}
+                  style={{ ...inputIconStyle, paddingRight: 38 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPass((v) => !v)}
+                  style={{
+                    position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                    background: "none", border: "none", cursor: "pointer", color: iconColor,
+                    display: "flex", alignItems: "center",
+                  }}
+                >
+                  {showPass ? <EyeOff size={14} /> : <EyeIcon size={14} />}
+                </button>
+              </div>
+            </Field>
+
+            <Field label="Rol del sistema">
+              <select
+                value={form.rol}
+                onChange={(e) => set("rol", e.target.value)}
+                style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+              >
+                <option value="">Seleccionar rol…</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.nombre}>{r.nombre}</option>
+                ))}
+              </select>
+            </Field>
+
+            {/* Estado toggle */}
+            <div style={{ gridColumn: "1 / -1" }}>
+              <Field label="Estado de la cuenta">
+                <div style={{ display: "flex", gap: 8 }}>
+                  {(["activo", "inactivo"] as const).map((s) => (
+                    <button
+                      key={s} type="button"
+                      onClick={() => set("estado", s)}
+                      style={{
+                        flex: 1, padding: "11px 10px", borderRadius: 11,
+                        fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                        border: form.estado === s ? "1px solid transparent" : `1px solid ${C.border}`,
+                        background: form.estado === s
+                          ? s === "activo" ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)"
+                          : C.bg,
+                        color: form.estado === s
+                          ? s === "activo" ? C.primaryDark : "#B91C1C"
+                          : C.textLight,
+                      }}
+                    >
+                      {s === "activo" ? "✓ Activo" : "✗ Inactivo"}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div style={{
+        padding: "1rem 1.8rem",
+        borderTop: `1px solid ${C.border}`,
+        display: "flex", gap: 10, justifyContent: "flex-end",
+      }}>
+        <button type="button" onClick={onCancel} style={{
+          padding: "11px 20px", borderRadius: 12,
+          border: `1px solid ${C.border}`, background: "#fff",
+          color: C.text, fontSize: 13, fontWeight: 700,
+          cursor: "pointer", fontFamily: "inherit",
+        }}>
+          Cancelar
+        </button>
+        <button type="submit" style={{
+          padding: "11px 24px", borderRadius: 12,
+          border: "none", background: C.primary, color: "#fff",
+          fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+          boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+        }}>
+          {isEdit ? "Guardar cambios" : "Crear Usuario"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   MODAL DETALLE — Ver usuario
+══════════════════════════════════════════════════ */
+function ViewModal({
+  usuario, onClose, onEdit,
+}: {
+  usuario: Usuario; onClose: () => void; onEdit: () => void;
+}) {
+  const [c1, c2]  = avatarColors(usuario.nombre);
+  const ini       = initials(usuario.nombre);
+  const activo    = usuario.estado === "activo";
+  const roleStyle = getRoleAccent(usuario.rol);
+  const protegido = USUARIOS_PROTEGIDOS.includes(usuario.correo);
+
+  return (
+    <>
+      {/* Header con gradiente del avatar */}
+      <div style={{
+        padding: "1.6rem 1.8rem 1.4rem",
+        background: `linear-gradient(135deg,${c1},${c2})`,
+        color: "#fff", borderRadius: "24px 24px 0 0",
+        position: "relative", overflow: "hidden",
+      }}>
+        <div style={{
+          position: "absolute", width: 200, height: 200, borderRadius: "50%",
+          background: "rgba(255,255,255,.07)", top: -80, right: -60,
+        }} />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div style={{
+              width: 52, height: 52, borderRadius: 14,
+              background: "rgba(255,255,255,.22)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 20, fontWeight: 900,
+            }}>
+              {ini}
+            </div>
+            <button onClick={onClose} style={{
+              width: 32, height: 32, borderRadius: 9,
+              background: "rgba(255,255,255,.15)", border: "none",
+              color: "#fff", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <X size={15} />
+            </button>
+          </div>
+          <h2 style={{ marginTop: 14, fontSize: 24, fontWeight: 900, lineHeight: 1 }}>{usuario.nombre}</h2>
+          <p style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,.8)" }}>
+            {usuario.tipoDocumento} · {usuario.identificacion}
+          </p>
+          <div style={{ marginTop: 10, display: "flex", gap: 7, flexWrap: "wrap" }}>
+            {[
+              usuario.estado,
+              usuario.rol || "Sin rol",
+              ...(protegido ? ["🔒 Protegido"] : []),
+            ].map((tag) => (
+              <span key={tag} style={{
+                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+                textTransform: "uppercase", letterSpacing: 0.5,
+              }}>
+                {tag}
+              </span>
             ))}
           </div>
         </div>
       </div>
 
-      {/* ── TOPBAR ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 flex-wrap gap-2">
-          {/* search */}
-          <div className="relative min-w-[180px] flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <Input
+      {/* Body */}
+      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 8 }}>
+        {[
+          { icon: <Mail size={14} />,  label: usuario.correo },
+          { icon: <Phone size={14} />, label: usuario.numero || "—" },
+          {
+            icon: <Shield size={14} style={{ color: roleStyle.dot }} />,
+            label: <span style={{ fontWeight: 700, color: roleStyle.text }}>{usuario.rol || "Sin rol"}</span>,
+          },
+          {
+            icon: activo
+              ? <CheckCircle2 size={14} color={C.primary} />
+              : <XCircle      size={14} color="#EF4444"   />,
+            label: <span style={{ fontWeight: 700, color: activo ? C.primaryDark : "#B91C1C" }}>
+              {activo ? "Cuenta activa" : "Cuenta inactiva"}
+            </span>,
+          },
+        ].map((row, i) => (
+          <div key={i} style={{
+            display: "flex", alignItems: "center", gap: 10,
+            padding: "10px 14px", borderRadius: 11,
+            border: `1px solid ${C.border}`, background: C.bg,
+            fontSize: 13, color: C.text,
+          }}>
+            <span style={{ color: C.textLight, flexShrink: 0 }}>{row.icon}</span>
+            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {row.label}
+            </span>
+          </div>
+        ))}
+
+        <button onClick={onEdit} style={{
+          marginTop: 6, width: "100%",
+          padding: "13px 20px", borderRadius: 12,
+          border: "none",
+          background: `linear-gradient(135deg,${c1},${c2})`,
+          color: "#fff", fontSize: 13, fontWeight: 800,
+          cursor: "pointer", fontFamily: "inherit",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          boxShadow: `0 6px 18px ${c1}55`,
+        }}>
+          <Pencil size={14} />
+          Editar usuario
+        </button>
+      </div>
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   COMPONENTE PRINCIPAL
+══════════════════════════════════════════════════ */
+const emptyForm = (): FormState => ({
+  correo: "", password: "", nombre: "", numero: "",
+  rol: "", tipoDocumento: "CC", identificacion: "", estado: "activo",
+});
+
+type FormState = {
+  correo: string; password: string; nombre: string; numero: string;
+  rol: string; tipoDocumento: string; identificacion: string;
+  estado: "activo" | "inactivo";
+};
+
+export default function Usuarios() {
+  const { usuarios, addUsuario, updateUsuario, deleteUsuario, roles } = useData();
+
+  const [dialogOpen,     setDialogOpen]     = useState(false);
+  const [viewOpen,       setViewOpen]       = useState(false);
+  const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
+  const [viewingUsuario, setViewingUsuario] = useState<Usuario | null>(null);
+  const [formInitial,    setFormInitial]    = useState<FormState>(emptyForm());
+  const [search,         setSearch]         = useState("");
+  const [filterEstado,   setFilterEstado]   = useState<"todos"|"activo"|"inactivo">("todos");
+  const [filterRol,      setFilterRol]      = useState("todos");
+
+  const totalActivos   = usuarios.filter((u) => u.estado === "activo").length;
+  const totalInactivos = usuarios.filter((u) => u.estado === "inactivo").length;
+  const uniqueRoles    = Array.from(new Set(usuarios.map((u) => u.rol).filter(Boolean)));
+
+  const filtered = useMemo(() =>
+    usuarios.filter((u) => {
+      const q  = search.toLowerCase();
+      const ms = u.nombre.toLowerCase().includes(q) || u.correo.toLowerCase().includes(q) || u.identificacion.includes(search);
+      const me = filterEstado === "todos" || u.estado === filterEstado;
+      const mr = filterRol    === "todos" || u.rol === filterRol;
+      return ms && me && mr;
+    }),
+    [usuarios, search, filterEstado, filterRol]
+  );
+
+  const openCreate = () => {
+    setEditingUsuario(null);
+    setFormInitial(emptyForm());
+    setDialogOpen(true);
+  };
+
+  const openEdit = (u: Usuario) => {
+    setEditingUsuario(u);
+    setFormInitial({
+      correo: u.correo, password: u.password, nombre: u.nombre,
+      numero: u.numero, rol: u.rol, tipoDocumento: u.tipoDocumento,
+      identificacion: u.identificacion, estado: u.estado,
+    });
+    setViewOpen(false);
+    setDialogOpen(true);
+  };
+
+  const handleSave = (data: FormState) => {
+    if (editingUsuario) {
+      updateUsuario(editingUsuario.id, data);
+      toast.success("Usuario actualizado correctamente");
+    } else {
+      addUsuario(data);
+      toast.success("Usuario creado correctamente");
+    }
+    setDialogOpen(false);
+  };
+
+  const handleDelete = (u: Usuario) => {
+    if (USUARIOS_PROTEGIDOS.includes(u.correo)) { toast.error("Este usuario está protegido"); return; }
+    if (confirm(`¿Eliminar a "${u.nombre}"?`)) { deleteUsuario(u.id); toast.success("Usuario eliminado"); }
+  };
+
+  const handleToggleEstado = (u: Usuario) => {
+    if (USUARIOS_PROTEGIDOS.includes(u.correo)) { toast.error("Este usuario está protegido"); return; }
+    updateUsuario(u.id, { ...u, estado: u.estado === "activo" ? "inactivo" : "activo" });
+  };
+
+  /* ─── render ─── */
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        .u-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
+        .u-card{ transition:box-shadow .18s,transform .18s; }
+        .u-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-2px); }
+        .u-btn{ transition:background .15s,opacity .15s; }
+        .u-btn:hover{ opacity:.85; }
+        input:focus,select:focus,textarea:focus{
+          outline:none;
+          border-color:${C.primary} !important;
+          box-shadow:0 0 0 3px rgba(57,169,0,.12);
+        }
+        ::-webkit-scrollbar{ width:5px; }
+        ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+      `}</style>
+
+      <div className="u-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* ── HERO ── */}
+        <div style={{
+          position: "relative", overflow: "hidden", borderRadius: 20,
+          background: "linear-gradient(135deg,#39A900,#2D7D00)",
+          padding: "1.4rem 1.6rem", color: "#fff",
+        }}>
+          <div style={{
+            position: "absolute", width: 250, height: 250, borderRadius: "50%",
+            background: "rgba(255,255,255,.07)", top: -80, right: -60,
+          }} />
+          <div style={{
+            position: "relative", zIndex: 2,
+            display: "flex", flexWrap: "wrap", gap: 16,
+            alignItems: "center", justifyContent: "space-between",
+          }}>
+            <div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.2)",
+                padding: "4px 12px", borderRadius: 999,
+                fontSize: 10, fontWeight: 800, letterSpacing: 1,
+                textTransform: "uppercase", marginBottom: 8,
+              }}>
+                <Shield size={11} /> Gestión institucional
+              </div>
+              <h1 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
+                Gestión de Usuarios
+              </h1>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
+                Administra cuentas, accesos, roles y permisos del sistema.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+              {[
+                { label: "Total",     value: usuarios.length,    icon: <Users    size={11} /> },
+                { label: "Activos",   value: totalActivos,        icon: <UserCheck size={11} /> },
+                { label: "Inactivos", value: totalInactivos,      icon: <UserX    size={11} /> },
+                { label: "Roles",     value: uniqueRoles.length,  icon: <Shield   size={11} /> },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
+                  borderRadius: 12, padding: "8px 10px", textAlign: "center",
+                }}>
+                  <div style={{
+                    fontSize: 8, fontWeight: 700, letterSpacing: 1,
+                    color: "rgba(255,255,255,.65)", textTransform: "uppercase",
+                    marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
+                  }}>
+                    {s.icon} {s.label}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── TOPBAR ── */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative", minWidth: 180 }}>
+            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
+            <input
               placeholder="Buscar usuario..."
-              className="h-11 rounded-xl border-zinc-200 bg-white pl-9 text-sm shadow-sm focus-visible:ring-[#39A900]/30"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              style={{ ...inputStyle, paddingLeft: 36 }}
             />
           </div>
 
-          {/* estado filter */}
           <select
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-[#39A900]/50 focus:ring-2 focus:ring-[#39A900]/20"
             value={filterEstado}
             onChange={(e) => setFilterEstado(e.target.value as any)}
+            style={{ ...inputStyle, width: "auto", appearance: "none", paddingRight: 28, cursor: "pointer" }}
           >
             <option value="todos">Todos</option>
             <option value="activo">Activos</option>
             <option value="inactivo">Inactivos</option>
           </select>
 
-          {/* rol filter */}
           <select
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-3 text-sm shadow-sm outline-none focus:border-[#39A900]/50 focus:ring-2 focus:ring-[#39A900]/20"
             value={filterRol}
             onChange={(e) => setFilterRol(e.target.value)}
+            style={{ ...inputStyle, width: "auto", appearance: "none", paddingRight: 28, cursor: "pointer" }}
           >
             <option value="todos">Todos los roles</option>
-            {uniqueRoles.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
+            {uniqueRoles.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
+
+          <button
+            className="u-btn"
+            onClick={openCreate}
+            style={{
+              padding: "10px 18px", borderRadius: 11, border: "none",
+              background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 7,
+              boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+            }}
+          >
+            <Plus size={15} /> Nuevo Usuario
+          </button>
         </div>
 
-        <Button
-          onClick={() => handleOpenDialog()}
-          className="h-11 rounded-xl bg-[#39A900] px-5 font-bold shadow-sm hover:bg-[#2D7D00] hover:shadow-md transition-all"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Usuario
-        </Button>
-      </div>
+        {/* contador */}
+        {(search || filterEstado !== "todos" || filterRol !== "todos") && (
+          <p style={{ fontSize: 11, color: C.textLight }}>
+            Mostrando <strong style={{ color: C.text }}>{filtered.length}</strong> resultado{filtered.length !== 1 ? "s" : ""}
+            {search && <> para "<strong>{search}</strong>"</>}
+          </p>
+        )}
 
-      {/* ── RESULTS COUNT ── */}
-      {search || filterEstado !== "todos" || filterRol !== "todos" ? (
-        <p className="text-xs text-zinc-400">
-          Mostrando <span className="font-bold text-zinc-600">{filteredUsuarios.length}</span> resultado{filteredUsuarios.length !== 1 ? "s" : ""}
-          {search && <> para "<span className="text-zinc-700">{search}</span>"</>}
-        </p>
-      ) : null}
+        {/* ── GRID ── */}
+        {filtered.length === 0 ? (
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: "3rem 1rem", borderRadius: 16, border: `2px dashed ${C.border}`,
+            background: "#fff", color: C.textLight,
+          }}>
+            <UserCircle size={40} color={C.border} style={{ marginBottom: 10 }} />
+            <p style={{ fontWeight: 700, fontSize: 13 }}>No se encontraron usuarios</p>
+            <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o crea uno nuevo</p>
+          </div>
+        ) : (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
+            gap: 12,
+          }}>
+            {filtered.map((u) => {
+              const protegido  = USUARIOS_PROTEGIDOS.includes(u.correo);
+              const activo     = u.estado === "activo";
+              const roleStyle  = getRoleAccent(u.rol);
+              const [c1, c2]   = avatarColors(u.nombre);
+              const ini        = initials(u.nombre);
 
-      {/* ── GRID ── */}
-      {filteredUsuarios.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-zinc-200 bg-white py-20 text-center">
-          <UserCircle className="mb-4 h-12 w-12 text-zinc-200" />
-          <p className="text-sm font-semibold text-zinc-400">No se encontraron usuarios</p>
-          <p className="mt-1 text-xs text-zinc-300">Prueba con otros filtros o crea uno nuevo</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-          {filteredUsuarios.map((usuario) => {
-            const protegido    = USUARIOS_PROTEGIDOS.includes(usuario.correo);
-            const activo       = usuario.estado === "activo";
-            const roleStyle    = getRoleAccent(usuario.rol);
-            const [c1, c2]     = getAvatarColor(usuario.nombre);
-            const initials     = getInitials(usuario.nombre);
+              return (
+                <div key={u.id} className="u-card" style={{
+                  borderRadius: 16, border: `1px solid ${C.border}`,
+                  background: "#fff", overflow: "hidden",
+                  boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+                }}>
+                  {/* stripe del rol */}
+                  <div style={{
+                    height: 3,
+                    background: `linear-gradient(90deg,${roleStyle.dot},${roleStyle.dot}66)`,
+                  }} />
 
-            return (
-              <div
-                key={usuario.id}
-                className="group overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
-              >
-                {/* top stripe — role color */}
-                <div
-                  className="h-1 w-full"
-                  style={{ background: `linear-gradient(90deg, ${roleStyle.dot}, ${roleStyle.dot}88)` }}
-                />
+                  {/* card header */}
+                  <div style={{ padding: "14px 14px 10px", display: "flex", alignItems: "flex-start", gap: 12 }}>
+                    {/* avatar */}
+                    <div style={{
+                      width: 46, height: 46, borderRadius: 12, flexShrink: 0,
+                      background: `linear-gradient(135deg,${c1},${c2})`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontSize: 16, fontWeight: 900, color: "#fff",
+                      boxShadow: `0 3px 10px ${c1}44`,
+                    }}>
+                      {ini}
+                    </div>
 
-                {/* card header */}
-                <div className="flex items-start gap-4 p-5">
-                  {/* avatar */}
-                  <div
-                    className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl text-lg font-black text-white shadow-sm"
-                    style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
-                  >
-                    {initials}
-                  </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ minWidth: 0 }}>
+                          <p style={{
+                            fontSize: 13, fontWeight: 800, color: C.text, lineHeight: 1.2,
+                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                          }}>
+                            {u.nombre}
+                          </p>
+                          <p style={{ fontSize: 10, color: C.textLight, marginTop: 1 }}>
+                            {u.tipoDocumento} · {u.identificacion}
+                          </p>
+                        </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h2 className="truncate text-base font-bold text-zinc-900">{usuario.nombre}</h2>
-                        <p className="text-xs text-zinc-400">{usuario.tipoDocumento} · {usuario.identificacion}</p>
+                        {/* toggle estado */}
+                        <button
+                          onClick={() => handleToggleEstado(u)}
+                          title={activo ? "Desactivar" : "Activar"}
+                          style={{
+                            flexShrink: 0, width: 36, height: 20, borderRadius: 999,
+                            border: "none", cursor: "pointer", position: "relative",
+                            background: activo ? C.primary : "#CBD5E1",
+                            transition: "background .2s",
+                          }}
+                        >
+                          <span style={{
+                            position: "absolute", top: 3,
+                            left: activo ? 18 : 3,
+                            width: 14, height: 14, borderRadius: "50%",
+                            background: "#fff",
+                            transition: "left .2s",
+                            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                          }} />
+                        </button>
                       </div>
 
-                      {/* estado toggle */}
-                      <Switch
-                        checked={activo}
-                        onCheckedChange={() => handleToggleEstado(usuario)}
-                        className="flex-shrink-0 mt-0.5"
-                      />
-                    </div>
-
-                    {/* badges row */}
-                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                      {/* role badge */}
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold"
-                        style={{ background: roleStyle.bg, color: roleStyle.text, border: `1px solid ${roleStyle.border}` }}
-                      >
-                        <Shield className="h-2.5 w-2.5" />
-                        {usuario.rol || "Sin rol"}
-                      </span>
-
-                      {/* estado badge */}
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-                        style={{
-                          background: activo ? "rgba(57,169,0,.1)"  : "rgba(239,68,68,.08)",
-                          color:      activo ? "#166534"            : "#B91C1C",
-                        }}
-                      >
-                        <span
-                          className="h-1.5 w-1.5 rounded-full"
-                          style={{ background: activo ? "#39A900" : "#EF4444" }}
-                        />
-                        {usuario.estado}
-                      </span>
-
-                      {protegido && (
-                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700">
-                          <Lock className="h-2.5 w-2.5" />
-                          Protegido
+                      {/* badges */}
+                      <div style={{ marginTop: 7, display: "flex", flexWrap: "wrap", gap: 5 }}>
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "3px 9px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                          background: roleStyle.bg, color: roleStyle.text,
+                          border: `1px solid ${roleStyle.border}`,
+                        }}>
+                          <Shield size={9} /> {u.rol || "Sin rol"}
                         </span>
-                      )}
+                        <span style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "3px 9px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                          textTransform: "uppercase", letterSpacing: 0.3,
+                          background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
+                          color: activo ? "#166534" : "#B91C1C",
+                        }}>
+                          <span style={{
+                            width: 5, height: 5, borderRadius: "50%",
+                            background: activo ? C.primary : "#EF4444",
+                          }} />
+                          {u.estado}
+                        </span>
+                        {protegido && (
+                          <span style={{
+                            display: "inline-flex", alignItems: "center", gap: 4,
+                            padding: "3px 9px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                            background: "#FFFBEB", color: "#92400E", border: "1px solid #FDE68A",
+                          }}>
+                            <Lock size={9} /> Protegido
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* datos de contacto */}
+                  <div style={{ padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
+                    {[
+                      { icon: <Mail  size={12} />, text: u.correo },
+                      { icon: <Phone size={12} />, text: u.numero || "—" },
+                    ].map((row, i) => (
+                      <div key={i} style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: "8px 12px", borderRadius: 9,
+                        border: `1px solid ${C.border}`, background: C.bg,
+                        fontSize: 11, color: C.textLight,
+                      }}>
+                        <span style={{ color: C.textLight, flexShrink: 0 }}>{row.icon}</span>
+                        <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {row.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* acciones */}
+                  <div style={{
+                    borderTop: `1px solid ${C.border}`, padding: "8px 12px",
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 10, color: C.textLight }}>
+                      <UserCheck size={12} color={C.primary} />
+                      Registrado
+                    </div>
+                    <div style={{ display: "flex", gap: 4 }}>
+                      {[
+                        {
+                          icon: <Eye size={12} />, title: "Ver",
+                          color: C.textLight, bg: C.bg,
+                          onClick: () => { setViewingUsuario(u); setViewOpen(true); },
+                        },
+                        {
+                          icon: <Pencil size={12} />, title: "Editar",
+                          color: C.textLight, bg: C.bg,
+                          onClick: () => openEdit(u),
+                        },
+                        ...(!protegido ? [{
+                          icon: <Trash2 size={12} />, title: "Eliminar",
+                          color: "#EF4444", bg: "#FEF2F2",
+                          onClick: () => handleDelete(u),
+                        }] : []),
+                      ].map((btn, i) => (
+                        <button
+                          key={i} title={btn.title} onClick={btn.onClick}
+                          className="u-btn"
+                          style={{
+                            width: 28, height: 28, borderRadius: 8,
+                            border: `1px solid ${C.border}`, background: btn.bg,
+                            color: btn.color, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >
+                          {btn.icon}
+                        </button>
+                      ))}
                     </div>
                   </div>
                 </div>
-
-                {/* contact info */}
-                <div className="mx-5 mb-4 space-y-2">
-                  <div className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-                    <Mail className="h-3.5 w-3.5 flex-shrink-0 text-zinc-400" />
-                    <span className="truncate">{usuario.correo}</span>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
-                    <Phone className="h-3.5 w-3.5 flex-shrink-0 text-zinc-400" />
-                    <span>{usuario.numero || "—"}</span>
-                  </div>
-                </div>
-
-                {/* footer */}
-                <div className="flex items-center justify-between border-t border-zinc-100 px-5 py-3">
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                    <UserCheck className="h-3.5 w-3.5 text-[#39A900]" />
-                    <span>Registrado</span>
-                  </div>
-
-                  <div className="flex gap-1.5">
-                    <button
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-800"
-                      title="Ver detalle"
-                      onClick={() => { setViewingUsuario(usuario); setViewDialogOpen(true); }}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </button>
-
-                    <button
-                      className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-800"
-                      title="Editar"
-                      onClick={() => handleOpenDialog(usuario)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-
-                    {!protegido && (
-                      <button
-                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-500 transition hover:bg-red-100 hover:text-red-700"
-                        title="Eliminar"
-                        onClick={() => handleDelete(usuario)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════
-          DIALOG — CREATE / EDIT
-      ══════════════════════════════════════ */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl overflow-hidden rounded-[28px] border-none bg-[#F5F7F4] p-0 shadow-2xl">
-
-          {/* header */}
-          <div className="relative overflow-hidden border-b border-zinc-200 bg-white px-6 py-5">
-            <div className="pointer-events-none absolute right-0 top-0 h-36 w-36 rounded-full bg-[#39A900]/8 blur-3xl" />
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#39A900]/10">
-                  <Sparkles className="h-5 w-5 text-[#39A900]" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[#39A900]">Gestión de accesos</p>
-                  <h2
-                    className="text-xl font-black leading-tight text-zinc-900"
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                  >
-                    {editingUsuario ? "Editar Usuario" : "Nuevo Usuario"}
-                  </h2>
-                </div>
-              </div>
-              <button
-                className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 transition hover:bg-zinc-50 hover:text-zinc-600"
-                onClick={() => setDialogOpen(false)}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+              );
+            })}
           </div>
+        )}
+      </div>
 
-          {/* form */}
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4 p-6">
+      {/* ── MODAL CREAR / EDITAR ── */}
+      <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={640}>
+        <UsuarioForm
+          key={editingUsuario?.id ?? "new"}
+          initial={formInitial}
+          title={editingUsuario ? "Editar Usuario" : "Nuevo Usuario"}
+          roles={roles}
+          onSave={handleSave}
+          onCancel={() => setDialogOpen(false)}
+        />
+      </Modal>
 
-              {/* section: documento */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Documento de identidad</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-zinc-600">Tipo de documento</Label>
-                    <Select
-                      value={formData.tipoDocumento}
-                      onValueChange={(v) => setFormData({ ...formData, tipoDocumento: v })}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-zinc-200 bg-zinc-50 text-sm">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CC">Cédula de Ciudadanía (CC)</SelectItem>
-                        <SelectItem value="TI">Tarjeta de Identidad (TI)</SelectItem>
-                        <SelectItem value="CE">Cédula de Extranjería (CE)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-zinc-600">Número de identificación</Label>
-                    <div className="relative">
-                      <IdCard className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                      <Input
-                        className="h-11 rounded-xl border-zinc-200 bg-zinc-50 pl-9 text-sm focus-visible:ring-[#39A900]/30"
-                        placeholder="ej. 1001234567"
-                        value={formData.identificacion}
-                        onChange={(e) => setFormData({ ...formData, identificacion: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* section: datos personales */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Datos personales</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label className="text-xs font-bold text-zinc-600">Nombre completo</Label>
-                    <Input
-                      className="h-11 rounded-xl border-zinc-200 bg-zinc-50 text-sm focus-visible:ring-[#39A900]/30"
-                      placeholder="ej. María García López"
-                      value={formData.nombre}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-zinc-600">Correo electrónico</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                      <Input
-                        type="email"
-                        className="h-11 rounded-xl border-zinc-200 bg-zinc-50 pl-9 text-sm focus-visible:ring-[#39A900]/30"
-                        placeholder="correo@sena.edu.co"
-                        value={formData.correo}
-                        onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-zinc-600">Teléfono</Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                      <Input
-                        className="h-11 rounded-xl border-zinc-200 bg-zinc-50 pl-9 text-sm focus-visible:ring-[#39A900]/30"
-                        placeholder="300 000 0000"
-                        value={formData.numero}
-                        onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* section: acceso */}
-              <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                <p className="mb-4 text-[10px] font-black uppercase tracking-widest text-zinc-400">Credenciales y acceso</p>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-zinc-600">
-                      Contraseña {editingUsuario && <span className="font-normal text-zinc-400">(dejar vacío para no cambiar)</span>}
-                    </Label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-                      <Input
-                        type="password"
-                        className="h-11 rounded-xl border-zinc-200 bg-zinc-50 pl-9 text-sm focus-visible:ring-[#39A900]/30"
-                        placeholder="••••••••"
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-zinc-600">Rol del sistema</Label>
-                    <Select
-                      value={formData.rol}
-                      onValueChange={(v) => setFormData({ ...formData, rol: v })}
-                    >
-                      <SelectTrigger className="h-11 rounded-xl border-zinc-200 bg-zinc-50 text-sm">
-                        <SelectValue placeholder="Seleccionar rol…" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {roles.map((rol) => (
-                          <SelectItem key={rol.id} value={rol.nombre}>
-                            {rol.nombre}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label className="text-xs font-bold text-zinc-600">Estado de la cuenta</Label>
-                    <div className="flex h-11 items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4">
-                      <span
-                        className="text-xs font-bold uppercase tracking-wide"
-                        style={{ color: formData.estado === "activo" ? "#166534" : "#9CA3AF" }}
-                      >
-                        {formData.estado === "activo" ? "Cuenta activa" : "Cuenta inactiva"}
-                      </span>
-                      <Switch
-                        checked={formData.estado === "activo"}
-                        onCheckedChange={(c) => setFormData({ ...formData, estado: c ? "activo" : "inactivo" })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* footer */}
-            <div className="flex items-center justify-end gap-3 border-t border-zinc-200 bg-white px-6 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 rounded-xl border-zinc-200 px-5 text-sm font-semibold"
-                onClick={() => setDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="h-11 rounded-xl bg-[#39A900] px-7 text-sm font-bold shadow-sm hover:bg-[#2D7D00] hover:shadow-md transition-all"
-              >
-                {editingUsuario ? "Actualizar Usuario" : "Crear Usuario"}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ══════════════════════════════════════
-          DIALOG — VIEW DETAIL
-      ══════════════════════════════════════ */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-sm overflow-hidden rounded-2xl border-none bg-white p-0 shadow-2xl">
-          {viewingUsuario && (() => {
-            const u           = viewingUsuario;
-            const [c1, c2]    = getAvatarColor(u.nombre);
-            const initials    = getInitials(u.nombre);
-            const activo      = u.estado === "activo";
-            const roleStyle   = getRoleAccent(u.rol);
-            const protegido   = USUARIOS_PROTEGIDOS.includes(u.correo);
-
-            return (
-              <>
-                {/* gradient header */}
-                <div
-                  className="px-6 pb-6 pt-5 text-white"
-                  style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div
-                      className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 text-2xl font-black"
-                    >
-                      {initials}
-                    </div>
-                    <button
-                      className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 text-white transition hover:bg-white/25"
-                      onClick={() => setViewDialogOpen(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <h2
-                    className="mt-4 text-2xl font-black leading-tight"
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif" }}
-                  >
-                    {u.nombre}
-                  </h2>
-                  <p className="mt-1 text-sm text-white/75">{u.tipoDocumento} · {u.identificacion}</p>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                      {u.estado}
-                    </span>
-                    <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1 text-[10px] font-bold">
-                      {u.rol || "Sin rol"}
-                    </span>
-                    {protegido && (
-                      <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-white/15 px-3 py-1 text-[10px] font-bold">
-                        <Lock className="h-2.5 w-2.5" /> Protegido
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* body */}
-                <div className="p-6 space-y-3">
-                  <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3">
-                    <Mail className="h-4 w-4 flex-shrink-0 text-zinc-400" />
-                    <span className="truncate text-sm text-zinc-700">{u.correo}</span>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3">
-                    <Phone className="h-4 w-4 flex-shrink-0 text-zinc-400" />
-                    <span className="text-sm text-zinc-700">{u.numero || "—"}</span>
-                  </div>
-                  <div className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3">
-                    <Shield className="h-4 w-4 flex-shrink-0" style={{ color: roleStyle.dot }} />
-                    <span className="text-sm font-semibold" style={{ color: roleStyle.text }}>{u.rol || "Sin rol asignado"}</span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {activo
-                        ? <CheckCircle2 className="h-4 w-4 text-[#39A900]" />
-                        : <XCircle      className="h-4 w-4 text-red-400"   />}
-                      <span className="text-sm font-semibold text-zinc-700">
-                        {activo ? "Cuenta activa" : "Cuenta inactiva"}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Button
-                    className="mt-1 h-11 w-full rounded-xl font-bold transition-all hover:opacity-90"
-                    style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}
-                    onClick={() => { setViewDialogOpen(false); handleOpenDialog(u); }}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar usuario
-                  </Button>
-                </div>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
-
-    </div>
+      {/* ── MODAL VER ── */}
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={420}>
+        {viewingUsuario && (
+          <ViewModal
+            usuario={viewingUsuario}
+            onClose={() => setViewOpen(false)}
+            onEdit={() => openEdit(viewingUsuario)}
+          />
+        )}
+      </Modal>
+    </>
   );
 }

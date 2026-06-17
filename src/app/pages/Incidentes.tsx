@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   Search,
@@ -14,41 +14,27 @@ import {
   Car,
   User,
   Clock,
-  Filter,
   X,
+  Trash2,
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { Card, CardContent } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Switch } from '../components/ui/switch';
-import { Textarea } from '../components/ui/textarea';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '../components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-} from '../components/ui/sheet';
 import { toast } from 'sonner';
 import { useData } from '../context/DataContext';
 
+/* ─── Paleta (misma que Roles) ─── */
+const C = {
+  primary:     "#39A900",
+  primaryDark: "#2D7D00",
+  text:        "#0F172A",
+  textLight:   "#64748B",
+  border:      "#E2E8F0",
+  bg:          "#F5F7F8",
+  danger:      "#EF4444",
+  warning:     "#F59E0B",
+  success:     "#22C55E",
+};
 
+/* ─── Tipo de estado ─── */
+type EstadoIncidente = 'resuelto' | 'pendiente';
 type Incidente = {
   id: string;
   descripcion: string;
@@ -56,20 +42,104 @@ type Incidente = {
   vehiculo?: string;
   evidencia?: string;
   fecha: string;
-  estado: 'resuelto' | 'pendiente';
+  estado: EstadoIncidente;
   asignadoA?: string;
 };
 
+/* ─── Configuración de estado ─── */
+const ESTADO_CONFIG: Record<EstadoIncidente, {
+  bg: string; text: string; border: string; dot: string; label: string; icon: React.ReactNode;
+}> = {
+  pendiente: { bg: "#FEF3C7", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "Pendiente", icon: <AlertTriangle size={10} /> },
+  resuelto:  { bg: "#DCFCE7", text: "#166534", border: "#BBF7D0", dot: "#22C55E", label: "Resuelto", icon: <CheckCircle size={10} /> },
+};
+
+/* ─── Modal reutilizable ─── */
+function Modal({
+  open,
+  onClose,
+  children,
+  maxWidth = 640,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        background: "rgba(15,23,42,.45)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "100%", maxWidth,
+          maxHeight: "92vh",
+          overflowY: "auto",
+          borderRadius: 24,
+          background: "#fff",
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
+          animation: "modalIn .18s ease",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+      <style>{`
+        @keyframes modalIn{
+          from{opacity:0;transform:translateY(16px) scale(.97)}
+          to{opacity:1;transform:translateY(0) scale(1)}
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ─── Badge de estado inline ─── */
+function EstadoBadgeInline({ estado }: { estado: EstadoIncidente }) {
+  const cfg = ESTADO_CONFIG[estado];
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+      background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}`,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot }} />
+      {cfg.label}
+    </span>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   MAIN COMPONENT - Incidentes (estilo Roles)
+══════════════════════════════════════════════════════ */
 export function Incidentes() {
   const { parqueaderos, vehiculos } = useData();
 
+  // Estado local con datos de ejemplo (en producción vendrían de useData)
   const [incidentes, setIncidentes] = useState<Incidente[]>([
     {
       id: '1',
       descripcion: 'Vehículo mal estacionado bloqueando entrada',
       parqueadero: 'Parqueadero Principal',
       vehiculo: 'ABC123',
-      fecha: '2026-04-08T10:30:00',
+      fecha: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       estado: 'pendiente',
       asignadoA: 'Juan Pérez',
     },
@@ -77,7 +147,7 @@ export function Incidentes() {
       id: '2',
       descripcion: 'Luminaria averiada en zona norte',
       parqueadero: 'Parqueadero Norte',
-      fecha: '2026-04-07T14:20:00',
+      fecha: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       estado: 'resuelto',
     },
     {
@@ -85,16 +155,15 @@ export function Incidentes() {
       descripcion: 'Derrame de aceite en celda B-15',
       parqueadero: 'Parqueadero Principal',
       vehiculo: 'XYZ789',
-      fecha: '2026-04-06T16:45:00',
+      fecha: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
       estado: 'pendiente',
     },
   ]);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterEstado, setFilterEstado] = useState<'todos' | 'pendiente' | 'resuelto'>('todos');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [filterEstado, setFilterEstado] = useState<'todos' | EstadoIncidente>('todos');
   const [selectedIncidente, setSelectedIncidente] = useState<Incidente | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
@@ -106,21 +175,46 @@ export function Incidentes() {
     asignadoA: '',
   });
 
+  /* ─── Stats ──────────────────────────────────────────── */
+  const pendientes = incidentes.filter(i => i.estado === 'pendiente').length;
+  const resueltos = incidentes.filter(i => i.estado === 'resuelto').length;
+  const conEvidencia = incidentes.filter(i => i.evidencia).length;
+
+  /* ─── Handlers ───────────────────────────────────────── */
   const resetForm = () => {
     setFormData({ descripcion: '', parqueadero: '', vehiculo: '', evidencia: '', asignadoA: '' });
     setIsEditing(false);
     setSelectedIncidente(null);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const openCreate = () => {
+    resetForm();
+    setDialogOpen(true);
+  };
+
+  const openEdit = (incidente: Incidente) => {
+    setSelectedIncidente(incidente);
+    setFormData({
+      descripcion: incidente.descripcion,
+      parqueadero: incidente.parqueadero,
+      vehiculo: incidente.vehiculo || '',
+      evidencia: incidente.evidencia || '',
+      asignadoA: incidente.asignadoA || '',
+    });
+    setIsEditing(true);
+    setViewOpen(false);
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
     if (!formData.descripcion || !formData.parqueadero) {
       toast.error('Descripción y Parqueadero son obligatorios');
       return;
     }
+
     if (isEditing && selectedIncidente) {
-      setIncidentes(incidentes.map((inc) =>
-        inc.id === selectedIncidente.id ? { ...inc, ...formData } : inc,
+      setIncidentes(incidentes.map(inc =>
+        inc.id === selectedIncidente.id ? { ...inc, ...formData, vehiculo: formData.vehiculo || undefined } : inc
       ));
       toast.success('Incidente actualizado correctamente');
     } else {
@@ -140,24 +234,18 @@ export function Incidentes() {
     resetForm();
   };
 
-  const handleEdit = (inc: Incidente) => {
-    setSelectedIncidente(inc);
-    setFormData({
-      descripcion: inc.descripcion,
-      parqueadero: inc.parqueadero,
-      vehiculo: inc.vehiculo || '',
-      evidencia: inc.evidencia || '',
-      asignadoA: inc.asignadoA || '',
-    });
-    setIsEditing(true);
-    setDialogOpen(true);
+  const handleDelete = (incidente: Incidente) => {
+    if (confirm(`¿Eliminar el incidente?`)) {
+      setIncidentes(incidentes.filter(i => i.id !== incidente.id));
+      toast.success('Incidente eliminado');
+    }
   };
 
   const toggleEstado = (id: string) => {
-    setIncidentes(incidentes.map((inc) =>
+    setIncidentes(incidentes.map(inc =>
       inc.id === id
         ? { ...inc, estado: inc.estado === 'resuelto' ? 'pendiente' : 'resuelto' }
-        : inc,
+        : inc
     ));
     toast.success('Estado del incidente actualizado');
   };
@@ -174,525 +262,669 @@ export function Incidentes() {
     }
   };
 
-  const filteredIncidentes = incidentes.filter((inc) => {
-    const matchesSearch =
-      inc.descripcion.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      inc.parqueadero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (inc.vehiculo && inc.vehiculo.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesEstado = filterEstado === 'todos' ? true : inc.estado === filterEstado;
-    return matchesSearch && matchesEstado;
-  });
-
-  const pendientes = incidentes.filter((i) => i.estado === 'pendiente').length;
-  const resueltos = incidentes.filter((i) => i.estado === 'resuelto').length;
-  const conEvidencia = incidentes.filter((i) => i.evidencia).length;
-
-  // Reutilizable: formulario interno para Dialog y Sheet
-  const FormularioIncidente = () => (
-    <div className="space-y-4 sm:space-y-5">
-      {/* Descripción */}
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
-        <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-          Descripción *
-        </Label>
-        <Textarea
-          value={formData.descripcion}
-          onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-          placeholder="Describe el incidente o novedad..."
-          required
-          rows={3}
-          className="rounded-xl border-zinc-200 bg-white text-sm"
-        />
-      </div>
-
-      {/* Parqueadero + Vehículo */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
-          <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-            Parqueadero *
-          </Label>
-          <Select
-            value={formData.parqueadero}
-            onValueChange={(value) => setFormData({ ...formData, parqueadero: value })}
-          >
-            <SelectTrigger className="h-10 sm:h-11 rounded-xl border-zinc-200 bg-white text-sm">
-              <SelectValue placeholder="Seleccionar parqueadero" />
-            </SelectTrigger>
-            <SelectContent>
-              {parqueaderos.map((p) => (
-                <SelectItem key={p.id} value={p.nombre}>{p.nombre}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
-          <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-            Vehículo (opcional)
-          </Label>
-          <Select
-            value={formData.vehiculo}
-            onValueChange={(value) => setFormData({ ...formData, vehiculo: value === 'none' ? '' : value })}
-          >
-            <SelectTrigger className="h-10 sm:h-11 rounded-xl border-zinc-200 bg-white text-sm">
-              <SelectValue placeholder="Seleccionar vehículo" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">Ninguno</SelectItem>
-              {vehiculos.map((v) => (
-                <SelectItem key={v.id} value={v.placa}>
-                  {v.placa} — {v.marca} {v.modelo}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Asignado */}
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
-        <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-          Asignar a
-        </Label>
-        <Input
-          value={formData.asignadoA}
-          onChange={(e) => setFormData({ ...formData, asignadoA: e.target.value })}
-          placeholder="Nombre del responsable"
-          className="h-10 sm:h-11 rounded-xl border-zinc-200 bg-white text-sm"
-        />
-      </div>
-
-      {/* Evidencia */}
-      <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
-        <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-          Evidencia fotográfica
-        </Label>
-        <div className="overflow-hidden rounded-xl border-2 border-dashed border-zinc-300 bg-white transition-colors hover:border-[#39A900]">
-          <input
-            type="file"
-            id="evidencia"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <label htmlFor="evidencia" className="flex cursor-pointer flex-col items-center justify-center p-4 sm:p-6">
-            {formData.evidencia ? (
-              <div className="space-y-2 text-center">
-                <img
-                  src={formData.evidencia}
-                  alt="Evidencia"
-                  className="mx-auto max-h-32 sm:max-h-40 rounded-lg"
-                />
-                <p className="text-sm text-[#39A900]">Evidencia cargada ✓</p>
-              </div>
-            ) : (
-              <div className="space-y-2 text-center">
-                <Upload className="mx-auto h-8 w-8 sm:h-10 sm:w-10 text-zinc-300" />
-                <p className="text-xs sm:text-sm text-zinc-500">
-                  Toca para cargar imagen de evidencia
-                </p>
-              </div>
-            )}
-          </label>
-        </div>
-      </div>
-    </div>
+  /* ─── Filtered data ──────────────────────────────────── */
+  const filteredIncidentes = useMemo(() =>
+    incidentes.filter(inc => {
+      const q = search.toLowerCase();
+      const matchesSearch =
+        inc.descripcion.toLowerCase().includes(q) ||
+        inc.parqueadero.toLowerCase().includes(q) ||
+        (inc.vehiculo && inc.vehiculo.toLowerCase().includes(q));
+      const matchesEstado = filterEstado === 'todos' ? true : inc.estado === filterEstado;
+      return matchesSearch && matchesEstado;
+    }),
+    [incidentes, search, filterEstado]
   );
 
+  const activeFiltersCount = [search, filterEstado !== 'todos' ? filterEstado : ''].filter(Boolean).length;
+  const clearFilters = () => { setSearch(''); setFilterEstado('todos'); };
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        .incidentes-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
+        .incidente-card{ transition:box-shadow .18s,transform .18s; }
+        .incidente-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-1px); }
+        .action-btn{ transition:background .15s,color .15s; }
+        .action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
+        .delete-btn:hover{ background:#FEE2E2 !important; color:#DC2626 !important; }
+        input:focus,textarea:focus,select:focus{
+          outline:none;
+          border-color:${C.primary} !important;
+          box-shadow:0 0 0 3px rgba(57,169,0,.12);
+        }
+        ::-webkit-scrollbar{ width:5px; }
+        ::-webkit-scrollbar-track{ background:transparent; }
+        ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+      `}</style>
 
-      {/* ── HERO ── */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-[28px] bg-gradient-to-r from-[#39A900] to-[#2D7D00] p-4 sm:p-7 text-white">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
-        <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-white/5" />
+      <div className="incidentes-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-        <div className="relative z-10 flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="mb-3 sm:mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 sm:px-4 sm:py-2 text-xs sm:text-sm font-semibold backdrop-blur">
-              <ShieldAlert className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-              Seguridad operativa
-            </div>
-            <h1 className="text-2xl font-black leading-none sm:text-4xl md:text-5xl">
-              Incidentes y Novedades
-            </h1>
-            <p className="mt-2 sm:mt-4 max-w-2xl text-xs sm:text-sm text-white/85 md:text-base">
-              Gestiona y haz seguimiento a los incidentes reportados en el parqueadero institucional.
-            </p>
-          </div>
-
-          {/* Estadísticas: 2 cols en móvil, 2x2 en lg */}
-          <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:w-[340px]">
-            {[
-              { label: 'Pendientes', value: pendientes },
-              { label: 'Resueltos', value: resueltos },
-              { label: 'Con evidencia', value: conEvidencia },
-              { label: 'Total', value: incidentes.length },
-            ].map(({ label, value }) => (
-              <div key={label} className="rounded-xl sm:rounded-2xl bg-white/10 p-3 sm:p-4 backdrop-blur">
-                <div className="text-[10px] sm:text-xs text-white/70">{label}</div>
-                <div className="mt-0.5 sm:mt-1 text-2xl sm:text-3xl font-black">{value}</div>
+        {/* ── HERO ── */}
+        <div
+          style={{
+            position: "relative", overflow: "hidden", borderRadius: 20,
+            background: "linear-gradient(135deg,#39A900,#2D7D00)",
+            padding: "1.4rem 1.6rem", color: "#fff",
+          }}
+        >
+          <div style={{
+            position: "absolute", width: 250, height: 250, borderRadius: "50%",
+            background: "rgba(255,255,255,.07)", top: -80, right: -60,
+          }} />
+          <div style={{ position: "relative", zIndex: 2, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.2)",
+                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                letterSpacing: 1, textTransform: "uppercase", marginBottom: 8,
+              }}>
+                <ShieldAlert size={11} /> Seguridad operativa
               </div>
-            ))}
+              <h1 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
+                Incidentes y Novedades
+              </h1>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
+                Gestiona y haz seguimiento a los incidentes reportados en el parqueadero institucional.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+              {[
+                { label: "Pendientes", value: pendientes, icon: AlertTriangle, color: C.warning },
+                { label: "Resueltos", value: resueltos, icon: CheckCircle, color: C.success },
+                { label: "Con evidencia", value: conEvidencia, icon: ImageIcon, color: C.primary },
+                { label: "Total", value: incidentes.length, icon: ShieldAlert, color: "#fff" },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
+                  borderRadius: 12, padding: "8px 10px", textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,.65)", textTransform: "uppercase", marginBottom: 2 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── TOP BAR ── */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        {/* Búsqueda + filtro */}
-        <div className="flex flex-1 gap-2 sm:gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
-            <Input
-              placeholder="Buscar incidente..."
-              className="h-10 sm:h-11 rounded-xl border-zinc-200 bg-white pl-10 shadow-sm text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+        {/* ── TOPBAR ── */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
+            <input
+              placeholder="Buscar incidente por descripción, parqueadero o placa..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", padding: "10px 14px 10px 36px", borderRadius: 11,
+                border: `1px solid ${C.border}`, fontSize: 13, background: "#fff",
+                fontFamily: "inherit",
+              }}
             />
-            {searchTerm && (
+            {search && (
               <button
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
-                onClick={() => setSearchTerm('')}
+                onClick={() => setSearch('')}
+                style={{
+                  position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer", color: C.textLight,
+                }}
               >
-                <X className="h-4 w-4" />
+                <X size={14} />
               </button>
             )}
           </div>
 
-          {/* Filtro: select en desktop, botón sheet en móvil */}
-          <div className="hidden sm:block">
-            <select
-              className="h-10 sm:h-11 rounded-xl border border-zinc-200 bg-white px-3 sm:px-4 text-sm shadow-sm outline-none cursor-pointer"
-              value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value as any)}
+          <select
+            value={filterEstado}
+            onChange={(e) => setFilterEstado(e.target.value as any)}
+            style={{
+              padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+              fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+            }}
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="resuelto">Resueltos</option>
+          </select>
+
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={clearFilters}
+              style={{
+                padding: "10px 14px", borderRadius: 11,
+                border: `1px solid ${C.border}`,
+                background: "#fff", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+                color: C.textLight, fontSize: 12,
+              }}
             >
-              <option value="todos">Todos</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="resuelto">Resueltos</option>
-            </select>
-          </div>
+              <X size={14} /> Limpiar filtros
+            </button>
+          )}
 
-          <Button
-            variant="outline"
-            size="icon"
-            className="sm:hidden h-10 w-10 rounded-xl border-zinc-200 flex-shrink-0 relative"
-            onClick={() => setFilterSheetOpen(true)}
-          >
-            <Filter className="h-4 w-4" />
-            {filterEstado !== 'todos' && (
-              <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-[#39A900]" />
-            )}
-          </Button>
-        </div>
-
-        <Button
-          onClick={() => { resetForm(); setDialogOpen(true); }}
-          className="h-10 sm:h-11 w-full sm:w-auto rounded-xl bg-[#39A900] px-4 sm:px-5 hover:bg-[#2D7D00] text-sm font-semibold"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Registrar Incidente
-        </Button>
-      </div>
-
-      {/* Chip de filtro activo (móvil) */}
-      {filterEstado !== 'todos' && (
-        <div className="flex sm:hidden">
           <button
-            onClick={() => setFilterEstado('todos')}
-            className="flex items-center gap-1.5 rounded-full bg-[#39A900]/10 px-3 py-1 text-xs font-semibold text-[#39A900]"
+            onClick={openCreate}
+            style={{
+              padding: "10px 18px", borderRadius: 11, border: "none",
+              background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 7,
+              boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+            }}
           >
-            {filterEstado === 'pendiente' ? 'Pendientes' : 'Resueltos'}
-            <X className="h-3 w-3" />
+            <Plus size={15} /> Registrar Incidente
           </button>
         </div>
-      )}
 
-      {/* ── GRID DE INCIDENTES ── */}
-      <div className="grid grid-cols-1 gap-3 sm:gap-5 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
+        {/* ── RESULT HINT ── */}
+        {activeFiltersCount > 0 && (
+          <p style={{ fontSize: 11, color: C.textLight }}>
+            Mostrando <strong>{filteredIncidentes.length}</strong> incidente{filteredIncidentes.length !== 1 ? "s" : ""}
+          </p>
+        )}
+
+        {/* ── GRID DE INCIDENTES ── */}
         {filteredIncidentes.length === 0 ? (
-          <div className="col-span-full">
-            <Card className="overflow-hidden rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white shadow-sm">
-              <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 text-zinc-400">
-                <AlertTriangle className="mb-4 h-10 w-10 sm:h-12 sm:w-12" />
-                <p className="text-sm">No se encontraron incidentes</p>
-              </CardContent>
-            </Card>
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: "3rem 1rem", borderRadius: 16, border: `2px dashed ${C.border}`,
+            background: "#fff", color: C.textLight,
+          }}>
+            <AlertTriangle size={36} color={C.border} style={{ marginBottom: 10 }} />
+            <p style={{ fontWeight: 700, fontSize: 13 }}>No se encontraron incidentes</p>
+            <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o registra uno nuevo</p>
           </div>
         ) : (
-          filteredIncidentes.map((incidente) => (
-            <Card
-              key={incidente.id}
-              className="overflow-hidden rounded-2xl sm:rounded-3xl border border-zinc-200 bg-white shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl active:scale-[0.99]"
-            >
-              {/* TOP */}
-              <div className="border-b border-zinc-100 p-4 sm:p-5">
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div
-                    className={`flex h-11 w-11 sm:h-14 sm:w-14 flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl ${
-                      incidente.estado === 'resuelto' ? 'bg-[#39A900]/10' : 'bg-amber-50'
-                    }`}
-                  >
-                    {incidente.estado === 'resuelto' ? (
-                      <CheckCircle className="h-5 w-5 sm:h-6 sm:w-6 text-[#39A900]" />
-                    ) : (
-                      <AlertTriangle className="h-5 w-5 sm:h-6 sm:w-6 text-amber-500" />
-                    )}
-                  </div>
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(360px,1fr))",
+            gap: 12,
+          }}>
+            {filteredIncidentes.map((incidente) => {
+              const cfg = ESTADO_CONFIG[incidente.estado];
+              const fecha = new Date(incidente.fecha);
 
-                  <div className="min-w-0 flex-1">
-                    <h2 className="line-clamp-2 text-sm sm:text-base font-bold text-zinc-900">
-                      {incidente.descripcion}
-                    </h2>
-                    <div className="mt-1.5 sm:mt-2 flex flex-wrap gap-1.5 sm:gap-2">
-                      {incidente.estado === 'resuelto' ? (
-                        <Badge className="border-green-200 bg-green-50 text-green-700 text-[10px] sm:text-xs px-2 py-0.5">
-                          <CheckCircle className="mr-1 h-3 w-3" />
-                          Resuelto
-                        </Badge>
-                      ) : (
-                        <Badge className="border-amber-200 bg-amber-50 text-amber-700 text-[10px] sm:text-xs px-2 py-0.5">
-                          <AlertTriangle className="mr-1 h-3 w-3" />
-                          Pendiente
-                        </Badge>
+              return (
+                <div
+                  key={incidente.id}
+                  className="incidente-card"
+                  style={{
+                    borderRadius: 14, border: `1px solid ${C.border}`,
+                    background: "#fff", overflow: "hidden",
+                    boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+                  }}
+                >
+                  {/* stripe */}
+                  <div style={{ height: 3, background: incidente.estado === 'resuelto' ? C.success : C.warning }} />
+
+                  {/* header */}
+                  <div style={{ padding: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                      <div
+                        style={{
+                          width: 48, height: 48, borderRadius: 12, flexShrink: 0,
+                          background: `${cfg.bg}`,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        {incidente.estado === 'resuelto' ? (
+                          <CheckCircle size={24} color={C.success} />
+                        ) : (
+                          <AlertTriangle size={24} color={C.warning} />
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 6 }}>
+                          {incidente.descripcion}
+                        </p>
+                        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                          <EstadoBadgeInline estado={incidente.estado} />
+                          {incidente.evidencia && (
+                            <span style={{
+                              display: "inline-flex", alignItems: "center", gap: 4,
+                              padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                              background: "#F1F5F9", color: C.textLight,
+                            }}>
+                              <ImageIcon size={10} /> Evidencia
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* detalles */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
+                        <MapPin size={12} color={C.textLight} />
+                        <span>{incidente.parqueadero}</span>
+                      </div>
+                      {incidente.vehiculo && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
+                          <Car size={12} color={C.textLight} />
+                          <span>{incidente.vehiculo}</span>
+                        </div>
                       )}
-                      {incidente.evidencia && (
-                        <Badge className="border-zinc-200 bg-zinc-50 text-zinc-600 text-[10px] sm:text-xs px-2 py-0.5">
-                          <ImageIcon className="mr-1 h-3 w-3" />
-                          Evidencia
-                        </Badge>
+                      {incidente.asignadoA && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
+                          <User size={12} color={C.textLight} />
+                          <span>{incidente.asignadoA}</span>
+                        </div>
                       )}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: C.textLight }}>
+                        <Clock size={10} />
+                        <span>{fecha.toLocaleDateString('es-CO')} · {fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+
+                    {/* footer actions */}
+                    <div style={{
+                      borderTop: `1px solid ${C.border}`, paddingTop: 12,
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                    }}>
+                      {/* switch estado */}
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <button
+                          onClick={() => toggleEstado(incidente.id)}
+                          style={{
+                            width: 36, height: 20, borderRadius: 999,
+                            background: incidente.estado === 'resuelto' ? C.success : C.warning,
+                            border: "none", cursor: "pointer", position: "relative",
+                            transition: "background .2s",
+                          }}
+                        >
+                          <div style={{
+                            width: 16, height: 16, borderRadius: "50%",
+                            background: "#fff", position: "absolute", top: 2,
+                            left: incidente.estado === 'resuelto' ? 18 : 2,
+                            transition: "left .2s",
+                          }} />
+                        </button>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: C.textLight }}>
+                          {incidente.estado === 'resuelto' ? "Resuelto" : "Pendiente"}
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 4 }}>
+                        <button
+                          className="action-btn"
+                          title="Ver detalle"
+                          onClick={() => { setSelectedIncidente(incidente); setViewOpen(true); }}
+                          style={{
+                            width: 28, height: 28, borderRadius: 7,
+                            border: "none", background: "transparent",
+                            color: C.textLight, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button
+                          className="action-btn"
+                          title="Editar"
+                          onClick={() => openEdit(incidente)}
+                          style={{
+                            width: 28, height: 28, borderRadius: 7,
+                            border: "none", background: "transparent",
+                            color: C.textLight, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >
+                          <Edit size={13} />
+                        </button>
+                        <button
+                          className="delete-btn"
+                          title="Eliminar"
+                          onClick={() => handleDelete(incidente)}
+                          style={{
+                            width: 28, height: 28, borderRadius: 7,
+                            border: "none", background: "transparent",
+                            color: C.danger, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              {/* BODY */}
-              <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-5">
-                <div className="space-y-1.5 sm:space-y-2">
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-600">
-                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-zinc-400" />
-                    <span className="truncate">{incidente.parqueadero}</span>
-                  </div>
-                  {incidente.vehiculo && (
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-600">
-                      <Car className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-zinc-400" />
-                      <span className="truncate">{incidente.vehiculo}</span>
-                    </div>
-                  )}
-                  {incidente.asignadoA && (
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-600">
-                      <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-zinc-400" />
-                      <span className="truncate">{incidente.asignadoA}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 text-xs sm:text-sm text-zinc-400">
-                    <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span>
-                      {new Date(incidente.fecha).toLocaleString('es-CO', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* FOOT */}
-                <div className="flex items-center justify-between border-t border-zinc-100 pt-3 sm:pt-4">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor={`estado-${incidente.id}`} className="text-xs sm:text-sm text-zinc-500 cursor-pointer">
-                      {incidente.estado === 'resuelto' ? 'Resuelto' : 'Pendiente'}
-                    </Label>
-                    <Switch
-                      id={`estado-${incidente.id}`}
-                      checked={incidente.estado === 'resuelto'}
-                      onCheckedChange={() => toggleEstado(incidente.id)}
-                    />
-                  </div>
-
-                  <div className="flex gap-1.5 sm:gap-2">
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 sm:h-9 sm:w-9 border-zinc-200 rounded-lg sm:rounded-xl"
-                      onClick={() => {
-                        setSelectedIncidente(incidente);
-                        setViewDialogOpen(true);
-                      }}
-                    >
-                      <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="outline"
-                      className="h-8 w-8 sm:h-9 sm:w-9 border-zinc-200 rounded-lg sm:rounded-xl"
-                      onClick={() => handleEdit(incidente)}
-                    >
-                      <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* ── FILTRO SHEET (móvil) ── */}
-      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
-        <SheetContent side="bottom" className="rounded-t-3xl pb-8">
-          <SheetHeader className="mb-4">
-            <SheetTitle className="text-lg font-black">Filtrar incidentes</SheetTitle>
-          </SheetHeader>
-          <div className="grid grid-cols-3 gap-2">
-            {(['todos', 'pendiente', 'resuelto'] as const).map((opcion) => (
-              <button
-                key={opcion}
-                onClick={() => { setFilterEstado(opcion); setFilterSheetOpen(false); }}
-                className={`rounded-xl border px-3 py-3 text-sm font-semibold capitalize transition-all ${
-                  filterEstado === opcion
-                    ? 'border-[#39A900] bg-[#39A900]/10 text-[#39A900]'
-                    : 'border-zinc-200 bg-white text-zinc-600'
-                }`}
-              >
-                {opcion === 'todos' ? 'Todos' : opcion === 'pendiente' ? 'Pendientes' : 'Resueltos'}
-              </button>
-            ))}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* ── CREATE / EDIT DIALOG ── */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="w-[calc(100vw-24px)] max-w-2xl overflow-hidden rounded-2xl sm:rounded-3xl border-none bg-white p-0 mx-3 sm:mx-auto">
-          <DialogHeader className="border-b border-zinc-100 px-4 sm:px-6 py-4 sm:py-5">
-            <DialogTitle className="flex items-center gap-2 text-lg sm:text-2xl font-black text-zinc-900">
-              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-[#39A900]" />
-              {isEditing ? 'Editar Incidente' : 'Registrar Incidente'}
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit}>
-            <div className="max-h-[65vh] sm:max-h-[60vh] space-y-4 sm:space-y-5 overflow-y-auto p-4 sm:p-6">
-              <FormularioIncidente />
-            </div>
-
-            <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0 border-t border-zinc-100 bg-zinc-50 px-4 sm:px-6 py-3 sm:py-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full sm:w-auto border-zinc-200 h-10"
-                onClick={() => { setDialogOpen(false); resetForm(); }}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" className="w-full sm:w-auto bg-[#39A900] hover:bg-[#2D7D00] h-10">
-                {isEditing ? 'Actualizar Incidente' : 'Registrar Incidente'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── VIEW DIALOG ── */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="w-[calc(100vw-24px)] max-w-2xl overflow-hidden rounded-2xl sm:rounded-3xl border-none bg-white p-0 mx-3 sm:mx-auto">
-          {selectedIncidente && (
-            <>
+      {/* ── MODAL CREAR / EDITAR ── */}
+      <Modal open={dialogOpen} onClose={() => { setDialogOpen(false); resetForm(); }} maxWidth={640}>
+        <div>
+          {/* Header */}
+          <div
+            style={{
+              padding: "1.4rem 1.8rem",
+              borderBottom: `1px solid ${C.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
               <div
-                className={`p-4 sm:p-6 text-white ${
-                  selectedIncidente.estado === 'resuelto'
-                    ? 'bg-gradient-to-r from-[#39A900] to-[#2D7D00]'
-                    : 'bg-gradient-to-r from-amber-500 to-amber-600'
-                }`}
+                style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: "rgba(57,169,0,.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
               >
-                <div className="flex items-start gap-3 sm:gap-4">
-                  <div className="flex h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-white/15 backdrop-blur">
-                    {selectedIncidente.estado === 'resuelto' ? (
-                      <CheckCircle className="h-6 w-6 sm:h-8 sm:w-8" />
+                <Sparkles size={18} color={C.primary} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+                  Reporte de incidente
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+                  {isEditing ? "Editar Incidente" : "Nuevo Incidente"}
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={() => { setDialogOpen(false); resetForm(); }}
+              style={{
+                width: 34, height: 34, borderRadius: 9,
+                border: `1px solid ${C.border}`,
+                background: "#fff", cursor: "pointer", color: C.textLight,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {/* Descripción */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Descripción *
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Describe el incidente o novedad..."
+                  value={formData.descripcion}
+                  onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC", resize: "none",
+                  }}
+                />
+              </div>
+
+              {/* Parqueadero */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Parqueadero *
+                </label>
+                <select
+                  value={formData.parqueadero}
+                  onChange={(e) => setFormData({ ...formData, parqueadero: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                >
+                  <option value="">Seleccionar parqueadero...</option>
+                  {parqueaderos.map((p) => (
+                    <option key={p.id} value={p.nombre}>{p.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Vehículo */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Vehículo (opcional)
+                </label>
+                <select
+                  value={formData.vehiculo}
+                  onChange={(e) => setFormData({ ...formData, vehiculo: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                >
+                  <option value="">Ninguno</option>
+                  {vehiculos.map((v) => (
+                    <option key={v.id} value={v.placa}>
+                      {v.placa} — {v.marca} {v.modelo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Asignado a */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Asignar a
+                </label>
+                <input
+                  type="text"
+                  placeholder="Nombre del responsable"
+                  value={formData.asignadoA}
+                  onChange={(e) => setFormData({ ...formData, asignadoA: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                />
+              </div>
+
+              {/* Evidencia fotográfica */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Evidencia fotográfica
+                </label>
+                <div style={{
+                  borderRadius: 11, border: `2px dashed ${C.border}`,
+                  background: "#F8FAFC", overflow: "hidden",
+                  transition: "border-color .2s",
+                }}>
+                  <input
+                    type="file"
+                    id="evidencia"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    style={{ display: "none" }}
+                  />
+                  <label htmlFor="evidencia" style={{ cursor: "pointer", display: "block" }}>
+                    {formData.evidencia ? (
+                      <div style={{ padding: "12px", textAlign: "center" }}>
+                        <img
+                          src={formData.evidencia}
+                          alt="Evidencia"
+                          style={{ maxHeight: 120, margin: "0 auto", borderRadius: 8 }}
+                        />
+                        <p style={{ fontSize: 11, color: C.primary, marginTop: 8 }}>Evidencia cargada ✓</p>
+                      </div>
                     ) : (
-                      <AlertTriangle className="h-6 w-6 sm:h-8 sm:w-8" />
+                      <div style={{ padding: "24px", textAlign: "center" }}>
+                        <Upload size={32} color={C.textLight} style={{ margin: "0 auto 8px" }} />
+                        <p style={{ fontSize: 12, color: C.textLight }}>Toca para cargar imagen de evidencia</p>
+                      </div>
                     )}
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div
+            style={{
+              padding: "1rem 1.8rem",
+              borderTop: `1px solid ${C.border}`,
+              display: "flex", gap: 10, justifyContent: "flex-end",
+            }}
+          >
+            <button
+              onClick={() => { setDialogOpen(false); resetForm(); }}
+              style={{
+                padding: "10px 20px", borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: "#fff", color: C.text,
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              style={{
+                padding: "10px 24px", borderRadius: 12,
+                border: "none", background: C.primary, color: "#fff",
+                fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+              }}
+            >
+              {isEditing ? "Actualizar Incidente" : "Registrar Incidente"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── MODAL VER DETALLE ── */}
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={480}>
+        {selectedIncidente && (() => {
+          const cfg = ESTADO_CONFIG[selectedIncidente.estado];
+          const fecha = new Date(selectedIncidente.fecha);
+
+          return (
+            <div>
+              <div
+                style={{
+                  padding: "1.6rem 1.8rem 1.4rem",
+                  background: `linear-gradient(135deg, ${selectedIncidente.estado === 'resuelto' ? C.success : C.warning}, ${selectedIncidente.estado === 'resuelto' ? C.success : C.warning}cc)`,
+                  color: "#fff",
+                  borderRadius: "24px 24px 0 0",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{
+                  position: "absolute", width: 200, height: 200, borderRadius: "50%",
+                  background: "rgba(255,255,255,.07)", top: -80, right: -60,
+                }} />
+                <div style={{ position: "relative", zIndex: 2 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                    <div
+                      style={{
+                        width: 52, height: 52, borderRadius: 14,
+                        background: "rgba(255,255,255,.18)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      {selectedIncidente.estado === 'resuelto' ? (
+                        <CheckCircle size={24} />
+                      ) : (
+                        <AlertTriangle size={24} />
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setViewOpen(false)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 9,
+                        background: "rgba(255,255,255,.15)", border: "none",
+                        color: "#fff", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="text-base sm:text-xl font-black leading-tight">
-                      {selectedIncidente.descripcion}
-                    </h2>
-                    <Badge className="mt-2 border-white/20 bg-white/15 text-white text-xs">
-                      {selectedIncidente.estado === 'resuelto' ? 'Resuelto' : 'Pendiente'}
-                    </Badge>
+                  <h2 style={{ marginTop: 12, fontSize: 18, fontWeight: 800, lineHeight: 1.3 }}>
+                    {selectedIncidente.descripcion}
+                  </h2>
+                  <div style={{ marginTop: 10 }}>
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                      background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />
+                      {cfg.label}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <div className="max-h-[55vh] overflow-y-auto space-y-4 sm:space-y-5 p-4 sm:p-6">
-                <div className="grid grid-cols-1 gap-3 sm:gap-4 sm:grid-cols-2">
-                  {[
-                    { label: 'Parqueadero', icon: MapPin, value: selectedIncidente.parqueadero },
-                    {
-                      label: 'Fecha',
-                      icon: Clock,
-                      value: new Date(selectedIncidente.fecha).toLocaleString('es-CO', {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      }),
-                    },
-                    ...(selectedIncidente.vehiculo
-                      ? [{ label: 'Vehículo', icon: Car, value: selectedIncidente.vehiculo }]
-                      : []),
-                    ...(selectedIncidente.asignadoA
-                      ? [{ label: 'Asignado a', icon: User, value: selectedIncidente.asignadoA }]
-                      : []),
-                  ].map(({ label, icon: Icon, value }) => (
-                    <div key={label} className="rounded-xl sm:rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
-                      <div className="mb-1 text-[10px] sm:text-xs font-bold uppercase tracking-wide text-zinc-500">
-                        {label}
+              <div style={{ padding: "1.4rem 1.8rem" }}>
+                {[
+                  { label: "Parqueadero", value: selectedIncidente.parqueadero, icon: MapPin },
+                  { label: "Fecha y hora", value: fecha.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }), icon: Clock },
+                  ...(selectedIncidente.vehiculo ? [{ label: "Vehículo", value: selectedIncidente.vehiculo, icon: Car }] : []),
+                  ...(selectedIncidente.asignadoA ? [{ label: "Asignado a", value: selectedIncidente.asignadoA, icon: User }] : []),
+                ].map((item) => (
+                  <div key={item.label} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", borderRadius: 12,
+                    background: "#F8FAFC", border: `1px solid ${C.border}`,
+                    marginBottom: 8,
+                  }}>
+                    <item.icon size={14} color={C.textLight} />
+                    <div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        {item.label}
                       </div>
-                      <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-zinc-900">
-                        <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0 text-zinc-400" />
-                        <span className="truncate">{value}</span>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                        {item.value}
                       </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
 
                 {selectedIncidente.evidencia && (
-                  <div className="rounded-xl sm:rounded-2xl border border-zinc-200 bg-zinc-50 p-3 sm:p-4">
-                    <div className="mb-3 text-[10px] sm:text-xs font-bold uppercase tracking-wide text-zinc-500">
+                  <div style={{
+                    padding: "10px 12px", borderRadius: 12,
+                    background: "#F8FAFC", border: `1px solid ${C.border}`,
+                    marginBottom: 8,
+                  }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
                       Evidencia fotográfica
                     </div>
                     <img
                       src={selectedIncidente.evidencia}
                       alt="Evidencia"
-                      className="w-full rounded-lg sm:rounded-xl border border-zinc-200"
+                      style={{ width: "100%", borderRadius: 10 }}
                     />
                   </div>
                 )}
-              </div>
 
-              <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0 border-t border-zinc-100 bg-zinc-50 px-4 sm:px-6 py-3 sm:py-4">
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto border-zinc-200 h-10"
-                  onClick={() => setViewDialogOpen(false)}
-                >
-                  Cerrar
-                </Button>
-                <Button
-                  className="w-full sm:w-auto bg-[#39A900] hover:bg-[#2D7D00] h-10"
-                  onClick={() => {
-                    setViewDialogOpen(false);
-                    handleEdit(selectedIncidente);
+                <button
+                  onClick={() => openEdit(selectedIncidente)}
+                  style={{
+                    marginTop: 12, width: "100%", padding: "12px 20px", borderRadius: 12,
+                    border: "none", background: C.primary, color: "#fff",
+                    fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    boxShadow: `0 6px 18px ${C.primary}33`,
                   }}
                 >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Editar
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </div>
+                  <Edit size={14} />
+                  Editar incidente
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+    </>
   );
 }

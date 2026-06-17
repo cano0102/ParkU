@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 import {
   Plus,
@@ -16,77 +16,136 @@ import {
   X,
   Shield,
   Clock,
+  Sparkles,
+  AlertCircle,
 } from "lucide-react";
 
-import { Button }             from "../components/ui/button";
-import { Card, CardContent }  from "../components/ui/card";
-import { Input }              from "../components/ui/input";
-import { Label }              from "../components/ui/label";
-import {
-  Dialog, DialogContent, DialogHeader,
-  DialogTitle, DialogFooter,
-}                             from "../components/ui/dialog";
-import { Badge }              from "../components/ui/badge";
-import {
-  Select, SelectContent, SelectItem,
-  SelectTrigger, SelectValue,
-}                             from "../components/ui/select";
-import { toast }              from "sonner";
-import {
-  Table, TableBody, TableCell,
-  TableHead, TableHeader, TableRow,
-}                             from "../components/ui/table";
-import { useData, Reserva }   from "../context/DataContext";
+import { toast } from "sonner";
+import { useData, Reserva } from "../context/DataContext";
+
+/* ─── Paleta (misma que Roles) ─── */
+const C = {
+  primary:     "#39A900",
+  primaryDark: "#2D7D00",
+  text:        "#0F172A",
+  textLight:   "#64748B",
+  border:      "#E2E8F0",
+  bg:          "#F5F7F8",
+};
 
 /* ─── Estado config ─────────────────────────────────── */
 type EstadoReserva = "pendiente" | "activa" | "completada" | "cancelada";
 
 const ESTADO_CONFIG: Record<EstadoReserva, {
-  bg: string; text: string; border: string; dot: string; label: string;
+  bg: string; text: string; border: string; dot: string; label: string; icon: React.ReactNode;
 }> = {
-  pendiente:  { bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200",  dot: "#F59E0B", label: "Pendiente"  },
-  activa:     { bg: "bg-green-50",  text: "text-green-700",  border: "border-green-200",  dot: "#22C55E", label: "Activa"     },
-  completada: { bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200",   dot: "#3B82F6", label: "Completada" },
-  cancelada:  { bg: "bg-red-50",    text: "text-red-700",    border: "border-red-200",    dot: "#EF4444", label: "Cancelada"  },
+  pendiente:  { bg: "#FEF3C7", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "Pendiente", icon: <Clock3 size={10} /> },
+  activa:     { bg: "#DCFCE7", text: "#166534", border: "#BBF7D0", dot: "#22C55E", label: "Activa", icon: <CheckCircle2 size={10} /> },
+  completada: { bg: "#DBEAFE", text: "#1E40AF", border: "#BFDBFE", dot: "#3B82F6", label: "Completada", icon: <CheckCircle2 size={10} /> },
+  cancelada:  { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA", dot: "#EF4444", label: "Cancelada", icon: <XCircle size={10} /> },
 };
 
-function EstadoBadge({ estado }: { estado: EstadoReserva }) {
-  const cfg = ESTADO_CONFIG[estado] ?? ESTADO_CONFIG.pendiente;
+/* ─── Modal reutilizable (mismo que Roles) ─── */
+function Modal({
+  open,
+  onClose,
+  children,
+  maxWidth = 680,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
   return (
-    <Badge className={`${cfg.bg} ${cfg.text} border ${cfg.border} capitalize flex items-center gap-1.5 w-fit`}>
-      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: cfg.dot }} />
-      {cfg.label}
-    </Badge>
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        background: "rgba(15,23,42,.45)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "100%", maxWidth,
+          maxHeight: "92vh",
+          overflowY: "auto",
+          borderRadius: 24,
+          background: "#fff",
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
+          animation: "modalIn .18s ease",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+      <style>{`
+        @keyframes modalIn{
+          from{opacity:0;transform:translateY(16px) scale(.97)}
+          to{opacity:1;transform:translateY(0) scale(1)}
+        }
+      `}</style>
+    </div>
   );
 }
 
-/* ─── Component ─────────────────────────────────────── */
+/* ─── Badge de estado inline ─── */
+function EstadoBadgeInline({ estado }: { estado: EstadoReserva }) {
+  const cfg = ESTADO_CONFIG[estado] ?? ESTADO_CONFIG.pendiente;
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+      background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}`,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot }} />
+      {cfg.label}
+    </span>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   MAIN COMPONENT - Reservas (estilo Roles)
+══════════════════════════════════════════════════════ */
 export function Reservas() {
   const {
     reservas, addReserva, updateReserva, deleteReserva,
     vehiculos, celdas, conductores, usuarios, parqueaderos,
   } = useData();
 
-  const [dialogOpen,     setDialogOpen]     = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [editingReserva, setEditingReserva] = useState<Reserva | null>(null);
   const [viewingReserva, setViewingReserva] = useState<Reserva | null>(null);
-  const [searchTerm,     setSearchTerm]     = useState("");
-  const [filterEstado,   setFilterEstado]   = useState<"todos" | EstadoReserva>("todos");
+  const [search, setSearch] = useState("");
+  const [filterEstado, setFilterEstado] = useState<"todos" | EstadoReserva>("todos");
 
   const [formData, setFormData] = useState({
-    vehiculoId:   "",
-    celdaId:      "",
+    vehiculoId: "",
+    celdaId: "",
     fechaReserva: new Date().toISOString().split("T")[0],
-    horaInicio:   "08:00",
-    horaFin:      "18:00",
-    estado:       "pendiente" as EstadoReserva,
+    horaInicio: "08:00",
+    horaFin: "18:00",
+    estado: "pendiente" as EstadoReserva,
   });
 
   /* ── Helpers ────────────────────────────────────────── */
-  const getVehiculo      = (id: string) => vehiculos.find(v => v.id === id);
-  const getCelda         = (id: string) => celdas.find(c => c.id === id);
-  const getParqueadero   = (id: string) => parqueaderos.find(p => p.id === id);
+  const getVehiculo = (id: string) => vehiculos.find(v => v.id === id);
+  const getCelda = (id: string) => celdas.find(c => c.id === id);
+  const getParqueadero = (id: string) => parqueaderos.find(p => p.id === id);
 
   const getConductorVehiculo = (vehiculoId: string) => {
     const v = getVehiculo(vehiculoId);
@@ -100,34 +159,67 @@ export function Reservas() {
 
   const celdasDisponibles = celdas.filter(c => c.estado === "disponible" || c.estado === "reservada");
 
+  /* ── Stats ──────────────────────────────────────────── */
+  const counts = {
+    pendiente: reservas.filter(r => r.estado === "pendiente").length,
+    activa: reservas.filter(r => r.estado === "activa").length,
+    completada: reservas.filter(r => r.estado === "completada").length,
+    cancelada: reservas.filter(r => r.estado === "cancelada").length,
+  };
+
+  /* ── Filtered data ──────────────────────────────────── */
+  const filteredReservas = useMemo(() => {
+    return reservas.filter(reserva => {
+      const vehiculo = getVehiculo(reserva.vehiculoId);
+      const celda = getCelda(reserva.celdaId);
+      const usuario = getUsuarioConductor(reserva.vehiculoId);
+      const q = search.toLowerCase();
+
+      const matchesSearch =
+        vehiculo?.placa.toLowerCase().includes(q) ||
+        celda?.numero.toLowerCase().includes(q) ||
+        usuario?.nombre.toLowerCase().includes(q) ||
+        reserva.fechaReserva.includes(search);
+
+      const matchesEstado = filterEstado === "todos" || reserva.estado === filterEstado;
+      return matchesSearch && matchesEstado;
+    });
+  }, [reservas, search, filterEstado]);
+
   /* ── Handlers ───────────────────────────────────────── */
-  const handleOpenDialog = (reserva?: Reserva) => {
-    if (reserva) {
-      setEditingReserva(reserva);
-      setFormData({
-        vehiculoId:   reserva.vehiculoId,
-        celdaId:      reserva.celdaId,
-        fechaReserva: reserva.fechaReserva,
-        horaInicio:   reserva.horaInicio,
-        horaFin:      reserva.horaFin,
-        estado:       reserva.estado,
-      });
-    } else {
-      setEditingReserva(null);
-      setFormData({
-        vehiculoId:   "",
-        celdaId:      "",
-        fechaReserva: new Date().toISOString().split("T")[0],
-        horaInicio:   "08:00",
-        horaFin:      "18:00",
-        estado:       "pendiente",
-      });
-    }
+  const openCreate = () => {
+    setEditingReserva(null);
+    setFormData({
+      vehiculoId: "",
+      celdaId: "",
+      fechaReserva: new Date().toISOString().split("T")[0],
+      horaInicio: "08:00",
+      horaFin: "18:00",
+      estado: "pendiente",
+    });
     setDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const openEdit = (reserva: Reserva) => {
+    setEditingReserva(reserva);
+    setFormData({
+      vehiculoId: reserva.vehiculoId,
+      celdaId: reserva.celdaId,
+      fechaReserva: reserva.fechaReserva,
+      horaInicio: reserva.horaInicio,
+      horaFin: reserva.horaFin,
+      estado: reserva.estado,
+    });
+    setViewOpen(false);
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.vehiculoId) { toast.error("Selecciona un vehículo"); return; }
+    if (!formData.celdaId) { toast.error("Selecciona una celda"); return; }
+    if (!formData.fechaReserva) { toast.error("La fecha es requerida"); return; }
+    if (!formData.horaInicio || !formData.horaFin) { toast.error("El horario es requerido"); return; }
+
     if (editingReserva) {
       updateReserva(editingReserva.id, formData);
       toast.success("Reserva actualizada correctamente");
@@ -138,660 +230,699 @@ export function Reservas() {
     setDialogOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("¿Desea eliminar esta reserva?")) {
-      deleteReserva(id);
+  const handleDelete = (reserva: Reserva) => {
+    if (confirm(`¿Eliminar la reserva para el vehículo ${getVehiculo(reserva.vehiculoId)?.placa}?`)) {
+      deleteReserva(reserva.id);
       toast.success("Reserva eliminada correctamente");
     }
   };
 
-  const handleViewReserva = (reserva: Reserva) => {
-    setViewingReserva(reserva);
-    setViewDialogOpen(true);
+  const activeFiltersCount = [search, filterEstado !== "todos" ? filterEstado : ""].filter(Boolean).length;
+  const clearFilters = () => { setSearch(""); setFilterEstado("todos"); };
+
+  // Calcular duración
+  const getDuracion = () => {
+    if (!formData.horaInicio || !formData.horaFin) return null;
+    const [h1, m1] = formData.horaInicio.split(":").map(Number);
+    const [h2, m2] = formData.horaFin.split(":").map(Number);
+    const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (mins <= 0) return null;
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return h > 0 ? `${h}h ${m > 0 ? m + "min" : ""}`.trim() : `${m}min`;
   };
 
-  const clearFilters = () => { setSearchTerm(""); setFilterEstado("todos"); };
-
-  /* ── Filtered data ──────────────────────────────────── */
-  const filteredReservas = useMemo(() => {
-    return reservas.filter(reserva => {
-      const vehiculo = getVehiculo(reserva.vehiculoId);
-      const celda    = getCelda(reserva.celdaId);
-      const usuario  = getUsuarioConductor(reserva.vehiculoId);
-
-      const matchesSearch =
-        vehiculo?.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        celda?.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        usuario?.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reserva.fechaReserva.includes(searchTerm);
-
-      const matchesEstado = filterEstado === "todos" || reserva.estado === filterEstado;
-      return matchesSearch && matchesEstado;
-    });
-  }, [reservas, searchTerm, filterEstado]);
-
-  /* ── Stats ──────────────────────────────────────────── */
-  const counts = {
-    pendiente:  reservas.filter(r => r.estado === "pendiente").length,
-    activa:     reservas.filter(r => r.estado === "activa").length,
-    completada: reservas.filter(r => r.estado === "completada").length,
-    cancelada:  reservas.filter(r => r.estado === "cancelada").length,
-  };
-
-  const activeFiltersCount = [searchTerm, filterEstado !== "todos" ? filterEstado : ""].filter(Boolean).length;
-
-  /* ── Render ─────────────────────────────────────────── */
   return (
-    <div className="space-y-4 sm:space-y-5 p-3 sm:p-5 bg-[#F5F7F5] min-h-screen">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        .reservas-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
+        .reserva-row{ transition:background .15s; }
+        .reserva-row:hover{ background:#F8FAF8; }
+        .stat-card{ transition:all .2s; cursor:pointer; }
+        .stat-card:hover{ transform:translateY(-2px); }
+        .action-btn{ transition:background .15s,color .15s; }
+        .action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
+        input:focus,textarea:focus,select:focus{
+          outline:none;
+          border-color:${C.primary} !important;
+          box-shadow:0 0 0 3px rgba(57,169,0,.12);
+        }
+        ::-webkit-scrollbar{ width:5px; }
+        ::-webkit-scrollbar-track{ background:transparent; }
+        ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+      `}</style>
 
-      {/* HEADER */}
-      <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#39A900] to-[#2D7D00] p-5 sm:p-7 text-white shadow-lg relative overflow-hidden">
-        {/* Decorative circles */}
-        <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 pointer-events-none" />
-        <div className="absolute -bottom-16 right-24 w-64 h-64 rounded-full bg-white/[0.03] pointer-events-none" />
+      <div className="reservas-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium mb-3">
-              <Shield className="h-3.5 w-3.5 shrink-0" />
-              Gestión Institucional SENA
+        {/* ── HERO (estilo Roles) ── */}
+        <div
+          style={{
+            position: "relative", overflow: "hidden", borderRadius: 20,
+            background: "linear-gradient(135deg,#39A900,#2D7D00)",
+            padding: "1.4rem 1.6rem", color: "#fff",
+          }}
+        >
+          <div style={{
+            position: "absolute", width: 250, height: 250, borderRadius: "50%",
+            background: "rgba(255,255,255,.07)", top: -80, right: -60,
+          }} />
+          <div style={{ position: "relative", zIndex: 2, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.2)",
+                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                letterSpacing: 1, textTransform: "uppercase", marginBottom: 8,
+              }}>
+                <Shield size={11} /> Gestión Institucional SENA
+              </div>
+              <h1 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
+                Gestión de Reservas
+              </h1>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
+                Administra reservas de vehículos, horarios, disponibilidad y control operativo de parqueaderos.
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight">
-              Gestión de Reservas
-            </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1.5 max-w-2xl">
-              Administra reservas de vehículos, horarios, disponibilidad y control operativo de parqueaderos.
-            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+              {[
+                { label: "Pendientes", value: counts.pendiente, estado: "pendiente", icon: Clock3 },
+                { label: "Activas", value: counts.activa, estado: "activa", icon: CheckCircle2 },
+                { label: "Completadas", value: counts.completada, estado: "completada", icon: Calendar },
+                { label: "Canceladas", value: counts.cancelada, estado: "cancelada", icon: XCircle },
+              ].map((s) => {
+                const cfg = ESTADO_CONFIG[s.estado as EstadoReserva];
+                const isActive = filterEstado === s.estado;
+                return (
+                  <div
+                    key={s.label}
+                    className="stat-card"
+                    onClick={() => setFilterEstado(isActive ? "todos" : s.estado as EstadoReserva)}
+                    style={{
+                      background: "rgba(255,255,255,.12)",
+                      border: `1px solid ${isActive ? "#fff" : "rgba(255,255,255,.2)"}`,
+                      borderRadius: 12, padding: "8px 10px", textAlign: "center",
+                      cursor: "pointer",
+                      transition: "all .2s",
+                    }}
+                  >
+                    <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,.65)", textTransform: "uppercase", marginBottom: 2 }}>
+                      {s.label}
+                    </div>
+                    <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{s.value}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          <Button
-            onClick={() => handleOpenDialog()}
-            className="bg-white text-[#2D7D00] hover:bg-white/90 h-11 sm:h-12 px-5 sm:px-6 rounded-xl font-bold w-full sm:w-auto shrink-0 text-sm sm:text-base"
+        </div>
+
+        {/* ── TOPBAR ── */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
+            <input
+              placeholder="Buscar por placa, conductor, celda o fecha..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", padding: "10px 14px 10px 36px", borderRadius: 11,
+                border: `1px solid ${C.border}`, fontSize: 13, background: "#fff",
+                fontFamily: "inherit",
+              }}
+            />
+          </div>
+
+          <select
+            value={filterEstado}
+            onChange={(e) => setFilterEstado(e.target.value as any)}
+            style={{
+              padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+              fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+            }}
           >
-            <Plus className="h-4 w-4 mr-2 shrink-0" />
-            Nueva Reserva
-          </Button>
+            <option value="todos">Todos los estados</option>
+            <option value="pendiente">Pendientes</option>
+            <option value="activa">Activas</option>
+            <option value="completada">Completadas</option>
+            <option value="cancelada">Canceladas</option>
+          </select>
+
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={clearFilters}
+              style={{
+                padding: "10px 14px", borderRadius: 11,
+                border: `1px solid ${C.border}`,
+                background: "#fff", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6,
+                color: C.textLight, fontSize: 12,
+              }}
+            >
+              <X size={14} /> Limpiar
+            </button>
+          )}
+
+          <button
+            onClick={openCreate}
+            style={{
+              padding: "10px 18px", borderRadius: 11, border: "none",
+              background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 7,
+              boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+            }}
+          >
+            <Plus size={15} /> Nueva Reserva
+          </button>
+        </div>
+
+        {/* ── RESULT HINT ── */}
+        {activeFiltersCount > 0 && (
+          <p style={{ fontSize: 11, color: C.textLight }}>
+            Mostrando <strong>{filteredReservas.length}</strong> resultado{filteredReservas.length !== 1 ? "s" : ""}
+          </p>
+        )}
+
+        {/* ── TABLA (estilo Roles) ── */}
+        <div style={{
+          borderRadius: 16, border: `1px solid ${C.border}`,
+          background: "#fff", overflow: "hidden",
+          boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+        }}>
+          {/* Tabla header */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(180px,1fr) minmax(160px,1fr) 120px minmax(160px,1fr) 180px 110px 100px",
+            background: "#F8FAF8",
+            borderBottom: `1px solid ${C.border}`,
+            padding: "12px 16px",
+            fontSize: 11, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5,
+          }}>
+            <div>Vehículo</div>
+            <div>Conductor</div>
+            <div>Ubicación</div>
+            <div>Horario</div>
+            <div>Fecha</div>
+            <div>Estado</div>
+            <div style={{ textAlign: "right" }}>Acciones</div>
+          </div>
+
+          {/* Tabla body */}
+          <div style={{ maxHeight: "calc(100vh - 400px)", overflowY: "auto" }}>
+            {filteredReservas.length === 0 ? (
+              <div style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                padding: "48px 24px", color: C.textLight,
+              }}>
+                <Calendar size={36} color={C.border} style={{ marginBottom: 12 }} />
+                <p style={{ fontWeight: 600, fontSize: 13 }}>No se encontraron reservas</p>
+                <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o crea una nueva reserva</p>
+              </div>
+            ) : (
+              filteredReservas.map((reserva) => {
+                const vehiculo = getVehiculo(reserva.vehiculoId);
+                const celda = getCelda(reserva.celdaId);
+                const usuario = getUsuarioConductor(reserva.vehiculoId);
+                const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
+                const cfg = ESTADO_CONFIG[reserva.estado as EstadoReserva];
+
+                return (
+                  <div
+                    key={reserva.id}
+                    className="reserva-row"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(180px,1fr) minmax(160px,1fr) 120px minmax(160px,1fr) 180px 110px 100px",
+                      padding: "14px 16px",
+                      borderBottom: `1px solid ${C.border}`,
+                      alignItems: "center",
+                      fontSize: 12,
+                    }}
+                  >
+                    {/* Vehículo */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: "rgba(57,169,0,.1)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Car size={16} color={C.primary} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, color: C.text }}>{vehiculo?.placa || "—"}</div>
+                        <div style={{ fontSize: 10, color: C.textLight }}>{vehiculo?.marca} {vehiculo?.modelo}</div>
+                      </div>
+                    </div>
+
+                    {/* Conductor */}
+                    <div>
+                      {usuario ? (
+                        <>
+                          <div style={{ fontWeight: 600, color: C.text }}>{usuario.nombre}</div>
+                          <div style={{ fontSize: 10, color: C.textLight }}>{usuario.identificacion}</div>
+                        </>
+                      ) : (
+                        <span style={{ color: C.textLight, fontSize: 11 }}>Sin conductor</span>
+                      )}
+                    </div>
+
+                    {/* Ubicación */}
+                    <div>
+                      <div style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "2px 8px", borderRadius: 8,
+                        background: "#F1F5F9", fontSize: 11, fontWeight: 600,
+                      }}>
+                        <MapPin size={10} color={C.primary} />
+                        Celda {celda?.numero || "—"}
+                      </div>
+                      {parqueadero && (
+                        <div style={{ fontSize: 9, color: C.textLight, marginTop: 2 }}>
+                          {parqueadero.nombre}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Horario */}
+                    <div>
+                      <div style={{ fontWeight: 600, color: C.text }}>
+                        {reserva.horaInicio} – {reserva.horaFin}
+                      </div>
+                    </div>
+
+                    {/* Fecha */}
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <Calendar size={10} color={C.textLight} />
+                        <span style={{ fontSize: 11, color: C.text }}>{reserva.fechaReserva}</span>
+                      </div>
+                    </div>
+
+                    {/* Estado */}
+                    <div>
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 4,
+                        padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                        background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}`,
+                      }}>
+                        <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot }} />
+                        {cfg.label}
+                      </span>
+                    </div>
+
+                    {/* Acciones */}
+                    <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+                      <button
+                        className="action-btn"
+                        title="Ver detalle"
+                        onClick={() => { setViewingReserva(reserva); setViewOpen(true); }}
+                        style={{
+                          width: 28, height: 28, borderRadius: 7,
+                          border: "none", background: "transparent",
+                          color: C.textLight, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Eye size={13} />
+                      </button>
+                      <button
+                        className="action-btn"
+                        title="Editar"
+                        onClick={() => openEdit(reserva)}
+                        style={{
+                          width: 28, height: 28, borderRadius: 7,
+                          border: "none", background: "transparent",
+                          color: C.textLight, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        className="action-btn"
+                        title="Eliminar"
+                        onClick={() => handleDelete(reserva)}
+                        style={{
+                          width: 28, height: 28, borderRadius: 7,
+                          border: "none", background: "transparent",
+                          color: "#EF4444", cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer count */}
+          {filteredReservas.length > 0 && (
+            <div style={{
+              padding: "10px 16px", borderTop: `1px solid ${C.border}`,
+              background: "#F8FAF8", fontSize: 11, color: C.textLight,
+            }}>
+              Mostrando <strong>{filteredReservas.length}</strong> de <strong>{reservas.length}</strong> reservas
+            </div>
+          )}
         </div>
       </div>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {[
-          { label: "Pendientes",  shortLabel: "Pendiente",  value: counts.pendiente,  icon: Clock3,       estado: "pendiente"  as EstadoReserva },
-          { label: "Activas",     shortLabel: "Activas",    value: counts.activa,     icon: CheckCircle2, estado: "activa"     as EstadoReserva },
-          { label: "Completadas", shortLabel: "Completas",  value: counts.completada, icon: Calendar,     estado: "completada" as EstadoReserva },
-          { label: "Canceladas",  shortLabel: "Canceladas", value: counts.cancelada,  icon: XCircle,      estado: "cancelada"  as EstadoReserva },
-        ].map(item => {
-          const Icon = item.icon;
-          const cfg  = ESTADO_CONFIG[item.estado];
-          const isActive = filterEstado === item.estado;
-          return (
-            <Card
-              key={item.label}
-              className={`border shadow-sm rounded-2xl bg-white cursor-pointer transition-all ${
-                isActive ? "ring-2 ring-[#39A900] border-[#39A900]/30" : "border-transparent hover:border-gray-200"
-              }`}
-              onClick={() => setFilterEstado(isActive ? "todos" : item.estado)}
+      {/* ── MODAL CREAR / EDITAR ── */}
+      <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={680}>
+        <div>
+          {/* Header */}
+          <div
+            style={{
+              padding: "1.4rem 1.8rem",
+              borderBottom: `1px solid ${C.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: "rgba(57,169,0,.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <Sparkles size={18} color={C.primary} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+                  Registro de reserva
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+                  {editingReserva ? "Editar Reserva" : "Nueva Reserva"}
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={() => setDialogOpen(false)}
+              style={{
+                width: 34, height: 34, borderRadius: 9,
+                border: `1px solid ${C.border}`,
+                background: "#fff", cursor: "pointer", color: C.textLight,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
             >
-              <CardContent className="p-4 sm:p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-xs sm:text-sm text-gray-500 truncate hidden sm:block">{item.label}</div>
-                    <div className="text-xs text-gray-500 sm:hidden">{item.shortLabel}</div>
-                    <div className="text-2xl sm:text-3xl font-black text-gray-900 mt-1 sm:mt-2">{item.value}</div>
-                  </div>
-                  <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${cfg.bg}`}>
-                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${cfg.text}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* FILTROS */}
-      <Card className="border-0 shadow-sm rounded-2xl bg-white">
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            {/* Search */}
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por placa, conductor, celda o fecha..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 sm:h-11 border-gray-200 rounded-xl text-sm"
-              />
-            </div>
-
-            {/* Estado filter — always visible */}
-            <div className="flex gap-2">
-              <select
-                className="flex-1 sm:flex-none sm:w-48 h-10 sm:h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#39A900] focus:ring-offset-1"
-                value={filterEstado}
-                onChange={e => setFilterEstado(e.target.value as any)}
-              >
-                <option value="todos">Todos los estados</option>
-                <option value="pendiente">Pendientes</option>
-                <option value="activa">Activas</option>
-                <option value="completada">Completadas</option>
-                <option value="cancelada">Canceladas</option>
-              </select>
-
-              {/* Clear filters button — only when active */}
-              {activeFiltersCount > 0 && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl border-gray-200 shrink-0 text-gray-500 hover:text-red-600 hover:border-red-200"
-                  onClick={clearFilters}
-                  title="Limpiar filtros"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
+              <X size={16} />
+            </button>
           </div>
 
-          {/* Result count */}
-          {activeFiltersCount > 0 && (
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-              <span className="text-xs text-gray-500">
-                {filteredReservas.length} resultado{filteredReservas.length !== 1 ? "s" : ""} encontrado{filteredReservas.length !== 1 ? "s" : ""}
-              </span>
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-1 text-xs text-[#39A900] font-medium hover:text-[#2D7D00]"
-              >
-                <X className="h-3 w-3" />
-                Limpiar filtros
-              </button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* TABLA — sm y superior */}
-      <Card className="border-0 shadow-sm rounded-2xl sm:rounded-3xl bg-white overflow-hidden hidden sm:block">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-[#F8FAF8] hover:bg-[#F8FAF8]">
-                  {[
-                    { label: "Vehículo",   hide: "" },
-                    { label: "Conductor",  hide: "hidden md:table-cell" },
-                    { label: "Ubicación",  hide: "" },
-                    { label: "Horario",    hide: "hidden lg:table-cell" },
-                    { label: "Estado",     hide: "" },
-                    { label: "Acciones",   hide: "" },
-                  ].map(({ label, hide }, i) => (
-                    <TableHead
-                      key={label}
-                      className={`px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap ${hide} ${i === 5 ? "text-right" : ""}`}
-                    >
-                      {label}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {filteredReservas.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-16 text-gray-400">
-                      <Calendar className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm font-medium">No se encontraron reservas</p>
-                      <p className="text-xs mt-1">Ajusta los filtros o crea una nueva reserva</p>
-                    </TableCell>
-                  </TableRow>
-                ) : filteredReservas.map(reserva => {
-                  const vehiculo    = getVehiculo(reserva.vehiculoId);
-                  const celda       = getCelda(reserva.celdaId);
-                  const usuario     = getUsuarioConductor(reserva.vehiculoId);
-                  const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
-
-                  return (
-                    <TableRow key={reserva.id} className="border-b border-gray-100 hover:bg-[#F8FAF8] transition-colors">
-
-                      {/* VEHÍCULO */}
-                      <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                        <div className="flex items-center gap-3 lg:gap-4">
-                          <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-[#39A900]/10 flex items-center justify-center shrink-0">
-                            <Car className="h-5 w-5 lg:h-6 lg:w-6 text-[#39A900]" />
-                          </div>
-                          <div>
-                            <div className="font-black text-gray-900 text-base lg:text-lg tracking-wide">
-                              {vehiculo?.placa ?? "—"}
-                            </div>
-                            <div className="text-xs sm:text-sm text-gray-500">
-                              {vehiculo?.marca} · {vehiculo?.modelo}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* CONDUCTOR */}
-                      <TableCell className="hidden md:table-cell px-4 lg:px-6 py-4 lg:py-5">
-                        {usuario ? (
-                          <div className="flex items-center gap-2 lg:gap-3">
-                            <div className="w-10 h-10 lg:w-11 lg:h-11 rounded-xl lg:rounded-2xl bg-blue-100 flex items-center justify-center shrink-0">
-                              <UserCircle2 className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
-                            </div>
-                            <div className="min-w-0">
-                              <div className="font-semibold text-gray-900 text-sm truncate max-w-[120px] lg:max-w-none">
-                                {usuario.nombre}
-                              </div>
-                              <div className="text-xs text-gray-500">{usuario.identificacion}</div>
-                            </div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm">Sin conductor</span>
-                        )}
-                      </TableCell>
-
-                      {/* UBICACIÓN */}
-                      <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                        <div className="space-y-1.5">
-                          <div className="inline-flex items-center gap-1.5 rounded-xl bg-[#F5F7F5] px-2.5 py-1.5 border border-gray-100">
-                            <MapPin className="h-3.5 w-3.5 text-[#39A900] shrink-0" />
-                            <span className="font-semibold text-gray-900 text-sm whitespace-nowrap">
-                              Celda {celda?.numero ?? "—"}
-                            </span>
-                          </div>
-                          {parqueadero && (
-                            <div className="text-xs text-gray-500 pl-1 truncate max-w-[140px] lg:max-w-[180px]">
-                              {parqueadero.nombre}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* HORARIO */}
-                      <TableCell className="hidden lg:table-cell px-4 lg:px-6 py-4 lg:py-5">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-900">
-                            <Calendar className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                            {reserva.fechaReserva}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                            <Clock className="h-3 w-3 text-gray-400 shrink-0" />
-                            {reserva.horaInicio} – {reserva.horaFin}
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      {/* ESTADO */}
-                      <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                        <EstadoBadge estado={reserva.estado as EstadoReserva} />
-                      </TableCell>
-
-                      {/* ACCIONES */}
-                      <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                        <div className="flex items-center justify-end gap-1.5 lg:gap-2">
-                          <Button size="icon" variant="outline"
-                            className="rounded-xl border-gray-200 h-8 w-8 lg:h-9 lg:w-9"
-                            onClick={() => handleViewReserva(reserva)}
-                          >
-                            <Eye className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                          </Button>
-                          <Button size="icon" variant="outline"
-                            className="rounded-xl border-gray-200 h-8 w-8 lg:h-9 lg:w-9"
-                            onClick={() => handleOpenDialog(reserva)}
-                          >
-                            <Pencil className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                          </Button>
-                          <Button size="icon" variant="outline"
-                            className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 h-8 w-8 lg:h-9 lg:w-9"
-                            onClick={() => handleDelete(reserva.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-
-          {filteredReservas.length > 0 && (
-            <div className="px-6 py-3 border-t border-gray-100 bg-[#F8FAF8]">
-              <p className="text-xs text-gray-500">
-                Mostrando <span className="font-semibold text-gray-700">{filteredReservas.length}</span> de{" "}
-                <span className="font-semibold text-gray-700">{reservas.length}</span> reservas
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* CARDS — mobile */}
-      <div className="flex flex-col gap-3 sm:hidden">
-        {filteredReservas.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Calendar className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium">No se encontraron reservas</p>
-            <p className="text-xs mt-1">Ajusta los filtros para ver resultados</p>
-          </div>
-        ) : filteredReservas.map(reserva => {
-          const vehiculo    = getVehiculo(reserva.vehiculoId);
-          const celda       = getCelda(reserva.celdaId);
-          const usuario     = getUsuarioConductor(reserva.vehiculoId);
-          const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
-
-          return (
-            <Card key={reserva.id} className="border-0 shadow-sm rounded-2xl bg-white overflow-hidden">
-              <CardContent className="p-0">
-                {/* Card header */}
-                <div className="flex items-center gap-3 p-4 border-b border-gray-100">
-                  <div className="w-11 h-11 rounded-xl bg-[#39A900]/10 flex items-center justify-center shrink-0">
-                    <Car className="h-6 w-6 text-[#39A900]" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-black text-gray-900 text-lg tracking-wide">
-                        {vehiculo?.placa ?? "—"}
-                      </span>
-                      <EstadoBadge estado={reserva.estado as EstadoReserva} />
-                    </div>
-                    <div className="text-sm text-gray-500 mt-0.5">
-                      {vehiculo?.marca} {vehiculo?.modelo}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card body */}
-                <div className="p-4 space-y-3">
-                  {/* Conductor */}
-                  {usuario && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <UserCircle2 className="h-4 w-4 text-gray-400 shrink-0" />
-                      <span className="font-medium text-gray-800">{usuario.nombre}</span>
-                      <span className="text-gray-400">·</span>
-                      <span className="text-gray-500">{usuario.identificacion}</span>
-                    </div>
-                  )}
-
-                  {/* Ubicación */}
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <MapPin className="h-4 w-4 text-[#39A900] shrink-0" />
-                    <span className="font-medium text-gray-800">Celda {celda?.numero ?? "—"}</span>
-                    {parqueadero && (
-                      <>
-                        <span className="text-gray-400">·</span>
-                        <span className="text-gray-500 truncate">{parqueadero.nombre}</span>
-                      </>
-                    )}
-                  </div>
-
-                  {/* Horario */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                      <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
-                      <span>{reserva.fechaReserva}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-sm text-gray-500">
-                      <Clock className="h-3.5 w-3.5 text-gray-400 shrink-0" />
-                      <span>{reserva.horaInicio} – {reserva.horaFin}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl border-gray-200 h-8 gap-1.5 px-3"
-                      onClick={() => handleViewReserva(reserva)}
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                      <span className="text-xs hidden xs:inline">Ver</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl border-gray-200 h-8 gap-1.5 px-3"
-                      onClick={() => handleOpenDialog(reserva)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      <span className="text-xs hidden xs:inline">Editar</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 h-8 gap-1.5 px-3"
-                      onClick={() => handleDelete(reserva.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span className="text-xs hidden xs:inline">Eliminar</span>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-
-        {filteredReservas.length > 0 && (
-          <p className="text-center text-xs text-gray-400 pb-2">
-            {filteredReservas.length} de {reservas.length} reservas
-          </p>
-        )}
-      </div>
-
-      {/* DIALOG CREAR / EDITAR */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-2xl bg-white border-0 rounded-2xl sm:rounded-3xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
-          <DialogHeader className="bg-gradient-to-r from-[#39A900] to-[#2D7D00] px-5 sm:px-6 py-4 sm:py-5 shrink-0">
-            <DialogTitle className="text-white text-xl sm:text-2xl font-bold">
-              {editingReserva ? "Editar Reserva" : "Nueva Reserva"}
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-            <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 overflow-y-auto flex-1">
-
+          {/* Body */}
+          <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {/* Vehículo */}
-              <div className="col-span-1 sm:col-span-2 space-y-2">
-                <Label>Vehículo</Label>
-                <Select
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Vehículo *
+                </label>
+                <select
                   value={formData.vehiculoId}
-                  onValueChange={v => setFormData(f => ({ ...f, vehiculoId: v }))}
+                  onChange={(e) => setFormData({ ...formData, vehiculoId: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-200">
-                    <SelectValue placeholder="Seleccionar vehículo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehiculos.map(v => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.placa} — {v.marca} {v.modelo}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <option value="">Seleccionar vehículo...</option>
+                  {vehiculos.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.placa} — {v.marca} {v.modelo}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Celda */}
-              <div className="col-span-1 sm:col-span-2 space-y-2">
-                <Label>Celda</Label>
-                <Select
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Celda *
+                </label>
+                <select
                   value={formData.celdaId}
-                  onValueChange={v => setFormData(f => ({ ...f, celdaId: v }))}
+                  onChange={(e) => setFormData({ ...formData, celdaId: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-200">
-                    <SelectValue placeholder="Seleccionar celda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {celdasDisponibles.map(c => {
-                      const pq = getParqueadero(c.parqueaderoId);
-                      return (
-                        <SelectItem key={c.id} value={c.id}>
-                          Celda {c.numero} — {pq?.nombre ?? "Parqueadero"}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                  <option value="">Seleccionar celda...</option>
+                  {celdasDisponibles.map(c => {
+                    const pq = getParqueadero(c.parqueaderoId);
+                    return (
+                      <option key={c.id} value={c.id}>
+                        Celda {c.numero} — {pq?.nombre || "Parqueadero"}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               {/* Fecha */}
-              <div className="space-y-2">
-                <Label>Fecha de reserva</Label>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Fecha de reserva *
+                </label>
                 <input
                   type="date"
-                  className="flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39A900] focus-visible:ring-offset-2"
                   value={formData.fechaReserva}
-                  onChange={e => setFormData(f => ({ ...f, fechaReserva: e.target.value }))}
-                  required
+                  onChange={(e) => setFormData({ ...formData, fechaReserva: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 />
               </div>
 
               {/* Estado */}
-              <div className="space-y-2">
-                <Label>Estado</Label>
-                <Select
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Estado
+                </label>
+                <select
                   value={formData.estado}
-                  onValueChange={(v: EstadoReserva) => setFormData(f => ({ ...f, estado: v }))}
+                  onChange={(e) => setFormData({ ...formData, estado: e.target.value as EstadoReserva })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pendiente">Pendiente</SelectItem>
-                    <SelectItem value="activa">Activa</SelectItem>
-                    <SelectItem value="completada">Completada</SelectItem>
-                    <SelectItem value="cancelada">Cancelada</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <option value="pendiente">Pendiente</option>
+                  <option value="activa">Activa</option>
+                  <option value="completada">Completada</option>
+                  <option value="cancelada">Cancelada</option>
+                </select>
               </div>
 
               {/* Hora inicio */}
-              <div className="space-y-2">
-                <Label>Hora de inicio</Label>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Hora de inicio *
+                </label>
                 <input
                   type="time"
-                  className="flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39A900] focus-visible:ring-offset-2"
                   value={formData.horaInicio}
-                  onChange={e => setFormData(f => ({ ...f, horaInicio: e.target.value }))}
-                  required
+                  onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 />
               </div>
 
               {/* Hora fin */}
-              <div className="space-y-2">
-                <Label>Hora de fin</Label>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Hora de fin *
+                </label>
                 <input
                   type="time"
-                  className="flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#39A900] focus-visible:ring-offset-2"
                   value={formData.horaFin}
-                  onChange={e => setFormData(f => ({ ...f, horaFin: e.target.value }))}
-                  required
+                  onChange={(e) => setFormData({ ...formData, horaFin: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 />
               </div>
 
               {/* Duration hint */}
-              {formData.horaInicio && formData.horaFin && (
-                <div className="col-span-1 sm:col-span-2">
-                  <div className="flex items-center gap-2 rounded-xl bg-[#F8FAF8] border border-gray-100 px-4 py-3">
-                    <Clock className="h-4 w-4 text-[#39A900] shrink-0" />
-                    <span className="text-sm text-gray-600">
-                      Duración:{" "}
-                      <span className="font-semibold text-gray-900">
-                        {(() => {
-                          const [h1, m1] = formData.horaInicio.split(":").map(Number);
-                          const [h2, m2] = formData.horaFin.split(":").map(Number);
-                          const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
-                          if (mins <= 0) return "—";
-                          const h = Math.floor(mins / 60), m = mins % 60;
-                          return h > 0 ? `${h}h ${m > 0 ? m + "min" : ""}`.trim() : `${m}min`;
-                        })()}
-                      </span>
+              {getDuracion() && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "10px 12px", borderRadius: 11,
+                    background: "#F8FAFC", border: `1px solid ${C.border}`,
+                  }}>
+                    <Clock size={14} color={C.primary} />
+                    <span style={{ fontSize: 12, color: C.text }}>
+                      Duración: <strong>{getDuracion()}</strong>
                     </span>
                   </div>
                 </div>
               )}
             </div>
+          </div>
 
-            <DialogFooter className="px-4 sm:px-6 py-4 sm:py-5 border-t bg-gray-50 shrink-0 flex-row gap-2 justify-end">
-              <Button type="button" variant="outline" className="rounded-xl flex-1 sm:flex-none"
-                onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" className="bg-[#39A900] hover:bg-[#2D7D00] rounded-xl flex-1 sm:flex-none">
-                {editingReserva ? "Actualizar" : "Registrar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          {/* Footer */}
+          <div
+            style={{
+              padding: "1rem 1.8rem",
+              borderTop: `1px solid ${C.border}`,
+              display: "flex", gap: 10, justifyContent: "flex-end",
+            }}
+          >
+            <button
+              onClick={() => setDialogOpen(false)}
+              style={{
+                padding: "10px 20px", borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: "#fff", color: C.text,
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              style={{
+                padding: "10px 24px", borderRadius: 12,
+                border: "none", background: C.primary, color: "#fff",
+                fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+              }}
+            >
+              {editingReserva ? "Actualizar Reserva" : "Registrar Reserva"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
-      {/* DIALOG VER */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-lg bg-white border-0 rounded-2xl sm:rounded-3xl overflow-hidden p-0 max-h-[90vh] flex flex-col">
-          {viewingReserva && (() => {
-            const vehiculo    = getVehiculo(viewingReserva.vehiculoId);
-            const celda       = getCelda(viewingReserva.celdaId);
-            const usuario     = getUsuarioConductor(viewingReserva.vehiculoId);
-            const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
-            const cfg         = ESTADO_CONFIG[viewingReserva.estado as EstadoReserva];
+      {/* ── MODAL VER DETALLE ── */}
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={450}>
+        {viewingReserva && (() => {
+          const vehiculo = getVehiculo(viewingReserva.vehiculoId);
+          const celda = getCelda(viewingReserva.celdaId);
+          const usuario = getUsuarioConductor(viewingReserva.vehiculoId);
+          const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
+          const cfg = ESTADO_CONFIG[viewingReserva.estado as EstadoReserva];
 
-            return (
-              <>
-                {/* Hero */}
-                <div className="bg-gradient-to-r from-[#39A900] to-[#2D7D00] px-6 py-6 sm:py-8 text-white shrink-0">
-                  <div className="flex flex-col items-center">
-                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-white/15 flex items-center justify-center mb-3 sm:mb-4">
-                      <Car className="h-11 w-11 sm:w-14 sm:h-14 text-white" />
+          return (
+            <div>
+              <div
+                style={{
+                  padding: "1.6rem 1.8rem 1.4rem",
+                  background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
+                  color: "#fff",
+                  borderRadius: "24px 24px 0 0",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+              >
+                <div style={{
+                  position: "absolute", width: 200, height: 200, borderRadius: "50%",
+                  background: "rgba(255,255,255,.07)", top: -80, right: -60,
+                }} />
+                <div style={{ position: "relative", zIndex: 2 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                    <div
+                      style={{
+                        width: 52, height: 52, borderRadius: 14,
+                        background: "rgba(255,255,255,.18)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <Car size={24} />
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black tracking-wide">
-                      {vehiculo?.placa ?? "—"}
-                    </h2>
-                    <p className="text-white/70 text-sm mt-1">{vehiculo?.marca} {vehiculo?.modelo}</p>
-                    <div className="mt-3">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
-                        {cfg.label}
-                      </span>
-                    </div>
+                    <button
+                      onClick={() => setViewOpen(false)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 9,
+                        background: "rgba(255,255,255,.15)", border: "none",
+                        color: "#fff", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                  <h2 style={{ marginTop: 14, fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
+                    {vehiculo?.placa || "—"}
+                  </h2>
+                  <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>
+                    {vehiculo?.marca} {vehiculo?.modelo}
+                  </p>
+                  <div style={{ marginTop: 12 }}>
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                      background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot }} />
+                      {cfg.label}
+                    </span>
                   </div>
                 </div>
+              </div>
 
-                {/* Detail fields */}
-                <div className="p-4 sm:p-6 space-y-3 overflow-y-auto flex-1">
-                  {[
-                    { label: "Conductor",       value: usuario ? `${usuario.nombre} · ${usuario.identificacion}` : "Sin conductor" },
-                    { label: "Celda",           value: celda ? `Celda ${celda.numero}` : "—" },
-                    { label: "Parqueadero",     value: parqueadero?.nombre ?? "—" },
-                    { label: "Fecha de reserva",value: viewingReserva.fechaReserva },
-                    { label: "Horario",         value: `${viewingReserva.horaInicio} – ${viewingReserva.horaFin}` },
-                  ].map(item => (
-                    <div key={item.label} className="rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4">
-                      <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">{item.label}</div>
-                      <div className="font-semibold text-gray-900 text-sm sm:text-base">{item.value}</div>
+              <div style={{ padding: "1.4rem 1.8rem" }}>
+                {[
+                  { label: "Conductor", value: usuario ? `${usuario.nombre} · ${usuario.identificacion}` : "Sin conductor", icon: UserCircle2 },
+                  { label: "Celda", value: celda ? `Celda ${celda.numero}` : "—", icon: MapPin },
+                  { label: "Parqueadero", value: parqueadero?.nombre || "—", icon: MapPin },
+                  { label: "Fecha de reserva", value: viewingReserva.fechaReserva, icon: Calendar },
+                  { label: "Horario", value: `${viewingReserva.horaInicio} – ${viewingReserva.horaFin}`, icon: Clock },
+                ].map((item) => (
+                  <div key={item.label} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", borderRadius: 12,
+                    background: "#F8FAFC", border: `1px solid ${C.border}`,
+                    marginBottom: 8,
+                  }}>
+                    <item.icon size={14} color={C.textLight} />
+                    <div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        {item.label}
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                        {item.value}
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
 
-                <DialogFooter className="px-4 sm:px-6 py-4 sm:py-5 border-t bg-gray-50 shrink-0 flex-row gap-2 justify-end">
-                  <Button variant="outline" className="rounded-xl flex-1 sm:flex-none sm:w-auto"
-                    onClick={() => setViewDialogOpen(false)}>
-                    Cerrar
-                  </Button>
-                  <Button
-                    className="bg-[#39A900] hover:bg-[#2D7D00] rounded-xl flex-1 sm:flex-none"
-                    onClick={() => { setViewDialogOpen(false); handleOpenDialog(viewingReserva); }}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    Editar
-                  </Button>
-                </DialogFooter>
-              </>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
-    </div>
+                <button
+                  onClick={() => openEdit(viewingReserva)}
+                  style={{
+                    marginTop: 12, width: "100%", padding: "12px 20px", borderRadius: 12,
+                    border: "none", background: C.primary, color: "#fff",
+                    fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    boxShadow: `0 6px 18px ${C.primary}33`,
+                  }}
+                >
+                  <Pencil size={14} />
+                  Editar reserva
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+    </>
   );
 }

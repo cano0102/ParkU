@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 import {
   Plus,
@@ -15,42 +15,93 @@ import {
   Palette,
   CheckCircle2,
   XCircle,
-  SlidersHorizontal,
   X,
+  Sparkles,
+  Hash,
+  MapPin,
 } from "lucide-react";
 
-import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../components/ui/dialog";
-import { Badge } from "../components/ui/badge";
-import { Switch } from "../components/ui/switch";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
 import { toast } from "sonner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../components/ui/table";
-import { Textarea } from "../components/ui/textarea";
 import { useData, Vehiculo } from "../context/DataContext";
 
+/* ─── Paleta (misma que Roles) ─── */
+const C = {
+  primary:     "#39A900",
+  primaryDark: "#2D7D00",
+  text:        "#0F172A",
+  textLight:   "#64748B",
+  border:      "#E2E8F0",
+  bg:          "#F5F7F8",
+};
+
+/* ─── Modal reutilizable (mismo que Roles) ─── */
+function Modal({
+  open,
+  onClose,
+  children,
+  maxWidth = 680,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        background: "rgba(15,23,42,.45)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "100%", maxWidth,
+          maxHeight: "92vh",
+          overflowY: "auto",
+          borderRadius: 24,
+          background: "#fff",
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
+          animation: "modalIn .18s ease",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+      <style>{`
+        @keyframes modalIn{
+          from{opacity:0;transform:translateY(16px) scale(.97)}
+          to{opacity:1;transform:translateY(0) scale(1)}
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ─── Tipo vehículo styles ─── */
+function getTipoStyles(tipo: "carro" | "moto") {
+  if (tipo === "carro") {
+    return { bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE", dot: "#3B82F6", label: "Carro", icon: Car };
+  }
+  return { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", dot: "#F59E0B", label: "Moto", icon: Bike };
+}
+
+/* ══════════════════════════════════════════════════════
+   MAIN COMPONENT - Vehículos (estilo Roles)
+══════════════════════════════════════════════════════ */
 export function Vehiculos() {
   const {
     vehiculos,
@@ -62,13 +113,12 @@ export function Vehiculos() {
   } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
   const [editingVehiculo, setEditingVehiculo] = useState<Vehiculo | null>(null);
   const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [searchByConductor, setSearchByConductor] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterTipo, setFilterTipo] = useState("todos");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
-  const [showFilters, setShowFilters] = useState(false);
 
   const [formData, setFormData] = useState({
     conductorId: "",
@@ -82,39 +132,71 @@ export function Vehiculos() {
     estado: "activo" as "activo" | "inactivo",
   });
 
-  const handleOpenDialog = (vehiculo?: Vehiculo) => {
-    if (vehiculo) {
-      setEditingVehiculo(vehiculo);
-      setFormData({
-        conductorId: vehiculo.conductorId,
-        placa: vehiculo.placa,
-        tipo: vehiculo.tipo,
-        marca: vehiculo.marca,
-        modelo: vehiculo.modelo,
-        año: vehiculo.año,
-        color: vehiculo.color,
-        descripcion: vehiculo.descripcion,
-        estado: vehiculo.estado,
-      });
-    } else {
-      setEditingVehiculo(null);
-      setFormData({
-        conductorId: "",
-        placa: "",
-        tipo: "carro",
-        marca: "",
-        modelo: "",
-        año: new Date().getFullYear(),
-        color: "",
-        descripcion: "",
-        estado: "activo",
-      });
-    }
+  /* ─── helpers ─── */
+  const getConductor = (conductorId: string) => conductores.find((c) => c.id === conductorId);
+  const getUsuarioConductor = (conductorId: string) => {
+    const conductor = getConductor(conductorId);
+    if (!conductor) return null;
+    return usuarios.find((u) => u.id === conductor.usuarioId);
+  };
+
+  /* ─── stats ─── */
+  const totalActivos = vehiculos.filter((v) => v.estado === "activo").length;
+  const totalInactivos = vehiculos.filter((v) => v.estado === "inactivo").length;
+  const totalCarros = vehiculos.filter((v) => v.tipo === "carro").length;
+  const totalMotos = vehiculos.filter((v) => v.tipo === "moto").length;
+
+  /* ─── filtered list ─── */
+  const filteredVehiculos = useMemo(() =>
+    vehiculos.filter((vehiculo) => {
+      const usuario = getUsuarioConductor(vehiculo.conductorId);
+      const q = search.toLowerCase();
+      const matchesSearch =
+        vehiculo.placa.toLowerCase().includes(q) ||
+        vehiculo.marca.toLowerCase().includes(q) ||
+        vehiculo.modelo.toLowerCase().includes(q) ||
+        (usuario?.nombre.toLowerCase().includes(q) || false) ||
+        (usuario?.identificacion.includes(search) || false);
+      const matchesTipo = filterTipo === "todos" ? true : vehiculo.tipo === filterTipo;
+      const matchesEstado = filterEstado === "todos" ? true : vehiculo.estado === filterEstado;
+      return matchesSearch && matchesTipo && matchesEstado;
+    }),
+    [vehiculos, search, filterTipo, filterEstado]
+  );
+
+  /* ─── handlers ─── */
+  const openCreate = () => {
+    setEditingVehiculo(null);
+    setFormData({
+      conductorId: "", placa: "", tipo: "carro", marca: "", modelo: "",
+      año: new Date().getFullYear(), color: "", descripcion: "", estado: "activo",
+    });
     setDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const openEdit = (vehiculo: Vehiculo) => {
+    setEditingVehiculo(vehiculo);
+    setFormData({
+      conductorId: vehiculo.conductorId,
+      placa: vehiculo.placa,
+      tipo: vehiculo.tipo,
+      marca: vehiculo.marca,
+      modelo: vehiculo.modelo,
+      año: vehiculo.año,
+      color: vehiculo.color,
+      descripcion: vehiculo.descripcion,
+      estado: vehiculo.estado,
+    });
+    setViewOpen(false);
+    setDialogOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!formData.placa) { toast.error("La placa es requerida"); return; }
+    if (!formData.marca) { toast.error("La marca es requerida"); return; }
+    if (!formData.modelo) { toast.error("El modelo es requerido"); return; }
+    if (!formData.conductorId) { toast.error("Selecciona un conductor"); return; }
+
     if (editingVehiculo) {
       updateVehiculo(editingVehiculo.id, formData);
       toast.success("Vehículo actualizado correctamente");
@@ -125,10 +207,10 @@ export function Vehiculos() {
     setDialogOpen(false);
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("¿Desea eliminar este vehículo?")) {
-      deleteVehiculo(id);
-      toast.success("Vehículo eliminado correctamente");
+  const handleDelete = (vehiculo: Vehiculo) => {
+    if (confirm(`¿Eliminar el vehículo "${vehiculo.placa}"?`)) {
+      deleteVehiculo(vehiculo.id);
+      toast.success("Vehículo eliminado");
     }
   };
 
@@ -137,824 +219,777 @@ export function Vehiculos() {
     toast.success(`Vehículo ${nuevoEstado === "activo" ? "activado" : "desactivado"}`);
   };
 
-  const handleViewVehiculo = (vehiculo: Vehiculo) => {
-    setViewingVehiculo(vehiculo);
-    setViewDialogOpen(true);
-  };
-
-  const getConductor = (conductorId: string) =>
-    conductores.find((c) => c.id === conductorId);
-
-  const getUsuarioConductor = (conductorId: string) => {
-    const conductor = getConductor(conductorId);
-    if (!conductor) return null;
-    return usuarios.find((u) => u.id === conductor.usuarioId);
-  };
-
-  const filteredVehiculos = useMemo(() => {
-    return vehiculos.filter((vehiculo) => {
-      const matchesSearch =
-        vehiculo.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vehiculo.marca.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        vehiculo.modelo.toLowerCase().includes(searchTerm.toLowerCase());
-
-      const usuario = getUsuarioConductor(vehiculo.conductorId);
-      const matchesConductor = !searchByConductor
-        ? true
-        : usuario?.nombre.toLowerCase().includes(searchByConductor.toLowerCase()) ||
-          usuario?.identificacion.includes(searchByConductor);
-
-      const matchesEstado =
-        filterEstado === "todos" ? true : vehiculo.estado === filterEstado;
-
-      return matchesSearch && matchesConductor && matchesEstado;
-    });
-  }, [vehiculos, searchTerm, searchByConductor, filterEstado]);
-
-  const getTipoStyles = (tipo: "carro" | "moto") => {
-    if (tipo === "carro") {
-      return {
-        bg: "bg-blue-50",
-        text: "text-blue-700",
-        border: "border-blue-200",
-        badgeBg: "bg-blue-100",
-        icon: Car,
-      };
-    }
-    return {
-      bg: "bg-amber-50",
-      text: "text-amber-700",
-      border: "border-amber-200",
-      badgeBg: "bg-amber-100",
-      icon: Bike,
-    };
-  };
-
-  const activeFiltersCount = [
-    searchTerm,
-    searchByConductor,
-    filterEstado !== "todos" ? filterEstado : "",
-  ].filter(Boolean).length;
+  const activeFiltersCount = [search, filterTipo !== "todos" ? filterTipo : "", filterEstado !== "todos" ? filterEstado : ""].filter(Boolean).length;
 
   const clearFilters = () => {
-    setSearchTerm("");
-    setSearchByConductor("");
+    setSearch("");
+    setFilterTipo("todos");
     setFilterEstado("todos");
   };
 
   return (
-    <div className="space-y-4 sm:space-y-5 p-3 sm:p-5 bg-[#F5F7F5] min-h-screen">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        .vehiculos-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
+        .vehiculo-card{ transition:box-shadow .18s,transform .18s; }
+        .vehiculo-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-1px); }
+        .action-btn{ transition:background .15s,color .15s; }
+        .action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
+        input:focus,textarea:focus,select:focus{
+          outline:none;
+          border-color:${C.primary} !important;
+          box-shadow:0 0 0 3px rgba(57,169,0,.12);
+        }
+        ::-webkit-scrollbar{ width:5px; }
+        ::-webkit-scrollbar-track{ background:transparent; }
+        ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+      `}</style>
 
-      {/* HEADER */}
-      <div className="rounded-2xl sm:rounded-3xl bg-gradient-to-r from-[#39A900] to-[#2D7D00] p-5 sm:p-7 text-white shadow-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <div className="inline-flex items-center gap-2 bg-white/15 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium mb-3 sm:mb-4">
-              <Shield className="h-3.5 w-3.5 shrink-0" />
-              <span>Gestión Institucional SENA</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight">
-              Gestión de Vehículos
-            </h1>
-            <p className="text-xs sm:text-sm text-white/80 mt-1.5 sm:mt-2 max-w-2xl">
-              Administra vehículos registrados, conductores autorizados y estado operativo del parque automotor.
-            </p>
-          </div>
-          <Button
-            onClick={() => handleOpenDialog()}
-            className="bg-white text-[#2D7D00] hover:bg-white/90 h-11 sm:h-12 px-5 sm:px-6 rounded-xl font-bold w-full sm:w-auto shrink-0 text-sm sm:text-base"
-          >
-            <Plus className="h-4 w-4 mr-2 shrink-0" />
-            Nuevo Vehículo
-          </Button>
-        </div>
-      </div>
+      <div className="vehiculos-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-      {/* STATS */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4">
-        {[
-          {
-            label: "Totales",
-            fullLabel: "Vehículos Totales",
-            value: vehiculos.length,
-            icon: Car,
-            color: "text-[#39A900]",
-            bg: "bg-green-100",
-          },
-          {
-            label: "Activos",
-            fullLabel: "Vehículos Activos",
-            value: vehiculos.filter((v) => v.estado === "activo").length,
-            icon: CheckCircle2,
-            color: "text-blue-600",
-            bg: "bg-blue-100",
-          },
-          {
-            label: "Inactivos",
-            fullLabel: "Vehículos Inactivos",
-            value: vehiculos.filter((v) => v.estado === "inactivo").length,
-            icon: XCircle,
-            color: "text-red-600",
-            bg: "bg-red-100",
-          },
-          {
-            label: "Conductores",
-            fullLabel: "Conductores",
-            value: conductores.length,
-            icon: UserCircle2,
-            color: "text-amber-600",
-            bg: "bg-amber-100",
-          },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <Card key={item.label} className="border-0 shadow-sm rounded-2xl bg-white">
-              <CardContent className="p-4 sm:p-5">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="text-xs sm:text-sm text-gray-500 truncate hidden sm:block">
-                      {item.fullLabel}
-                    </div>
-                    <div className="text-xs text-gray-500 truncate sm:hidden">
-                      {item.label}
-                    </div>
-                    <div className="text-2xl sm:text-3xl font-black text-gray-900 mt-1 sm:mt-2">
-                      {item.value}
-                    </div>
-                  </div>
-                  <div className={`w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${item.bg}`}>
-                    <Icon className={`h-5 w-5 sm:h-6 sm:w-6 ${item.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* FILTROS */}
-      <Card className="border-0 shadow-sm rounded-2xl bg-white">
-        <CardContent className="p-3 sm:p-4">
-          {/* Mobile: toggle filters */}
-          <div className="flex items-center gap-2 sm:hidden mb-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar vehículo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-10 border-gray-200 rounded-xl text-sm"
-              />
-            </div>
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-10 w-10 rounded-xl border-gray-200 shrink-0 relative"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#39A900] text-white text-[10px] rounded-full flex items-center justify-center font-bold">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </Button>
-          </div>
-
-          {/* Mobile: expanded filters */}
-          {showFilters && (
-            <div className="flex flex-col gap-2 mb-3 sm:hidden">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Buscar por conductor..."
-                  value={searchByConductor}
-                  onChange={(e) => setSearchByConductor(e.target.value)}
-                  className="pl-9 h-10 border-gray-200 rounded-xl text-sm"
-                />
+        {/* ── HERO (estilo Roles) ── */}
+        <div
+          style={{
+            position: "relative", overflow: "hidden", borderRadius: 20,
+            background: "linear-gradient(135deg,#39A900,#2D7D00)",
+            padding: "1.4rem 1.6rem", color: "#fff",
+          }}
+        >
+          <div style={{
+            position: "absolute", width: 250, height: 250, borderRadius: "50%",
+            background: "rgba(255,255,255,.07)", top: -80, right: -60,
+          }} />
+          <div style={{ position: "relative", zIndex: 2, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.2)",
+                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                letterSpacing: 1, textTransform: "uppercase", marginBottom: 8,
+              }}>
+                <Shield size={11} /> Parque automotor
               </div>
-              <select
-                className="h-10 rounded-xl border border-gray-200 bg-white px-3 text-sm w-full"
-                value={filterEstado}
-                onChange={(e) => setFilterEstado(e.target.value as any)}
-              >
-                <option value="todos">Todos los estados</option>
-                <option value="activo">Solo activos</option>
-                <option value="inactivo">Solo inactivos</option>
-              </select>
-            </div>
-          )}
-
-          {/* Desktop: always visible */}
-          <div className="hidden sm:grid sm:grid-cols-3 gap-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por placa, marca o modelo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 h-11 border-gray-200 rounded-xl"
-              />
-            </div>
-            <div className="relative">
-              <Search className="absolute left-3 top-3.5 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por conductor..."
-                value={searchByConductor}
-                onChange={(e) => setSearchByConductor(e.target.value)}
-                className="pl-10 h-11 border-gray-200 rounded-xl"
-              />
-            </div>
-            <select
-              className="h-11 rounded-xl border border-gray-200 bg-white px-4 text-sm"
-              value={filterEstado}
-              onChange={(e) => setFilterEstado(e.target.value as any)}
-            >
-              <option value="todos">Todos los estados</option>
-              <option value="activo">Solo activos</option>
-              <option value="inactivo">Solo inactivos</option>
-            </select>
-          </div>
-
-          {/* Active filters indicator */}
-          {activeFiltersCount > 0 && (
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-              <span className="text-xs text-gray-500">
-                {filteredVehiculos.length} resultado{filteredVehiculos.length !== 1 ? "s" : ""} encontrado{filteredVehiculos.length !== 1 ? "s" : ""}
-              </span>
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-1 text-xs text-[#39A900] font-medium hover:text-[#2D7D00]"
-              >
-                <X className="h-3 w-3" />
-                Limpiar filtros
-              </button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* TABLA — desktop */}
-      <Card className="border-0 shadow-sm rounded-2xl sm:rounded-3xl bg-white overflow-hidden hidden sm:block">
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-[#F8FAF8] hover:bg-[#F8FAF8]">
-                  <TableHead className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
-                    Vehículo
-                  </TableHead>
-                  <TableHead className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
-                    Información
-                  </TableHead>
-                  <TableHead className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
-                    Conductor
-                  </TableHead>
-                  <TableHead className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase whitespace-nowrap">
-                    Estado
-                  </TableHead>
-                  <TableHead className="px-4 lg:px-6 py-4 text-xs font-bold text-gray-500 uppercase text-right whitespace-nowrap">
-                    Acciones
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {filteredVehiculos.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-16 text-gray-400">
-                      <Car className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm font-medium">No se encontraron vehículos</p>
-                      <p className="text-xs mt-1">Intenta ajustar los filtros de búsqueda</p>
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredVehiculos.map((vehiculo) => {
-                    const usuario = getUsuarioConductor(vehiculo.conductorId);
-                    const tipoStyle = getTipoStyles(vehiculo.tipo);
-                    const TipoIcon = tipoStyle.icon;
-
-                    return (
-                      <TableRow
-                        key={vehiculo.id}
-                        className="border-b border-gray-100 hover:bg-[#F8FAF8] transition-colors"
-                      >
-                        {/* VEHÍCULO */}
-                        <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                          <div className="flex items-center gap-3 lg:gap-4">
-                            <div className={`w-11 h-11 lg:w-14 lg:h-14 rounded-xl lg:rounded-2xl flex items-center justify-center shrink-0 ${tipoStyle.bg}`}>
-                              <TipoIcon className={`h-6 w-6 lg:h-7 lg:w-7 ${tipoStyle.text}`} />
-                            </div>
-                            <div>
-                              <div className="font-black text-gray-900 text-base lg:text-lg tracking-wide">
-                                {vehiculo.placa}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge className={`border capitalize text-xs ${tipoStyle.badgeBg} ${tipoStyle.text} ${tipoStyle.border}`}>
-                                  {vehiculo.tipo}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {/* INFO */}
-                        <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2 text-sm text-gray-700">
-                              <GaugeCircle className="h-4 w-4 text-gray-400 shrink-0" />
-                              <span className="font-medium truncate max-w-[140px] lg:max-w-none">
-                                {vehiculo.marca} · {vehiculo.modelo}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-700">
-                              <Calendar className="h-4 w-4 text-gray-400 shrink-0" />
-                              {vehiculo.año}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-700">
-                              <Palette className="h-4 w-4 text-gray-400 shrink-0" />
-                              <div className="flex items-center gap-1.5">
-                                <div
-                                  className="w-3.5 h-3.5 rounded-full border border-gray-200 shrink-0"
-                                  style={{ backgroundColor: vehiculo.color.toLowerCase() }}
-                                />
-                                {vehiculo.color}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-
-                        {/* CONDUCTOR */}
-                        <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                          {usuario ? (
-                            <div className="flex items-center gap-2 lg:gap-3">
-                              <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-[#39A900]/10 flex items-center justify-center shrink-0">
-                                <UserCircle2 className="h-6 w-6 lg:h-7 lg:w-7 text-[#39A900]" />
-                              </div>
-                              <div className="min-w-0">
-                                <div className="font-semibold text-gray-900 text-sm truncate max-w-[120px] lg:max-w-none">
-                                  {usuario.nombre}
-                                </div>
-                                <div className="text-xs sm:text-sm text-gray-500">
-                                  {usuario.identificacion}
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-sm">Sin conductor</span>
-                          )}
-                        </TableCell>
-
-                        {/* ESTADO */}
-                        <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                          <div className="flex items-center gap-3">
-                            <Badge
-                              className={
-                                vehiculo.estado === "activo"
-                                  ? "bg-green-100 text-green-700 border border-green-200 text-xs"
-                                  : "bg-red-100 text-red-700 border border-red-200 text-xs"
-                              }
-                            >
-                              {vehiculo.estado}
-                            </Badge>
-                            <Switch
-                              checked={vehiculo.estado === "activo"}
-                              onCheckedChange={(checked) =>
-                                handleChangeEstado(vehiculo.id, checked ? "activo" : "inactivo")
-                              }
-                            />
-                          </div>
-                        </TableCell>
-
-                        {/* ACCIONES */}
-                        <TableCell className="px-4 lg:px-6 py-4 lg:py-5">
-                          <div className="flex items-center justify-end gap-1.5 lg:gap-2">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="rounded-xl border-gray-200 h-8 w-8 lg:h-9 lg:w-9"
-                              onClick={() => handleViewVehiculo(vehiculo)}
-                            >
-                              <Eye className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="rounded-xl border-gray-200 h-8 w-8 lg:h-9 lg:w-9"
-                              onClick={() => handleOpenDialog(vehiculo)}
-                            >
-                              <Pencil className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 h-8 w-8 lg:h-9 lg:w-9"
-                              onClick={() => handleDelete(vehiculo.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 lg:h-4 lg:w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Footer count */}
-          {filteredVehiculos.length > 0 && (
-            <div className="px-6 py-3 border-t border-gray-100 bg-[#F8FAF8]">
-              <p className="text-xs text-gray-500">
-                Mostrando <span className="font-semibold text-gray-700">{filteredVehiculos.length}</span> de{" "}
-                <span className="font-semibold text-gray-700">{vehiculos.length}</span> vehículos
+              <h1 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
+                Gestión de Vehículos
+              </h1>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
+                Administra vehículos registrados, conductores autorizados y estado operativo del parque automotor.
               </p>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* CARDS — mobile */}
-      <div className="flex flex-col gap-3 sm:hidden">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+              {[
+                { label: "Total", value: vehiculos.length, icon: Car },
+                { label: "Activos", value: totalActivos, icon: CheckCircle2 },
+                { label: "Carros", value: totalCarros, icon: Car },
+                { label: "Motos", value: totalMotos, icon: Bike },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
+                  borderRadius: 12, padding: "8px 10px", textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,.65)", textTransform: "uppercase", marginBottom: 2 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* ── TOPBAR ── */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
+            <input
+              placeholder="Buscar por placa, marca, modelo o conductor..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", padding: "10px 14px 10px 36px", borderRadius: 11,
+                border: `1px solid ${C.border}`, fontSize: 13, background: "#fff",
+                fontFamily: "inherit",
+              }}
+            />
+          </div>
+
+          <select
+            value={filterTipo}
+            onChange={(e) => setFilterTipo(e.target.value)}
+            style={{
+              padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+              fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+            }}
+          >
+            <option value="todos">Todos los tipos</option>
+            <option value="carro">Carros</option>
+            <option value="moto">Motos</option>
+          </select>
+
+          <select
+            value={filterEstado}
+            onChange={(e) => setFilterEstado(e.target.value as any)}
+            style={{
+              padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+              fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+            }}
+          >
+            <option value="todos">Todos los estados</option>
+            <option value="activo">Activos</option>
+            <option value="inactivo">Inactivos</option>
+          </select>
+
+          <button
+            onClick={openCreate}
+            style={{
+              padding: "10px 18px", borderRadius: 11, border: "none",
+              background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 7,
+              boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+            }}
+          >
+            <Plus size={15} /> Nuevo Vehículo
+          </button>
+        </div>
+
+        {/* ── ACTIVE FILTERS ── */}
+        {activeFiltersCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <p style={{ fontSize: 11, color: C.textLight }}>
+              Mostrando <strong>{filteredVehiculos.length}</strong> resultado{filteredVehiculos.length !== 1 ? "s" : ""}
+            </p>
+            <button
+              onClick={clearFilters}
+              style={{
+                fontSize: 11, fontWeight: 600, color: C.primary,
+                background: "none", border: "none", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 4,
+              }}
+            >
+              <X size={12} /> Limpiar filtros
+            </button>
+          </div>
+        )}
+
+        {/* ── GRID ── */}
         {filteredVehiculos.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <Car className="h-10 w-10 mx-auto mb-3 opacity-30" />
-            <p className="text-sm font-medium">No se encontraron vehículos</p>
-            <p className="text-xs mt-1">Ajusta los filtros para ver resultados</p>
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: "3rem 1rem", borderRadius: 16, border: `2px dashed ${C.border}`,
+            background: "#fff", color: C.textLight,
+          }}>
+            <Car size={36} color={C.border} style={{ marginBottom: 10 }} />
+            <p style={{ fontWeight: 700, fontSize: 13 }}>No se encontraron vehículos</p>
+            <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o registra uno nuevo</p>
           </div>
         ) : (
-          filteredVehiculos.map((vehiculo) => {
-            const usuario = getUsuarioConductor(vehiculo.conductorId);
-            const tipoStyle = getTipoStyles(vehiculo.tipo);
-            const TipoIcon = tipoStyle.icon;
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
+            gap: 12,
+          }}>
+            {filteredVehiculos.map((vehiculo) => {
+              const usuario = getUsuarioConductor(vehiculo.conductorId);
+              const tipoStyle = getTipoStyles(vehiculo.tipo);
+              const TipoIcon = tipoStyle.icon;
+              const activo = vehiculo.estado === "activo";
 
-            return (
-              <Card key={vehiculo.id} className="border-0 shadow-sm rounded-2xl bg-white overflow-hidden">
-                <CardContent className="p-0">
-                  {/* Card Header */}
-                  <div className="flex items-center gap-3 p-4 border-b border-gray-100">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${tipoStyle.bg}`}>
-                      <TipoIcon className={`h-6 w-6 ${tipoStyle.text}`} />
+              return (
+                <div
+                  key={vehiculo.id}
+                  className="vehiculo-card"
+                  style={{
+                    borderRadius: 14, border: `1px solid ${C.border}`,
+                    background: "#fff", overflow: "hidden",
+                    boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+                  }}
+                >
+                  {/* stripe */}
+                  <div style={{ height: 3, background: tipoStyle.dot }} />
+
+                  {/* header */}
+                  <div style={{ padding: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+                      <div
+                        style={{
+                          width: 52, height: 52, borderRadius: 12, flexShrink: 0,
+                          background: tipoStyle.bg,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <TipoIcon size={24} color={tipoStyle.text} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 4 }}>
+                          <p style={{ fontSize: 16, fontWeight: 900, color: C.text, letterSpacing: 0.5 }}>
+                            {vehiculo.placa}
+                          </p>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                            background: tipoStyle.bg, color: tipoStyle.text,
+                          }}>
+                            {tipoStyle.label}
+                          </span>
+                          <span style={{
+                            fontSize: 9, fontWeight: 700, padding: "2px 8px", borderRadius: 999,
+                            background: activo ? "rgba(57,169,0,.1)" : "rgba(156,163,175,.12)",
+                            color: activo ? C.primaryDark : C.textLight,
+                          }}>
+                            {vehiculo.estado}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: 11, color: C.textLight }}>
+                          {vehiculo.marca} {vehiculo.modelo} · {vehiculo.año}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black text-gray-900 text-lg tracking-wide">
-                          {vehiculo.placa}
+
+                    {/* detalles */}
+                    <div style={{
+                      display: "flex", flexWrap: "wrap", gap: 8,
+                      padding: "10px 0", marginBottom: 8,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: C.text }}>
+                        <Palette size={12} color={C.textLight} />
+                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                          <div style={{
+                            width: 12, height: 12, borderRadius: 3,
+                            background: vehiculo.color.toLowerCase(),
+                            border: `1px solid ${C.border}`,
+                          }} />
+                          {vehiculo.color}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* conductor */}
+                    {usuario && (
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: "8px 10px", borderRadius: 10,
+                        background: "#F8FAFC", border: `1px solid ${C.border}`,
+                        marginBottom: 8,
+                      }}>
+                        <UserCircle2 size={14} color={C.textLight} />
+                        <span style={{ fontSize: 11, color: C.text, fontWeight: 500 }}>
+                          {usuario.nombre}
                         </span>
-                        <Badge className={`border capitalize text-xs ${tipoStyle.badgeBg} ${tipoStyle.text} ${tipoStyle.border}`}>
-                          {vehiculo.tipo}
-                        </Badge>
-                        <Badge
-                          className={
-                            vehiculo.estado === "activo"
-                              ? "bg-green-100 text-green-700 border border-green-200 text-xs"
-                              : "bg-red-100 text-red-700 border border-red-200 text-xs"
-                          }
-                        >
-                          {vehiculo.estado}
-                        </Badge>
-                      </div>
-                      <div className="text-sm text-gray-500 mt-0.5">
-                        {vehiculo.marca} {vehiculo.modelo} · {vehiculo.año}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="p-4 space-y-3">
-                    {/* Color */}
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Palette className="h-4 w-4 text-gray-400 shrink-0" />
-                      <div className="flex items-center gap-1.5">
-                        <div
-                          className="w-3.5 h-3.5 rounded-full border border-gray-200"
-                          style={{ backgroundColor: vehiculo.color.toLowerCase() }}
-                        />
-                        {vehiculo.color}
-                      </div>
-                    </div>
-
-                    {/* Conductor */}
-                    {usuario ? (
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <UserCircle2 className="h-4 w-4 text-gray-400 shrink-0" />
-                        <span className="font-medium text-gray-800">{usuario.nombre}</span>
-                        <span className="text-gray-400">·</span>
-                        <span>{usuario.identificacion}</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <UserCircle2 className="h-4 w-4 shrink-0" />
-                        Sin conductor asignado
+                        <span style={{ fontSize: 10, color: C.textLight }}>
+                          {usuario.identificacion}
+                        </span>
                       </div>
                     )}
 
-                    {/* Footer: switch + actions */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={vehiculo.estado === "activo"}
-                          onCheckedChange={(checked) =>
-                            handleChangeEstado(vehiculo.id, checked ? "activo" : "inactivo")
-                          }
-                        />
-                        <span className="text-xs text-gray-500">
-                          {vehiculo.estado === "activo" ? "Activo" : "Inactivo"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="rounded-xl border-gray-200 h-8 w-8"
-                          onClick={() => handleViewVehiculo(vehiculo)}
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="rounded-xl border-gray-200 h-8 w-8"
-                          onClick={() => handleOpenDialog(vehiculo)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="outline"
-                          className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 h-8 w-8"
-                          onClick={() => handleDelete(vehiculo.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
+                    {/* descripción */}
+                    {vehiculo.descripcion && (
+                      <p style={{ fontSize: 10, color: C.textLight, marginBottom: 8, lineHeight: 1.4 }}>
+                        {vehiculo.descripcion}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* footer actions */}
+                  <div style={{
+                    borderTop: `1px solid ${C.border}`, padding: "8px 12px",
+                    display: "flex", justifyContent: "space-between", alignItems: "center",
+                  }}>
+                    {/* switch estado */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <button
+                        onClick={() => handleChangeEstado(vehiculo.id, activo ? "inactivo" : "activo")}
+                        style={{
+                          width: 36, height: 20, borderRadius: 999,
+                          background: activo ? C.primary : "#CBD5E1",
+                          border: "none", cursor: "pointer", position: "relative",
+                          transition: "background .2s",
+                        }}
+                      >
+                        <div style={{
+                          width: 16, height: 16, borderRadius: "50%",
+                          background: "#fff", position: "absolute", top: 2,
+                          left: activo ? 18 : 2, transition: "left .2s",
+                        }} />
+                      </button>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: C.textLight }}>
+                        {activo ? "Activo" : "Inactivo"}
+                      </span>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 4 }}>
+                      <button
+                        className="action-btn"
+                        title="Ver detalle"
+                        onClick={() => { setViewingVehiculo(vehiculo); setViewOpen(true); }}
+                        style={{
+                          width: 28, height: 28, borderRadius: 7,
+                          border: "none", background: "transparent",
+                          color: C.textLight, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Eye size={13} />
+                      </button>
+                      <button
+                        className="action-btn"
+                        title="Editar"
+                        onClick={() => openEdit(vehiculo)}
+                        style={{
+                          width: 28, height: 28, borderRadius: 7,
+                          border: "none", background: "transparent",
+                          color: C.textLight, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Pencil size={13} />
+                      </button>
+                      <button
+                        className="action-btn"
+                        title="Eliminar"
+                        onClick={() => handleDelete(vehiculo)}
+                        style={{
+                          width: 28, height: 28, borderRadius: 7,
+                          border: "none", background: "transparent",
+                          color: "#EF4444", cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
-
-        {filteredVehiculos.length > 0 && (
-          <p className="text-center text-xs text-gray-400 pb-2">
-            {filteredVehiculos.length} de {vehiculos.length} vehículos
-          </p>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
-      {/* DIALOG CREAR / EDITAR */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-4xl bg-white border-0 rounded-2xl sm:rounded-3xl p-0 overflow-hidden max-h-[90vh] flex flex-col">
-          <DialogHeader className="bg-gradient-to-r from-[#39A900] to-[#2D7D00] px-5 sm:px-6 py-4 sm:py-5 shrink-0">
-            <DialogTitle className="text-white text-xl sm:text-2xl font-bold">
-              {editingVehiculo ? "Editar Vehículo" : "Registrar Vehículo"}
-            </DialogTitle>
-          </DialogHeader>
+      {/* ── MODAL CREAR / EDITAR ── */}
+      <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={680}>
+        <div>
+          {/* Header */}
+          <div
+            style={{
+              padding: "1.4rem 1.8rem",
+              borderBottom: `1px solid ${C.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: "rgba(57,169,0,.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <Sparkles size={18} color={C.primary} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+                  Registro de vehículo
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+                  {editingVehiculo ? "Editar Vehículo" : "Nuevo Vehículo"}
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={() => setDialogOpen(false)}
+              style={{
+                width: 34, height: 34, borderRadius: 9,
+                border: `1px solid ${C.border}`,
+                background: "#fff", cursor: "pointer", color: C.textLight,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-            <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 overflow-y-auto flex-1">
+          {/* Body */}
+          <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {/* Conductor */}
-              <div className="col-span-1 sm:col-span-2 space-y-2">
-                <Label>Conductor</Label>
-                <Select
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Conductor *
+                </label>
+                <select
                   value={formData.conductorId}
-                  onValueChange={(value) => setFormData({ ...formData, conductorId: value })}
+                  onChange={(e) => setFormData({ ...formData, conductorId: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-200">
-                    <SelectValue placeholder="Seleccionar conductor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {conductores.map((conductor) => {
-                      const usuario = usuarios.find((u) => u.id === conductor.usuarioId);
-                      return (
-                        <SelectItem key={conductor.id} value={conductor.id}>
-                          {usuario?.nombre} - {usuario?.identificacion}
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                  <option value="">Seleccionar conductor...</option>
+                  {conductores.map((conductor) => {
+                    const usuario = usuarios.find((u) => u.id === conductor.usuarioId);
+                    return (
+                      <option key={conductor.id} value={conductor.id}>
+                        {usuario?.nombre} - {usuario?.identificacion}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               {/* Placa */}
-              <div className="space-y-2">
-                <Label>Placa</Label>
-                <Input
-                  className="h-11 rounded-xl border-gray-200 uppercase"
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Placa *
+                </label>
+                <input
+                  type="text"
+                  placeholder="ABC123"
                   value={formData.placa}
                   onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })}
-                  placeholder="ABC123"
-                  required
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC", textTransform: "uppercase",
+                  }}
                 />
               </div>
 
               {/* Tipo */}
-              <div className="space-y-2">
-                <Label>Tipo Vehículo</Label>
-                <Select
-                  value={formData.tipo}
-                  onValueChange={(value: "carro" | "moto") =>
-                    setFormData({ ...formData, tipo: value })
-                  }
-                >
-                  <SelectTrigger className="h-11 rounded-xl border-gray-200">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="carro">Carro</SelectItem>
-                    <SelectItem value="moto">Moto</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Tipo de vehículo *
+                </label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {(["carro", "moto"] as const).map((tipo) => {
+                    const isSelected = formData.tipo === tipo;
+                    return (
+                      <button
+                        key={tipo}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, tipo })}
+                        style={{
+                          flex: 1, padding: "10px", borderRadius: 11, fontSize: 12,
+                          fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                          border: isSelected ? "1px solid transparent" : `1px solid ${C.border}`,
+                          background: isSelected ? "rgba(57,169,0,.1)" : "#F8FAFC",
+                          color: isSelected ? C.primaryDark : C.textLight,
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {tipo === "carro" ? "🚗 Carro" : "🏍️ Moto"}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               {/* Marca */}
-              <div className="space-y-2">
-                <Label>Marca</Label>
-                <Input
-                  className="h-11 rounded-xl border-gray-200"
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Marca *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Toyota, Yamaha..."
                   value={formData.marca}
                   onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
-                  placeholder="Toyota, Yamaha..."
-                  required
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 />
               </div>
 
               {/* Modelo */}
-              <div className="space-y-2">
-                <Label>Modelo</Label>
-                <Input
-                  className="h-11 rounded-xl border-gray-200"
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Modelo *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Corolla, FZ..."
                   value={formData.modelo}
                   onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-                  placeholder="Corolla, FZ..."
-                  required
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 />
               </div>
 
               {/* Año */}
-              <div className="space-y-2">
-                <Label>Año</Label>
-                <Input
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Año *
+                </label>
+                <input
                   type="number"
-                  className="h-11 rounded-xl border-gray-200"
                   value={formData.año}
-                  onChange={(e) =>
-                    setFormData({ ...formData, año: parseInt(e.target.value) })
-                  }
-                  required
+                  onChange={(e) => setFormData({ ...formData, año: Number(e.target.value) })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 />
               </div>
 
               {/* Color */}
-              <div className="space-y-2">
-                <Label>Color</Label>
-                <Input
-                  className="h-11 rounded-xl border-gray-200"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  placeholder="Blanco, Negro..."
-                  required
-                />
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Color *
+                </label>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <input
+                    type="text"
+                    placeholder="Rojo, Azul..."
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    style={{
+                      flex: 1, padding: "11px 14px", borderRadius: 11,
+                      border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                      fontFamily: "inherit", background: "#F8FAFC",
+                    }}
+                  />
+                  <div style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: formData.color.toLowerCase() || "#ccc",
+                    border: `1px solid ${C.border}`,
+                  }} />
+                </div>
               </div>
 
               {/* Descripción */}
-              <div className="col-span-1 sm:col-span-2 space-y-2">
-                <Label>Descripción</Label>
-                <Textarea
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Descripción
+                </label>
+                <textarea
                   rows={3}
-                  className="rounded-2xl border-gray-200"
+                  placeholder="Características adicionales del vehículo..."
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                  placeholder="Características adicionales del vehículo..."
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC", resize: "none",
+                  }}
                 />
               </div>
 
               {/* Estado */}
-              <div className="col-span-1 sm:col-span-2 flex items-center justify-between rounded-2xl border border-gray-200 p-4 bg-[#F8FAF8]">
-                <div>
-                  <div className="font-semibold text-gray-900 text-sm sm:text-base">
-                    Estado del Vehículo
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px", borderRadius: 11, background: "#F8FAFC", border: `1px solid ${C.border}`,
+                }}>
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: C.text }}>Estado del vehículo</p>
+                    <p style={{ fontSize: 10, color: C.textLight }}>Controla la disponibilidad en el sistema</p>
                   </div>
-                  <div className="text-xs sm:text-sm text-gray-500">
-                    Controla la disponibilidad en el sistema
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, estado: formData.estado === "activo" ? "inactivo" : "activo" })}
+                    style={{
+                      width: 40, height: 22, borderRadius: 999,
+                      background: formData.estado === "activo" ? C.primary : "#CBD5E1",
+                      border: "none", cursor: "pointer", position: "relative",
+                    }}
+                  >
+                    <div style={{
+                      width: 18, height: 18, borderRadius: "50%", background: "#fff",
+                      position: "absolute", top: 2, left: formData.estado === "activo" ? 20 : 2,
+                      transition: "left .2s",
+                    }} />
+                  </button>
                 </div>
-                <Switch
-                  checked={formData.estado === "activo"}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, estado: checked ? "activo" : "inactivo" })
-                  }
-                />
               </div>
             </div>
+          </div>
 
-            <DialogFooter className="px-4 sm:px-6 py-4 sm:py-5 border-t bg-gray-50 shrink-0 flex-row gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-xl flex-1 sm:flex-none"
-                onClick={() => setDialogOpen(false)}
+          {/* Footer */}
+          <div
+            style={{
+              padding: "1rem 1.8rem",
+              borderTop: `1px solid ${C.border}`,
+              display: "flex", gap: 10, justifyContent: "flex-end",
+            }}
+          >
+            <button
+              onClick={() => setDialogOpen(false)}
+              style={{
+                padding: "10px 20px", borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: "#fff", color: C.text,
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              style={{
+                padding: "10px 24px", borderRadius: 12,
+                border: "none", background: C.primary, color: "#fff",
+                fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+              }}
+            >
+              {editingVehiculo ? "Actualizar Vehículo" : "Registrar Vehículo"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── MODAL VER DETALLE ── */}
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={450}>
+        {viewingVehiculo && (() => {
+          const usuario = getUsuarioConductor(viewingVehiculo.conductorId);
+          const tipoStyle = getTipoStyles(viewingVehiculo.tipo);
+          const TipoIcon = tipoStyle.icon;
+
+          return (
+            <div>
+              <div
+                style={{
+                  padding: "1.6rem 1.8rem 1.4rem",
+                  background: `linear-gradient(135deg, ${tipoStyle.dot}, ${tipoStyle.dot}cc)`,
+                  color: "#fff",
+                  borderRadius: "24px 24px 0 0",
+                  position: "relative",
+                  overflow: "hidden",
+                }}
               >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="bg-[#39A900] hover:bg-[#2D7D00] rounded-xl flex-1 sm:flex-none"
-              >
-                {editingVehiculo ? "Actualizar" : "Registrar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+                <div style={{
+                  position: "absolute", width: 200, height: 200, borderRadius: "50%",
+                  background: "rgba(255,255,255,.07)", top: -80, right: -60,
+                }} />
+                <div style={{ position: "relative", zIndex: 2 }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+                    <div
+                      style={{
+                        width: 52, height: 52, borderRadius: 14,
+                        background: "rgba(255,255,255,.18)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <TipoIcon size={24} />
+                    </div>
+                    <button
+                      onClick={() => setViewOpen(false)}
+                      style={{
+                        width: 32, height: 32, borderRadius: 9,
+                        background: "rgba(255,255,255,.15)", border: "none",
+                        color: "#fff", cursor: "pointer",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                  <h2 style={{ marginTop: 14, fontSize: 24, fontWeight: 900, lineHeight: 1, letterSpacing: 0.5 }}>
+                    {viewingVehiculo.placa}
+                  </h2>
+                  <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{
+                      padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                      background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+                    }}>
+                      {tipoStyle.label}
+                    </span>
+                    <span style={{
+                      padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                      background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+                    }}>
+                      {viewingVehiculo.estado}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-      {/* VIEW VEHÍCULO */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="w-[calc(100%-2rem)] sm:max-w-xl bg-white border-0 rounded-2xl sm:rounded-3xl overflow-hidden p-0 max-h-[90vh] flex flex-col">
-          {viewingVehiculo &&
-            (() => {
-              const usuario = getUsuarioConductor(viewingVehiculo.conductorId);
-              const tipoStyle = getTipoStyles(viewingVehiculo.tipo);
-              const TipoIcon = tipoStyle.icon;
-
-              return (
-                <>
-                  <div className="bg-gradient-to-r from-[#39A900] to-[#2D7D00] px-6 py-6 sm:py-8 text-white shrink-0">
-                    <div className="flex flex-col items-center">
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl sm:rounded-3xl bg-white/15 flex items-center justify-center mb-3 sm:mb-4">
-                        <TipoIcon className="h-11 w-11 sm:h-14 sm:w-14" />
+              <div style={{ padding: "1.4rem 1.8rem" }}>
+                {[
+                  { label: "Marca", value: viewingVehiculo.marca, icon: GaugeCircle },
+                  { label: "Modelo", value: viewingVehiculo.modelo, icon: GaugeCircle },
+                  { label: "Año", value: viewingVehiculo.año, icon: Calendar },
+                  { label: "Color", value: viewingVehiculo.color, icon: Palette },
+                ].map((item) => (
+                  <div key={item.label} style={{
+                    display: "flex", alignItems: "center", gap: 10,
+                    padding: "10px 12px", borderRadius: 12,
+                    background: "#F8FAFC", border: `1px solid ${C.border}`,
+                    marginBottom: 8,
+                  }}>
+                    <item.icon size={14} color={C.textLight} />
+                    <div>
+                      <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        {item.label}
                       </div>
-                      <h2 className="text-2xl sm:text-3xl font-black tracking-wide">
-                        {viewingVehiculo.placa}
-                      </h2>
-                      <div className="flex gap-2 mt-2 sm:mt-3 flex-wrap justify-center">
-                        <Badge className={`capitalize border ${tipoStyle.badgeBg} ${tipoStyle.text} ${tipoStyle.border}`}>
-                          {viewingVehiculo.tipo}
-                        </Badge>
-                        <Badge
-                          className={
-                            viewingVehiculo.estado === "activo"
-                              ? "bg-green-100 text-green-700 border border-green-200"
-                              : "bg-red-100 text-red-700 border border-red-200"
-                          }
-                        >
-                          {viewingVehiculo.estado}
-                        </Badge>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                        {item.value}
                       </div>
                     </div>
                   </div>
+                ))}
 
-                  <div className="p-4 sm:p-6 space-y-3 overflow-y-auto flex-1">
-                    {[
-                      { label: "Marca", value: viewingVehiculo.marca },
-                      { label: "Modelo", value: viewingVehiculo.modelo },
-                      { label: "Año", value: viewingVehiculo.año },
-                      { label: "Color", value: viewingVehiculo.color },
-                      {
-                        label: "Conductor",
-                        value: usuario
-                          ? `${usuario.nombre} - ${usuario.identificacion}`
-                          : "Sin conductor",
-                      },
-                    ].map((item) => (
-                      <div key={item.label} className="rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4">
-                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                          {item.label}
-                        </div>
-                        <div className="font-semibold text-gray-900 text-sm sm:text-base">
-                          {item.value}
-                        </div>
-                      </div>
-                    ))}
-
-                    {viewingVehiculo.descripcion && (
-                      <div className="rounded-xl sm:rounded-2xl border border-gray-200 p-3 sm:p-4">
-                        <div className="text-xs uppercase tracking-wide text-gray-500 mb-1">
-                          Descripción
-                        </div>
-                        <div className="text-gray-700 text-sm leading-relaxed">
-                          {viewingVehiculo.descripcion}
-                        </div>
-                      </div>
-                    )}
+                {/* Conductor */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 12px", borderRadius: 12,
+                  background: "#F8FAFC", border: `1px solid ${C.border}`,
+                  marginBottom: 8,
+                }}>
+                  <UserCircle2 size={14} color={C.textLight} />
+                  <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Conductor
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                      {usuario ? `${usuario.nombre} - ${usuario.identificacion}` : "Sin conductor"}
+                    </div>
                   </div>
+                </div>
 
-                  <DialogFooter className="px-4 sm:px-6 py-4 sm:py-5 border-t bg-gray-50 shrink-0">
-                    <Button
-                      variant="outline"
-                      className="rounded-xl w-full sm:w-auto"
-                      onClick={() => setViewDialogOpen(false)}
-                    >
-                      Cerrar
-                    </Button>
-                  </DialogFooter>
-                </>
-              );
-            })()}
-        </DialogContent>
-      </Dialog>
-    </div>
+                {viewingVehiculo.descripcion && (
+                  <div style={{
+                    padding: "10px 12px", borderRadius: 12,
+                    background: "#F8FAFC", border: `1px solid ${C.border}`,
+                    marginBottom: 8,
+                  }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                      Descripción
+                    </div>
+                    <div style={{ fontSize: 12, color: C.text, lineHeight: 1.4 }}>
+                      {viewingVehiculo.descripcion}
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => openEdit(viewingVehiculo)}
+                  style={{
+                    marginTop: 12, width: "100%", padding: "12px 20px", borderRadius: 12,
+                    border: "none", background: tipoStyle.dot, color: "#fff",
+                    fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    boxShadow: `0 6px 18px ${tipoStyle.dot}33`,
+                  }}
+                >
+                  <Pencil size={14} />
+                  Editar vehículo
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+      </Modal>
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   ArrowLeftRight,
@@ -7,37 +7,105 @@ import {
   LogOut as LogOutIcon,
   Car,
   MapPin,
+  X,
+  Sparkles,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Card, CardContent } from '../components/ui/card';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
-import { useData, ControlSalida } from '../context/DataContext';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '../components/ui/dialog';
-import { Badge } from '../components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../components/ui/select';
 import { toast } from 'sonner';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../components/ui/table';
+import { useData, ControlSalida } from '../context/DataContext';
 
+/* ─── Paleta (misma que Roles) ─── */
+const C = {
+  primary:     "#39A900",
+  primaryDark: "#2D7D00",
+  text:        "#0F172A",
+  textLight:   "#64748B",
+  border:      "#E2E8F0",
+  bg:          "#F5F7F8",
+};
+
+/* ─── Modal reutilizable (mismo que Roles) ─── */
+function Modal({
+  open,
+  onClose,
+  children,
+  maxWidth = 580,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        background: "rgba(15,23,42,.45)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "100%", maxWidth,
+          maxHeight: "92vh",
+          overflowY: "auto",
+          borderRadius: 24,
+          background: "#fff",
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
+          animation: "modalIn .18s ease",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+      <style>{`
+        @keyframes modalIn{
+          from{opacity:0;transform:translateY(16px) scale(.97)}
+          to{opacity:1;transform:translateY(0) scale(1)}
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ─── Badge component inline ─── */
+function BadgeInline({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "success" | "warning" | "info" }) {
+  const styles = {
+    default: { background: "#F1F5F9", color: C.textLight, border: C.border },
+    success: { background: "#DCFCE7", color: "#166534", border: "#BBF7D0" },
+    warning: { background: "#FEF3C7", color: "#92400E", border: "#FDE68A" },
+    info: { background: "#DBEAFE", color: "#1E40AF", border: "#BFDBFE" },
+  };
+  const style = styles[variant];
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+      background: style.background, color: style.color, border: `1px solid ${style.border}`,
+    }}>
+      {children}
+    </span>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   MAIN COMPONENT - Control de Entrada y Salida (estilo Roles)
+══════════════════════════════════════════════════════ */
 export function ControlSalidaPage() {
   const {
     controlesSalida,
@@ -51,11 +119,8 @@ export function ControlSalidaPage() {
   } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchVehiculo, setSearchVehiculo] = useState('');
-  const [filterEstado, setFilterEstado] = useState<
-    'todos' | 'en_parqueadero' | 'finalizado'
-  >('todos');
+  const [search, setSearch] = useState('');
+  const [filterEstado, setFilterEstado] = useState<'todos' | 'en_parqueadero' | 'finalizado'>('todos');
 
   const [formData, setFormData] = useState({
     vehiculoId: '',
@@ -65,7 +130,49 @@ export function ControlSalidaPage() {
     estado: 'en_parqueadero' as 'en_parqueadero' | 'finalizado',
   });
 
-  const handleOpenDialog = () => {
+  /* ─── helpers ─── */
+  const getVehiculo = (vehiculoId: string) => vehiculos.find((v) => v.id === vehiculoId);
+  const getCelda = (celdaId: string) => celdas.find((c) => c.id === celdaId);
+  const getParqueadero = (parqueaderoId: string) => parqueaderos.find((p) => p.id === parqueaderoId);
+  
+  const getConductorVehiculo = (vehiculoId: string) => {
+    const vehiculo = getVehiculo(vehiculoId);
+    if (!vehiculo) return null;
+    return conductores.find((c) => c.id === vehiculo.conductorId);
+  };
+
+  const getUsuarioConductor = (vehiculoId: string) => {
+    const conductor = getConductorVehiculo(vehiculoId);
+    if (!conductor) return null;
+    return usuarios.find((u) => u.id === conductor.usuarioId);
+  };
+
+  /* ─── stats ─── */
+  const celdasDisponibles = celdas.filter((c) => c.estado === 'disponible');
+  const vehiculosEnParqueadero = controlesSalida.filter((c) => c.estado === 'en_parqueadero');
+  const vehiculosSalidos = controlesSalida.filter((c) => c.estado === 'finalizado');
+
+  /* ─── filtered list ─── */
+  const filteredControles = useMemo(() =>
+    controlesSalida.filter((control) => {
+      const vehiculo = getVehiculo(control.vehiculoId);
+      const celda = getCelda(control.celdaId);
+      const usuario = getUsuarioConductor(control.vehiculoId);
+      
+      const q = search.toLowerCase();
+      const matchesSearch =
+        vehiculo?.placa.toLowerCase().includes(q) ||
+        celda?.numero.toLowerCase().includes(q) ||
+        usuario?.nombre.toLowerCase().includes(q) ||
+        usuario?.identificacion.includes(q);
+      const matchesEstado = filterEstado === 'todos' ? true : control.estado === filterEstado;
+      return matchesSearch && matchesEstado;
+    }),
+    [controlesSalida, search, filterEstado]
+  );
+
+  /* ─── handlers ─── */
+  const openCreate = () => {
     setFormData({
       vehiculoId: '',
       celdaId: '',
@@ -76,8 +183,10 @@ export function ControlSalidaPage() {
     setDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = () => {
+    if (!formData.vehiculoId) { toast.error("Selecciona un vehículo"); return; }
+    if (!formData.celdaId) { toast.error("Selecciona una celda"); return; }
+    
     addControlSalida(formData);
     toast.success('Entrada registrada exitosamente');
     setDialogOpen(false);
@@ -92,399 +201,449 @@ export function ControlSalidaPage() {
     toast.success('Salida registrada exitosamente');
   };
 
-  const getVehiculo = (vehiculoId: string) =>
-    vehiculos.find((v) => v.id === vehiculoId);
-  const getCelda = (celdaId: string) =>
-    celdas.find((c) => c.id === celdaId);
-  const getParqueadero = (parqueaderoId: string) =>
-    parqueaderos.find((p) => p.id === parqueaderoId);
-
-  const getConductorVehiculo = (vehiculoId: string) => {
-    const vehiculo = getVehiculo(vehiculoId);
-    if (!vehiculo) return null;
-    return conductores.find((c) => c.id === vehiculo.conductorId);
-  };
-
-  const getUsuarioConductor = (vehiculoId: string) => {
-    const conductor = getConductorVehiculo(vehiculoId);
-    if (!conductor) return null;
-    return usuarios.find((u) => u.id === conductor.usuarioId);
-  };
-
-  const celdasDisponibles = celdas.filter((c) => c.estado === 'disponible');
-
-  const filteredControles = controlesSalida.filter((control) => {
-    const vehiculo = getVehiculo(control.vehiculoId);
-    const celda = getCelda(control.celdaId);
-    const usuario = getUsuarioConductor(control.vehiculoId);
-
-    const matchesSearch =
-      vehiculo?.placa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      celda?.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      usuario?.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesVehiculo = searchVehiculo
-      ? vehiculo?.placa.toLowerCase().includes(searchVehiculo.toLowerCase())
-      : true;
-
-    const matchesEstado =
-      filterEstado === 'todos' ? true : control.estado === filterEstado;
-
-    return matchesSearch && matchesVehiculo && matchesEstado;
-  });
-
-  const vehiculosEnParqueadero = controlesSalida.filter(
-    (c) => c.estado === 'en_parqueadero',
-  );
-  const vehiculosSalidos = controlesSalida.filter(
-    (c) => c.estado === 'finalizado',
-  );
-
   return (
-    <div className="space-y-6">
-      {/* HERO */}
-      <div className="relative overflow-hidden rounded-[28px] bg-gradient-to-r from-[#39A900] to-[#2D7D00] p-7 text-white">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/10" />
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        .control-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
+        .control-row{ transition:background .15s; }
+        .control-row:hover{ background:#F8FAF8; }
+        .action-btn{ transition:background .15s,color .15s; }
+        .action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
+        input:focus,textarea:focus,select:focus{
+          outline:none;
+          border-color:${C.primary} !important;
+          box-shadow:0 0 0 3px rgba(57,169,0,.12);
+        }
+        ::-webkit-scrollbar{ width:5px; }
+        ::-webkit-scrollbar-track{ background:transparent; }
+        ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+      `}</style>
 
-        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-2 text-sm font-semibold backdrop-blur">
-              <ArrowLeftRight className="h-4 w-4" />
-              Movimiento de vehículos
+      <div className="control-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* ── HERO (estilo Roles) ── */}
+        <div
+          style={{
+            position: "relative", overflow: "hidden", borderRadius: 20,
+            background: "linear-gradient(135deg,#39A900,#2D7D00)",
+            padding: "1.4rem 1.6rem", color: "#fff",
+          }}
+        >
+          <div style={{
+            position: "absolute", width: 250, height: 250, borderRadius: "50%",
+            background: "rgba(255,255,255,.07)", top: -80, right: -60,
+          }} />
+          <div style={{ position: "relative", zIndex: 2, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.2)",
+                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                letterSpacing: 1, textTransform: "uppercase", marginBottom: 8,
+              }}>
+                <ArrowLeftRight size={11} /> Movimiento de vehículos
+              </div>
+              <h1 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
+                Entrada y Salida
+              </h1>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
+                Registra y gestiona el flujo de vehículos en el parqueadero institucional.
+              </p>
             </div>
 
-            <h1 className="text-4xl font-black leading-none md:text-5xl">
-              Entrada y Salida
-            </h1>
-
-            <p className="mt-4 max-w-2xl text-sm text-white/85 md:text-base">
-              Registra y gestiona el flujo de vehículos en el parqueadero
-              institucional.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 lg:w-[340px]">
-            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <div className="text-xs text-white/70">En parqueadero</div>
-              <div className="mt-1 text-3xl font-black">
-                {vehiculosEnParqueadero.length}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <div className="text-xs text-white/70">Salidas</div>
-              <div className="mt-1 text-3xl font-black">
-                {vehiculosSalidos.length}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <div className="text-xs text-white/70">Celdas libres</div>
-              <div className="mt-1 text-3xl font-black">
-                {celdasDisponibles.length}
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-white/10 p-4 backdrop-blur">
-              <div className="text-xs text-white/70">Total registros</div>
-              <div className="mt-1 text-3xl font-black">
-                {controlesSalida.length}
-              </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+              {[
+                { label: "En parqueadero", value: vehiculosEnParqueadero.length, icon: LogIn },
+                { label: "Salidas", value: vehiculosSalidos.length, icon: LogOutIcon },
+                { label: "Celdas libres", value: celdasDisponibles.length, icon: MapPin },
+                { label: "Total registros", value: controlesSalida.length, icon: Clock },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
+                  borderRadius: 12, padding: "8px 10px", textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,.65)", textTransform: "uppercase", marginBottom: 2 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{s.value}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
 
-      {/* TOP BAR */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3.5 h-4 w-4 text-zinc-400" />
-            <Input
+        {/* ── TOPBAR ── */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
+            <input
               placeholder="Buscar por placa, celda o conductor..."
-              className="h-11 rounded-xl border-zinc-200 bg-white pl-10 shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          <div className="relative">
-            <Search className="absolute left-3 top-3.5 h-4 w-4 text-zinc-400" />
-            <Input
-              placeholder="Filtrar por placa..."
-              className="h-11 rounded-xl border-zinc-200 bg-white pl-10 shadow-sm w-48"
-              value={searchVehiculo}
-              onChange={(e) => setSearchVehiculo(e.target.value)}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", padding: "10px 14px 10px 36px", borderRadius: 11,
+                border: `1px solid ${C.border}`, fontSize: 13, background: "#fff",
+                fontFamily: "inherit",
+              }}
             />
           </div>
 
           <select
-            className="h-11 rounded-xl border border-zinc-200 bg-white px-4 text-sm shadow-sm outline-none"
             value={filterEstado}
             onChange={(e) => setFilterEstado(e.target.value as any)}
+            style={{
+              padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+              fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+            }}
           >
             <option value="todos">Todos</option>
             <option value="en_parqueadero">En parqueadero</option>
             <option value="finalizado">Finalizados</option>
           </select>
+
+          <button
+            onClick={openCreate}
+            style={{
+              padding: "10px 18px", borderRadius: 11, border: "none",
+              background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 7,
+              boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+            }}
+          >
+            <Plus size={15} /> Registrar Entrada
+          </button>
         </div>
 
-        <Button
-          onClick={handleOpenDialog}
-          className="h-11 rounded-xl bg-[#39A900] px-5 hover:bg-[#2D7D00]"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Registrar Entrada
-        </Button>
+        {/* ── RESULT HINT ── */}
+        {(search || filterEstado !== "todos") && (
+          <p style={{ fontSize: 11, color: C.textLight }}>
+            Mostrando <strong>{filteredControles.length}</strong> registro{filteredControles.length !== 1 ? "s" : ""}
+          </p>
+        )}
+
+        {/* ── TABLA (estilo Roles) ── */}
+        <div style={{
+          borderRadius: 16, border: `1px solid ${C.border}`,
+          background: "#fff", overflow: "hidden",
+          boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+        }}>
+          {/* Tabla header */}
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(180px,1fr) minmax(160px,1fr) 100px minmax(160px,1fr) 170px 170px 100px 100px",
+            background: "#F8FAF8",
+            borderBottom: `1px solid ${C.border}`,
+            padding: "12px 16px",
+            fontSize: 11, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5,
+          }}>
+            <div>Vehículo</div>
+            <div>Conductor</div>
+            <div>Celda</div>
+            <div>Parqueadero</div>
+            <div>Entrada</div>
+            <div>Salida</div>
+            <div>Estado</div>
+            <div style={{ textAlign: "right" }}>Acciones</div>
+          </div>
+
+          {/* Tabla body */}
+          <div style={{ maxHeight: "calc(100vh - 400px)", overflowY: "auto" }}>
+            {filteredControles.length === 0 ? (
+              <div style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                padding: "48px 24px", color: C.textLight,
+              }}>
+                <ArrowLeftRight size={36} color={C.border} style={{ marginBottom: 12 }} />
+                <p style={{ fontWeight: 600, fontSize: 13 }}>No se encontraron registros</p>
+                <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o registra una entrada</p>
+              </div>
+            ) : (
+              filteredControles.map((control) => {
+                const vehiculo = getVehiculo(control.vehiculoId);
+                const celda = getCelda(control.celdaId);
+                const usuario = getUsuarioConductor(control.vehiculoId);
+                const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
+                const esActivo = control.estado === 'en_parqueadero';
+
+                return (
+                  <div
+                    key={control.id}
+                    className="control-row"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(180px,1fr) minmax(160px,1fr) 100px minmax(160px,1fr) 170px 170px 100px 100px",
+                      padding: "14px 16px",
+                      borderBottom: `1px solid ${C.border}`,
+                      alignItems: "center",
+                      fontSize: 12,
+                    }}
+                  >
+                    {/* Vehículo */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{
+                        width: 36, height: 36, borderRadius: 10,
+                        background: "rgba(57,169,0,.1)",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <Car size={16} color={C.primary} />
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 800, color: C.text }}>{vehiculo?.placa}</div>
+                        <div style={{ fontSize: 10, color: C.textLight }}>{vehiculo?.marca} {vehiculo?.modelo}</div>
+                      </div>
+                    </div>
+
+                    {/* Conductor */}
+                    <div>
+                      <div style={{ fontWeight: 600, color: C.text }}>{usuario?.nombre || "—"}</div>
+                      <div style={{ fontSize: 10, color: C.textLight }}>{usuario?.identificacion}</div>
+                    </div>
+
+                    {/* Celda */}
+                    <div>
+                      <span style={{
+                        padding: "2px 10px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+                        background: "#F1F5F9", color: C.textLight,
+                      }}>
+                        {celda?.numero}
+                      </span>
+                    </div>
+
+                    {/* Parqueadero */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <MapPin size={12} color={C.textLight} />
+                      <span style={{ fontSize: 11, color: C.text }}>{parqueadero?.nombre || "—"}</span>
+                    </div>
+
+                    {/* Entrada */}
+                    <div style={{ fontSize: 11, color: C.text }}>
+                      {new Date(control.fechaEntrada).toLocaleString('es-CO')}
+                    </div>
+
+                    {/* Salida */}
+                    <div style={{ fontSize: 11, color: control.fechaSalida ? C.text : C.textLight }}>
+                      {control.fechaSalida ? new Date(control.fechaSalida).toLocaleString('es-CO') : "—"}
+                    </div>
+
+                    {/* Estado */}
+                    <div>
+                      {esActivo ? (
+                        <BadgeInline variant="info">
+                          <LogIn size={10} /> En parqueadero
+                        </BadgeInline>
+                      ) : (
+                        <BadgeInline variant="default">
+                          <CheckCircle2 size={10} /> Finalizado
+                        </BadgeInline>
+                      )}
+                    </div>
+
+                    {/* Acciones */}
+                    <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                      {esActivo && (
+                        <button
+                          onClick={() => handleRegistrarSalida(control.id)}
+                          style={{
+                            padding: "6px 14px", borderRadius: 10,
+                            border: `1px solid ${C.primary}30`,
+                            background: "transparent",
+                            color: C.primary, fontSize: 11, fontWeight: 700,
+                            cursor: "pointer", fontFamily: "inherit",
+                            display: "flex", alignItems: "center", gap: 6,
+                            transition: "all .15s",
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = C.primary;
+                            e.currentTarget.style.color = "#fff";
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "transparent";
+                            e.currentTarget.style.color = C.primary;
+                          }}
+                        >
+                          <LogOutIcon size={13} />
+                          Registrar Salida
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Footer count */}
+          {filteredControles.length > 0 && (
+            <div style={{
+              padding: "10px 16px", borderTop: `1px solid ${C.border}`,
+              background: "#F8FAF8", fontSize: 11, color: C.textLight,
+            }}>
+              Mostrando <strong>{filteredControles.length}</strong> de <strong>{controlesSalida.length}</strong> registros
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* TABLE CARD */}
-      <Card className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
-        <div className="border-b border-zinc-100 px-6 py-4">
-          <h2 className="text-lg font-bold text-zinc-900">
-            Registro de Entradas y Salidas ({filteredControles.length})
-          </h2>
-        </div>
-
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-zinc-50">
-                  <TableHead className="font-bold text-zinc-700">Vehículo</TableHead>
-                  <TableHead className="font-bold text-zinc-700">Conductor</TableHead>
-                  <TableHead className="font-bold text-zinc-700">Celda</TableHead>
-                  <TableHead className="font-bold text-zinc-700">Parqueadero</TableHead>
-                  <TableHead className="font-bold text-zinc-700">Entrada</TableHead>
-                  <TableHead className="font-bold text-zinc-700">Salida</TableHead>
-                  <TableHead className="font-bold text-zinc-700">Estado</TableHead>
-                  <TableHead className="text-right font-bold text-zinc-700">
-                    Acciones
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {filteredControles.map((control) => {
-                  const vehiculo = getVehiculo(control.vehiculoId);
-                  const celda = getCelda(control.celdaId);
-                  const usuario = getUsuarioConductor(control.vehiculoId);
-                  const parqueadero = celda
-                    ? getParqueadero(celda.parqueaderoId)
-                    : null;
-
-                  return (
-                    <TableRow
-                      key={control.id}
-                      className="transition-colors hover:bg-zinc-50"
-                    >
-                      <TableCell>
-                        {vehiculo && (
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#39A900]/10">
-                              <Car className="h-4 w-4 text-[#39A900]" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-zinc-900">
-                                {vehiculo.placa}
-                              </p>
-                              <p className="text-xs text-zinc-500">
-                                {vehiculo.marca} {vehiculo.modelo}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </TableCell>
-
-                      <TableCell>
-                        {usuario && (
-                          <div>
-                            <p className="font-medium text-zinc-900">
-                              {usuario.nombre}
-                            </p>
-                            <p className="text-xs text-zinc-500">
-                              {usuario.identificacion}
-                            </p>
-                          </div>
-                        )}
-                      </TableCell>
-
-                      <TableCell>
-                        <Badge className="rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-zinc-700">
-                          {celda?.numero}
-                        </Badge>
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-zinc-600">
-                          <MapPin className="h-3.5 w-3.5 text-zinc-400" />
-                          {parqueadero?.nombre}
-                        </div>
-                      </TableCell>
-
-                      <TableCell className="text-sm text-zinc-600">
-                        {new Date(control.fechaEntrada).toLocaleString('es-CO')}
-                      </TableCell>
-
-                      <TableCell className="text-sm text-zinc-600">
-                        {control.fechaSalida
-                          ? new Date(control.fechaSalida).toLocaleString('es-CO')
-                          : <span className="text-zinc-400">—</span>}
-                      </TableCell>
-
-                      <TableCell>
-                        {control.estado === 'en_parqueadero' ? (
-                          <Badge className="border-blue-200 bg-blue-50 text-blue-700">
-                            <LogIn className="mr-1 h-3 w-3" />
-                            En parqueadero
-                          </Badge>
-                        ) : (
-                          <Badge className="border-zinc-200 bg-zinc-50 text-zinc-500">
-                            Finalizado
-                          </Badge>
-                        )}
-                      </TableCell>
-
-                      <TableCell className="text-right">
-                        {control.estado === 'en_parqueadero' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleRegistrarSalida(control.id)}
-                            className="rounded-xl border-[#39A900]/30 text-[#39A900] hover:bg-[#39A900]/10"
-                          >
-                            <LogOutIcon className="mr-1 h-4 w-4" />
-                            Registrar Salida
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-
-                {filteredControles.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      className="py-12 text-center text-zinc-400"
-                    >
-                      No se encontraron registros
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+      {/* ── MODAL REGISTRAR ENTRADA ── */}
+      <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={580}>
+        <div>
+          {/* Header */}
+          <div
+            style={{
+              padding: "1.4rem 1.8rem",
+              borderBottom: `1px solid ${C.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: "rgba(57,169,0,.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <LogIn size={18} color={C.primary} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+                  Movimiento de vehículos
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+                  Registrar Entrada
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={() => setDialogOpen(false)}
+              style={{
+                width: 34, height: 34, borderRadius: 9,
+                border: `1px solid ${C.border}`,
+                background: "#fff", cursor: "pointer", color: C.textLight,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X size={16} />
+            </button>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* DIALOG REGISTRAR ENTRADA */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg overflow-hidden rounded-3xl border-none bg-white p-0">
-          <DialogHeader className="border-b border-zinc-100 px-6 py-5">
-            <DialogTitle className="flex items-center gap-2 text-2xl font-black text-zinc-900">
-              <LogIn className="h-5 w-5 text-[#39A900]" />
-              Registrar Entrada
-            </DialogTitle>
-          </DialogHeader>
-
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-5 p-6">
+          {/* Body */}
+          <div style={{ padding: "1.4rem 1.8rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Vehículo */}
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-                  Vehículo
-                </Label>
-                <Select
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Vehículo *
+                </label>
+                <select
                   value={formData.vehiculoId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, vehiculoId: value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, vehiculoId: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-zinc-200 bg-white">
-                    <SelectValue placeholder="Seleccionar vehículo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {vehiculos.map((v) => {
-                      const conductor = conductores.find(
-                        (c) => c.id === v.conductorId,
-                      );
-                      const usuario = conductor
-                        ? usuarios.find((u) => u.id === conductor.usuarioId)
-                        : null;
-                      return (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.placa} — {v.marca} {v.modelo} ({usuario?.nombre})
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                  <option value="">Seleccionar vehículo...</option>
+                  {vehiculos.map((v) => {
+                    const conductor = conductores.find((c) => c.id === v.conductorId);
+                    const usuario = conductor ? usuarios.find((u) => u.id === conductor.usuarioId) : null;
+                    return (
+                      <option key={v.id} value={v.id}>
+                        {v.placa} — {v.marca} {v.modelo} ({usuario?.nombre || "Sin conductor"})
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               {/* Celda */}
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-                  Celda disponible
-                </Label>
-                <Select
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Celda disponible *
+                </label>
+                <select
                   value={formData.celdaId}
-                  onValueChange={(value) =>
-                    setFormData({ ...formData, celdaId: value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, celdaId: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 >
-                  <SelectTrigger className="h-11 rounded-xl border-zinc-200 bg-white">
-                    <SelectValue placeholder="Seleccionar celda" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {celdasDisponibles.map((c) => {
-                      const parq = getParqueadero(c.parqueaderoId);
-                      return (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.numero} — {parq?.nombre} ({c.tipo})
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                  <option value="">Seleccionar celda...</option>
+                  {celdasDisponibles.map((c) => {
+                    const parq = parqueaderos.find((p) => p.id === c.parqueaderoId);
+                    return (
+                      <option key={c.id} value={c.id}>
+                        {c.numero} — {parq?.nombre} ({c.tipo})
+                      </option>
+                    );
+                  })}
+                </select>
+                {celdasDisponibles.length === 0 && (
+                  <p style={{ fontSize: 10, color: "#EF4444", marginTop: 4 }}>
+                    No hay celdas disponibles. Por favor libera alguna celda primero.
+                  </p>
+                )}
               </div>
 
-              {/* Fecha */}
-              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                <Label className="mb-2 block text-sm font-semibold text-zinc-700">
-                  Fecha y hora de entrada
-                </Label>
+              {/* Fecha entrada */}
+              <div>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Fecha y hora de entrada *
+                </label>
                 <input
                   type="datetime-local"
                   value={formData.fechaEntrada}
-                  onChange={(e) =>
-                    setFormData({ ...formData, fechaEntrada: e.target.value })
-                  }
-                  required
-                  className="h-11 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-[#39A900]/30"
+                  onChange={(e) => setFormData({ ...formData, fechaEntrada: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
                 />
               </div>
             </div>
+          </div>
 
-            <DialogFooter className="border-t border-zinc-100 bg-zinc-50 px-6 py-4">
-              <Button
-                type="button"
-                variant="outline"
-                className="border-zinc-200"
-                onClick={() => setDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                className="bg-[#39A900] hover:bg-[#2D7D00]"
-              >
-                Registrar Entrada
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+          {/* Footer */}
+          <div
+            style={{
+              padding: "1rem 1.8rem",
+              borderTop: `1px solid ${C.border}`,
+              display: "flex", gap: 10, justifyContent: "flex-end",
+            }}
+          >
+            <button
+              onClick={() => setDialogOpen(false)}
+              style={{
+                padding: "10px 20px", borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: "#fff", color: C.text,
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleSave}
+              style={{
+                padding: "10px 24px", borderRadius: 12,
+                border: "none", background: C.primary, color: "#fff",
+                fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+                boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+              }}
+            >
+              Registrar Entrada
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }

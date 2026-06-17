@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 import {
   Plus,
@@ -9,148 +9,633 @@ import {
   Search,
   Copy,
   Lock,
-  Users,
   CheckCircle2,
   XCircle,
   Sparkles,
   Layers3,
   ShieldCheck,
   X,
-  ChevronRight,
+  ArrowLeft,
 } from "lucide-react";
 
-import { Button } from "../components/ui/button";
-import { Card, CardContent } from "../components/ui/card";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
 import { useData, Rol } from "../context/DataContext";
-import { Dialog, DialogContent, DialogFooter } from "../components/ui/dialog";
-import { Badge } from "../components/ui/badge";
-import { Switch } from "../components/ui/switch";
-import { Textarea } from "../components/ui/textarea";
-import { Checkbox } from "../components/ui/checkbox";
 import { toast } from "sonner";
 
+/* ─── Paleta ─── */
+const C = {
+  primary:     "#39A900",
+  primaryDark: "#2D7D00",
+  text:        "#0F172A",
+  textLight:   "#64748B",
+  border:      "#E2E8F0",
+  bg:          "#F5F7F8",
+};
+
+/* ─── Constantes ─── */
 const ROLES_PROTEGIDOS = ["Administrador", "SuperAdmin"];
 
 const PERMISOS = {
-  administracion: {
-    usuarios: "Usuarios",
-    roles: "Roles",
-    dashboard: "Dashboard",
-  },
-  operaciones: {
-    entradaSalida: "Entrada / Salida",
-    reservas: "Reservas",
-    asignaciones: "Asignaciones",
-  },
-  parqueadero: {
-    parqueaderos: "Parqueaderos",
-    celdas: "Celdas",
-    vehiculos: "Vehículos",
-    conductores: "Conductores",
-  },
-  seguridad: {
-    incidentes: "Incidentes",
-    reconocimientoPlacas: "Reconocimiento",
-  },
+  administracion: { usuarios: "Usuarios", roles: "Roles", dashboard: "Dashboard" },
+  operaciones:    { entradaSalida: "Entrada / Salida", reservas: "Reservas", asignaciones: "Asignaciones" },
+  parqueadero:    { parqueaderos: "Parqueaderos", celdas: "Celdas", vehiculos: "Vehículos", conductores: "Conductores" },
+  seguridad:      { incidentes: "Incidentes", reconocimientoPlacas: "Reconocimiento" },
 };
 
 const GRUPO_ICONS: Record<string, React.ReactNode> = {
-  administracion: <Shield className="h-3.5 w-3.5" />,
-  operaciones: <Layers3 className="h-3.5 w-3.5" />,
-  parqueadero: <Sparkles className="h-3.5 w-3.5" />,
-  seguridad: <ShieldCheck className="h-3.5 w-3.5" />,
+  administracion: <Shield    size={13} />,
+  operaciones:    <Layers3   size={13} />,
+  parqueadero:    <Sparkles  size={13} />,
+  seguridad:      <ShieldCheck size={13} />,
 };
 
 const GRUPO_COLORS: Record<string, string> = {
   administracion: "#EF4444",
-  operaciones: "#2563EB",
-  parqueadero: "#F59E0B",
-  seguridad: "#8B5CF6",
+  operaciones:    "#2563EB",
+  parqueadero:    "#F59E0B",
+  seguridad:      "#8B5CF6",
 };
 
 const initialPermisos = {
-  dashboard: false,
-  roles: false,
-  usuarios: false,
-  conductores: false,
-  vehiculos: false,
-  parqueaderos: false,
-  celdas: false,
-  asignaciones: false,
-  entradaSalida: false,
-  reservas: false,
-  incidentes: false,
-  reconocimientoPlacas: false,
+  dashboard: false, roles: false, usuarios: false, conductores: false,
+  vehiculos: false, parqueaderos: false, celdas: false, asignaciones: false,
+  entradaSalida: false, reservas: false, incidentes: false, reconocimientoPlacas: false,
 };
 
+type Permisos = typeof initialPermisos;
+
 const PERMISO_LABELS: Record<string, string> = Object.values(PERMISOS).reduce(
-  (acc, grupo) => ({ ...acc, ...grupo }),
+  (acc, g) => ({ ...acc, ...g }),
   {} as Record<string, string>
 );
 
-function getRolAccent(nombre: string): string {
+function getRolAccent(nombre: string) {
   switch (nombre) {
     case "Administrador": return "#EF4444";
     case "SuperAdmin":    return "#8B5CF6";
     case "Supervisor":    return "#2563EB";
     case "Operador":      return "#F59E0B";
-    default:              return "#39A900";
+    default:              return C.primary;
   }
 }
 
-function countActivePermisos(permisos: typeof initialPermisos) {
-  return Object.values(permisos).filter(Boolean).length;
+function countActive(p: Permisos) {
+  return Object.values(p).filter(Boolean).length;
 }
 
-export function Roles() {
-  const { roles, addRol, updateRol, deleteRol } = useData();
+/* ══════════════════════════════════════════════════════
+   OVERLAY / MODAL propio — sin depender de Dialog shadcn
+══════════════════════════════════════════════════════ */
+function Modal({
+  open,
+  onClose,
+  children,
+  maxWidth = 780,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  maxWidth?: number;
+}) {
+  /* cierra con Escape */
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [open, onClose]);
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [editingRol, setEditingRol] = useState<Rol | null>(null);
-  const [viewingRol, setViewingRol] = useState<Rol | null>(null);
-  const [search, setSearch] = useState("");
-  const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
-  const [formData, setFormData] = useState({
-    nombre: "",
-    descripcion: "",
-    permisos: initialPermisos,
-    estado: "activo" as "activo" | "inactivo",
-  });
+  if (!open) return null;
 
-  const filteredRoles = useMemo(() =>
-    roles.filter((rol) => {
-      const matchesSearch = rol.nombre.toLowerCase().includes(search.toLowerCase());
-      const matchesEstado = filterEstado === "todos" ? true : rol.estado === filterEstado;
-      return matchesSearch && matchesEstado;
-    }),
-    [roles, search, filterEstado]
+  return (
+    <div
+      style={{
+        position: "fixed", inset: 0, zIndex: 1000,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "1rem",
+        background: "rgba(15,23,42,.45)",
+        backdropFilter: "blur(4px)",
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "100%", maxWidth,
+          maxHeight: "92vh",
+          overflowY: "auto",
+          borderRadius: 24,
+          background: "#fff",
+          border: `1px solid ${C.border}`,
+          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
+          animation: "modalIn .18s ease",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {children}
+      </div>
+      <style>{`
+        @keyframes modalIn{
+          from{opacity:0;transform:translateY(16px) scale(.97)}
+          to{opacity:1;transform:translateY(0) scale(1)}
+        }
+      `}</style>
+    </div>
   );
+}
 
-  const handleOpenDialog = (rol?: Rol) => {
-    if (rol) {
-      setEditingRol(rol);
-      setFormData({ nombre: rol.nombre, descripcion: rol.descripcion, permisos: rol.permisos, estado: rol.estado });
-    } else {
-      setEditingRol(null);
-      setFormData({ nombre: "", descripcion: "", permisos: initialPermisos, estado: "activo" });
-    }
-    setDialogOpen(true);
+/* ══════════════════════════════════════════════════════
+   FORMULARIO — Crear / Editar
+══════════════════════════════════════════════════════ */
+interface FormState {
+  nombre: string;
+  descripcion: string;
+  permisos: Permisos;
+  estado: "activo" | "inactivo";
+}
+
+function RolForm({
+  initial,
+  onSave,
+  onCancel,
+  title,
+}: {
+  initial: FormState;
+  onSave: (data: FormState) => void;
+  onCancel: () => void;
+  title: string;
+}) {
+  const [form, setForm] = useState<FormState>(initial);
+
+  const handleTogglePermiso = (k: keyof Permisos) =>
+    setForm((f) => ({ ...f, permisos: { ...f.permisos, [k]: !f.permisos[k] } }));
+
+  const handleToggleGrupo = (grupo: string) => {
+    const keys = Object.keys(PERMISOS[grupo as keyof typeof PERMISOS]) as Array<keyof Permisos>;
+    const allOn = keys.every((k) => form.permisos[k]);
+    const next = { ...form.permisos };
+    keys.forEach((k) => { next[k] = !allOn; });
+    setForm((f) => ({ ...f, permisos: next }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.nombre.trim()) { toast.error("El nombre es obligatorio"); return; }
-    if (editingRol) { updateRol(editingRol.id, formData); toast.success("Rol actualizado correctamente"); }
-    else { addRol(formData); toast.success("Rol creado correctamente"); }
+    if (!form.nombre.trim()) { toast.error("El nombre es obligatorio"); return; }
+    onSave(form);
+  };
+
+  const activeCount = countActive(form.permisos);
+  const total       = Object.keys(form.permisos).length;
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* ── HEADER ── */}
+      <div
+        style={{
+          padding: "1.4rem 1.8rem 1.2rem",
+          borderBottom: `1px solid ${C.border}`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              width: 38, height: 38, borderRadius: 10,
+              background: "rgba(57,169,0,.1)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <ShieldCheck size={18} color={C.primary} />
+          </div>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+              Seguridad
+            </div>
+            <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>{title}</h2>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            width: 34, height: 34, borderRadius: 9,
+            border: `1px solid ${C.border}`,
+            background: "#fff", cursor: "pointer", color: C.textLight,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* ── BODY ── */}
+      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+
+        {/* Información básica */}
+        <section>
+          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: C.textLight, textTransform: "uppercase", marginBottom: 10 }}>
+            Información básica
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {/* Nombre */}
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                Nombre del rol
+              </label>
+              <input
+                type="text"
+                placeholder="ej. Operador de turno"
+                value={form.nombre}
+                onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                style={{
+                  width: "100%", padding: "11px 14px", borderRadius: 11,
+                  border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                  fontFamily: "inherit", background: "#F8FAFC",
+                }}
+              />
+            </div>
+
+            {/* Estado */}
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                Estado
+              </label>
+              <div style={{ display: "flex", gap: 6 }}>
+                {(["activo", "inactivo"] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, estado: s }))}
+                    style={{
+                      flex: 1, padding: "11px 10px", borderRadius: 11, fontSize: 12,
+                      fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                      border: form.estado === s ? "1px solid transparent" : `1px solid ${C.border}`,
+                      background: form.estado === s
+                        ? s === "activo" ? "rgba(57,169,0,.1)" : "rgba(100,116,139,.1)"
+                        : "#F8FAFC",
+                      color: form.estado === s
+                        ? s === "activo" ? C.primaryDark : C.textLight
+                        : C.textLight,
+                    }}
+                  >
+                    {s === "activo" ? "✓ Activo" : "✗ Inactivo"}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Descripción */}
+          <div style={{ marginTop: 10 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+              Descripción
+            </label>
+            <textarea
+              placeholder="Describe las responsabilidades de este rol..."
+              value={form.descripcion}
+              onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+              rows={2}
+              style={{
+                width: "100%", padding: "11px 14px", borderRadius: 11,
+                border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                fontFamily: "inherit", background: "#F8FAFC", resize: "none",
+              }}
+            />
+          </div>
+        </section>
+
+        {/* Permisos */}
+        <section>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: C.textLight, textTransform: "uppercase" }}>
+              Permisos
+            </p>
+            <span style={{ fontSize: 11, fontWeight: 700, color: C.primary }}>
+              {activeCount} / {total} activos
+            </span>
+          </div>
+
+          {/* Barra global */}
+          <div style={{ height: 4, borderRadius: 999, background: "#E2E8F0", marginBottom: 12, overflow: "hidden" }}>
+            <div style={{
+              height: "100%", borderRadius: 999, background: C.primary,
+              width: `${(activeCount / total) * 100}%`,
+              transition: "width .3s ease",
+            }} />
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {Object.entries(PERMISOS).map(([grupo, permisos]) => {
+              const color  = GRUPO_COLORS[grupo] ?? C.primary;
+              const keys   = Object.keys(permisos) as Array<keyof Permisos>;
+              const on     = keys.filter((k) => form.permisos[k]).length;
+              const total  = keys.length;
+              const allOn  = on === total;
+
+              return (
+                <div
+                  key={grupo}
+                  style={{
+                    borderRadius: 12, border: `1px solid ${C.border}`,
+                    background: "#F8FAFC", overflow: "hidden",
+                  }}
+                >
+                  {/* grupo header */}
+                  <div
+                    style={{
+                      display: "flex", alignItems: "center", justifyContent: "space-between",
+                      padding: "9px 12px",
+                      borderBottom: `1px solid ${C.border}`,
+                      background: "#fff",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                      <div
+                        style={{
+                          width: 24, height: 24, borderRadius: 7,
+                          background: `${color}18`, color,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        {GRUPO_ICONS[grupo]}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: C.text, textTransform: "capitalize" }}>
+                        {grupo}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleGrupo(grupo)}
+                      style={{
+                        fontSize: 10, fontWeight: 700, color,
+                        background: "none", border: "none", cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      {allOn ? "Quitar todo" : "Todo"}
+                    </button>
+                  </div>
+
+                  {/* barra grupo */}
+                  <div style={{ height: 3, background: "#E2E8F0", overflow: "hidden" }}>
+                    <div style={{ height: "100%", background: color, width: `${(on / total) * 100}%`, transition: "width .3s" }} />
+                  </div>
+
+                  {/* items */}
+                  <div style={{ padding: "8px 10px", display: "flex", flexDirection: "column", gap: 5 }}>
+                    {Object.entries(permisos).map(([key, label]) => {
+                      const checked = form.permisos[key as keyof Permisos];
+                      return (
+                        <div
+                          key={key}
+                          onClick={() => handleTogglePermiso(key as keyof Permisos)}
+                          style={{
+                            display: "flex", alignItems: "center", justifyContent: "space-between",
+                            padding: "8px 10px", borderRadius: 9, cursor: "pointer",
+                            border: `1px solid ${checked ? `${color}30` : C.border}`,
+                            background: checked ? `${color}08` : "#fff",
+                            transition: "all .15s",
+                          }}
+                        >
+                          <span style={{ fontSize: 11, fontWeight: 600, color: C.text }}>{label}</span>
+                          <div
+                            style={{
+                              width: 16, height: 16, borderRadius: 5,
+                              border: `1.5px solid ${checked ? color : C.border}`,
+                              background: checked ? color : "#fff",
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              flexShrink: 0,
+                              transition: "all .15s",
+                            }}
+                          >
+                            {checked && <span style={{ color: "#fff", fontSize: 9, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      </div>
+
+      {/* ── FOOTER ── */}
+      <div
+        style={{
+          padding: "1rem 1.8rem",
+          borderTop: `1px solid ${C.border}`,
+          display: "flex", gap: 10, justifyContent: "flex-end",
+        }}
+      >
+        <button
+          type="button"
+          onClick={onCancel}
+          style={{
+            padding: "11px 20px", borderRadius: 12,
+            border: `1px solid ${C.border}`,
+            background: "#fff", color: C.text,
+            fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+          }}
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          style={{
+            padding: "11px 24px", borderRadius: 12,
+            border: "none", background: C.primary, color: "#fff",
+            fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+          }}
+        >
+          {title === "Nuevo Rol" ? "Crear Rol" : "Guardar cambios"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   MODAL DETALLE — Ver rol
+══════════════════════════════════════════════════════ */
+function ViewModal({ rol, onClose, onEdit }: { rol: Rol; onClose: () => void; onEdit: () => void }) {
+  const accent       = getRolAccent(rol.nombre);
+  const activeCount  = countActive(rol.permisos);
+  const total        = Object.keys(rol.permisos).length;
+  const protegido    = ROLES_PROTEGIDOS.includes(rol.nombre);
+
+  return (
+    <>
+      {/* HEADER verde */}
+      <div
+        style={{
+          padding: "1.6rem 1.8rem 1.4rem",
+          background: `linear-gradient(135deg, ${accent}, ${accent}cc)`,
+          color: "#fff",
+          borderRadius: "24px 24px 0 0",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div style={{
+          position: "absolute", width: 200, height: 200, borderRadius: "50%",
+          background: "rgba(255,255,255,.07)", top: -80, right: -60,
+        }} />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div
+              style={{
+                width: 42, height: 42, borderRadius: 11,
+                background: "rgba(255,255,255,.18)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Shield size={20} />
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                width: 32, height: 32, borderRadius: 9,
+                background: "rgba(255,255,255,.15)", border: "none",
+                color: "#fff", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X size={15} />
+            </button>
+          </div>
+          <h2 style={{ marginTop: 14, fontSize: 26, fontWeight: 900, lineHeight: 1 }}>{rol.nombre}</h2>
+          <p style={{ marginTop: 6, fontSize: 13, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
+            {rol.descripcion || "Sin descripción"}
+          </p>
+          <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span style={{
+              padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+              background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+              textTransform: "uppercase", letterSpacing: 0.5,
+            }}>
+              {rol.estado}
+            </span>
+            {protegido && (
+              <span style={{
+                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+                display: "flex", alignItems: "center", gap: 4,
+              }}>
+                <Lock size={10} /> Protegido
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* BODY */}
+      <div style={{ padding: "1.4rem 1.8rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: C.textLight, textTransform: "uppercase" }}>
+            Permisos activos
+          </p>
+          <span style={{ fontSize: 12, fontWeight: 700, color: accent }}>{activeCount} / {total}</span>
+        </div>
+
+        {/* barra */}
+        <div style={{ height: 4, borderRadius: 999, background: "#E2E8F0", marginBottom: 12, overflow: "hidden" }}>
+          <div style={{ height: "100%", borderRadius: 999, background: accent, width: `${(activeCount / total) * 100}%` }} />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {Object.entries(rol.permisos).map(([key, value]) => (
+            <div
+              key={key}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "9px 12px", borderRadius: 10, fontSize: 12, fontWeight: 600,
+                border: `1px solid ${value ? `${accent}20` : C.border}`,
+                background: value ? `${accent}06` : "#FAFAFA",
+                color: value ? C.text : C.textLight,
+              }}
+            >
+              <span>{PERMISO_LABELS[key] ?? key}</span>
+              {value
+                ? <CheckCircle2 size={14} color={accent} />
+                : <XCircle     size={14} color="#CBD5E1" />
+              }
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={onEdit}
+          style={{
+            marginTop: 16, width: "100%",
+            padding: "13px 20px", borderRadius: 12,
+            border: "none", background: accent, color: "#fff",
+            fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            boxShadow: `0 6px 18px ${accent}33`,
+          }}
+        >
+          <Pencil size={14} />
+          Editar este rol
+        </button>
+      </div>
+    </>
+  );
+}
+
+/* ══════════════════════════════════════════════════════
+   COMPONENTE PRINCIPAL
+══════════════════════════════════════════════════════ */
+const emptyForm = (): FormState => ({
+  nombre: "", descripcion: "", permisos: { ...initialPermisos }, estado: "activo",
+});
+
+export function Roles() {
+  const { roles, addRol, updateRol, deleteRol } = useData();
+
+  const [dialogOpen,     setDialogOpen]     = useState(false);
+  const [viewOpen,       setViewOpen]       = useState(false);
+  const [editingRol,     setEditingRol]     = useState<Rol | null>(null);
+  const [viewingRol,     setViewingRol]     = useState<Rol | null>(null);
+  const [search,         setSearch]         = useState("");
+  const [filterEstado,   setFilterEstado]   = useState<"todos" | "activo" | "inactivo">("todos");
+
+  /* ── form state ── */
+  const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
+
+  const openCreate = () => {
+    setEditingRol(null);
+    setFormInitial(emptyForm());
+    setDialogOpen(true);
+  };
+
+  const openEdit = (rol: Rol) => {
+    setEditingRol(rol);
+    setFormInitial({ nombre: rol.nombre, descripcion: rol.descripcion, permisos: { ...rol.permisos }, estado: rol.estado });
+    setViewOpen(false);
+    setDialogOpen(true);
+  };
+
+  const handleSave = (data: FormState) => {
+    if (editingRol) {
+      updateRol(editingRol.id, data);
+      toast.success("Rol actualizado correctamente");
+    } else {
+      addRol(data);
+      toast.success("Rol creado correctamente");
+    }
     setDialogOpen(false);
   };
 
   const handleDelete = (rol: Rol) => {
     if (ROLES_PROTEGIDOS.includes(rol.nombre)) { toast.error("Este rol está protegido"); return; }
-    if (confirm("¿Desea eliminar este rol?")) { deleteRol(rol.id); toast.success("Rol eliminado"); }
+    if (confirm(`¿Eliminar el rol "${rol.nombre}"?`)) {
+      deleteRol(rol.id);
+      toast.success("Rol eliminado");
+    }
   };
 
   const handleDuplicate = (rol: Rol) => {
@@ -158,506 +643,282 @@ export function Roles() {
     toast.success("Rol duplicado");
   };
 
-  const handleTogglePermiso = (permiso: keyof typeof formData.permisos) => {
-    setFormData({ ...formData, permisos: { ...formData.permisos, [permiso]: !formData.permisos[permiso] } });
-  };
-
-  const handleToggleGrupo = (grupo: string) => {
-    const keys = Object.keys(PERMISOS[grupo as keyof typeof PERMISOS]) as Array<keyof typeof initialPermisos>;
-    const allActive = keys.every((k) => formData.permisos[k]);
-    const next = { ...formData.permisos };
-    keys.forEach((k) => { next[k] = !allActive; });
-    setFormData({ ...formData, permisos: next });
-  };
+  const filteredRoles = useMemo(() =>
+    roles.filter((r) => {
+      const ms = r.nombre.toLowerCase().includes(search.toLowerCase());
+      const me = filterEstado === "todos" || r.estado === filterEstado;
+      return ms && me;
+    }),
+    [roles, search, filterEstado]
+  );
 
   return (
-    <div className="space-y-5">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        .roles-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
+        .rol-card{ transition:box-shadow .18s,transform .18s; }
+        .rol-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-1px); }
+        .rol-action-btn{ transition:background .15s,color .15s; }
+        .rol-action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
+        input:focus,textarea:focus,select:focus{
+          outline:none;
+          border-color:${C.primary} !important;
+          box-shadow:0 0 0 3px rgba(57,169,0,.12);
+        }
+        ::-webkit-scrollbar{ width:5px; }
+        ::-webkit-scrollbar-track{ background:transparent; }
+        ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+      `}</style>
 
-      {/* ── HERO ── */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#39A900] to-[#2D7D00] p-5 text-white sm:p-6">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-white/10" />
-        <div className="pointer-events-none absolute -bottom-12 -left-12 h-36 w-36 rounded-full bg-white/6" />
+      <div className="roles-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-        <div className="relative z-10 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-widest backdrop-blur">
-              <ShieldCheck className="h-3 w-3" />
-              Seguridad y permisos
-            </div>
-            <h1 className="text-2xl font-black leading-none sm:text-3xl" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-              Gestión de Roles
-            </h1>
-            <p className="mt-1.5 max-w-lg text-xs leading-relaxed text-white/80">
-              Administra accesos, permisos y niveles de seguridad del sistema.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-4 gap-2 sm:w-[340px]">
-            {[
-              { label: "Activos", value: roles.filter((r) => r.estado === "activo").length },
-              { label: "Protegidos", value: ROLES_PROTEGIDOS.length },
-              { label: "Permisos", value: Object.keys(initialPermisos).length },
-              { label: "Total", value: roles.length },
-            ].map((item) => (
-              <div key={item.label} className="rounded-xl border border-white/20 bg-white/12 px-2.5 py-2 text-center backdrop-blur">
-                <div className="text-[8px] font-semibold uppercase tracking-wider text-white/60">{item.label}</div>
-                <div className="text-xl font-black leading-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{item.value}</div>
+        {/* ── HERO ── */}
+        <div
+          style={{
+            position: "relative", overflow: "hidden", borderRadius: 20,
+            background: "linear-gradient(135deg,#39A900,#2D7D00)",
+            padding: "1.4rem 1.6rem", color: "#fff",
+          }}
+        >
+          <div style={{
+            position: "absolute", width: 250, height: 250, borderRadius: "50%",
+            background: "rgba(255,255,255,.07)", top: -80, right: -60,
+          }} />
+          <div style={{ position: "relative", zIndex: 2, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
+            <div>
+              <div style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.2)",
+                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                letterSpacing: 1, textTransform: "uppercase", marginBottom: 8,
+              }}>
+                <ShieldCheck size={11} /> Seguridad y permisos
               </div>
-            ))}
+              <h1 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>
+                Gestión de Roles
+              </h1>
+              <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
+                Administra accesos, permisos y niveles de seguridad.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+              {[
+                { label: "Activos",    value: roles.filter((r) => r.estado === "activo").length },
+                { label: "Protegidos", value: ROLES_PROTEGIDOS.length },
+                { label: "Permisos",   value: Object.keys(initialPermisos).length },
+                { label: "Total",      value: roles.length },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)",
+                  borderRadius: 12, padding: "8px 10px", textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,.65)", textTransform: "uppercase", marginBottom: 2 }}>
+                    {s.label}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, lineHeight: 1 }}>{s.value}</div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ── TOPBAR ── */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-1 gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-400" />
-            <Input
+        {/* ── TOPBAR ── */}
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          <div style={{ flex: 1, position: "relative", minWidth: 180 }}>
+            <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
+            <input
               placeholder="Buscar rol..."
-              className="h-9 rounded-lg border-zinc-200 bg-white pl-8 text-xs shadow-sm focus-visible:ring-[#39A900]/30"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
+              style={{
+                width: "100%", padding: "10px 14px 10px 36px", borderRadius: 11,
+                border: `1px solid ${C.border}`, fontSize: 13, background: "#fff",
+                fontFamily: "inherit",
+              }}
             />
           </div>
           <select
-            className="h-9 rounded-lg border border-zinc-200 bg-white px-2.5 text-xs shadow-sm outline-none focus:border-[#39A900]/50 focus:ring-2 focus:ring-[#39A900]/20"
             value={filterEstado}
             onChange={(e) => setFilterEstado(e.target.value as any)}
+            style={{
+              padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+              fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+            }}
           >
             <option value="todos">Todos</option>
             <option value="activo">Activos</option>
             <option value="inactivo">Inactivos</option>
           </select>
+          <button
+            onClick={openCreate}
+            style={{
+              padding: "10px 18px", borderRadius: 11, border: "none",
+              background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800,
+              cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", gap: 7,
+              boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+            }}
+          >
+            <Plus size={15} /> Nuevo Rol
+          </button>
         </div>
 
-        <Button
-          onClick={() => handleOpenDialog()}
-          className="h-9 rounded-lg bg-[#39A900] px-4 text-xs font-bold shadow-sm hover:bg-[#2D7D00] transition-all"
-        >
-          <Plus className="mr-1.5 h-3.5 w-3.5" />
-          Nuevo Rol
-        </Button>
-      </div>
+        {/* ── GRID ── */}
+        {filteredRoles.length === 0 ? (
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            padding: "3rem 1rem", borderRadius: 16, border: `2px dashed ${C.border}`,
+            background: "#fff", color: C.textLight,
+          }}>
+            <Shield size={36} color={C.border} style={{ marginBottom: 10 }} />
+            <p style={{ fontWeight: 700, fontSize: 13 }}>No se encontraron roles</p>
+            <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o crea uno nuevo</p>
+          </div>
+        ) : (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))",
+            gap: 10,
+          }}>
+            {filteredRoles.map((rol) => {
+              const activeCount = countActive(rol.permisos);
+              const total       = Object.keys(rol.permisos).length;
+              const pct         = Math.round((activeCount / total) * 100);
+              const protegido   = ROLES_PROTEGIDOS.includes(rol.nombre);
+              const accent      = getRolAccent(rol.nombre);
+              const activo      = rol.estado === "activo";
 
-      {/* ── GRID ── */}
-      {filteredRoles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-zinc-200 bg-white py-12 text-center">
-          <Shield className="mb-2 h-8 w-8 text-zinc-200" />
-          <p className="text-xs font-semibold text-zinc-400">No se encontraron roles</p>
-          <p className="mt-0.5 text-[10px] text-zinc-300">Prueba con otros filtros o crea uno nuevo</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-          {filteredRoles.map((rol) => {
-            const permisosActivos = countActivePermisos(rol.permisos);
-            const totalPermisos = Object.keys(rol.permisos).length;
-            const nivelAcceso = Math.round((permisosActivos / totalPermisos) * 100);
-            const protegido = ROLES_PROTEGIDOS.includes(rol.nombre);
-            const accent = getRolAccent(rol.nombre);
-            const activo = rol.estado === "activo";
+              return (
+                <div
+                  key={rol.id}
+                  className="rol-card"
+                  style={{
+                    borderRadius: 14, border: `1px solid ${C.border}`,
+                    background: "#fff", overflow: "hidden",
+                    boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+                  }}
+                >
+                  {/* stripe */}
+                  <div style={{ height: 3, background: accent }} />
 
-            return (
-              <div
-                key={rol.id}
-                className="group overflow-hidden rounded-lg border border-zinc-200/80 bg-white shadow-sm transition-all duration-200 hover:shadow-md"
-              >
-                {/* stripe */}
-                <div className="h-[3px] w-full" style={{ background: accent }} />
-
-                {/* header */}
-                <div className="flex items-center gap-2 px-2.5 pt-2.5 pb-1">
-                  <div
-                    className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md"
-                    style={{ background: `${accent}15` }}
-                  >
-                    <Shield className="h-3.5 w-3.5" style={{ color: accent }} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-[11px] font-bold text-zinc-900 leading-tight">{rol.nombre}</h2>
-                    <div className="mt-0.5 flex items-center gap-1">
-                      <span
-                        className="inline-flex items-center gap-0.5 rounded-full px-1.5 py-[1px] text-[8px] font-bold uppercase"
-                        style={{
+                  {/* header */}
+                  <div style={{ padding: "12px 12px 8px", display: "flex", alignItems: "center", gap: 9 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 9, flexShrink: 0,
+                      background: `${accent}15`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <Shield size={14} color={accent} />
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ fontSize: 12, fontWeight: 800, color: C.text, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {rol.nombre}
+                      </p>
+                      <div style={{ marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, padding: "2px 7px", borderRadius: 999,
                           background: activo ? "rgba(57,169,0,.1)" : "rgba(156,163,175,.12)",
-                          color: activo ? "#166534" : "#6B7280",
-                        }}
-                      >
-                        <span className="h-1 w-1 rounded-full" style={{ background: activo ? "#39A900" : "#9CA3AF" }} />
-                        {rol.estado}
-                      </span>
-                      {protegido && (
-                        <Lock className="h-2.5 w-2.5 text-red-400" />
-                      )}
+                          color: activo ? C.primaryDark : C.textLight,
+                          textTransform: "uppercase", letterSpacing: 0.4,
+                        }}>
+                          {rol.estado}
+                        </span>
+                        {protegido && <Lock size={10} color="#EF4444" />}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* permisos count + bar */}
-                <div className="px-2.5 pt-1.5">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[8px] font-semibold uppercase tracking-wide text-zinc-400">Acceso</span>
-                    <span className="text-[10px] font-black" style={{ color: accent }}>
-                      {permisosActivos}/{totalPermisos}
-                    </span>
+                  {/* bar */}
+                  <div style={{ padding: "0 12px 8px" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: .8 }}>Acceso</span>
+                      <span style={{ fontSize: 10, fontWeight: 800, color: accent }}>{activeCount}/{total}</span>
+                    </div>
+                    <div style={{ height: 3, borderRadius: 999, background: "#E2E8F0", overflow: "hidden" }}>
+                      <div style={{ height: "100%", borderRadius: 999, background: accent, width: `${pct}%` }} />
+                    </div>
                   </div>
-                  <div className="h-[3px] overflow-hidden rounded-full bg-zinc-100">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${nivelAcceso}%`, background: accent }}
-                    />
-                  </div>
-                </div>
 
-                {/* tags — max 2 */}
-                <div className="flex flex-wrap gap-0.5 px-2.5 pt-1.5 pb-2">
-                  {Object.entries(rol.permisos)
-                    .filter(([_, v]) => v)
-                    .slice(0, 2)
-                    .map(([key]) => (
-                      <span
-                        key={key}
-                        className="rounded-full bg-zinc-100 px-1.5 py-[1px] text-[8px] font-semibold text-zinc-500"
-                      >
-                        {PERMISO_LABELS[key] ?? key}
+                  {/* tags */}
+                  <div style={{ padding: "0 12px 10px", display: "flex", flexWrap: "wrap", gap: 3 }}>
+                    {Object.entries(rol.permisos).filter(([, v]) => v).slice(0, 2).map(([k]) => (
+                      <span key={k} style={{
+                        fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 999,
+                        background: "#F1F5F9", color: C.textLight,
+                      }}>
+                        {PERMISO_LABELS[k] ?? k}
                       </span>
                     ))}
-                  {permisosActivos > 2 && (
-                    <span className="rounded-full bg-zinc-100 px-1.5 py-[1px] text-[8px] font-semibold text-zinc-400">
-                      +{permisosActivos - 2}
-                    </span>
-                  )}
-                </div>
-
-                {/* actions */}
-                <div className="flex items-center justify-end gap-0.5 border-t border-zinc-100 px-2 py-1.5">
-                  <button
-                    className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
-                    onClick={() => { setViewingRol(rol); setViewDialogOpen(true); }}
-                    title="Ver"
-                  >
-                    <Eye className="h-3 w-3" />
-                  </button>
-                  <button
-                    className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700"
-                    onClick={() => handleOpenDialog(rol)}
-                    title="Editar"
-                  >
-                    <Pencil className="h-3 w-3" />
-                  </button>
-                  <button
-                    className="flex h-6 w-6 items-center justify-center rounded-md text-blue-400 transition hover:bg-blue-50 hover:text-blue-600"
-                    onClick={() => handleDuplicate(rol)}
-                    title="Duplicar"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </button>
-                  {!protegido && (
-                    <button
-                      className="flex h-6 w-6 items-center justify-center rounded-md text-red-400 transition hover:bg-red-50 hover:text-red-600"
-                      onClick={() => handleDelete(rol)}
-                      title="Eliminar"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════
-          DIALOG — CREATE / EDIT
-      ══════════════════════════════════════ */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="h-[95vh] max-w-[95vw] overflow-hidden rounded-[28px] border-none bg-[#F5F7F4] p-0 xl:max-w-5xl">
-          <div className="flex h-full flex-col">
-
-            <div className="relative overflow-hidden border-b border-zinc-200 bg-white px-6 py-5 sm:px-8">
-              <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 rounded-full bg-[#39A900]/8 blur-3xl" />
-              <div className="relative z-10 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#39A900]/10">
-                    <ShieldCheck className="h-5 w-5 text-[#39A900]" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#39A900]">Seguridad avanzada</span>
-                    <h2 className="text-2xl font-black text-zinc-900 leading-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                      {editingRol ? "Editar Rol" : "Nuevo Rol"}
-                    </h2>
-                  </div>
-                </div>
-                <button
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 text-zinc-400 transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-600"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-
-            <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-hidden">
-              <div className="grid flex-1 overflow-hidden xl:grid-cols-[1.2fr_.75fr]">
-
-                <div className="overflow-y-auto p-5 sm:p-7">
-                  <div className="space-y-5">
-
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                      <h3 className="mb-4 text-xs font-black uppercase tracking-widest text-zinc-400">Información básica</h3>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-bold text-zinc-600">Nombre del rol</Label>
-                          <Input
-                            className="h-11 rounded-xl border-zinc-200 bg-zinc-50 text-sm focus-visible:ring-[#39A900]/30"
-                            placeholder="ej. Operador de turno"
-                            value={formData.nombre}
-                            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs font-bold text-zinc-600">Estado</Label>
-                          <div className="flex h-11 items-center justify-between rounded-xl border border-zinc-200 bg-zinc-50 px-4">
-                            <span className={`text-xs font-bold uppercase tracking-wide ${formData.estado === "activo" ? "text-green-700" : "text-zinc-400"}`}>
-                              {formData.estado}
-                            </span>
-                            <Switch
-                              checked={formData.estado === "activo"}
-                              onCheckedChange={(c) => setFormData({ ...formData, estado: c ? "activo" : "inactivo" })}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4 space-y-1.5">
-                        <Label className="text-xs font-bold text-zinc-600">Descripción</Label>
-                        <Textarea
-                          className="min-h-[90px] rounded-xl border-zinc-200 bg-zinc-50 text-sm focus-visible:ring-[#39A900]/30 resize-none"
-                          placeholder="Describe las responsabilidades de este rol..."
-                          value={formData.descripcion}
-                          onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-                      <h3 className="mb-4 text-xs font-black uppercase tracking-widest text-zinc-400">Permisos del rol</h3>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        {Object.entries(PERMISOS).map(([grupo, permisos]) => {
-                          const color = GRUPO_COLORS[grupo] ?? "#39A900";
-                          const keys = Object.keys(permisos) as Array<keyof typeof initialPermisos>;
-                          const grupoActivo = keys.filter((k) => formData.permisos[k]).length;
-                          const grupoTotal = keys.length;
-
-                          return (
-                            <div key={grupo} className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
-                              <div className="mb-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div
-                                    className="flex h-7 w-7 items-center justify-center rounded-lg"
-                                    style={{ background: `${color}18`, color }}
-                                  >
-                                    {GRUPO_ICONS[grupo]}
-                                  </div>
-                                  <span className="text-xs font-black uppercase tracking-wide text-zinc-700 capitalize">{grupo}</span>
-                                </div>
-                                <button
-                                  type="button"
-                                  className="text-[10px] font-bold underline-offset-2 hover:underline"
-                                  style={{ color }}
-                                  onClick={() => handleToggleGrupo(grupo)}
-                                >
-                                  {grupoActivo === grupoTotal ? "Quitar todo" : "Seleccionar todo"}
-                                </button>
-                              </div>
-                              <div className="mb-3 h-1 overflow-hidden rounded-full bg-zinc-200">
-                                <div
-                                  className="h-full rounded-full transition-all"
-                                  style={{ width: `${(grupoActivo / grupoTotal) * 100}%`, background: color }}
-                                />
-                              </div>
-                              <div className="space-y-2">
-                                {Object.entries(permisos).map(([key, label]) => {
-                                  const activo = formData.permisos[key as keyof typeof formData.permisos];
-                                  return (
-                                    <div
-                                      key={key}
-                                      className={`flex cursor-pointer items-center justify-between rounded-xl border px-3 py-2.5 transition-all ${
-                                        activo ? "border-transparent bg-white shadow-sm" : "border-zinc-200 bg-white/60"
-                                      }`}
-                                      style={activo ? { borderColor: `${color}30`, boxShadow: `0 0 0 1px ${color}20` } : {}}
-                                      onClick={() => handleTogglePermiso(key as keyof typeof formData.permisos)}
-                                    >
-                                      <div>
-                                        <div className="text-xs font-semibold text-zinc-800">{label}</div>
-                                        <div className="text-[10px] text-zinc-400">
-                                          {activo ? "Acceso habilitado" : "Sin acceso"}
-                                        </div>
-                                      </div>
-                                      <Checkbox
-                                        checked={activo}
-                                        onCheckedChange={() => handleTogglePermiso(key as keyof typeof formData.permisos)}
-                                        className="pointer-events-none"
-                                        style={activo ? { borderColor: color, background: color } : {}}
-                                      />
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="hidden border-l border-zinc-200 bg-white xl:flex xl:flex-col">
-                  <div className="flex-1 overflow-y-auto p-6">
-                    <div className="overflow-hidden rounded-2xl border border-zinc-200 shadow-md">
-                      <div className="bg-gradient-to-br from-[#39A900] to-[#2D7D00] p-6 text-white">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
-                          <Shield className="h-6 w-6" />
-                        </div>
-                        <h3 className="mt-5 text-3xl font-black leading-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                          {formData.nombre || "NOMBRE DEL ROL"}
-                        </h3>
-                        <p className="mt-2 text-xs leading-relaxed text-white/75">
-                          {formData.descripcion || "Vista previa en tiempo real"}
-                        </p>
-                        <div className="mt-4 flex items-center gap-3">
-                          <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                            {formData.estado}
-                          </span>
-                          <span className="text-xs text-white/65">
-                            {countActivePermisos(formData.permisos)} permisos activos
-                          </span>
-                        </div>
-                      </div>
-                      <div className="p-5">
-                        <p className="mb-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Permisos activos</p>
-                        {countActivePermisos(formData.permisos) === 0 ? (
-                          <div className="flex items-center gap-2 rounded-xl border border-dashed border-zinc-200 p-4 text-xs text-zinc-300">
-                            <Shield className="h-4 w-4" />
-                            Sin permisos asignados
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {Object.entries(formData.permisos)
-                              .filter(([_, v]) => v)
-                              .map(([key]) => (
-                                <div
-                                  key={key}
-                                  className="flex items-center justify-between rounded-xl border border-zinc-100 bg-zinc-50 px-3 py-2.5"
-                                >
-                                  <span className="text-xs font-semibold text-zinc-700">{PERMISO_LABELS[key] ?? key}</span>
-                                  <CheckCircle2 className="h-3.5 w-3.5 text-[#39A900]" />
-                                </div>
-                              ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 border-t border-zinc-200 bg-white px-6 py-4 sm:px-8">
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="h-11 rounded-xl border-zinc-200 px-5 text-sm font-semibold"
-                  onClick={() => setDialogOpen(false)}
-                >
-                  Cancelar
-                </Button>
-                <Button
-                  type="submit"
-                  className="h-11 rounded-xl bg-[#39A900] px-7 text-sm font-bold shadow-sm hover:bg-[#2D7D00] hover:shadow-md transition-all"
-                >
-                  {editingRol ? "Actualizar Rol" : "Crear Rol"}
-                </Button>
-              </div>
-            </form>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* ══════════════════════════════════════
-          DIALOG — VIEW DETAIL
-      ══════════════════════════════════════ */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-md overflow-hidden rounded-2xl border-none bg-white p-0">
-          {viewingRol && (() => {
-            const accent = getRolAccent(viewingRol.nombre);
-            const permisosActivos = countActivePermisos(viewingRol.permisos);
-            const protegido = ROLES_PROTEGIDOS.includes(viewingRol.nombre);
-            return (
-              <div>
-                <div className="p-6 text-white" style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}>
-                  <div className="flex items-start justify-between">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
-                      <Shield className="h-6 w-6" />
-                    </div>
-                    <button
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 text-white transition hover:bg-white/25"
-                      onClick={() => setViewDialogOpen(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <h2 className="mt-4 text-3xl font-black" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
-                    {viewingRol.nombre}
-                  </h2>
-                  <p className="mt-1.5 text-sm text-white/75">{viewingRol.descripcion || "Sin descripción"}</p>
-                  <div className="mt-4 flex items-center gap-2">
-                    <span className="rounded-full border border-white/25 bg-white/15 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                      {viewingRol.estado}
-                    </span>
-                    {protegido && (
-                      <span className="flex items-center gap-1 rounded-full border border-white/25 bg-white/15 px-3 py-1 text-[10px] font-bold">
-                        <Lock className="h-2.5 w-2.5" /> Protegido
+                    {activeCount > 2 && (
+                      <span style={{ fontSize: 9, fontWeight: 600, padding: "2px 7px", borderRadius: 999, background: "#F1F5F9", color: C.textLight }}>
+                        +{activeCount - 2}
                       </span>
                     )}
                   </div>
-                </div>
-                <div className="p-6">
-                  <div className="mb-4 flex items-center justify-between">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Permisos activos</p>
-                    <span className="text-xs font-bold" style={{ color: accent }}>{permisosActivos} / {Object.keys(viewingRol.permisos).length}</span>
-                  </div>
-                  <div className="space-y-2">
-                    {Object.entries(viewingRol.permisos).map(([key, value]) => (
-                      <div
-                        key={key}
-                        className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors ${
-                          value ? "bg-zinc-50 text-zinc-800" : "bg-white text-zinc-300"
-                        }`}
-                        style={value ? { border: `1px solid ${accent}20` } : { border: "1px solid #f4f4f5" }}
+
+                  {/* actions */}
+                  <div style={{
+                    borderTop: `1px solid ${C.border}`, padding: "7px 8px",
+                    display: "flex", justifyContent: "flex-end", gap: 2,
+                  }}>
+                    {[
+                      { icon: <Eye size={12} />, title: "Ver", color: C.textLight,
+                        onClick: () => { setViewingRol(rol); setViewOpen(true); } },
+                      { icon: <Pencil size={12} />, title: "Editar", color: C.textLight,
+                        onClick: () => openEdit(rol) },
+                      { icon: <Copy size={12} />, title: "Duplicar", color: "#2563EB",
+                        onClick: () => handleDuplicate(rol) },
+                      ...(!protegido ? [{
+                        icon: <Trash2 size={12} />, title: "Eliminar", color: "#EF4444",
+                        onClick: () => handleDelete(rol),
+                      }] : []),
+                    ].map((btn, i) => (
+                      <button
+                        key={i}
+                        className="rol-action-btn"
+                        title={btn.title}
+                        onClick={btn.onClick}
+                        style={{
+                          width: 26, height: 26, borderRadius: 7,
+                          border: "none", background: "transparent",
+                          color: btn.color, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
                       >
-                        <span>{PERMISO_LABELS[key] ?? key}</span>
-                        {value
-                          ? <CheckCircle2 className="h-3.5 w-3.5" style={{ color: accent }} />
-                          : <XCircle className="h-3.5 w-3.5 text-zinc-200" />
-                        }
-                      </div>
+                        {btn.icon}
+                      </button>
                     ))}
                   </div>
-                  <Button
-                    className="mt-5 h-11 w-full rounded-xl font-bold"
-                    style={{ background: accent }}
-                    onClick={() => { setViewDialogOpen(false); handleOpenDialog(viewingRol); }}
-                  >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Editar este rol
-                  </Button>
                 </div>
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-    </div>
+      {/* ── MODAL CREAR / EDITAR ── */}
+      <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={780}>
+        <RolForm
+          key={editingRol?.id ?? "new"}
+          initial={formInitial}
+          title={editingRol ? "Editar Rol" : "Nuevo Rol"}
+          onSave={handleSave}
+          onCancel={() => setDialogOpen(false)}
+        />
+      </Modal>
+
+      {/* ── MODAL VER ── */}
+      <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={440}>
+        {viewingRol && (
+          <ViewModal
+            rol={viewingRol}
+            onClose={() => setViewOpen(false)}
+            onEdit={() => openEdit(viewingRol)}
+          />
+        )}
+      </Modal>
+    </>
   );
 }
