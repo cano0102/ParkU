@@ -4,7 +4,7 @@ import Landing from './pages/Landing';
 import { Login } from './pages/Login';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
-import { Dashboard } from './pages/Dashboard';
+import  Dashboard  from './pages/Dashboard';
 import  {Roles}  from './pages/Roles';
 import  Usuarios  from './pages/Usuarios';
 import { Conductores } from './pages/Conductores';
