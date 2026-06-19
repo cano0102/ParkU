@@ -15,6 +15,8 @@ import {
   X,
   Sparkles,
   Users,
+  Calendar,
+  MapPin,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useData, Vehiculo } from "../context/DataContext";
@@ -24,8 +26,10 @@ const COLORS = {
   primaryDark: "#2D7D00",
   text: "#0F172A",
   textLight: "#64748B",
+  textMuted: "#94A3B8",
   border: "#E2E8F0",
   bg: "#F5F7F8",
+  white: "#FFFFFF",
 } as const;
 
 const getTipoStyles = (tipo: "carro" | "moto") => {
@@ -143,8 +147,6 @@ interface ConfirmDialogProps {
   title: string;
   message: string;
 }
-
-
 
 const ConfirmDialog = memo(
   ({ open, onConfirm, onCancel, title, message }: ConfirmDialogProps) => {
@@ -326,10 +328,8 @@ export function Vehiculos() {
           vehiculo.placa.toLowerCase().includes(q) ||
           vehiculo.marca.toLowerCase().includes(q) ||
           vehiculo.modelo.toLowerCase().includes(q) ||
-          usuario?.nombre.toLowerCase().includes(q) ||
-          false ||
-          usuario?.identificacion.includes(search) ||
-          false;
+          (usuario?.nombre.toLowerCase().includes(q) || false) ||
+          (usuario?.identificacion.includes(search) || false);
         const matchesTipo =
           filterTipo === "todos" ? true : vehiculo.tipo === filterTipo;
         const matchesEstado =
@@ -470,10 +470,55 @@ export function Vehiculos() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
         .vehiculos-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
-        .vehiculo-card{ transition:box-shadow .18s,transform .18s; }
-        .vehiculo-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-1px); }
-        .action-btn{ transition:background .15s,color .15s; }
-        .action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
+        .vehiculo-card{ 
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          background: #FFFFFF;
+          border: 1px solid ${COLORS.border};
+          border-radius: 16px;
+          overflow: hidden;
+          position: relative;
+        }
+        .vehiculo-card:hover{ 
+          transform: translateY(-4px);
+          box-shadow: 0 12px 40px rgba(15,23,42,.12) !important;
+          border-color: ${COLORS.primary};
+        }
+        .vehiculo-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, ${COLORS.primary}, ${COLORS.primary}66);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .vehiculo-card:hover::before {
+          opacity: 1;
+        }
+        .action-btn{ 
+          transition: all 0.15s ease;
+          border-radius: 8px;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: ${COLORS.textLight};
+        }
+        .action-btn:hover{ 
+          background: #F1F5F9 !important; 
+          color: #0F172A !important;
+          transform: scale(1.05);
+        }
+        .action-btn.danger:hover {
+          background: #FEE2E2 !important;
+          color: #DC2626 !important;
+        }
         input:focus,textarea:focus,select:focus{
           outline:none;
           border-color:${COLORS.primary} !important;
@@ -482,6 +527,58 @@ export function Vehiculos() {
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .status-badge.active {
+          background: #DCFCE7;
+          color: #166534;
+        }
+        .status-badge.inactive {
+          background: #FEE2E2;
+          color: #991B1B;
+        }
+        .type-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 700;
+        }
+        .info-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 10px;
+          background: ${COLORS.bg};
+          border: 1px solid ${COLORS.border};
+          transition: all 0.2s ease;
+        }
+        .info-row:hover {
+          border-color: ${COLORS.primary}40;
+          background: #F8FAFC;
+        }
+        .vehiculo-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+          gap: 16px;
+        }
+        @media (max-width: 640px) {
+          .vehiculo-grid {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
 
       <div
@@ -698,6 +795,15 @@ export function Vehiculos() {
               alignItems: "center",
               gap: 7,
               boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.02)";
+              e.currentTarget.style.boxShadow = "0 6px 20px rgba(57,169,0,.35)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.boxShadow = "0 4px 14px rgba(57,169,0,.25)";
             }}
           >
             <Plus size={15} /> Nuevo Vehículo
@@ -758,13 +864,7 @@ export function Vehiculos() {
             </p>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
-              gap: 12,
-            }}
-          >
+          <div className="vehiculo-grid">
             {filteredVehiculos.map((vehiculo) => {
               const usuario = getUsuarioConductor(vehiculo.conductorId);
               const tipoStyle = getTipoStyles(vehiculo.tipo);
@@ -776,192 +876,78 @@ export function Vehiculos() {
                   key={vehiculo.id}
                   className="vehiculo-card"
                   style={{
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#fff",
-                    overflow: "hidden",
                     boxShadow: "0 2px 8px rgba(15,23,42,.05)",
                   }}
                 >
-                  <div style={{ height: 3, background: tipoStyle.dot }} />
-
-                  <div style={{ padding: "14px" }}>
+                  <div style={{ padding: "16px 16px 12px" }}>
                     <div
                       style={{
                         display: "flex",
-                        alignItems: "center",
+                        alignItems: "flex-start",
+                        justifyContent: "space-between",
                         gap: 12,
                         marginBottom: 12,
                       }}
                     >
-                      <div
-                        style={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: 12,
-                          flexShrink: 0,
-                          background: tipoStyle.bg,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <TipoIcon size={24} color={tipoStyle.text} />
-                      </div>
-                      <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
                         <div
                           style={{
+                            width: 48,
+                            height: 48,
+                            borderRadius: 12,
+                            flexShrink: 0,
+                            background: `${tipoStyle.dot}15`,
                             display: "flex",
                             alignItems: "center",
-                            gap: 8,
-                            flexWrap: "wrap",
-                            marginBottom: 4,
+                            justifyContent: "center",
+                            border: `2px solid ${tipoStyle.dot}30`,
                           }}
                         >
-                          <p
-                            style={{
-                              fontSize: 16,
-                              fontWeight: 900,
-                              color: COLORS.text,
-                              letterSpacing: 0.5,
-                            }}
-                          >
-                            {sanitizeText(vehiculo.placa)}
-                          </p>
-                          <span
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                              background: tipoStyle.bg,
-                              color: tipoStyle.text,
-                            }}
-                          >
-                            {tipoStyle.label}
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                              background: activo
-                                ? "rgba(57,169,0,.1)"
-                                : "rgba(156,163,175,.12)",
-                              color: activo
-                                ? COLORS.primaryDark
-                                : COLORS.textLight,
-                            }}
-                          >
-                            {vehiculo.estado}
-                          </span>
+                          <TipoIcon size={22} color={tipoStyle.dot} />
                         </div>
-                        <p style={{ fontSize: 11, color: COLORS.textLight }}>
-                          {sanitizeText(vehiculo.marca)}{" "}
-                          {sanitizeText(vehiculo.modelo)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        flexWrap: "wrap",
-                        gap: 8,
-                        padding: "10px 0",
-                        marginBottom: 8,
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          fontSize: 11,
-                          color: COLORS.text,
-                        }}
-                      >
-                        <Palette size={12} color={COLORS.textLight} />
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
+                        <div style={{ flex: 1, minWidth: 0 }}>
                           <div
                             style={{
-                              width: 12,
-                              height: 12,
-                              borderRadius: 3,
-                              background: vehiculo.color.toLowerCase(),
-                              border: `1px solid ${COLORS.border}`,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              flexWrap: "wrap",
                             }}
-                          />
+                          >
+                            <p
+                              style={{
+                                fontSize: 16,
+                                fontWeight: 900,
+                                color: COLORS.text,
+                                letterSpacing: 0.5,
+                                margin: 0,
+                              }}
+                            >
+                              {sanitizeText(vehiculo.placa)}
+                            </p>
+                            <span className="type-badge" style={{
+                              background: tipoStyle.bg,
+                              color: tipoStyle.text,
+                              border: `1px solid ${tipoStyle.border}`,
+                            }}>
+                              <TipoIcon size={10} />
+                              {tipoStyle.label}
+                            </span>
+                          </div>
+                          <p
+                            style={{
+                              fontSize: 12,
+                              color: COLORS.textLight,
+                              margin: "4px 0 0",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {sanitizeText(vehiculo.marca)} {sanitizeText(vehiculo.modelo)}
+                          </p>
                         </div>
                       </div>
-                    </div>
-
-                    {usuario && (
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: "8px 10px",
-                          borderRadius: 10,
-                          background: `${vehiculo.color}`,
-                          border: `1px solid ${COLORS.border}`,
-                          marginBottom: 8,
-                        }}
-                      >
-                        <UserCircle2 size={14} color={COLORS.textLight} />
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: COLORS.text,
-                            fontWeight: 500,
-                          }}
-                        >
-                          {sanitizeText(usuario.nombre)}
-                        </span>
-                        <span style={{ fontSize: 10, color: COLORS.textLight }}>
-                          {usuario.identificacion}
-                        </span>
-                      </div>
-                    )}
-
-                    {vehiculo.descripcion && (
-                      <p
-                        style={{
-                          fontSize: 10,
-                          color: COLORS.textLight,
-                          marginBottom: 8,
-                          lineHeight: 1.4,
-                        }}
-                      >
-                        {sanitizeText(vehiculo.descripcion)}
-                      </p>
-                    )}
-                  </div>
-
-                  <div
-                    style={{
-                      borderTop: `1px solid ${COLORS.border}`,
-                      padding: "8px 12px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
-                  >
-                    <div
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
-                    >
                       <button
-                        onClick={() =>
-                          handleToggleEstado(vehiculo.id, vehiculo.estado)
-                        }
+                        onClick={() => handleToggleEstado(vehiculo.id, vehiculo.estado)}
                         style={{
                           width: 36,
                           height: 20,
@@ -970,11 +956,10 @@ export function Vehiculos() {
                           border: "none",
                           cursor: "pointer",
                           position: "relative",
-                          transition: "background .2s",
+                          transition: "all 0.3s ease",
+                          flexShrink: 0,
                         }}
-                        aria-label={
-                          activo ? "Desactivar vehículo" : "Activar vehículo"
-                        }
+                        aria-label={activo ? "Desactivar vehículo" : "Activar vehículo"}
                       >
                         <div
                           style={{
@@ -985,81 +970,111 @@ export function Vehiculos() {
                             position: "absolute",
                             top: 2,
                             left: activo ? 18 : 2,
-                            transition: "left .2s",
+                            transition: "all 0.3s ease",
+                            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
                           }}
                         />
                       </button>
-                      <span
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: COLORS.textLight,
-                        }}
-                      >
-                        {activo ? "Activo" : "Inactivo"}
-                      </span>
                     </div>
 
-                    <div style={{ display: "flex", gap: 4 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: 6,
+                        marginBottom: 12,
+                      }}
+                    >
+                      <span className={`status-badge ${activo ? "active" : "inactive"}`}>
+                        {activo ? "✓ Activo" : "✗ Inactivo"}
+                      </span>
+                      {vehiculo.color && (
+                        <span className="status-badge" style={{
+                          background: "#F3F4F6",
+                          color: COLORS.text,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                        }}>
+                          <span style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: 3,
+                            background: vehiculo.color,
+                            border: `1px solid ${COLORS.border}`,
+                          }} />
+                          {sanitizeText(vehiculo.color)}
+                        </span>
+                      )}
+                    </div>
+
+                    {usuario && (
+                      <div className="info-row" style={{ marginBottom: 8 }}>
+                        <UserCircle2 size={14} color={COLORS.textLight} />
+                        <span style={{ fontSize: 12, color: COLORS.text, fontWeight: 500 }}>
+                          {sanitizeText(usuario.nombre)}
+                        </span>
+                        <span style={{ fontSize: 11, color: COLORS.textLight }}>
+                          {usuario.identificacion}
+                        </span>
+                      </div>
+                    )}
+
+                    {vehiculo.descripcion && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: COLORS.textLight,
+                          lineHeight: 1.5,
+                          padding: "8px 12px",
+                          borderRadius: 10,
+                          background: COLORS.bg,
+                          border: `1px solid ${COLORS.border}`,
+                          marginBottom: 8,
+                        }}
+                      >
+                        {sanitizeText(vehiculo.descripcion)}
+                      </div>
+                    )}
+                  </div>
+
+                  <div
+                    style={{
+                      borderTop: `1px solid ${COLORS.border}`,
+                      padding: "10px 12px",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      background: COLORS.bg,
+                    }}
+                  >
+                    <span style={{ fontSize: 10, color: COLORS.textLight, fontWeight: 600 }}>
+                      Registrado en sistema
+                    </span>
+                    <div style={{ display: "flex", gap: 2 }}>
                       <button
                         className="action-btn"
                         title="Ver detalle"
                         onClick={() => openView(vehiculo)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 7,
-                          border: "none",
-                          background: "transparent",
-                          color: COLORS.textLight,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
                         aria-label={`Ver detalle de ${vehiculo.placa}`}
                       >
-                        <Eye size={13} />
+                        <Eye size={14} />
                       </button>
                       <button
                         className="action-btn"
                         title="Editar"
                         onClick={() => openEdit(vehiculo)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 7,
-                          border: "none",
-                          background: "transparent",
-                          color: COLORS.textLight,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
                         aria-label={`Editar ${vehiculo.placa}`}
                       >
-                        <Pencil size={13} />
+                        <Pencil size={14} />
                       </button>
                       <button
-                        className="action-btn"
+                        className="action-btn danger"
                         title="Eliminar"
                         onClick={() => openConfirm(vehiculo)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 7,
-                          border: "none",
-                          background: "transparent",
-                          color: "#EF4444",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
                         aria-label={`Eliminar ${vehiculo.placa}`}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
