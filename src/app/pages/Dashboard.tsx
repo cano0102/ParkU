@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
@@ -14,6 +14,7 @@ import {
   Gauge,
   LayoutDashboard,
   ParkingCircle,
+  RefreshCw,
   ShieldCheck,
   TrendingUp,
   Users,
@@ -21,6 +22,32 @@ import {
   Zap,
 } from "lucide-react";
 
+// ------------------------------------------------------------
+// PALETA DE COLORES (inspirada en la landing page)
+// ------------------------------------------------------------
+const COLORS = {
+  primary: "#39A900",
+  primaryDark: "#2D7D00",
+  primaryLight: "#B3E6A1",
+  primaryPale: "#EAF7E6",
+  background: "#F5F7F8",
+  surface: "#FFFFFF",
+  text: "#000000",
+  textLight: "#64748B",
+  border: "#E2E8F0",
+  dark: "#000000",
+  white: "#FFFFFF",
+  // complementarios para gráficos
+  amber: "#F59E0B",
+  red: "#EF4444",
+  blue: "#3B82F6",
+  purple: "#8B5CF6",
+  teal: "#14B8A6",
+};
+
+// ------------------------------------------------------------
+// TIPOS Y DATOS INICIALES
+// ------------------------------------------------------------
 type CellStatus = "occupied" | "available" | "reserved" | "maintenance";
 type VehicleType = "car" | "moto" | "mixed";
 type LotStatus = "activo" | "mantenimiento";
@@ -47,31 +74,7 @@ type Movement = {
   minutesAgo: number;
 };
 
-const C = {
-  green: "#2E7D32",
-  greenLight: "#4CAF50",
-  greenPale: "#E8F5E9",
-  greenDark: "#1B5E20",
-  ink: "#1a1a2e",
-  inkSoft: "#2d2d44",
-  muted: "#6b7280",
-  mutedLight: "#9ca3af",
-  bg: "#f4f7f2",
-  surface: "#ffffff",
-  surfaceHover: "#fafbfa",
-  border: "#e8ece6",
-  amber: "#f59e0b",
-  amberPale: "#fef3c7",
-  blue: "#3b82f6",
-  bluePale: "#dbeafe",
-  red: "#ef4444",
-  redPale: "#fee2e2",
-  purple: "#8b5cf6",
-  purplePale: "#ede9fe",
-  teal: "#14b8a6",
-};
-
-const parkingLots: ParkingLot[] = [
+const INITIAL_LOTS: ParkingLot[] = [
   { id: "pq-norte", name: "PQ Norte", block: "Bloque A", type: "mixed", status: "activo", capacity: 72, occupied: 54, reserved: 5, maintenance: 2 },
   { id: "pq-bienestar", name: "PQ Bienestar", block: "Bloque C", type: "car", status: "activo", capacity: 48, occupied: 28, reserved: 4, maintenance: 1 },
   { id: "pq-motos", name: "PQ Motos", block: "Ingreso Sur", type: "moto", status: "activo", capacity: 64, occupied: 37, reserved: 8, maintenance: 0 },
@@ -80,7 +83,7 @@ const parkingLots: ParkingLot[] = [
   { id: "pq-admin", name: "PQ Administrativo", block: "Bloque B", type: "car", status: "mantenimiento", capacity: 28, occupied: 12, reserved: 2, maintenance: 8 },
 ];
 
-const movements: Movement[] = [
+const INITIAL_MOVEMENTS: Movement[] = [
   { id: "m1", plate: "KLM 842", driver: "Diana Rojas", lotId: "pq-norte", kind: "entrada", vehicle: "Automovil", minutesAgo: 3 },
   { id: "m2", plate: "NQZ 19F", driver: "Carlos Pena", lotId: "pq-motos", kind: "salida", vehicle: "Moto", minutesAgo: 7 },
   { id: "m3", plate: "HTR 221", driver: "Laura Mora", lotId: "pq-bienestar", kind: "entrada", vehicle: "Automovil", minutesAgo: 12 },
@@ -89,30 +92,87 @@ const movements: Movement[] = [
   { id: "m6", plate: "UFP 331", driver: "Nelson Diaz", lotId: "pq-norte", kind: "entrada", vehicle: "Automovil", minutesAgo: 31 },
 ];
 
-const vehicleDistribution = [
-  { label: "Automoviles", value: 138, color: C.blue },
-  { label: "Motos", value: 82, color: C.amber },
-  { label: "Reservas", value: 27, color: C.greenLight },
-];
+// ------------------------------------------------------------
+// HELPERS Y SIMULACIÓN
+// ------------------------------------------------------------
+function randomInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
-const userDistribution = [
-  { label: "Docentes", value: 86, color: C.green },
-  { label: "Administrativos", value: 48, color: C.blue },
-  { label: "Visitantes", value: 31, color: C.purple },
-];
+function randomItem<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+const PLATES = ["ABC 123", "DEF 456", "GHI 789", "JKL 012", "MNO 345", "PQR 678", "STU 901", "VWX 234", "YZ 567", "KLM 890"];
+const DRIVERS = ["Ana Gómez", "Luis Pérez", "María Rodríguez", "Carlos Sánchez", "Laura Martínez", "Jorge Fernández", "Sofía López", "Miguel Torres", "Elena Díaz", "David Ruiz"];
+const LOT_IDS = ["pq-norte", "pq-bienestar", "pq-motos", "pq-talleres", "pq-visitantes", "pq-admin"];
+const VEHICLES: ("Automovil" | "Moto")[] = ["Automovil", "Moto"];
+
+function generateMovement(lots: ParkingLot[]): Movement {
+  const lot = randomItem(lots);
+  const isEntry = Math.random() > 0.4;
+  const vehicle = randomItem(VEHICLES);
+  return {
+    id: `m${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    plate: randomItem(PLATES),
+    driver: randomItem(DRIVERS),
+    lotId: lot.id,
+    kind: isEntry ? "entrada" : "salida",
+    vehicle,
+    minutesAgo: randomInt(1, 5),
+  };
+}
+
+function simulateLotUpdate(lots: ParkingLot[]): ParkingLot[] {
+  return lots.map((lot) => {
+    if (lot.status === "mantenimiento") return lot;
+
+    let newOccupied = lot.occupied + randomInt(-2, 3);
+    let newReserved = lot.reserved + randomInt(-1, 2);
+    let newMaintenance = lot.maintenance + randomInt(-1, 1);
+
+    const total = lot.capacity;
+    newOccupied = Math.max(0, Math.min(total, newOccupied));
+    newReserved = Math.max(0, Math.min(total - newOccupied, newReserved));
+    newMaintenance = Math.max(0, Math.min(total - newOccupied - newReserved, newMaintenance));
+
+    let newStatus = lot.status;
+    if (Math.random() < 0.05) {
+      newStatus = lot.status === "activo" ? "mantenimiento" : "activo";
+      if (newStatus === "mantenimiento") {
+        newOccupied = Math.max(0, Math.floor(lot.capacity * 0.3));
+        newReserved = 0;
+        newMaintenance = lot.capacity - newOccupied;
+      } else {
+        newMaintenance = randomInt(0, 3);
+        newOccupied = Math.min(lot.capacity - newMaintenance, randomInt(10, lot.capacity - newMaintenance - 5));
+        newReserved = randomInt(0, Math.min(8, lot.capacity - newOccupied - newMaintenance));
+      }
+    }
+
+    return {
+      ...lot,
+      occupied: newOccupied,
+      reserved: newReserved,
+      maintenance: newMaintenance,
+      status: newStatus,
+    };
+  });
+}
 
 function availableOf(lot: ParkingLot) {
   return Math.max(lot.capacity - lot.occupied - lot.reserved - lot.maintenance, 0);
 }
 
 function occupancyOf(lot: ParkingLot) {
+  if (lot.capacity === 0) return 0;
   return Math.round((lot.occupied / lot.capacity) * 100);
 }
 
 function statusColor(pct: number) {
-  if (pct >= 82) return C.red;
-  if (pct >= 62) return C.amber;
-  return C.green;
+  if (pct >= 82) return COLORS.red;
+  if (pct >= 62) return COLORS.amber;
+  return COLORS.primary;
 }
 
 function makeCells(lot: ParkingLot) {
@@ -130,6 +190,9 @@ function makeCells(lot: ParkingLot) {
   }));
 }
 
+// ------------------------------------------------------------
+// HOOKS PERSONALIZADOS
+// ------------------------------------------------------------
 function useClock() {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -147,65 +210,127 @@ function formatDate(now: Date) {
   return now.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
 }
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const } },
-};
+function useParkingData() {
+  const [lots, setLots] = useState<ParkingLot[]>(() => {
+    const stored = localStorage.getItem("parkingLots");
+    if (stored) {
+      try { return JSON.parse(stored); } catch { return INITIAL_LOTS; }
+    }
+    return INITIAL_LOTS;
+  });
 
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <motion.div
-      variants={fadeUp}
-      className={`rounded-xl bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] border border-[#e8ece6] ${className}`}
-    >
-      {children}
-    </motion.div>
-  );
+  const [movements, setMovements] = useState<Movement[]>(() => {
+    const stored = localStorage.getItem("movements");
+    if (stored) {
+      try { return JSON.parse(stored); } catch { return INITIAL_MOVEMENTS; }
+    }
+    return INITIAL_MOVEMENTS;
+  });
+
+  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("parkingLots", JSON.stringify(lots));
+  }, [lots]);
+
+  useEffect(() => {
+    localStorage.setItem("movements", JSON.stringify(movements));
+  }, [movements]);
+
+  const updateData = useCallback(() => {
+    setIsUpdating(true);
+    const newLots = simulateLotUpdate(lots);
+    setLots(newLots);
+
+    const numNew = randomInt(0, 2);
+    const newMovements: Movement[] = [];
+    for (let i = 0; i < numNew; i++) {
+      newMovements.push(generateMovement(newLots));
+    }
+
+    const updatedMovements = movements.map((m) => ({
+      ...m,
+      minutesAgo: m.minutesAgo + 2,
+    }));
+
+    const combined = [...newMovements, ...updatedMovements]
+      .sort((a, b) => a.minutesAgo - b.minutesAgo)
+      .slice(0, 12);
+
+    setMovements(combined);
+    setLastUpdate(new Date());
+    setIsUpdating(false);
+  }, [lots, movements]);
+
+  useEffect(() => {
+    const interval = setInterval(updateData, 8000);
+    return () => clearInterval(interval);
+  }, [updateData]);
+
+  const refresh = useCallback(() => {
+    updateData();
+  }, [updateData]);
+
+  return { lots, movements, lastUpdate, isUpdating, refresh };
 }
 
-function SectionTitle({ icon: Icon, title, subtitle, color = C.green }: { icon: React.ElementType; title: string; subtitle?: string; color?: string }) {
-  return (
-    <div className="mb-4 flex items-center justify-between">
-      <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
-          <Icon size={16} color={color} strokeWidth={2} />
+// ------------------------------------------------------------
+// COMPONENTES DE UI REDISEÑADOS
+// ------------------------------------------------------------
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+};
+
+const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <motion.div
+    variants={fadeUp}
+    className={`rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] ${className}`}
+  >
+    {children}
+  </motion.div>
+);
+
+const SectionTitle = ({ icon: Icon, title, subtitle, color = COLORS.primary }: { icon: React.ElementType; title: string; subtitle?: string; color?: string }) => (
+  <div className="mb-5 flex items-center justify-between">
+    <div className="flex items-center gap-3">
+      <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
+        <Icon size={18} color={color} strokeWidth={2} />
+      </div>
+      <div>
+        <h3 className="text-sm font-semibold text-[#1a1a2e]">{title}</h3>
+        {subtitle && <p className="text-xs text-[#64748B]">{subtitle}</p>}
+      </div>
+    </div>
+  </div>
+);
+
+// ------------------------------------------------------------
+// KPI (rediseñado)
+// ------------------------------------------------------------
+const Kpi = ({ label, value, detail, icon: Icon, color }: { label: string; value: string | number; detail: string; icon: React.ElementType; color: string }) => (
+  <motion.div variants={fadeUp} whileHover={{ y: -2, transition: { duration: 0.2 } }} className="cursor-default">
+    <div className="rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+      <div className="flex items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
+          <Icon size={24} color={color} strokeWidth={2} />
         </div>
-        <div>
-          <h3 className="text-sm font-semibold text-[#1a1a2e]">{title}</h3>
-          {subtitle && <p className="text-xs text-[#9ca3af]">{subtitle}</p>}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium uppercase tracking-wider text-[#64748B]">{label}</p>
+          <p className="mt-1 text-2xl font-bold text-[#1a1a2e] tracking-tight">{value}</p>
+          <p className="text-xs text-[#64748B] truncate">{detail}</p>
         </div>
       </div>
     </div>
-  );
-}
+  </motion.div>
+);
 
-function Kpi({ label, value, detail, icon: Icon, color, trend }: { label: string; value: string | number; detail: string; icon: React.ElementType; color: string; trend?: string }) {
-  return (
-    <motion.div variants={fadeUp} whileHover={{ y: -2, transition: { duration: 0.2 } }} className="group cursor-default">
-      <div className="rounded-xl bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_4px_12px_rgba(0,0,0,0.03)] border border-[#e8ece6] transition-shadow duration-300 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)]">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-wider text-[#9ca3af]">{label}</p>
-            <p className="mt-1.5 text-2xl font-bold text-[#1a1a2e] tracking-tight">{value}</p>
-            <p className="mt-0.5 text-xs text-[#6b7280]">{detail}</p>
-          </div>
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors duration-300" style={{ backgroundColor: `${color}12` }}>
-            <Icon size={18} color={color} strokeWidth={2} />
-          </div>
-        </div>
-        {trend && (
-          <div className="mt-3 inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
-            <TrendingUp size={11} />
-            {trend}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-function Donut({ value, size = 160 }: { value: number; size?: number }) {
-  const stroke = 14;
+// ------------------------------------------------------------
+// DONUT (rediseñado)
+// ------------------------------------------------------------
+const Donut = ({ value, size = 170 }: { value: number; size?: number }) => {
+  const stroke = 12;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const color = statusColor(value);
@@ -214,7 +339,7 @@ function Donut({ value, size = 160 }: { value: number; size?: number }) {
   return (
     <div className="relative mx-auto flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#eef2ee" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={stroke} />
         <motion.circle
           cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeLinecap="round" strokeWidth={stroke}
           strokeDasharray={circumference}
@@ -224,45 +349,59 @@ function Donut({ value, size = 160 }: { value: number; size?: number }) {
         />
       </svg>
       <div className="absolute text-center">
-        <p className="text-[10px] font-medium uppercase tracking-widest text-[#9ca3af]">Ocupacion</p>
+        <p className="text-[10px] font-medium uppercase tracking-widest text-[#64748B]">Ocupación</p>
         <p className="text-4xl font-bold text-[#1a1a2e] tracking-tighter">{value}<span className="text-lg">%</span></p>
-        <p className="text-[11px] font-medium mt-0.5" style={{ color }}>
-          {value >= 82 ? "Alta demanda" : value >= 62 ? "Flujo medio" : "Operacion estable"}
+        <p className="text-xs font-medium mt-1" style={{ color }}>
+          {value >= 82 ? "Alta demanda" : value >= 62 ? "Flujo medio" : "Operación estable"}
         </p>
       </div>
     </div>
   );
-}
+};
 
-function CellGrid({ lot }: { lot: ParkingLot }) {
+// ------------------------------------------------------------
+// MAPA DE CELDAS (con leyenda)
+// ------------------------------------------------------------
+const CellGrid = ({ lot }: { lot: ParkingLot }) => {
   const cells = useMemo(() => makeCells(lot), [lot]);
   const colors: Record<CellStatus, string> = {
-    occupied: C.greenLight,
-    available: "#e8ece6",
-    reserved: C.amber,
-    maintenance: C.red,
+    occupied: COLORS.primary,
+    available: "#E2E8F0",
+    reserved: COLORS.amber,
+    maintenance: COLORS.red,
   };
 
   return (
-    <div className="rounded-lg bg-[#f8faf7] p-3 border border-[#e8ece6]">
-      <div className="grid grid-cols-10 gap-1 sm:grid-cols-12 md:grid-cols-14">
-        {cells.map((cell) => (
-          <motion.div
-            key={cell.id}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.25, delay: cell.delay }}
-            className="aspect-square rounded-sm"
-            style={{ backgroundColor: colors[cell.status] }}
-            title={cell.status}
-          />
-        ))}
+    <div>
+      <div className="rounded-xl bg-[#F8FAF9] p-4 border border-[#E2E8F0]">
+        <div className="grid grid-cols-10 gap-1.5 sm:grid-cols-12 md:grid-cols-14">
+          {cells.map((cell) => (
+            <motion.div
+              key={cell.id}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2, delay: cell.delay }}
+              className="aspect-square rounded-sm"
+              style={{ backgroundColor: colors[cell.status] }}
+              title={cell.status}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-4 text-xs text-[#64748B]">
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COLORS.primary }} /> Ocupadas</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "#E2E8F0" }} /> Libres</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COLORS.amber }} /> Reservadas</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COLORS.red }} /> Mantenimiento</span>
       </div>
     </div>
   );
-}
+};
 
-function LotRow({ lot, selected, onClick }: { lot: ParkingLot; selected: boolean; onClick: () => void }) {
+// ------------------------------------------------------------
+// LISTA DE PARQUEADEROS (con barra de progreso)
+// ------------------------------------------------------------
+const LotRow = ({ lot, selected, onClick }: { lot: ParkingLot; selected: boolean; onClick: () => void }) => {
   const pct = occupancyOf(lot);
   const color = statusColor(pct);
   const Icon = lot.type === "moto" ? Bike : lot.type === "car" ? Car : ParkingCircle;
@@ -270,25 +409,25 @@ function LotRow({ lot, selected, onClick }: { lot: ParkingLot; selected: boolean
   return (
     <button
       onClick={onClick}
-      className={`w-full rounded-lg border p-3 text-left transition-all duration-200 ${
+      className={`w-full rounded-xl border p-3 text-left transition-all duration-200 ${
         selected
-          ? "border-[#2E7D32]/30 bg-[#E8F5E9]/60 shadow-sm"
-          : "border-transparent bg-[#f8faf7] hover:bg-white hover:border-[#e8ece6] hover:shadow-sm"
+          ? "border-[#39A900] bg-[#EAF7E6] shadow-sm"
+          : "border-transparent bg-[#F8FAF9] hover:bg-white hover:border-[#E2E8F0] hover:shadow-sm"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md" style={{ backgroundColor: `${color}12` }}>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
             <Icon size={15} color={color} />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 text-left">
             <p className="text-sm font-semibold text-[#1a1a2e] truncate">{lot.name}</p>
-            <p className="text-[11px] text-[#9ca3af]">{lot.block}</p>
+            <p className="text-[11px] text-[#64748B]">{lot.block}</p>
           </div>
         </div>
         <p className="text-base font-bold shrink-0" style={{ color }}>{pct}%</p>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e8ece6]">
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E2E8F0]">
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -299,42 +438,47 @@ function LotRow({ lot, selected, onClick }: { lot: ParkingLot; selected: boolean
       </div>
     </button>
   );
-}
+};
 
-function HorizontalBars({ lots }: { lots: ParkingLot[] }) {
-  return (
-    <div className="space-y-3">
-      {lots.map((lot, index) => {
-        const occupiedPct = (lot.occupied / lot.capacity) * 100;
-        const reservedPct = (lot.reserved / lot.capacity) * 100;
-        const maintenancePct = (lot.maintenance / lot.capacity) * 100;
-        const color = statusColor(occupancyOf(lot));
+// ------------------------------------------------------------
+// BARRAS HORIZONTALES (apiladas)
+// ------------------------------------------------------------
+const HorizontalBars = ({ lots }: { lots: ParkingLot[] }) => (
+  <div className="space-y-3">
+    {lots.map((lot) => {
+      const occupiedPct = (lot.occupied / lot.capacity) * 100;
+      const reservedPct = (lot.reserved / lot.capacity) * 100;
+      const maintenancePct = (lot.maintenance / lot.capacity) * 100;
+      const color = statusColor(occupancyOf(lot));
 
-        return (
-          <div key={lot.id}>
-            <div className="mb-1 flex items-center justify-between text-xs">
-              <span className="font-medium text-[#1a1a2e]">{lot.name}</span>
-              <span className="text-[#9ca3af] font-medium">{lot.occupied}/{lot.capacity}</span>
-            </div>
-            <div className="flex h-2 overflow-hidden rounded-full bg-[#e8ece6]">
-              <motion.div initial={{ width: 0 }} whileInView={{ width: `${occupiedPct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: index * 0.04 }} style={{ backgroundColor: color }} />
-              <motion.div initial={{ width: 0 }} whileInView={{ width: `${reservedPct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: index * 0.04 + 0.04 }} style={{ backgroundColor: C.amber }} />
-              <motion.div initial={{ width: 0 }} whileInView={{ width: `${maintenancePct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: index * 0.04 + 0.08 }} style={{ backgroundColor: C.red }} />
-            </div>
+      return (
+        <div key={lot.id}>
+          <div className="mb-1 flex items-center justify-between text-xs">
+            <span className="font-medium text-[#1a1a2e]">{lot.name}</span>
+            <span className="text-[#64748B] font-medium">{lot.occupied}/{lot.capacity}</span>
           </div>
-        );
-      })}
-    </div>
-  );
-}
+          <div className="flex h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+            <motion.div initial={{ width: 0 }} whileInView={{ width: `${occupiedPct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.05 }} style={{ backgroundColor: color }} />
+            <motion.div initial={{ width: 0 }} whileInView={{ width: `${reservedPct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.1 }} style={{ backgroundColor: COLORS.amber }} />
+            <motion.div initial={{ width: 0 }} whileInView={{ width: `${maintenancePct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.15 }} style={{ backgroundColor: COLORS.red }} />
+          </div>
+        </div>
+      );
+    })}
+  </div>
+);
 
-function AreaChart() {
-  const points = [18, 28, 24, 40, 36, 52, 45, 61, 58, 76, 68, 84];
+// ------------------------------------------------------------
+// GRÁFICO DE ÁREA
+// ------------------------------------------------------------
+const AreaChart = ({ data }: { data: number[] }) => {
   const w = 340, h = 90;
-  const max = Math.max(...points), min = Math.min(...points);
-  const coords = points.map((v, i) => {
-    const x = (i / (points.length - 1)) * w;
-    const y = h - ((v - min) / (max - min)) * (h - 14) - 7;
+  const max = Math.max(...data, 1);
+  const min = Math.min(...data, 0);
+  const range = max - min || 1;
+  const coords = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 14) - 7;
     return [x, y] as const;
   });
   const line = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
@@ -343,22 +487,25 @@ function AreaChart() {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="h-24 w-full">
       <defs>
-        <linearGradient id="a" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={C.green} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={C.green} stopOpacity="0" />
+        <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor={COLORS.primary} stopOpacity="0.2" />
+          <stop offset="100%" stopColor={COLORS.primary} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} d={area} fill="url(#a)" />
+      <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} d={area} fill="url(#areaGrad)" />
       <motion.path
         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-        transition={{ duration: 1.3, ease: "easeOut" }}
-        d={line} fill="none" stroke={C.green} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3"
+        transition={{ duration: 1.2, ease: "easeOut" }}
+        d={line} fill="none" stroke={COLORS.primary} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3"
       />
     </svg>
   );
-}
+};
 
-function DistributionChart({ items }: { items: { label: string; value: number; color: string }[] }) {
+// ------------------------------------------------------------
+// GRÁFICO DE DISTRIBUCIÓN (anillo)
+// ------------------------------------------------------------
+const DistributionChart = ({ items }: { items: { label: string; value: number; color: string }[] }) => {
   const total = items.reduce((a, i) => a + i.value, 0);
   let cursor = 0;
   const gradient = items.map((item) => {
@@ -369,7 +516,7 @@ function DistributionChart({ items }: { items: { label: string; value: number; c
   }).join(", ");
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-5">
       <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full" style={{ background: `conic-gradient(${gradient})` }}>
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm">
           <span className="text-lg font-bold text-[#1a1a2e]">{total}</span>
@@ -378,143 +525,205 @@ function DistributionChart({ items }: { items: { label: string; value: number; c
       <div className="min-w-0 flex-1 space-y-1.5">
         {items.map((item) => (
           <div key={item.label} className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-            <span className="flex-1 truncate text-xs text-[#6b7280]">{item.label}</span>
+            <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+            <span className="flex-1 truncate text-xs text-[#64748B]">{item.label}</span>
             <span className="text-sm font-semibold text-[#1a1a2e]">{item.value}</span>
           </div>
         ))}
       </div>
     </div>
   );
-}
+};
 
+// ------------------------------------------------------------
+// DASHBOARD PRINCIPAL
+// ------------------------------------------------------------
 export default function Dashboard() {
   const now = useClock();
   const [filter, setFilter] = useState<"all" | "car" | "moto">("all");
-  const [selectedId, setSelectedId] = useState(parkingLots[0].id);
+  const [selectedId, setSelectedId] = useState(INITIAL_LOTS[0].id);
+
+  const { lots, movements, lastUpdate, isUpdating, refresh } = useParkingData();
+
+  useEffect(() => {
+    if (!lots.some((l) => l.id === selectedId)) {
+      setSelectedId(lots[0]?.id || INITIAL_LOTS[0].id);
+    }
+  }, [lots, selectedId]);
 
   const visibleLots = useMemo(() => {
-    if (filter === "all") return parkingLots;
-    return parkingLots.filter((l) => l.type === filter || l.type === "mixed");
-  }, [filter]);
+    if (filter === "all") return lots;
+    return lots.filter((l) => l.type === filter || l.type === "mixed");
+  }, [filter, lots]);
 
-  const selectedLot = visibleLots.find((l) => l.id === selectedId) ?? visibleLots[0] ?? parkingLots[0];
+  const selectedLot = visibleLots.find((l) => l.id === selectedId) ?? visibleLots[0] ?? lots[0] ?? INITIAL_LOTS[0];
 
   const totals = useMemo(() => {
-    const capacity = parkingLots.reduce((a, l) => a + l.capacity, 0);
-    const occupied = parkingLots.reduce((a, l) => a + l.occupied, 0);
-    const reserved = parkingLots.reduce((a, l) => a + l.reserved, 0);
-    const maintenance = parkingLots.reduce((a, l) => a + l.maintenance, 0);
-    const available = parkingLots.reduce((a, l) => a + availableOf(l), 0);
+    const capacity = lots.reduce((a, l) => a + l.capacity, 0);
+    const occupied = lots.reduce((a, l) => a + l.occupied, 0);
+    const reserved = lots.reduce((a, l) => a + l.reserved, 0);
+    const maintenance = lots.reduce((a, l) => a + l.maintenance, 0);
+    const available = lots.reduce((a, l) => a + availableOf(l), 0);
     return {
       capacity, occupied, reserved, maintenance, available,
-      pct: Math.round((occupied / capacity) * 100),
-      activeLots: parkingLots.filter((l) => l.status === "activo").length,
+      pct: capacity > 0 ? Math.round((occupied / capacity) * 100) : 0,
+      activeLots: lots.filter((l) => l.status === "activo").length,
     };
-  }, []);
+  }, [lots]);
 
   const alerts = useMemo(() => {
-    const high = parkingLots.filter((l) => occupancyOf(l) >= 82);
-    return [
-      ...high.map((l) => ({ label: `${l.name} al ${occupancyOf(l)}% — casi lleno`, tone: "red" as const })),
-      { label: `${totals.maintenance} celdas en mantenimiento`, tone: "amber" as const },
-      { label: "Todos los sistemas operan con normalidad", tone: "green" as const },
-    ];
-  }, [totals.maintenance]);
+    const high = lots.filter((l) => occupancyOf(l) >= 82);
+    const result = [];
+    if (high.length > 0) {
+      result.push({
+        label: `${high.length} parqueadero(s) al ${Math.max(...high.map(occupancyOf))}% — casi lleno`,
+        tone: "red" as const,
+      });
+    }
+    if (totals.maintenance > 0) {
+      result.push({
+        label: `${totals.maintenance} celdas en mantenimiento`,
+        tone: "amber" as const,
+      });
+    }
+    if (result.length === 0) {
+      result.push({
+        label: "Todos los sistemas operan con normalidad",
+        tone: "green" as const,
+      });
+    }
+    return result;
+  }, [lots, totals.maintenance]);
 
-  const selectedStats = [
-    { label: "Ocupadas", value: selectedLot.occupied, color: C.green },
-    { label: "Libres", value: availableOf(selectedLot), color: C.blue },
-    { label: "Reservadas", value: selectedLot.reserved, color: C.amber },
-    { label: "Mant.", value: selectedLot.maintenance, color: C.red },
-  ];
+  const selectedStats = useMemo(() => [
+    { label: "Ocupadas", value: selectedLot.occupied, color: COLORS.primary },
+    { label: "Libres", value: availableOf(selectedLot), color: COLORS.blue },
+    { label: "Reservadas", value: selectedLot.reserved, color: COLORS.amber },
+    { label: "Mant.", value: selectedLot.maintenance, color: COLORS.red },
+  ], [selectedLot]);
+
+  const areaData = useMemo(() => {
+    const currentPct = totals.pct;
+    return Array.from({ length: 12 }, (_, i) => {
+      const variation = Math.sin(i / 2) * 8 + (Math.random() * 6 - 3);
+      return Math.max(5, Math.min(95, currentPct + variation));
+    });
+  }, [totals.pct]);
+
+  const vehicleDistribution = useMemo(() => {
+    const cars = lots.reduce((acc, l) => acc + (l.type === "car" || l.type === "mixed" ? l.occupied : 0), 0);
+    const motos = lots.reduce((acc, l) => acc + (l.type === "moto" || l.type === "mixed" ? l.occupied : 0), 0);
+    return [
+      { label: "Automoviles", value: Math.round(cars * 0.7 + motos * 0.1), color: COLORS.blue },
+      { label: "Motos", value: Math.round(motos * 0.7 + cars * 0.1), color: COLORS.amber },
+      { label: "Reservas", value: totals.reserved, color: COLORS.primary },
+    ];
+  }, [lots, totals.reserved]);
+
+  const userDistribution = useMemo(() => {
+    const totalUsers = 165;
+    const base = Math.round(totalUsers * 0.52);
+    const admin = Math.round(totalUsers * 0.29);
+    const visit = totalUsers - base - admin;
+    return [
+      { label: "Docentes", value: base, color: COLORS.primary },
+      { label: "Administrativos", value: admin, color: COLORS.blue },
+      { label: "Visitantes", value: visit, color: COLORS.purple },
+    ];
+  }, []);
 
   return (
     <>
       <style>{`
         :root { color-scheme: light; }
-        body { margin: 0; background: ${C.bg}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { margin: 0; background: ${COLORS.background}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
         * { box-sizing: border-box; }
-        ::selection { background: ${C.green}; color: white; }
+        ::selection { background: ${COLORS.primary}; color: white; }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
-        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
       `}</style>
 
-      <main className="min-h-screen bg-[#f4f7f2] text-[#1a1a2e]">
+      <main className="min-h-screen bg-[#F5F7F8] text-[#1a1a2e]">
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -left-20 top-0 h-72 w-72 rounded-full bg-[#2E7D32]/[0.06] blur-3xl" />
-          <div className="absolute right-0 top-0 h-80 w-80 translate-x-1/4 rounded-full bg-[#2E7D32]/[0.05] blur-3xl" />
+          <div className="absolute -left-20 top-0 h-72 w-72 rounded-full bg-[#39A900]/[0.05] blur-3xl" />
+          <div className="absolute right-0 top-0 h-80 w-80 translate-x-1/4 rounded-full bg-[#39A900]/[0.04] blur-3xl" />
         </div>
 
         <motion.div
           initial="hidden"
           animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.05 } } }}
-          className="relative mx-auto flex w-full max-w-[1440px] flex-col gap-5 px-5 py-5"
+          variants={{ show: { transition: { staggerChildren: 0.04 } } }}
+          className="relative mx-auto max-w-[1440px] px-5 py-5"
         >
-          {/* Header */}
-          <motion.header variants={fadeUp} className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1B5E20] via-[#2E7D32] to-[#388E3C] p-6 text-white shadow-lg">
-            <div className="absolute right-10 top-6 h-20 w-20 rounded-full border border-white/10" />
-            <div className="absolute -right-8 -top-8 h-48 w-48 rounded-full bg-white/[0.04]" />
-            <div className="absolute bottom-0 left-1/4 h-20 w-60 rounded-full bg-black/10 blur-2xl" />
-
-            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-              <div className="flex items-start gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
-                  <ParkingCircle size={22} className="text-white" />
+          {/* ========== HEADER REDISEÑADO ========== */}
+          <motion.header variants={fadeUp} className="mb-6 flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0]">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#39A900] text-white shadow-md">
+                  <ParkingCircle size={24} strokeWidth={2} />
                 </div>
                 <div>
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wider ring-1 ring-white/15">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
-                    </span>
-                    Operativo en vivo
-                  </div>
-                  <h1 className="text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">SENA Parqueaderos</h1>
-                  <p className="mt-2 max-w-xl text-sm font-normal leading-relaxed text-white/60">
-                    Centro de control visual para ocupacion, flujo vehicular y disponibilidad de celdas en tiempo real.
-                  </p>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">SENA Parqueaderos</h1>
+                  <p className="text-sm text-[#64748B]">Centro de control en tiempo real</p>
                 </div>
               </div>
 
-              <div className="flex gap-3">
-                <div className="rounded-xl bg-white/10 px-4 py-3 ring-1 ring-white/15 backdrop-blur-sm">
-                  <CalendarDays size={15} className="mb-2 text-white/50" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Fecha</p>
-                  <p className="mt-0.5 text-sm font-semibold capitalize">{formatDate(now)}</p>
+              <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2 rounded-xl bg-[#F5F7F8] px-4 py-2">
+                  <CalendarDays size={16} className="text-[#64748B]" />
+                  <span className="text-sm font-medium text-[#1a1a2e] capitalize">{formatDate(now)}</span>
                 </div>
-                <div className="rounded-xl bg-white/10 px-4 py-3 ring-1 ring-white/15 backdrop-blur-sm">
-                  <Clock3 size={15} className="mb-2 text-white/50" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Hora</p>
-                  <p className="mt-0.5 text-xl font-bold">{formatClock(now)}</p>
+                <div className="flex items-center gap-2 rounded-xl bg-[#F5F7F8] px-4 py-2">
+                  <Clock3 size={16} className="text-[#64748B]" />
+                  <span className="text-sm font-mono font-bold text-[#1a1a2e]">{formatClock(now)}</span>
                 </div>
-                <div className="rounded-xl bg-white px-4 py-3 text-[#1B5E20] shadow-lg">
-                  <Gauge size={15} className="mb-2 text-[#1B5E20]/50" />
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#1B5E20]/40">Ocupacion</p>
-                  <p className="mt-0.5 text-2xl font-bold">{totals.pct}%</p>
+                <div className="flex items-center gap-3 rounded-xl bg-[#EAF7E6] px-4 py-2">
+                  <Gauge size={16} className="text-[#39A900]" />
+                  <div>
+                    <p className="text-xs font-medium text-[#64748B]">Ocupación</p>
+                    <p className="text-lg font-bold text-[#2D7D00]">{totals.pct}%</p>
+                  </div>
                 </div>
+                <button
+                  onClick={refresh}
+                  disabled={isUpdating}
+                  className="flex items-center gap-1.5 rounded-xl bg-[#39A900] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2D7D00] disabled:opacity-60 shadow-sm"
+                >
+                  <RefreshCw size={16} className={isUpdating ? "animate-spin" : ""} />
+                  Actualizar
+                </button>
               </div>
+            </div>
+            <div className="flex items-center gap-3 text-xs text-[#64748B]">
+              <span>Última actualización: {lastUpdate.toLocaleTimeString("es-CO")}</span>
+              {isUpdating && <span className="inline-block h-2 w-2 rounded-full bg-[#39A900] animate-pulse" />}
+              <span className="inline-flex items-center gap-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#39A900] opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#39A900]" />
+                </span>
+                Datos en vivo
+              </span>
             </div>
           </motion.header>
 
-          {/* KPIs */}
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={C.green} trend="+8% vs. ayer" />
-            <Kpi label="Disponibles" value={totals.available} detail={`${totals.reserved} reservas vigentes`} icon={DoorOpen} color={C.blue} />
-            <Kpi label="Vehiculos dentro" value={totals.occupied} detail="Automoviles y motos" icon={Car} color={C.amber} trend="Flujo alto" />
-            <Kpi label="Conductores" value="165" detail="Usuarios registrados" icon={Users} color={C.purple} />
+          {/* ========== KPIS ========== */}
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} />
+            <Kpi label="Disponibles" value={totals.available} detail={`${totals.reserved} reservas vigentes`} icon={DoorOpen} color={COLORS.blue} />
+            <Kpi label="Vehiculos dentro" value={totals.occupied} detail="Automoviles y motos" icon={Car} color={COLORS.amber} />
+            <Kpi label="Conductores" value="165" detail="Usuarios registrados" icon={Users} color={COLORS.purple} />
           </div>
 
-          {/* Main Grid */}
-          <div className="grid gap-5 xl:grid-cols-12">
-            {/* Mapa */}
+          {/* ========== FILA PRINCIPAL ========== */}
+          <div className="grid gap-6 xl:grid-cols-12">
+            {/* Mapa de celdas (8 columnas) */}
             <Card className="xl:col-span-8">
-              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <SectionTitle icon={LayoutDashboard} title="Mapa inteligente de celdas" subtitle="Selecciona un parqueadero" />
-                <div className="inline-flex items-center gap-1 rounded-lg bg-[#f4f7f2] p-1">
+              <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <SectionTitle icon={LayoutDashboard} title="Mapa inteligente de celdas" subtitle="Selecciona un parqueadero" color={COLORS.primary} />
+                <div className="inline-flex items-center gap-1 rounded-lg bg-[#F5F7F8] p-1">
                   {[
                     { id: "all", label: "Todos" },
                     { id: "car", label: "Autos" },
@@ -524,7 +733,7 @@ export default function Dashboard() {
                       key={tab.id}
                       onClick={() => setFilter(tab.id as "all" | "car" | "moto")}
                       className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-                        filter === tab.id ? "bg-white text-[#1B5E20] shadow-sm" : "text-[#6b7280] hover:text-[#1a1a2e]"
+                        filter === tab.id ? "bg-white text-[#2D7D00] shadow-sm border border-[#E2E8F0]" : "text-[#64748B] hover:text-[#1a1a2e]"
                       }`}
                     >
                       {tab.label}
@@ -533,8 +742,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="grid gap-4 lg:grid-cols-[16rem_1fr]">
-                <div className="max-h-[30rem] space-y-1.5 overflow-auto pr-1">
+              <div className="grid gap-5 lg:grid-cols-[15rem_1fr]">
+                <div className="max-h-[32rem] space-y-1.5 overflow-auto pr-1">
                   <AnimatePresence mode="popLayout">
                     {visibleLots.map((lot) => (
                       <LotRow key={lot.id} lot={lot} selected={selectedLot.id === lot.id} onClick={() => setSelectedId(lot.id)} />
@@ -542,16 +751,16 @@ export default function Dashboard() {
                   </AnimatePresence>
                 </div>
 
-                <div className="flex min-w-0 flex-col gap-3">
-                  <div className="flex items-end justify-between gap-4 rounded-xl bg-gradient-to-br from-[#1B5E20] to-[#2E7D32] p-4 text-white">
+                <div className="flex min-w-0 flex-col gap-4">
+                  <div className="flex items-end justify-between gap-4 rounded-2xl bg-gradient-to-br from-[#2D7D00] to-[#39A900] p-4 text-white shadow-md">
                     <div>
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Vista seleccionada</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Vista seleccionada</p>
                       <h3 className="mt-1 text-2xl font-bold">{selectedLot.name}</h3>
-                      <p className="text-xs text-white/50">{selectedLot.block} · {selectedLot.type === "mixed" ? "Mixto" : selectedLot.type === "moto" ? "Motos" : "Automoviles"}</p>
+                      <p className="text-xs text-white/70">{selectedLot.block} · {selectedLot.type === "mixed" ? "Mixto" : selectedLot.type === "moto" ? "Motos" : "Automoviles"}</p>
                     </div>
-                    <div className="rounded-lg bg-white/10 px-3 py-2 text-right ring-1 ring-white/15">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/40">Capacidad</p>
-                      <p className="text-xl font-bold">{selectedLot.capacity}</p>
+                    <div className="rounded-xl bg-white/20 px-4 py-2 text-right backdrop-blur-sm">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Capacidad</p>
+                      <p className="text-2xl font-bold">{selectedLot.capacity}</p>
                     </div>
                   </div>
 
@@ -559,9 +768,9 @@ export default function Dashboard() {
 
                   <div className="grid grid-cols-4 gap-2">
                     {selectedStats.map((stat) => (
-                      <div key={stat.label} className="rounded-lg border border-[#e8ece6] bg-[#f8faf7] p-2.5 text-center">
-                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af]">{stat.label}</p>
-                        <p className="mt-1 text-lg font-bold" style={{ color: stat.color }}>{stat.value}</p>
+                      <div key={stat.label} className="rounded-xl bg-[#F8FAF9] p-3 text-center border border-[#E2E8F0]">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">{stat.label}</p>
+                        <p className="mt-1 text-xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
                       </div>
                     ))}
                   </div>
@@ -569,37 +778,38 @@ export default function Dashboard() {
               </div>
             </Card>
 
-            {/* Panorama */}
-            <Card className="xl:col-span-4">
+            {/* Panorama + alertas (4 columnas) */}
+            <Card className="xl:col-span-4 flex flex-col">
               <SectionTitle icon={Gauge} title="Panorama general" subtitle="Estado consolidado" color={statusColor(totals.pct)} />
               <Donut value={totals.pct} />
               <div className="mt-4 grid grid-cols-3 gap-2">
                 {[
-                  { label: "Ocupadas", value: totals.occupied, color: C.green },
-                  { label: "Libres", value: totals.available, color: C.blue },
-                  { label: "Mant.", value: totals.maintenance, color: C.red },
+                  { label: "Ocupadas", value: totals.occupied, color: COLORS.primary },
+                  { label: "Libres", value: totals.available, color: COLORS.blue },
+                  { label: "Mant.", value: totals.maintenance, color: COLORS.red },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-lg bg-[#f8faf7] p-2.5 text-center border border-[#e8ece6]">
-                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#9ca3af]">{item.label}</p>
+                  <div key={item.label} className="rounded-xl bg-[#F8FAF9] p-3 text-center border border-[#E2E8F0]">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">{item.label}</p>
                     <p className="mt-1 text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 space-y-2">
+              <div className="mt-5 flex-1 space-y-2.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Alertas activas</p>
                 {alerts.map((alert, i) => {
-                  const color = alert.tone === "red" ? C.red : alert.tone === "amber" ? C.amber : C.green;
-                  const bg = alert.tone === "red" ? C.redPale : alert.tone === "amber" ? C.amberPale : C.greenPale;
+                  const color = alert.tone === "red" ? COLORS.red : alert.tone === "amber" ? COLORS.amber : COLORS.primary;
+                  const bg = alert.tone === "red" ? "#FEE2E2" : alert.tone === "amber" ? "#FEF3C7" : "#EAF7E6";
                   return (
                     <motion.div
                       key={alert.label}
                       initial={{ opacity: 0, x: -8 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: i * 0.1 }}
-                      className="flex items-center gap-2.5 rounded-lg p-2.5"
-                      style={{ backgroundColor: bg }}
+                      className="flex items-center gap-3 rounded-xl p-3 border"
+                      style={{ backgroundColor: bg, borderColor: color + "40" }}
                     >
-                      <AlertTriangle size={14} color={color} />
-                      <p className="text-xs font-medium text-[#1a1a2e]/80">{alert.label}</p>
+                      <AlertTriangle size={16} color={color} />
+                      <p className="text-sm font-medium text-[#1a1a2e]/80">{alert.label}</p>
                     </motion.div>
                   );
                 })}
@@ -607,60 +817,60 @@ export default function Dashboard() {
             </Card>
           </div>
 
-          {/* Middle Row */}
-          <div className="grid gap-5 xl:grid-cols-12">
-            {/* Flujo */}
+          {/* ========== FILA INTERMEDIA ========== */}
+          <div className="mt-6 grid gap-6 xl:grid-cols-12">
+            {/* Flujo del día */}
             <Card className="xl:col-span-5">
-              <SectionTitle icon={Activity} title="Flujo del dia" subtitle="Entradas y salidas por franja" color={C.green} />
-              <AreaChart />
-              <div className="mt-3 grid grid-cols-2 gap-3">
-                <div className="rounded-lg bg-emerald-50 p-3.5 border border-emerald-100">
-                  <div className="flex items-center gap-2 text-emerald-700">
-                    <DoorOpen size={16} />
-                    <p className="text-[10px] font-semibold uppercase tracking-wider">Entradas</p>
+              <SectionTitle icon={Activity} title="Flujo del día" subtitle="Entradas y salidas por franja" color={COLORS.primary} />
+              <AreaChart data={areaData} />
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="rounded-2xl bg-[#EAF7E6] p-4 border border-[#B3E6A1]">
+                  <div className="flex items-center gap-2 text-[#2D7D00]">
+                    <DoorOpen size={18} />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Entradas</p>
                   </div>
-                  <p className="mt-2 text-2xl font-bold text-emerald-700">96</p>
+                  <p className="mt-2 text-3xl font-bold text-[#2D7D00]">{movements.filter(m => m.kind === "entrada").length}</p>
                 </div>
-                <div className="rounded-lg bg-slate-50 p-3.5 border border-slate-100">
-                  <div className="flex items-center gap-2 text-slate-600">
-                    <DoorClosed size={16} />
-                    <p className="text-[10px] font-semibold uppercase tracking-wider">Salidas</p>
+                <div className="rounded-2xl bg-[#F1F5F9] p-4 border border-[#E2E8F0]">
+                  <div className="flex items-center gap-2 text-[#64748B]">
+                    <DoorClosed size={18} />
+                    <p className="text-xs font-semibold uppercase tracking-wider">Salidas</p>
                   </div>
-                  <p className="mt-2 text-2xl font-bold text-slate-700">74</p>
+                  <p className="mt-2 text-3xl font-bold text-[#1a1a2e]">{movements.filter(m => m.kind === "salida").length}</p>
                 </div>
               </div>
             </Card>
 
-            {/* Barras */}
+            {/* Ocupación por parqueadero */}
             <Card className="xl:col-span-4">
-              <SectionTitle icon={Building2} title="Ocupacion por parqueadero" subtitle="Ocupadas, reservas y mantenimiento" color={C.blue} />
-              <HorizontalBars lots={parkingLots} />
-              <div className="mt-3 flex flex-wrap gap-4 text-[11px] font-medium text-[#6b7280]">
-                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#2E7D32]" />Ocupadas</span>
-                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#f59e0b]" />Reservadas</span>
-                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#ef4444]" />Mant.</span>
+              <SectionTitle icon={Building2} title="Ocupación por parqueadero" subtitle="Ocupadas, reservas y mantenimiento" color={COLORS.blue} />
+              <HorizontalBars lots={lots} />
+              <div className="mt-4 flex flex-wrap gap-4 text-xs font-medium text-[#64748B]">
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS.primary }} />Ocupadas</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS.amber }} />Reservadas</span>
+                <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS.red }} />Mant.</span>
               </div>
             </Card>
 
-            {/* Distribucion */}
+            {/* Distribución */}
             <Card className="xl:col-span-3">
-              <SectionTitle icon={ShieldCheck} title="Distribucion" subtitle="Vehiculos y usuarios" color={C.purple} />
-              <div className="space-y-4">
+              <SectionTitle icon={ShieldCheck} title="Distribución" subtitle="Vehículos y usuarios" color={COLORS.purple} />
+              <div className="space-y-5">
                 <DistributionChart items={vehicleDistribution} />
-                <div className="h-px bg-[#e8ece6]" />
+                <div className="h-px bg-[#E2E8F0]" />
                 <DistributionChart items={userDistribution} />
               </div>
             </Card>
           </div>
 
-          {/* Bottom Row */}
-          <div className="grid gap-5 xl:grid-cols-12">
-            {/* Movimientos */}
+          {/* ========== FILA INFERIOR ========== */}
+          <div className="mt-6 grid gap-6 xl:grid-cols-12">
+            {/* Movimientos recientes */}
             <Card className="xl:col-span-8">
-              <SectionTitle icon={Zap} title="Movimientos recientes" subtitle="Ultimos registros de acceso" color={C.teal} />
-              <div className="grid gap-2 md:grid-cols-2">
+              <SectionTitle icon={Zap} title="Movimientos recientes" subtitle="Últimos registros de acceso" color={COLORS.teal} />
+              <div className="grid gap-3 md:grid-cols-2">
                 {movements.map((move, index) => {
-                  const lot = parkingLots.find((item) => item.id === move.lotId);
+                  const lot = lots.find((item) => item.id === move.lotId);
                   const isEntry = move.kind === "entrada";
                   return (
                     <motion.div
@@ -669,21 +879,21 @@ export default function Dashboard() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.3, delay: index * 0.04 }}
-                      className="flex items-center gap-3 rounded-lg border border-[#e8ece6] bg-[#f8faf7] p-3 hover:bg-white hover:shadow-sm transition-all duration-200"
+                      className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAF9] p-3 hover:bg-white hover:shadow-sm transition-all duration-200"
                     >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: isEntry ? C.greenPale : "#f1f5f9" }}>
-                        {isEntry ? <DoorOpen size={16} color={C.green} /> : <DoorClosed size={16} color={C.muted} />}
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: isEntry ? "#EAF7E6" : "#F1F5F9" }}>
+                        {isEntry ? <DoorOpen size={18} color={COLORS.primary} /> : <DoorClosed size={18} color="#64748B" />}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-semibold text-[#1a1a2e]">{move.plate}</p>
-                          <span className="rounded-md px-1.5 py-0.5 text-[10px] font-semibold uppercase" style={{ backgroundColor: isEntry ? C.greenPale : "#f1f5f9", color: isEntry ? C.greenDark : C.muted }}>
+                          <span className="rounded-md px-2 py-0.5 text-[10px] font-semibold uppercase" style={{ backgroundColor: isEntry ? "#EAF7E6" : "#F1F5F9", color: isEntry ? "#2D7D00" : "#64748B" }}>
                             {move.kind}
                           </span>
                         </div>
-                        <p className="truncate text-[11px] text-[#6b7280]">{move.driver} · {move.vehicle} · {lot?.name}</p>
+                        <p className="truncate text-xs text-[#64748B]">{move.driver} · {move.vehicle} · {lot?.name || move.lotId}</p>
                       </div>
-                      <p className="shrink-0 text-[11px] font-semibold text-[#9ca3af]">{move.minutesAgo} min</p>
+                      <p className="shrink-0 text-xs font-semibold text-[#64748B]">{move.minutesAgo} min</p>
                     </motion.div>
                   );
                 })}
@@ -692,18 +902,18 @@ export default function Dashboard() {
 
             {/* Estado operativo */}
             <Card className="xl:col-span-4">
-              <SectionTitle icon={Wrench} title="Estado operativo" subtitle="Equipos de acceso y seguridad" color={C.amber} />
-              <div className="space-y-2">
+              <SectionTitle icon={Wrench} title="Estado operativo" subtitle="Equipos de acceso y seguridad" color={COLORS.amber} />
+              <div className="space-y-2.5">
                 {[
-                  { label: "Barreras automaticas", value: "100%", icon: CheckCircle2, color: C.green },
-                  { label: "Camaras LPR", value: "12/12", icon: ShieldCheck, color: C.green },
-                  { label: "Celdas bloqueadas", value: totals.maintenance, icon: Wrench, color: C.amber },
-                  { label: "Tiempo medio ingreso", value: "18s", icon: Clock3, color: C.blue },
+                  { label: "Barreras automáticas", value: "100%", icon: CheckCircle2, color: COLORS.primary },
+                  { label: "Cámaras LPR", value: "12/12", icon: ShieldCheck, color: COLORS.primary },
+                  { label: "Celdas bloqueadas", value: totals.maintenance, icon: Wrench, color: COLORS.amber },
+                  { label: "Tiempo medio ingreso", value: "18s", icon: Clock3, color: COLORS.blue },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-lg bg-[#f8faf7] p-2.5 border border-[#e8ece6]">
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-white">
-                        <item.icon size={15} color={item.color} />
+                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl bg-[#F8FAF9] p-3 border border-[#E2E8F0]">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-[#E2E8F0]">
+                        <item.icon size={16} color={item.color} />
                       </div>
                       <p className="text-sm font-medium text-[#1a1a2e]">{item.label}</p>
                     </div>

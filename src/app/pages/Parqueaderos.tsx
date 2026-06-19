@@ -24,26 +24,28 @@ import {
 import { createWorker } from "tesseract.js";
 
 /* ============================================================
-   TEMA / CONSTANTES
+   TEMA / CONSTANTES (paleta de la landing page)
 ============================================================ */
 
 const COLORS = {
-  primary: "#2F8F00",
-  primaryDark: "#1E6000",
-  primaryLight: "#E8F5E1",
-  primaryBorder: "#C5E0AD",
-  bg: "#F4F7F2",
+  primary: "#39A900",
+  primaryDark: "#2D7D00",
+  primaryLight: "#B3E6A1",
+  primaryPale: "#EAF7E6",
+  background: "#F5F7F8",
   surface: "#FFFFFF",
-  text: "#0D1F05",
-  textSoft: "#4B6642",
-  textMuted: "#8FA884",
-  border: "#E2EBD9",
-  danger: "#C92020",
-  dangerBg: "#FFF0F0",
-  dangerBorder: "#FAC5C5",
-  info: "#2563EB",
+  text: "#000000",
+  textLight: "#64748B",
+  border: "#E2E8F0",
+  dark: "#000000",
+  danger: "#EF4444",
+  dangerBg: "#FEE2E2",
+  dangerBorder: "#FECACA",
+  info: "#3B82F6",
   infoBg: "#EFF6FF",
-} as const;
+  amber: "#F59E0B",
+  amberBg: "#FEF3C7",
+};
 
 type CeldaEstado = "libre" | "ocupado" | "sena";
 
@@ -123,7 +125,6 @@ const CONDUCTORES_DEMO = [
    UTILIDADES
 ============================================================ */
 
-// Formatos placa colombiana: ABC123 (carro), ABC12D (carro nuevo), AAA11A (moto)
 const PLACA_REGEX = /^[A-Z]{3}\d{2}[A-Z0-9]$/;
 
 const validarPlacaColombiana = (placa: string): boolean => PLACA_REGEX.test(placa.trim().toUpperCase());
@@ -444,7 +445,7 @@ function reducer(state: State, action: Action): State {
 }
 
 /* ============================================================
-   ESTILOS COMPARTIDOS
+   ESTILOS COMPARTIDOS (actualizados)
 ============================================================ */
 
 const inputStyle: React.CSSProperties = {
@@ -459,13 +460,14 @@ const inputStyle: React.CSSProperties = {
   background: COLORS.surface,
   outline: "none",
   boxSizing: "border-box",
+  transition: "border-color 0.15s ease",
 };
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  fontSize: 12,
+  fontSize: 11,
   fontWeight: 700,
-  color: COLORS.textSoft,
+  color: COLORS.textLight,
   marginBottom: 6,
   textTransform: "uppercase",
   letterSpacing: ".06em",
@@ -480,6 +482,7 @@ const btnPrimary: React.CSSProperties = {
   fontWeight: 800,
   color: "#fff",
   cursor: "pointer",
+  transition: "background 0.15s ease",
 };
 
 const btnSecondary: React.CSSProperties = {
@@ -489,8 +492,9 @@ const btnSecondary: React.CSSProperties = {
   background: COLORS.surface,
   fontSize: 13,
   fontWeight: 700,
-  color: COLORS.textSoft,
+  color: COLORS.textLight,
   cursor: "pointer",
+  transition: "border-color 0.15s ease, background 0.15s ease",
 };
 
 const iconBtnStyle: React.CSSProperties = {
@@ -498,12 +502,13 @@ const iconBtnStyle: React.CSSProperties = {
   height: 34,
   borderRadius: 10,
   border: `1px solid ${COLORS.border}`,
-  background: COLORS.bg,
+  background: COLORS.surface,
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  color: COLORS.textSoft,
+  color: COLORS.textLight,
+  transition: "border-color 0.15s ease, background 0.15s ease",
 };
 
 /* ============================================================
@@ -597,7 +602,7 @@ const ModalHeader = memo(
     >
       <div>
         {eyebrow && (
-          <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textMuted, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 2 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: COLORS.textLight, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 2 }}>
             {eyebrow}
           </div>
         )}
@@ -647,7 +652,7 @@ const ConfirmDialog = memo(({ open, onConfirm, onCancel, title, message, confirm
         <h3 id="confirm-title" style={{ fontSize: 18, fontWeight: 900, color: COLORS.text, margin: 0 }}>
           {title}
         </h3>
-        <p style={{ fontSize: 14, color: COLORS.textSoft, marginTop: 8, lineHeight: 1.5 }}>{message}</p>
+        <p style={{ fontSize: 14, color: COLORS.textLight, marginTop: 8, lineHeight: 1.5 }}>{message}</p>
         <div style={{ display: "flex", gap: 10, marginTop: 20, justifyContent: "flex-end" }}>
           <button onClick={onCancel} style={btnSecondary}>
             Cancelar
@@ -724,7 +729,7 @@ const CeldaCard = memo(({ celda, onClick }: { celda: Celda; onClick: () => void 
       onMouseEnter={(e) => {
         if (celda.estado !== "sena") {
           e.currentTarget.style.transform = "scale(1.04)";
-          e.currentTarget.style.boxShadow = "0 6px 20px rgba(47,143,0,.18)";
+          e.currentTarget.style.boxShadow = "0 6px 20px rgba(57,169,0,.18)";
         }
       }}
       onMouseLeave={(e) => {
@@ -845,9 +850,9 @@ const ParkingMap = memo(
       <div ref={containerRef} style={{ position: "relative", width: "100%", overflow: "hidden", borderRadius: 20, border: `1px solid ${COLORS.border}`, background: "#FAFCF8" }}>
         <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", flexDirection: "column", gap: 6 }}>
           {[
-            { icon: <ZoomIn size={16} color={COLORS.textSoft} />, label: "Acercar", action: () => setZoom((z) => Math.min(2, z + 0.2)) },
-            { icon: <ZoomOut size={16} color={COLORS.textSoft} />, label: "Alejar", action: () => setZoom((z) => Math.max(0.5, z - 0.2)) },
-            { icon: <Maximize2 size={14} color={COLORS.textSoft} />, label: "Reiniciar zoom", action: () => setZoom(1) },
+            { icon: <ZoomIn size={16} color={COLORS.textLight} />, label: "Acercar", action: () => setZoom((z) => Math.min(2, z + 0.2)) },
+            { icon: <ZoomOut size={16} color={COLORS.textLight} />, label: "Alejar", action: () => setZoom((z) => Math.max(0.5, z - 0.2)) },
+            { icon: <Maximize2 size={14} color={COLORS.textLight} />, label: "Reiniciar zoom", action: () => setZoom(1) },
           ].map((b) => (
             <button
               key={b.label}
@@ -892,7 +897,7 @@ const ParkingMap = memo(
             <line x1={0} y1={PADDING - 20 + ROAD_W / 2} x2={totalWidth} y2={PADDING - 20 + ROAD_W / 2} stroke="#FFF" strokeWidth="2" strokeDasharray="8,6" opacity="0.6" />
 
             <g transform={`translate(${PADDING + 10}, ${PADDING - 20 + ROAD_W / 2 - 6})`}>
-              <rect x={-22} y={-10} width={44} height={20} rx={10} fill="#2F8F00" />
+              <rect x={-22} y={-10} width={44} height={20} rx={10} fill={COLORS.primary} />
               <text x={0} y={4} textAnchor="middle" fill="#fff" fontSize={8} fontWeight="800">
                 ENTRADA
               </text>
@@ -900,7 +905,7 @@ const ParkingMap = memo(
             </g>
 
             <g transform={`translate(${totalWidth - PADDING - 10}, ${PADDING - 20 + ROAD_W / 2 - 6})`}>
-              <rect x={-22} y={-10} width={44} height={20} rx={10} fill="#C92020" />
+              <rect x={-22} y={-10} width={44} height={20} rx={10} fill={COLORS.danger} />
               <text x={0} y={4} textAnchor="middle" fill="#fff" fontSize={8} fontWeight="800">
                 SALIDA
               </text>
@@ -910,8 +915,7 @@ const ParkingMap = memo(
             {lotLayouts.map((layout, idx) => {
               const { pq, rows, lotHeight, lotY, celdasPerRow, libres, ocupados, senaCount, pctOcupacion } = layout;
               const lotWidth = PADDING + celdasPerRow * (SPACE_W + GAP_X) + PADDING;
-              const isEven = idx % 2 === 0;
-              const headerColor = pctOcupacion > 80 ? "#C92020" : pctOcupacion > 50 ? "#B45309" : isEven ? "#2F8F00" : "#1E6000";
+              const headerColor = pctOcupacion > 80 ? COLORS.danger : pctOcupacion > 50 ? COLORS.amber : COLORS.primary;
 
               return (
                 <g key={pq.id}>
@@ -923,19 +927,19 @@ const ParkingMap = memo(
                   <text x={lotWidth - 80} y={lotY + 8} textAnchor="end" fill="rgba(255,255,255,.8)" fontSize={8} fontWeight="600">
                     {libres} libres · {ocupados} ocup. {senaCount > 0 ? `· ${senaCount} SENA` : ""}
                   </text>
-                  <text x={30} y={lotY + 42} fill={COLORS.textMuted} fontSize={8} fontWeight="700">
+                  <text x={30} y={lotY + 42} fill={COLORS.textLight} fontSize={8} fontWeight="700">
                     BLOQUE: {pq.bloque.toUpperCase()} · ZONA {pq.tipo.toUpperCase()}
                   </text>
                   <rect x={PADDING - 8} y={lotY + 20} width={8} height={lotHeight - 30} fill="url(#roadGrad)" rx="2" />
-                  <text x={PADDING - 4} y={lotY + 40} textAnchor="middle" fill={COLORS.textMuted} fontSize={10}>↑</text>
-                  <text x={PADDING - 4} y={lotY + lotHeight - 20} textAnchor="middle" fill={COLORS.textMuted} fontSize={10}>↓</text>
+                  <text x={PADDING - 4} y={lotY + 40} textAnchor="middle" fill={COLORS.textLight} fontSize={10}>↑</text>
+                  <text x={PADDING - 4} y={lotY + lotHeight - 20} textAnchor="middle" fill={COLORS.textLight} fontSize={10}>↓</text>
 
                   {rows.map((row, rowIdx) =>
                     row.isLane ? (
                       <g key={`lane-${rowIdx}`}>
                         <rect x={PADDING - 4} y={row.y - 4} width={celdasPerRow * (SPACE_W + GAP_X) + 8} height={LANE_H - 4} fill="url(#roadGrad)" rx="3" />
                         <line x1={PADDING} y1={row.y + LANE_H / 2 - 6} x2={PADDING + celdasPerRow * (SPACE_W + GAP_X)} y2={row.y + LANE_H / 2 - 6} stroke="#FFF" strokeWidth="1" strokeDasharray="4,4" opacity="0.5" />
-                        <text x={PADDING + (celdasPerRow * (SPACE_W + GAP_X)) / 2} y={row.y + LANE_H / 2 - 2} textAnchor="middle" fill={COLORS.textMuted} fontSize={12} opacity="0.5">
+                        <text x={PADDING + (celdasPerRow * (SPACE_W + GAP_X)) / 2} y={row.y + LANE_H / 2 - 2} textAnchor="middle" fill={COLORS.textLight} fontSize={12} opacity="0.5">
                           ← →
                         </text>
                       </g>
@@ -1003,7 +1007,7 @@ const ParkingMap = memo(
 
             <g>
               <rect x={PADDING} y={totalHeight - PADDING + 10} width={totalWidth - PADDING * 2} height={28} fill="#F0F4ED" rx="8" stroke={COLORS.border} strokeWidth="1" />
-              <text x={totalWidth / 2} y={totalHeight - PADDING + 28} textAnchor="middle" fill={COLORS.textMuted} fontSize={8} fontWeight="600">
+              <text x={totalWidth / 2} y={totalHeight - PADDING + 28} textAnchor="middle" fill={COLORS.textLight} fontSize={8} fontWeight="600">
                 MAPA DE PARQUEADEROS · SENA · {new Date().toLocaleDateString("es-CO")}
               </text>
             </g>
@@ -1014,11 +1018,11 @@ const ParkingMap = memo(
           {(Object.entries(CELDA_CONFIG) as [CeldaEstado, CeldaConfigItem][]).map(([key, cfg]) => (
             <div key={key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
               <div style={{ width: 16, height: 10, borderRadius: 3, background: cfg.mapFill, border: `1.5px solid ${cfg.mapStroke}` }} />
-              <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textSoft }}>{cfg.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textLight }}>{cfg.label}</span>
             </div>
           ))}
           <div style={{ width: 1, height: 14, background: COLORS.border }} />
-          <span style={{ fontSize: 10, color: COLORS.textMuted, fontWeight: 500 }}>
+          <span style={{ fontSize: 10, color: COLORS.textLight, fontWeight: 500 }}>
             {parqueaderos.length} parqueadero{parqueaderos.length !== 1 ? "s" : ""} · Zoom: {(zoom * 100).toFixed(0)}%
           </span>
         </div>
@@ -1116,7 +1120,6 @@ function preprocesarFrame(video: HTMLVideoElement): string {
 
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  // Recorte centrado: la franja donde normalmente está la placa (rectángulo guía)
   const cropW = canvas.width * 0.55;
   const cropH = canvas.height * (1 / 3);
   const cropX = (canvas.width - cropW) / 2;
@@ -1129,7 +1132,6 @@ function preprocesarFrame(video: HTMLVideoElement): string {
   if (!cctx) throw new Error("No se pudo crear el contexto de recorte");
   cctx.drawImage(canvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
 
-  // Escala de grises + contraste/binarizado simple (mejora drásticamente el OCR de placas)
   const imgData = cctx.getImageData(0, 0, cropped.width, cropped.height);
   const data = imgData.data;
   for (let i = 0; i < data.length; i += 4) {
@@ -1176,7 +1178,6 @@ export default function Parqueaderos() {
   const streamRef = useRef<MediaStream | null>(null);
   const { procesar } = useOcrPlaca();
 
-  // Refresca cada minuto el tiempo estacionado mostrado en celdas ocupadas
   useEffect(() => {
     const id = setInterval(() => forceTick(), 60000);
     return () => clearInterval(id);
@@ -1207,8 +1208,6 @@ export default function Parqueaderos() {
     if (!state.celdaActiva) return null;
     return state.parqueaderos.find((p) => p.id === state.celdaActiva!.parqueaderoId) ?? null;
   }, [state.celdaActiva, state.parqueaderos]);
-
-  /* ---------- Cámara / OCR ---------- */
 
   const cerrarCamara = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -1247,8 +1246,6 @@ export default function Parqueaderos() {
     }
   }, [procesar, cerrarCamara]);
 
-  /* ---------- CRUD parqueaderos ---------- */
-
   const handleCreate = useCallback(() => {
     if (!state.form.nombre.trim()) {
       dispatch({ type: "SET_PLACA_ERROR", error: null });
@@ -1276,8 +1273,6 @@ export default function Parqueaderos() {
     }
     dispatch({ type: "EDIT_PARQUEADERO", id: state.parqueaderoEditandoId, nombre: state.form.nombre, total: state.form.total });
   }, [state.parqueaderoEditandoId, state.form]);
-
-  /* ---------- Celdas / vehículos ---------- */
 
   const handleClickCelda = useCallback((parqueaderoId: number, celda: Celda) => {
     if (celda.estado === "sena") return;
@@ -1334,7 +1329,7 @@ export default function Parqueaderos() {
   ============================================================ */
 
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.bg, padding: "16px" }}>
+    <div style={{ minHeight: "100vh", background: COLORS.background, padding: "16px" }}>
       <style>{`
         @media (min-width: 640px) {
           .park-hero { padding: 28px 32px !important; }
@@ -1355,7 +1350,7 @@ export default function Parqueaderos() {
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
 
-      {/* ---------- HERO / STATS ---------- */}
+      {/* ---------- HERO / STATS (rediseñado con la nueva paleta) ---------- */}
       <div
         className="park-hero"
         style={{
@@ -1363,7 +1358,7 @@ export default function Parqueaderos() {
           borderRadius: 24,
           padding: "20px 20px",
           marginBottom: 16,
-          boxShadow: `0 12px 40px rgba(47,143,0,.25)`,
+          boxShadow: `0 12px 40px rgba(57,169,0,.25)`,
           position: "relative",
           overflow: "hidden",
         }}
@@ -1414,19 +1409,19 @@ export default function Parqueaderos() {
           {(Object.entries(CELDA_CONFIG) as [CeldaEstado, CeldaConfigItem][]).map(([key, cfg]) => (
             <div key={key} style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.surface, borderRadius: 99, padding: "5px 12px", border: `1px solid ${COLORS.border}` }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.dotColor }} />
-              <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textSoft }}>{cfg.label}</span>
+              <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textLight }}>{cfg.label}</span>
             </div>
           ))}
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 12, color: COLORS.textMuted, fontWeight: 500 }}>
+          <span style={{ fontSize: 12, color: COLORS.textLight, fontWeight: 500 }}>
             {state.parqueaderos.length} parqueadero{state.parqueaderos.length !== 1 ? "s" : ""}
           </span>
           <div style={{ display: "flex", borderRadius: 10, border: `1px solid ${COLORS.border}`, overflow: "hidden", background: COLORS.surface }}>
             <button
               onClick={() => dispatch({ type: "SET_VIEW", view: "map" })}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: "none", background: state.view === "map" ? COLORS.primary : "transparent", color: state.view === "map" ? "#fff" : COLORS.textSoft, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: "none", background: state.view === "map" ? COLORS.primary : "transparent", color: state.view === "map" ? "#fff" : COLORS.textLight, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
               aria-label="Vista mapa"
             >
               <MapIcon size={13} />
@@ -1434,7 +1429,7 @@ export default function Parqueaderos() {
             </button>
             <button
               onClick={() => dispatch({ type: "SET_VIEW", view: "cards" })}
-              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: "none", borderLeft: `1px solid ${COLORS.border}`, background: state.view === "cards" ? COLORS.primary : "transparent", color: state.view === "cards" ? "#fff" : COLORS.textSoft, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 5, padding: "7px 14px", border: "none", borderLeft: `1px solid ${COLORS.border}`, background: state.view === "cards" ? COLORS.primary : "transparent", color: state.view === "cards" ? "#fff" : COLORS.textLight, fontSize: 12, fontWeight: 700, cursor: "pointer" }}
               aria-label="Vista tarjetas"
             >
               <LayoutGrid size={13} />
@@ -1458,7 +1453,7 @@ export default function Parqueaderos() {
                 <div style={{ padding: "16px 18px 14px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 10, background: COLORS.primaryLight, border: `1px solid ${COLORS.primaryBorder}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 10, background: COLORS.primaryPale, border: `1px solid ${COLORS.primaryLight}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                         <ParkingCircle size={16} color={COLORS.primary} />
                       </div>
                       <h2 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: COLORS.text }}>{sanitizeText(parqueadero.nombre)}</h2>
@@ -1471,15 +1466,15 @@ export default function Parqueaderos() {
                       ].map((s) => (
                         <div key={s.label} style={{ display: "flex", alignItems: "center", gap: 5 }}>
                           <span style={{ width: 7, height: 7, borderRadius: "50%", background: s.dot, flexShrink: 0 }} />
-                          <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textSoft }}>{s.label}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textLight }}>{s.label}</span>
                         </div>
                       ))}
                     </div>
                     <div style={{ marginTop: 10 }}>
                       <div style={{ height: 4, borderRadius: 99, background: COLORS.border, overflow: "hidden" }}>
-                        <div style={{ height: "100%", width: `${pct}%`, background: pct > 80 ? "#EF4444" : pct > 50 ? "#F59E0B" : COLORS.primary, borderRadius: 99, transition: "width .3s ease" }} />
+                        <div style={{ height: "100%", width: `${pct}%`, background: pct > 80 ? COLORS.danger : pct > 50 ? COLORS.amber : COLORS.primary, borderRadius: 99, transition: "width .3s ease" }} />
                       </div>
-                      <div style={{ fontSize: 10, color: COLORS.textMuted, marginTop: 3, fontWeight: 600 }}>{pct}% de ocupación</div>
+                      <div style={{ fontSize: 10, color: COLORS.textLight, marginTop: 3, fontWeight: 600 }}>{pct}% de ocupación</div>
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
@@ -1555,7 +1550,7 @@ export default function Parqueaderos() {
                 <Camera size={16} />
               </button>
             </div>
-            <div style={{ fontSize: 11, color: COLORS.textMuted, marginTop: 6 }}>Formatos válidos: ABC123, ABC12D, AAA11A</div>
+            <div style={{ fontSize: 11, color: COLORS.textLight, marginTop: 6 }}>Formatos válidos: ABC123, ABC12D, AAA11A</div>
             {state.placaError && <div style={{ marginTop: 8 }}><Banner tone="danger" message={state.placaError} /></div>}
           </div>
           <div>
@@ -1596,18 +1591,18 @@ export default function Parqueaderos() {
         <ModalHeader eyebrow={`Celda ${state.celdaActiva?.codigo ?? ""} · ${parqueaderoActivo?.nombre ?? ""}`} title="Vehículo Estacionado" onClose={() => dispatch({ type: "CLOSE_MODAL" })} />
         {celdaActiva && (
           <div style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14 }}>
-            <div style={{ background: COLORS.bg, borderRadius: 14, padding: "16px 18px", textAlign: "center" }}>
+            <div style={{ background: COLORS.background, borderRadius: 14, padding: "16px 18px", textAlign: "center" }}>
               <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.text, letterSpacing: ".08em" }}>{celdaActiva.placa}</div>
-              <div style={{ fontSize: 13, color: COLORS.textSoft, marginTop: 4, fontWeight: 600 }}>{celdaActiva.conductor}</div>
+              <div style={{ fontSize: 13, color: COLORS.textLight, marginTop: 4, fontWeight: 600 }}>{celdaActiva.conductor}</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <div style={{ background: COLORS.bg, borderRadius: 12, padding: "10px 12px" }}>
+              <div style={{ background: COLORS.background, borderRadius: 12, padding: "10px 12px" }}>
                 <div style={labelStyle}>Ingreso</div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>
                   {celdaActiva.fechaIngreso} · {celdaActiva.horaIngreso}
                 </div>
               </div>
-              <div style={{ background: COLORS.bg, borderRadius: 12, padding: "10px 12px" }}>
+              <div style={{ background: COLORS.background, borderRadius: 12, padding: "10px 12px" }}>
                 <div style={labelStyle}>
                   <Clock size={10} style={{ display: "inline", marginRight: 4, verticalAlign: "-1px" }} />
                   Tiempo
@@ -1633,7 +1628,7 @@ export default function Parqueaderos() {
         <div style={{ padding: "16px 20px", borderBottom: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: COLORS.text }}>Escanear Matrícula</h2>
-            <p style={{ margin: "2px 0 0", fontSize: 12, color: COLORS.textMuted }}>Reconocimiento óptico de caracteres (OCR)</p>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: COLORS.textLight }}>Reconocimiento óptico de caracteres (OCR)</p>
           </div>
           <button onClick={() => dispatch({ type: "OPEN_MODAL", modal: "ingreso" })} style={iconBtnStyle} aria-label="Cerrar escáner">
             <X size={16} />
@@ -1651,7 +1646,7 @@ export default function Parqueaderos() {
             </div>
           )}
           {state.ocrSuccessFlash && !state.ocrLoading && (
-            <div style={{ position: "absolute", inset: 0, background: "rgba(47,143,0,.85)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
+            <div style={{ position: "absolute", inset: 0, background: "rgba(57,169,0,.85)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10 }}>
               <CheckCircle2 size={32} color="#fff" />
               <span style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>Matrícula detectada: {state.vehiculoForm.placa}</span>
             </div>
