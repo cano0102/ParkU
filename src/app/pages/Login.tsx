@@ -30,11 +30,21 @@ function useAnimated() {
   return visible;
 }
 
+interface ValidationErrors {
+  email?: string;
+  password?: string;
+}
+
 export function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({
+    email: false,
+    password: false,
+  });
 
   const { login, googleLogin, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -46,8 +56,75 @@ export function Login() {
     }
   }, [isAuthenticated, navigate]);
 
+  // Validaciones en tiempo real
+  useEffect(() => {
+    if (touched.email) {
+      validateEmail(email);
+    }
+    if (touched.password) {
+      validatePassword(password);
+    }
+  }, [email, password, touched]);
+
+  const validateEmail = (value: string): boolean => {
+    if (!value.trim()) {
+      setErrors((prev) => ({ ...prev, email: "El correo electrónico es obligatorio" }));
+      return false;
+    }
+    
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      setErrors((prev) => ({ ...prev, email: "Ingresa un correo electrónico válido" }));
+      return false;
+    }
+    
+    setErrors((prev) => ({ ...prev, email: undefined }));
+    return true;
+  };
+
+  const validatePassword = (value: string): boolean => {
+    if (!value) {
+      setErrors((prev) => ({ ...prev, password: "La contraseña es obligatoria" }));
+      return false;
+    }
+    
+    if (value.length < 6) {
+      setErrors((prev) => ({ ...prev, password: "La contraseña debe tener al menos 6 caracteres" }));
+      return false;
+    }
+    
+    setErrors((prev) => ({ ...prev, password: undefined }));
+    return true;
+  };
+
+  const validateForm = (): boolean => {
+    const isEmailValid = validateEmail(email);
+    const isPasswordValid = validatePassword(password);
+    
+    // Marcar todos los campos como tocados para mostrar errores
+    setTouched({ email: true, password: true });
+    
+    return isEmailValid && isPasswordValid;
+  };
+
+  const handleBlur = (field: "email" | "password") => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    
+    if (field === "email") {
+      validateEmail(email);
+    } else {
+      validatePassword(password);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      toast.error("Por favor, corrige los errores en el formulario");
+      return;
+    }
+    
     setLoading(true);
     try {
       const success = await login(email, password);
@@ -78,6 +155,8 @@ export function Login() {
       setLoading(false);
     }
   };
+
+  const isFormValid = email.trim() && password.length >= 6 && !errors.email && !errors.password;
 
   return (
     <>
@@ -444,6 +523,7 @@ export function Login() {
                   flexDirection: "column",
                   gap: "1rem",
                 }}
+                noValidate
               >
                 {/* EMAIL */}
 
@@ -464,18 +544,32 @@ export function Login() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    onBlur={() => handleBlur("email")}
                     placeholder="correo@sena.edu.co"
-                    required
                     style={{
                       width: "100%",
                       padding: "14px 16px",
                       borderRadius: 12,
-                      border: `1px solid ${COLORS.border}`,
+                      border: `1px solid ${errors.email && touched.email ? "#EF4444" : COLORS.border}`,
                       background: "#fff",
                       fontSize: 14,
                       outline: "none",
+                      transition: "border-color .2s",
                     }}
                   />
+                  
+                  {errors.email && touched.email && (
+                    <p
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        color: "#EF4444",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {errors.email}
+                    </p>
+                  )}
                 </div>
 
                 {/* PASSWORD */}
@@ -502,16 +596,17 @@ export function Login() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      onBlur={() => handleBlur("password")}
                       placeholder="••••••••"
-                      required
                       style={{
                         width: "100%",
                         padding: "14px 48px 14px 16px",
                         borderRadius: 12,
-                        border: `1px solid ${COLORS.border}`,
+                        border: `1px solid ${errors.password && touched.password ? "#EF4444" : COLORS.border}`,
                         background: "#fff",
                         fontSize: 14,
                         outline: "none",
+                        transition: "border-color .2s",
                       }}
                     />
 
@@ -533,6 +628,19 @@ export function Login() {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                  
+                  {errors.password && touched.password && (
+                    <p
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        color: "#EF4444",
+                        fontWeight: 600,
+                      }}
+                    >
+                      {errors.password}
+                    </p>
+                  )}
                 </div>
 
                 {/* FORGOT */}
@@ -560,17 +668,18 @@ export function Login() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !isFormValid}
                   style={{
                     border: "none",
-                    background: loading ? "#94A3B8" : COLORS.primary,
+                    background: loading || !isFormValid ? "#94A3B8" : COLORS.primary,
                     color: "#fff",
                     padding: "14px 20px",
                     borderRadius: 14,
                     fontWeight: 800,
-                    cursor: loading ? "not-allowed" : "pointer",
+                    cursor: loading || !isFormValid ? "not-allowed" : "pointer",
                     fontSize: 14,
-                    boxShadow: "0 8px 22px rgba(57,169,0,.2)",
+                    boxShadow: loading || !isFormValid ? "none" : "0 8px 22px rgba(57,169,0,.2)",
+                    opacity: loading || !isFormValid ? 0.7 : 1,
                   }}
                 >
                   {loading ? "Verificando..." : "Ingresar"}
@@ -589,12 +698,13 @@ export function Login() {
                     padding: "14px 20px",
                     borderRadius: 14,
                     fontWeight: 700,
-                    cursor: "pointer",
+                    cursor: loading ? "not-allowed" : "pointer",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 10,
                     fontSize: 13,
+                    opacity: loading ? 0.7 : 1,
                   }}
                 >
                   <img
