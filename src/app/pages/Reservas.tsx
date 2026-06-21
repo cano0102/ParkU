@@ -31,6 +31,7 @@ const C = {
   textLight:   "#64748B",
   border:      "#E2E8F0",
   bg:          "#F5F7F8",
+  danger:      "#EF4444",
 };
 
 /* ─── Estado config ─────────────────────────────────── */
@@ -44,6 +45,14 @@ const ESTADO_CONFIG: Record<EstadoReserva, {
   completada: { bg: "#DBEAFE", text: "#1E40AF", border: "#BFDBFE", dot: "#3B82F6", label: "Completada", icon: <CheckCircle2 size={10} /> },
   cancelada:  { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA", dot: "#EF4444", label: "Cancelada", icon: <XCircle size={10} /> },
 };
+
+/* ─── Helpers de tiempo ──────────────────────────────── */
+const toMinutes = (hhmm: string) => {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+};
+
+const todayStr = () => new Date().toISOString().split("T")[0];
 
 /* ─── Modal reutilizable (mismo que Roles) ─── */
 function Modal({
@@ -78,6 +87,8 @@ function Modal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         style={{
           width: "100%", maxWidth,
           maxHeight: "92vh",
@@ -132,11 +143,14 @@ export function Reservas() {
   const [viewingReserva, setViewingReserva] = useState<Reserva | null>(null);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoReserva>("todos");
+  const [confirmDelete, setConfirmDelete] = useState<Reserva | null>(null);
+  const [formErrors, setFormErrors] = useState<string[]>([]);
 
   const [formData, setFormData] = useState({
     vehiculoId: "",
+    parqueaderoId: "",
     celdaId: "",
-    fechaReserva: new Date().toISOString().split("T")[0],
+    fechaReserva: todayStr(),
     horaInicio: "08:00",
     horaFin: "18:00",
     estado: "pendiente" as EstadoReserva,
@@ -159,6 +173,11 @@ export function Reservas() {
 
   const celdasDisponibles = celdas.filter(c => c.estado === "disponible" || c.estado === "reservada");
 
+  const celdasDelParqueadero = useMemo(
+    () => celdasDisponibles.filter(c => c.parqueaderoId === formData.parqueaderoId),
+    [celdasDisponibles, formData.parqueaderoId]
+  );
+
   /* ── Stats ──────────────────────────────────────────── */
   const counts = {
     pendiente: reservas.filter(r => r.estado === "pendiente").length,
@@ -169,30 +188,65 @@ export function Reservas() {
 
   /* ── Filtered data ──────────────────────────────────── */
   const filteredReservas = useMemo(() => {
-    return reservas.filter(reserva => {
-      const vehiculo = getVehiculo(reserva.vehiculoId);
-      const celda = getCelda(reserva.celdaId);
-      const usuario = getUsuarioConductor(reserva.vehiculoId);
-      const q = search.toLowerCase();
+    return reservas
+      .filter(reserva => {
+        const vehiculo = getVehiculo(reserva.vehiculoId);
+        const celda = getCelda(reserva.celdaId);
+        const usuario = getUsuarioConductor(reserva.vehiculoId);
+        const q = search.toLowerCase();
 
-      const matchesSearch =
-        vehiculo?.placa.toLowerCase().includes(q) ||
-        celda?.numero.toLowerCase().includes(q) ||
-        usuario?.nombre.toLowerCase().includes(q) ||
-        reserva.fechaReserva.includes(search);
+        const matchesSearch =
+          vehiculo?.placa.toLowerCase().includes(q) ||
+          celda?.numero.toLowerCase().includes(q) ||
+          usuario?.nombre.toLowerCase().includes(q) ||
+          reserva.fechaReserva.includes(search);
 
-      const matchesEstado = filterEstado === "todos" || reserva.estado === filterEstado;
-      return matchesSearch && matchesEstado;
-    });
+        const matchesEstado = filterEstado === "todos" || reserva.estado === filterEstado;
+        return matchesSearch && matchesEstado;
+      })
+      .sort((a, b) => {
+        // Más próximas primero (fecha + hora de inicio)
+        const da = `${a.fechaReserva} ${a.horaInicio}`;
+        const db = `${b.fechaReserva} ${b.horaInicio}`;
+        return da.localeCompare(db);
+      });
   }, [reservas, search, filterEstado]);
+
+  /* ── Validación de solapamiento de horario en la misma celda ── */
+  const findOverlap = (
+    celdaId: string,
+    fecha: string,
+    horaInicio: string,
+    horaFin: string,
+    excludeId?: string
+  ): Reserva | null => {
+    const inicio = toMinutes(horaInicio);
+    const fin = toMinutes(horaFin);
+
+    const conflicto = reservas.find(r => {
+      if (r.id === excludeId) return false;
+      if (r.celdaId !== celdaId) return false;
+      if (r.fechaReserva !== fecha) return false;
+      if (r.estado === "cancelada") return false;
+
+      const rInicio = toMinutes(r.horaInicio);
+      const rFin = toMinutes(r.horaFin);
+      // Hay solapamiento si los rangos se cruzan
+      return inicio < rFin && fin > rInicio;
+    });
+
+    return conflicto || null;
+  };
 
   /* ── Handlers ───────────────────────────────────────── */
   const openCreate = () => {
     setEditingReserva(null);
+    setFormErrors([]);
     setFormData({
       vehiculoId: "",
+      parqueaderoId: "",
       celdaId: "",
-      fechaReserva: new Date().toISOString().split("T")[0],
+      fechaReserva: todayStr(),
       horaInicio: "08:00",
       horaFin: "18:00",
       estado: "pendiente",
@@ -202,8 +256,11 @@ export function Reservas() {
 
   const openEdit = (reserva: Reserva) => {
     setEditingReserva(reserva);
+    setFormErrors([]);
+    const celdaActual = getCelda(reserva.celdaId);
     setFormData({
       vehiculoId: reserva.vehiculoId,
+      parqueaderoId: celdaActual?.parqueaderoId || "",
       celdaId: reserva.celdaId,
       fechaReserva: reserva.fechaReserva,
       horaInicio: reserva.horaInicio,
@@ -214,27 +271,83 @@ export function Reservas() {
     setDialogOpen(true);
   };
 
+  const validate = (): string[] => {
+    const errors: string[] = [];
+
+    if (!formData.vehiculoId) errors.push("Selecciona un vehículo");
+    if (!formData.parqueaderoId) errors.push("Selecciona un parqueadero");
+    if (!formData.celdaId) errors.push("Selecciona una celda");
+    if (!formData.fechaReserva) errors.push("La fecha es requerida");
+    if (!formData.horaInicio || !formData.horaFin) errors.push("El horario es requerido");
+
+    // La celda debe pertenecer al parqueadero seleccionado
+    if (formData.celdaId && formData.parqueaderoId) {
+      const celdaSel = getCelda(formData.celdaId);
+      if (celdaSel && celdaSel.parqueaderoId !== formData.parqueaderoId) {
+        errors.push("La celda seleccionada no pertenece al parqueadero elegido");
+      }
+    }
+
+    if (formData.horaInicio && formData.horaFin) {
+      if (toMinutes(formData.horaFin) <= toMinutes(formData.horaInicio)) {
+        errors.push("La hora de fin debe ser posterior a la hora de inicio");
+      }
+    }
+
+    // No permitir reservas en fechas pasadas al crear una nueva
+    if (!editingReserva && formData.fechaReserva && formData.fechaReserva < todayStr()) {
+      errors.push("No puedes crear una reserva en una fecha pasada");
+    }
+
+    // Validar que no haya cruce de horario en la misma celda y fecha
+    if (formData.celdaId && formData.fechaReserva && formData.horaInicio && formData.horaFin) {
+      const conflicto = findOverlap(
+        formData.celdaId,
+        formData.fechaReserva,
+        formData.horaInicio,
+        formData.horaFin,
+        editingReserva?.id
+      );
+      if (conflicto) {
+        const vConflicto = getVehiculo(conflicto.vehiculoId);
+        errors.push(
+          `La celda ya está reservada de ${conflicto.horaInicio} a ${conflicto.horaFin} (vehículo ${vConflicto?.placa || "—"})`
+        );
+      }
+    }
+
+    return errors;
+  };
+
   const handleSave = () => {
-    if (!formData.vehiculoId) { toast.error("Selecciona un vehículo"); return; }
-    if (!formData.celdaId) { toast.error("Selecciona una celda"); return; }
-    if (!formData.fechaReserva) { toast.error("La fecha es requerida"); return; }
-    if (!formData.horaInicio || !formData.horaFin) { toast.error("El horario es requerido"); return; }
+    const errors = validate();
+    setFormErrors(errors);
+    if (errors.length > 0) {
+      toast.error(errors[0]);
+      return;
+    }
+
+    const { parqueaderoId, ...payload } = formData;
 
     if (editingReserva) {
-      updateReserva(editingReserva.id, formData);
+      updateReserva(editingReserva.id, payload);
       toast.success("Reserva actualizada correctamente");
     } else {
-      addReserva(formData);
+      addReserva(payload);
       toast.success("Reserva registrada correctamente");
     }
     setDialogOpen(false);
   };
 
   const handleDelete = (reserva: Reserva) => {
-    if (confirm(`¿Eliminar la reserva para el vehículo ${getVehiculo(reserva.vehiculoId)?.placa}?`)) {
-      deleteReserva(reserva.id);
-      toast.success("Reserva eliminada correctamente");
-    }
+    setConfirmDelete(reserva);
+  };
+
+  const confirmDeleteAction = () => {
+    if (!confirmDelete) return;
+    deleteReserva(confirmDelete.id);
+    toast.success("Reserva eliminada correctamente");
+    setConfirmDelete(null);
   };
 
   const activeFiltersCount = [search, filterEstado !== "todos" ? filterEstado : ""].filter(Boolean).length;
@@ -243,13 +356,18 @@ export function Reservas() {
   // Calcular duración
   const getDuracion = () => {
     if (!formData.horaInicio || !formData.horaFin) return null;
-    const [h1, m1] = formData.horaInicio.split(":").map(Number);
-    const [h2, m2] = formData.horaFin.split(":").map(Number);
-    const mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+    const mins = toMinutes(formData.horaFin) - toMinutes(formData.horaInicio);
     if (mins <= 0) return null;
     const h = Math.floor(mins / 60), m = mins % 60;
     return h > 0 ? `${h}h ${m > 0 ? m + "min" : ""}`.trim() : `${m}min`;
   };
+
+  // Conflicto en vivo, mientras se llena el formulario (antes de guardar)
+  const liveConflict = useMemo(() => {
+    if (!formData.celdaId || !formData.fechaReserva || !formData.horaInicio || !formData.horaFin) return null;
+    if (toMinutes(formData.horaFin) <= toMinutes(formData.horaInicio)) return null;
+    return findOverlap(formData.celdaId, formData.fechaReserva, formData.horaInicio, formData.horaFin, editingReserva?.id);
+  }, [formData.celdaId, formData.fechaReserva, formData.horaInicio, formData.horaFin, reservas, editingReserva]);
 
   return (
     <>
@@ -317,7 +435,11 @@ export function Reservas() {
                   <div
                     key={s.label}
                     className="stat-card"
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isActive}
                     onClick={() => setFilterEstado(isActive ? "todos" : s.estado as EstadoReserva)}
+                    onKeyDown={(e) => { if (e.key === "Enter") setFilterEstado(isActive ? "todos" : s.estado as EstadoReserva); }}
                     style={{
                       background: "rgba(255,255,255,.12)",
                       border: `1px solid ${isActive ? "#fff" : "rgba(255,255,255,.2)"}`,
@@ -342,6 +464,7 @@ export function Reservas() {
           <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
             <input
+              aria-label="Buscar reserva"
               placeholder="Buscar por placa, conductor, celda o fecha..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -351,9 +474,22 @@ export function Reservas() {
                 fontFamily: "inherit",
               }}
             />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                aria-label="Limpiar búsqueda"
+                style={{
+                  position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer", color: C.textLight,
+                }}
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           <select
+            aria-label="Filtrar por estado"
             value={filterEstado}
             onChange={(e) => setFilterEstado(e.target.value as any)}
             style={{
@@ -446,6 +582,7 @@ export function Reservas() {
                 const usuario = getUsuarioConductor(reserva.vehiculoId);
                 const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
                 const cfg = ESTADO_CONFIG[reserva.estado as EstadoReserva];
+                const esPasada = reserva.fechaReserva < todayStr() && reserva.estado !== "completada" && reserva.estado !== "cancelada";
 
                 return (
                   <div
@@ -517,6 +654,12 @@ export function Reservas() {
                         <Calendar size={10} color={C.textLight} />
                         <span style={{ fontSize: 11, color: C.text }}>{reserva.fechaReserva}</span>
                       </div>
+                      {esPasada && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 3, marginTop: 2 }}>
+                          <AlertCircle size={9} color={C.danger} />
+                          <span style={{ fontSize: 9, color: C.danger, fontWeight: 700 }}>Vencida</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Estado */}
@@ -536,6 +679,7 @@ export function Reservas() {
                       <button
                         className="action-btn"
                         title="Ver detalle"
+                        aria-label="Ver detalle de la reserva"
                         onClick={() => { setViewingReserva(reserva); setViewOpen(true); }}
                         style={{
                           width: 28, height: 28, borderRadius: 7,
@@ -549,6 +693,7 @@ export function Reservas() {
                       <button
                         className="action-btn"
                         title="Editar"
+                        aria-label="Editar reserva"
                         onClick={() => openEdit(reserva)}
                         style={{
                           width: 28, height: 28, borderRadius: 7,
@@ -562,6 +707,7 @@ export function Reservas() {
                       <button
                         className="action-btn"
                         title="Eliminar"
+                        aria-label="Eliminar reserva"
                         onClick={() => handleDelete(reserva)}
                         style={{
                           width: 28, height: 28, borderRadius: 7,
@@ -625,6 +771,7 @@ export function Reservas() {
             </div>
             <button
               onClick={() => setDialogOpen(false)}
+              aria-label="Cerrar"
               style={{
                 width: 34, height: 34, borderRadius: 9,
                 border: `1px solid ${C.border}`,
@@ -638,13 +785,31 @@ export function Reservas() {
 
           {/* Body */}
           <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
+
+            {/* Errores de validación */}
+            {formErrors.length > 0 && (
+              <div style={{
+                marginBottom: 14, padding: "10px 12px", borderRadius: 11,
+                background: "#FEF2F2", border: "1px solid #FECACA",
+                display: "flex", flexDirection: "column", gap: 4,
+              }}>
+                {formErrors.map((err, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: "#991B1B" }}>
+                    <AlertCircle size={13} style={{ marginTop: 1, flexShrink: 0 }} />
+                    <span>{err}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {/* Vehículo */}
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="vehiculoId" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Vehículo *
                 </label>
                 <select
+                  id="vehiculoId"
                   value={formData.vehiculoId}
                   onChange={(e) => setFormData({ ...formData, vehiculoId: e.target.value })}
                   style={{
@@ -660,41 +825,97 @@ export function Reservas() {
                     </option>
                   ))}
                 </select>
+
+                {/* Dueño / conductor del vehículo seleccionado */}
+                {formData.vehiculoId && (() => {
+                  const usuarioVehiculo = getUsuarioConductor(formData.vehiculoId);
+                  return (
+                    <div style={{
+                      marginTop: 8, padding: "10px 12px", borderRadius: 11,
+                      background: usuarioVehiculo ? "#F0FDF4" : "#FEF3C7",
+                      border: `1px solid ${usuarioVehiculo ? "#BBF7D0" : "#FDE68A"}`,
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                      <UserCircle2 size={14} color={usuarioVehiculo ? C.primary : "#92400E"} />
+                      {usuarioVehiculo ? (
+                        <span style={{ fontSize: 12, color: C.text }}>
+                          Dueño: <strong>{usuarioVehiculo.nombre}</strong>
+                          {usuarioVehiculo.identificacion ? ` · ${usuarioVehiculo.identificacion}` : ""}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: "#92400E" }}>
+                          Este vehículo no tiene un conductor/dueño asignado
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Celda */}
+              {/* Parqueadero */}
               <div style={{ gridColumn: "1 / -1" }}>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Celda *
+                <label htmlFor="parqueaderoId" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Parqueadero *
                 </label>
                 <select
-                  value={formData.celdaId}
-                  onChange={(e) => setFormData({ ...formData, celdaId: e.target.value })}
+                  id="parqueaderoId"
+                  value={formData.parqueaderoId}
+                  onChange={(e) => setFormData({ ...formData, parqueaderoId: e.target.value, celdaId: "" })}
                   style={{
                     width: "100%", padding: "11px 14px", borderRadius: 11,
                     border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
                     fontFamily: "inherit", background: "#F8FAFC",
                   }}
                 >
-                  <option value="">Seleccionar celda...</option>
-                  {celdasDisponibles.map(c => {
-                    const pq = getParqueadero(c.parqueaderoId);
-                    return (
-                      <option key={c.id} value={c.id}>
-                        Celda {c.numero} — {pq?.nombre || "Parqueadero"}
-                      </option>
-                    );
-                  })}
+                  <option value="">Seleccionar parqueadero...</option>
+                  {parqueaderos.map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre}</option>
+                  ))}
                 </select>
+              </div>
+
+              {/* Celda */}
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label htmlFor="celdaId" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Celda *
+                </label>
+                <select
+                  id="celdaId"
+                  value={formData.celdaId}
+                  disabled={!formData.parqueaderoId}
+                  onChange={(e) => setFormData({ ...formData, celdaId: e.target.value })}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: formData.parqueaderoId ? "#F8FAFC" : "#F1F5F9",
+                    cursor: formData.parqueaderoId ? "pointer" : "not-allowed",
+                  }}
+                >
+                  <option value="">
+                    {formData.parqueaderoId ? "Seleccionar celda..." : "Primero selecciona un parqueadero"}
+                  </option>
+                  {celdasDelParqueadero.map(c => (
+                    <option key={c.id} value={c.id}>
+                      Celda {c.numero}
+                    </option>
+                  ))}
+                </select>
+                {formData.parqueaderoId && celdasDelParqueadero.length === 0 && (
+                  <p style={{ fontSize: 11, color: C.danger, marginTop: 6 }}>
+                    Este parqueadero no tiene celdas disponibles
+                  </p>
+                )}
               </div>
 
               {/* Fecha */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="fechaReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Fecha de reserva *
                 </label>
                 <input
+                  id="fechaReserva"
                   type="date"
+                  min={editingReserva ? undefined : todayStr()}
                   value={formData.fechaReserva}
                   onChange={(e) => setFormData({ ...formData, fechaReserva: e.target.value })}
                   style={{
@@ -707,10 +928,11 @@ export function Reservas() {
 
               {/* Estado */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="estado" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Estado
                 </label>
                 <select
+                  id="estado"
                   value={formData.estado}
                   onChange={(e) => setFormData({ ...formData, estado: e.target.value as EstadoReserva })}
                   style={{
@@ -728,10 +950,11 @@ export function Reservas() {
 
               {/* Hora inicio */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="horaInicio" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Hora de inicio *
                 </label>
                 <input
+                  id="horaInicio"
                   type="time"
                   value={formData.horaInicio}
                   onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
@@ -745,10 +968,11 @@ export function Reservas() {
 
               {/* Hora fin */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="horaFin" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Hora de fin *
                 </label>
                 <input
+                  id="horaFin"
                   type="time"
                   value={formData.horaFin}
                   onChange={(e) => setFormData({ ...formData, horaFin: e.target.value })}
@@ -771,6 +995,23 @@ export function Reservas() {
                     <Clock size={14} color={C.primary} />
                     <span style={{ fontSize: 12, color: C.text }}>
                       Duración: <strong>{getDuracion()}</strong>
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Aviso de conflicto en vivo */}
+              {liveConflict && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <div style={{
+                    display: "flex", alignItems: "flex-start", gap: 8,
+                    padding: "10px 12px", borderRadius: 11,
+                    background: "#FEF2F2", border: "1px solid #FECACA",
+                  }}>
+                    <AlertCircle size={14} color={C.danger} style={{ marginTop: 1, flexShrink: 0 }} />
+                    <span style={{ fontSize: 12, color: "#991B1B" }}>
+                      Esta celda ya tiene una reserva de <strong>{liveConflict.horaInicio} a {liveConflict.horaFin}</strong> ese día
+                      (vehículo {getVehiculo(liveConflict.vehiculoId)?.placa || "—"}).
                     </span>
                   </div>
                 </div>
@@ -850,6 +1091,7 @@ export function Reservas() {
                     </div>
                     <button
                       onClick={() => setViewOpen(false)}
+                      aria-label="Cerrar"
                       style={{
                         width: 32, height: 32, borderRadius: 9,
                         background: "rgba(255,255,255,.15)", border: "none",
@@ -922,6 +1164,48 @@ export function Reservas() {
             </div>
           );
         })()}
+      </Modal>
+
+      {/* ── MODAL CONFIRMAR ELIMINACIÓN ── */}
+      <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} maxWidth={380}>
+        <div style={{ padding: "1.8rem" }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: "#FEE2E2",
+            display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
+          }}>
+            <Trash2 size={20} color={C.danger} />
+          </div>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 6 }}>
+            ¿Eliminar reserva?
+          </h3>
+          <p style={{ fontSize: 12, color: C.textLight, marginBottom: 20, lineHeight: 1.5 }}>
+            La reserva del vehículo <strong>{confirmDelete ? getVehiculo(confirmDelete.vehiculoId)?.placa || "—" : ""}</strong>{" "}
+            para el {confirmDelete?.fechaReserva} se eliminará permanentemente. Esta acción no se puede revertir.
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button
+              onClick={() => setConfirmDelete(null)}
+              style={{
+                padding: "9px 16px", borderRadius: 10,
+                border: `1px solid ${C.border}`, background: "#fff",
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                color: C.text,
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmDeleteAction}
+              style={{
+                padding: "9px 16px", borderRadius: 10,
+                border: "none", background: C.danger, color: "#fff",
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
       </Modal>
     </>
   );

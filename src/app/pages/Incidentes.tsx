@@ -33,6 +33,8 @@ const C = {
   success:     "#22C55E",
 };
 
+const MAX_EVIDENCIA_MB = 5;
+
 /* ─── Tipo de estado ─── */
 type EstadoIncidente = 'resuelto' | 'pendiente';
 type Incidente = {
@@ -44,6 +46,7 @@ type Incidente = {
   fecha: string;
   estado: EstadoIncidente;
   asignadoA?: string;
+  notasResolucion?: string;
 };
 
 /* ─── Configuración de estado ─── */
@@ -87,6 +90,8 @@ function Modal({
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
         style={{
           width: "100%", maxWidth,
           maxHeight: "92vh",
@@ -149,6 +154,7 @@ export function Incidentes() {
       parqueadero: 'Parqueadero Norte',
       fecha: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
       estado: 'resuelto',
+      notasResolucion: 'Se reemplazó la luminaria por una nueva de mayor potencia.',
     },
     {
       id: '3',
@@ -166,6 +172,7 @@ export function Incidentes() {
   const [filterEstado, setFilterEstado] = useState<'todos' | EstadoIncidente>('todos');
   const [selectedIncidente, setSelectedIncidente] = useState<Incidente | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState<Incidente | null>(null);
 
   const [formData, setFormData] = useState({
     descripcion: '',
@@ -173,6 +180,7 @@ export function Incidentes() {
     vehiculo: '',
     evidencia: '',
     asignadoA: '',
+    notasResolucion: '',
   });
 
   /* ─── Stats ──────────────────────────────────────────── */
@@ -182,7 +190,7 @@ export function Incidentes() {
 
   /* ─── Handlers ───────────────────────────────────────── */
   const resetForm = () => {
-    setFormData({ descripcion: '', parqueadero: '', vehiculo: '', evidencia: '', asignadoA: '' });
+    setFormData({ descripcion: '', parqueadero: '', vehiculo: '', evidencia: '', asignadoA: '', notasResolucion: '' });
     setIsEditing(false);
     setSelectedIncidente(null);
   };
@@ -200,6 +208,7 @@ export function Incidentes() {
       vehiculo: incidente.vehiculo || '',
       evidencia: incidente.evidencia || '',
       asignadoA: incidente.asignadoA || '',
+      notasResolucion: incidente.notasResolucion || '',
     });
     setIsEditing(true);
     setViewOpen(false);
@@ -214,7 +223,9 @@ export function Incidentes() {
 
     if (isEditing && selectedIncidente) {
       setIncidentes(incidentes.map(inc =>
-        inc.id === selectedIncidente.id ? { ...inc, ...formData, vehiculo: formData.vehiculo || undefined } : inc
+        inc.id === selectedIncidente.id
+          ? { ...inc, ...formData, vehiculo: formData.vehiculo || undefined, notasResolucion: formData.notasResolucion || undefined }
+          : inc
       ));
       toast.success('Incidente actualizado correctamente');
     } else {
@@ -224,6 +235,7 @@ export function Incidentes() {
         vehiculo: formData.vehiculo || undefined,
         evidencia: formData.evidencia || undefined,
         asignadoA: formData.asignadoA || undefined,
+        notasResolucion: formData.notasResolucion || undefined,
         fecha: new Date().toISOString(),
         estado: 'pendiente',
       };
@@ -235,10 +247,14 @@ export function Incidentes() {
   };
 
   const handleDelete = (incidente: Incidente) => {
-    if (confirm(`¿Eliminar el incidente?`)) {
-      setIncidentes(incidentes.filter(i => i.id !== incidente.id));
-      toast.success('Incidente eliminado');
-    }
+    setConfirmDelete(incidente);
+  };
+
+  const confirmDeleteAction = () => {
+    if (!confirmDelete) return;
+    setIncidentes(incidentes.filter(i => i.id !== confirmDelete.id));
+    toast.success('Incidente eliminado');
+    setConfirmDelete(null);
   };
 
   const toggleEstado = (id: string) => {
@@ -252,27 +268,44 @@ export function Incidentes() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData({ ...formData, evidencia: reader.result as string });
-      };
-      reader.readAsDataURL(file);
-      toast.success('Evidencia cargada');
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('El archivo debe ser una imagen');
+      return;
     }
+
+    if (file.size > MAX_EVIDENCIA_MB * 1024 * 1024) {
+      toast.error(`La imagen no debe superar ${MAX_EVIDENCIA_MB}MB`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setFormData({ ...formData, evidencia: reader.result as string });
+      toast.success('Evidencia cargada');
+    };
+    reader.onerror = () => toast.error('No se pudo cargar la imagen');
+    reader.readAsDataURL(file);
   };
 
-  /* ─── Filtered data ──────────────────────────────────── */
+  const removeEvidencia = () => {
+    setFormData({ ...formData, evidencia: '' });
+  };
+
+  /* ─── Filtered + sorted data ─────────────────────────── */
   const filteredIncidentes = useMemo(() =>
-    incidentes.filter(inc => {
-      const q = search.toLowerCase();
-      const matchesSearch =
-        inc.descripcion.toLowerCase().includes(q) ||
-        inc.parqueadero.toLowerCase().includes(q) ||
-        (inc.vehiculo && inc.vehiculo.toLowerCase().includes(q));
-      const matchesEstado = filterEstado === 'todos' ? true : inc.estado === filterEstado;
-      return matchesSearch && matchesEstado;
-    }),
+    incidentes
+      .filter(inc => {
+        const q = search.toLowerCase();
+        const matchesSearch =
+          inc.descripcion.toLowerCase().includes(q) ||
+          inc.parqueadero.toLowerCase().includes(q) ||
+          (inc.vehiculo && inc.vehiculo.toLowerCase().includes(q));
+        const matchesEstado = filterEstado === 'todos' ? true : inc.estado === filterEstado;
+        return matchesSearch && matchesEstado;
+      })
+      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()),
     [incidentes, search, filterEstado]
   );
 
@@ -357,6 +390,7 @@ export function Incidentes() {
           <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
             <input
+              aria-label="Buscar incidente"
               placeholder="Buscar incidente por descripción, parqueadero o placa..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -369,6 +403,7 @@ export function Incidentes() {
             {search && (
               <button
                 onClick={() => setSearch('')}
+                aria-label="Limpiar búsqueda"
                 style={{
                   position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
                   background: "none", border: "none", cursor: "pointer", color: C.textLight,
@@ -380,6 +415,7 @@ export function Incidentes() {
           </div>
 
           <select
+            aria-label="Filtrar por estado"
             value={filterEstado}
             onChange={(e) => setFilterEstado(e.target.value as any)}
             style={{
@@ -530,6 +566,9 @@ export function Incidentes() {
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <button
                           onClick={() => toggleEstado(incidente.id)}
+                          role="switch"
+                          aria-checked={incidente.estado === 'resuelto'}
+                          aria-label={`Marcar incidente como ${incidente.estado === 'resuelto' ? 'pendiente' : 'resuelto'}`}
                           style={{
                             width: 36, height: 20, borderRadius: 999,
                             background: incidente.estado === 'resuelto' ? C.success : C.warning,
@@ -553,6 +592,7 @@ export function Incidentes() {
                         <button
                           className="action-btn"
                           title="Ver detalle"
+                          aria-label="Ver detalle del incidente"
                           onClick={() => { setSelectedIncidente(incidente); setViewOpen(true); }}
                           style={{
                             width: 28, height: 28, borderRadius: 7,
@@ -566,6 +606,7 @@ export function Incidentes() {
                         <button
                           className="action-btn"
                           title="Editar"
+                          aria-label="Editar incidente"
                           onClick={() => openEdit(incidente)}
                           style={{
                             width: 28, height: 28, borderRadius: 7,
@@ -579,6 +620,7 @@ export function Incidentes() {
                         <button
                           className="delete-btn"
                           title="Eliminar"
+                          aria-label="Eliminar incidente"
                           onClick={() => handleDelete(incidente)}
                           style={{
                             width: 28, height: 28, borderRadius: 7,
@@ -633,6 +675,7 @@ export function Incidentes() {
             </div>
             <button
               onClick={() => { setDialogOpen(false); resetForm(); }}
+              aria-label="Cerrar"
               style={{
                 width: 34, height: 34, borderRadius: 9,
                 border: `1px solid ${C.border}`,
@@ -649,10 +692,11 @@ export function Incidentes() {
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Descripción */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="descripcion" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Descripción *
                 </label>
                 <textarea
+                  id="descripcion"
                   rows={3}
                   placeholder="Describe el incidente o novedad..."
                   value={formData.descripcion}
@@ -667,10 +711,11 @@ export function Incidentes() {
 
               {/* Parqueadero */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="parqueadero" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Parqueadero *
                 </label>
                 <select
+                  id="parqueadero"
                   value={formData.parqueadero}
                   onChange={(e) => setFormData({ ...formData, parqueadero: e.target.value })}
                   style={{
@@ -688,10 +733,11 @@ export function Incidentes() {
 
               {/* Vehículo */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="vehiculo" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Vehículo (opcional)
                 </label>
                 <select
+                  id="vehiculo"
                   value={formData.vehiculo}
                   onChange={(e) => setFormData({ ...formData, vehiculo: e.target.value })}
                   style={{
@@ -711,10 +757,11 @@ export function Incidentes() {
 
               {/* Asignado a */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                <label htmlFor="asignadoA" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Asignar a
                 </label>
                 <input
+                  id="asignadoA"
                   type="text"
                   placeholder="Nombre del responsable"
                   value={formData.asignadoA}
@@ -726,6 +773,27 @@ export function Incidentes() {
                   }}
                 />
               </div>
+
+              {/* Notas de resolución (solo si está editando un incidente resuelto, o si quiere dejarlas listas) */}
+              {isEditing && selectedIncidente?.estado === 'resuelto' && (
+                <div>
+                  <label htmlFor="notasResolucion" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                    Notas de resolución
+                  </label>
+                  <textarea
+                    id="notasResolucion"
+                    rows={2}
+                    placeholder="¿Qué se hizo para resolver el incidente?"
+                    value={formData.notasResolucion}
+                    onChange={(e) => setFormData({ ...formData, notasResolucion: e.target.value })}
+                    style={{
+                      width: "100%", padding: "11px 14px", borderRadius: 11,
+                      border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                      fontFamily: "inherit", background: "#F8FAFC", resize: "none",
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Evidencia fotográfica */}
               <div>
@@ -744,23 +812,37 @@ export function Incidentes() {
                     onChange={handleFileChange}
                     style={{ display: "none" }}
                   />
-                  <label htmlFor="evidencia" style={{ cursor: "pointer", display: "block" }}>
-                    {formData.evidencia ? (
-                      <div style={{ padding: "12px", textAlign: "center" }}>
-                        <img
-                          src={formData.evidencia}
-                          alt="Evidencia"
-                          style={{ maxHeight: 120, margin: "0 auto", borderRadius: 8 }}
-                        />
-                        <p style={{ fontSize: 11, color: C.primary, marginTop: 8 }}>Evidencia cargada ✓</p>
-                      </div>
-                    ) : (
+                  {formData.evidencia ? (
+                    <div style={{ padding: "12px", textAlign: "center", position: "relative" }}>
+                      <button
+                        onClick={removeEvidencia}
+                        aria-label="Quitar evidencia"
+                        style={{
+                          position: "absolute", top: 8, right: 8,
+                          width: 24, height: 24, borderRadius: 7,
+                          border: "none", background: "rgba(15,23,42,.55)",
+                          color: "#fff", cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        <X size={13} />
+                      </button>
+                      <img
+                        src={formData.evidencia}
+                        alt="Evidencia"
+                        style={{ maxHeight: 120, margin: "0 auto", borderRadius: 8 }}
+                      />
+                      <p style={{ fontSize: 11, color: C.primary, marginTop: 8 }}>Evidencia cargada ✓</p>
+                    </div>
+                  ) : (
+                    <label htmlFor="evidencia" style={{ cursor: "pointer", display: "block" }}>
                       <div style={{ padding: "24px", textAlign: "center" }}>
                         <Upload size={32} color={C.textLight} style={{ margin: "0 auto 8px" }} />
                         <p style={{ fontSize: 12, color: C.textLight }}>Toca para cargar imagen de evidencia</p>
+                        <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>Máximo {MAX_EVIDENCIA_MB}MB</p>
                       </div>
-                    )}
-                  </label>
+                    </label>
+                  )}
                 </div>
               </div>
             </div>
@@ -839,6 +921,7 @@ export function Incidentes() {
                     </div>
                     <button
                       onClick={() => setViewOpen(false)}
+                      aria-label="Cerrar"
                       style={{
                         width: 32, height: 32, borderRadius: 9,
                         background: "rgba(255,255,255,.15)", border: "none",
@@ -890,6 +973,21 @@ export function Incidentes() {
                   </div>
                 ))}
 
+                {selectedIncidente.notasResolucion && (
+                  <div style={{
+                    padding: "10px 12px", borderRadius: 12,
+                    background: "#F0FDF4", border: `1px solid ${C.success}33`,
+                    marginBottom: 8,
+                  }}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: C.success, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                      Notas de resolución
+                    </div>
+                    <div style={{ fontSize: 12, color: C.text, lineHeight: 1.4 }}>
+                      {selectedIncidente.notasResolucion}
+                    </div>
+                  </div>
+                )}
+
                 {selectedIncidente.evidencia && (
                   <div style={{
                     padding: "10px 12px", borderRadius: 12,
@@ -924,6 +1022,47 @@ export function Incidentes() {
             </div>
           );
         })()}
+      </Modal>
+
+      {/* ── MODAL CONFIRMAR ELIMINACIÓN ── */}
+      <Modal open={!!confirmDelete} onClose={() => setConfirmDelete(null)} maxWidth={380}>
+        <div style={{ padding: "1.8rem" }}>
+          <div style={{
+            width: 44, height: 44, borderRadius: 12, background: "#FEE2E2",
+            display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
+          }}>
+            <Trash2 size={20} color={C.danger} />
+          </div>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 6 }}>
+            ¿Eliminar incidente?
+          </h3>
+          <p style={{ fontSize: 12, color: C.textLight, marginBottom: 20, lineHeight: 1.5 }}>
+            "{confirmDelete?.descripcion}" se eliminará permanentemente. Esta acción no se puede revertir.
+          </p>
+          <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+            <button
+              onClick={() => setConfirmDelete(null)}
+              style={{
+                padding: "9px 16px", borderRadius: 10,
+                border: `1px solid ${C.border}`, background: "#fff",
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                color: C.text,
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmDeleteAction}
+              style={{
+                padding: "9px 16px", borderRadius: 10,
+                border: "none", background: C.danger, color: "#fff",
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
       </Modal>
     </>
   );

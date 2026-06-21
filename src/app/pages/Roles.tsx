@@ -6,7 +6,6 @@ import {
   Eye,
   Shield,
   Search,
-  Copy,
   Lock,
   CheckCircle2,
   XCircle,
@@ -979,17 +978,16 @@ const RoleCard = memo(
     onView,
     onEdit,
     onDelete,
-    onDuplicate,
   }: {
     rol: Rol;
     onView: (rol: Rol) => void;
     onEdit: (rol: Rol) => void;
     onDelete: (rol: Rol) => void;
-    onDuplicate: (rol: Rol) => void;
   }) => {
     const activeCount = useMemo(() => countActive(rol.permisos), [rol.permisos]);
     const total = useMemo(() => Object.keys(rol.permisos).length, [rol.permisos]);
     const pct = Math.round((activeCount / total) * 100);
+
     const protegido = ROLES_PROTEGIDOS.includes(rol.nombre as any);
     const accent = getRolAccent(rol.nombre);
     const activo = rol.estado === "activo";
@@ -999,285 +997,231 @@ const RoleCard = memo(
         Object.entries(rol.permisos)
           .filter(([, value]) => value)
           .map(([key]) => PERMISO_LABELS[key] ?? key)
-          .slice(0, 2),
+          .slice(0, 3),
       [rol.permisos]
     );
 
     const handleView = useCallback(() => onView(rol), [onView, rol]);
     const handleEdit = useCallback(() => onEdit(rol), [onEdit, rol]);
     const handleDelete = useCallback(() => onDelete(rol), [onDelete, rol]);
-    const handleDuplicate = useCallback(() => onDuplicate(rol), [onDuplicate, rol]);
 
-    return (
-      <article
-        role="article"
-        aria-label={`Rol: ${sanitizeText(rol.nombre)}`}
+   return (
+  <article
+    style={{
+      background: "#fff",
+      borderRadius: 20,
+      border: `1px solid ${COLORS.border}`,
+      overflow: "hidden",
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "0 4px 14px rgba(15,23,42,.06)",
+      transition: ".25s",
+      height: "100%",
+    }}
+    onMouseEnter={(e) => {
+      e.currentTarget.style.transform = "translateY(-4px)";
+      e.currentTarget.style.boxShadow =
+        "0 14px 28px rgba(15,23,42,.12)";
+    }}
+    onMouseLeave={(e) => {
+      e.currentTarget.style.transform = "translateY(0)";
+      e.currentTarget.style.boxShadow =
+        "0 4px 14px rgba(15,23,42,.06)";
+    }}
+  >
+    <div
+      style={{
+        height: 6,
+        background: accent,
+      }}
+    />
+
+    <div style={{ padding: 20 }}>
+      <div
         style={{
-          borderRadius: 14,
-          border: `1px solid ${COLORS.border}`,
-          background: "#fff",
-          overflow: "hidden",
-          boxShadow: "0 2px 8px rgba(15,23,42,.05)",
-          transition: "box-shadow .18s,transform .18s",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.boxShadow = "0 8px 28px rgba(15,23,42,.1)";
-          e.currentTarget.style.transform = "translateY(-1px)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,23,42,.05)";
-          e.currentTarget.style.transform = "translateY(0)";
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
         }}
       >
-        <div style={{ height: 3, background: accent }} />
-
-        <div style={{ padding: "12px 12px 8px", display: "flex", alignItems: "center", gap: 9 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 9,
-              flexShrink: 0,
-              background: `${accent}15`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Shield size={14} color={accent} aria-hidden="true" />
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <p
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: COLORS.text,
-                lineHeight: 1.2,
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-              title={rol.nombre}
-            >
-              {sanitizeText(rol.nombre)}
-            </p>
-            <div style={{ marginTop: 3, display: "flex", alignItems: "center", gap: 5 }}>
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: activo ? "rgba(57,169,0,.1)" : "rgba(156,163,175,.12)",
-                  color: activo ? COLORS.primaryDark : COLORS.textLight,
-                  textTransform: "uppercase",
-                  letterSpacing: 0.4,
-                }}
-                role="status"
-              >
-                {rol.estado}
-              </span>
-              {protegido && <Lock size={10} color="#EF4444" aria-label="Rol protegido" />}
-            </div>
-          </div>
+        <div
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: 14,
+            background: `${accent}15`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Shield size={24} color={accent} />
         </div>
 
-        <div style={{ padding: "0 12px 8px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-            <span
-              style={{
-                fontSize: 9,
-                fontWeight: 700,
-                color: COLORS.textLight,
-                textTransform: "uppercase",
-                letterSpacing: 0.8,
-              }}
-            >
-              Acceso
-            </span>
-            <span style={{ fontSize: 10, fontWeight: 800, color: accent }}>
-              {activeCount}/{total}
-            </span>
-          </div>
-          <div
-            style={{
-              height: 3,
-              borderRadius: 999,
-              background: "#E2E8F0",
-              overflow: "hidden",
-            }}
-            role="progressbar"
-            aria-valuenow={pct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-          >
-            <div
-              style={{
-                height: "100%",
-                borderRadius: 999,
-                background: accent,
-                width: `${pct}%`,
-              }}
-            />
-          </div>
-        </div>
+        <span
+          style={{
+            padding: "6px 10px",
+            borderRadius: 999,
+            background: activo
+              ? "rgba(57,169,0,.12)"
+              : "rgba(239,68,68,.12)",
+            color: activo
+              ? COLORS.primaryDark
+              : "#EF4444",
+            fontSize: 11,
+            fontWeight: 800,
+          }}
+        >
+          {rol.estado}
+        </span>
+      </div>
 
-        {activePermissions.length > 0 && (
-          <div style={{ padding: "0 12px 10px", display: "flex", flexWrap: "wrap", gap: 3 }}>
-            {activePermissions.map((label) => (
-              <span
-                key={label}
-                style={{
-                  fontSize: 9,
-                  fontWeight: 600,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: "#F1F5F9",
-                  color: COLORS.textLight,
-                }}
-              >
-                {label}
-              </span>
-            ))}
-            {activeCount > 2 && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 600,
-                  padding: "2px 7px",
-                  borderRadius: 999,
-                  background: "#F1F5F9",
-                  color: COLORS.textLight,
-                }}
-              >
-                +{activeCount - 2}
-              </span>
-            )}
-          </div>
-        )}
+      <h3
+        style={{
+          marginTop: 14,
+          fontSize: 20,
+          fontWeight: 900,
+          color: COLORS.text,
+        }}
+      >
+        {rol.nombre}
+      </h3>
+
+      <p
+        style={{
+          fontSize: 12,
+          color: COLORS.textLight,
+          marginTop: 4,
+          minHeight: 34,
+        }}
+      >
+        {rol.descripcion || "Sin descripción"}
+      </p>
+
+      <div style={{ marginTop: 18 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <span
+            style={{
+              fontSize: 11,
+              color: COLORS.textLight,
+              fontWeight: 700,
+            }}
+          >
+            Nivel de acceso
+          </span>
+
+          <span
+            style={{
+              color: accent,
+              fontWeight: 900,
+            }}
+          >
+            {pct}%
+          </span>
+        </div>
 
         <div
           style={{
-            borderTop: `1px solid ${COLORS.border}`,
-            padding: "7px 8px",
-            display: "flex",
-            justifyContent: "flex-end",
-            gap: 2,
+            height: 8,
+            borderRadius: 999,
+            background: "#E2E8F0",
+            overflow: "hidden",
           }}
         >
-          <button
-            onClick={handleView}
-            aria-label={`Ver detalles de ${sanitizeText(rol.nombre)}`}
+          <div
             style={{
-              width: 26,
-              height: 26,
-              borderRadius: 7,
-              border: "none",
-              background: "transparent",
-              color: COLORS.textLight,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background .15s,color .15s",
+              height: "100%",
+              width: `${pct}%`,
+              background: accent,
+              borderRadius: 999,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#F1F5F9";
-              e.currentTarget.style.color = "#0F172A";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = COLORS.textLight;
-            }}
-          >
-            <Eye size={12} aria-hidden="true" />
-          </button>
-          <button
-            onClick={handleEdit}
-            aria-label={`Editar ${sanitizeText(rol.nombre)}`}
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 7,
-              border: "none",
-              background: "transparent",
-              color: COLORS.textLight,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background .15s,color .15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#F1F5F9";
-              e.currentTarget.style.color = "#0F172A";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = COLORS.textLight;
-            }}
-          >
-            <Pencil size={12} aria-hidden="true" />
-          </button>
-          <button
-            onClick={handleDuplicate}
-            aria-label={`Duplicar ${sanitizeText(rol.nombre)}`}
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 7,
-              border: "none",
-              background: "transparent",
-              color: "#2563EB",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "background .15s,color .15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "#F1F5F9";
-              e.currentTarget.style.color = "#0F172A";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "#2563EB";
-            }}
-          >
-            <Copy size={12} aria-hidden="true" />
-          </button>
-          {!protegido && (
-            <button
-              onClick={handleDelete}
-              aria-label={`Eliminar ${sanitizeText(rol.nombre)}`}
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 7,
-                border: "none",
-                background: "transparent",
-                color: "#EF4444",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                transition: "background .15s,color .15s",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "#F1F5F9";
-                e.currentTarget.style.color = "#0F172A";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "transparent";
-                e.currentTarget.style.color = "#EF4444";
-              }}
-            >
-              <Trash2 size={12} aria-hidden="true" />
-            </button>
-          )}
+          />
         </div>
-      </article>
-    );
+      </div>
+
+      <div
+        style={{
+          marginTop: 20,
+          display: "flex",
+          flexWrap: "wrap",
+          gap: 6,
+        }}
+      >
+        {activePermissions.slice(0, 4).map((p) => (
+          <span
+            key={p}
+            style={{
+              padding: "6px 10px",
+              borderRadius: 999,
+              background: `${accent}12`,
+              color: accent,
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            {p}
+          </span>
+        ))}
+      </div>
+    </div>
+
+    <div
+      style={{
+        marginTop: "auto",
+        borderTop: `1px solid ${COLORS.border}`,
+        display: "flex",
+      }}
+    >
+      <button
+        onClick={handleView}
+        style={{
+          flex: 1,
+          padding: 14,
+          border: "none",
+          background: "#fff",
+          cursor: "pointer",
+        }}
+      >
+        <Eye size={16} />
+      </button>
+
+      <button
+        onClick={handleEdit}
+        style={{
+          flex: 1,
+          padding: 14,
+          border: "none",
+          background: "#fff",
+          cursor: "pointer",
+        }}
+      >
+        <Pencil size={16} />
+      </button>
+
+      {!protegido && (
+        <button
+          onClick={handleDelete}
+          style={{
+            flex: 1,
+            padding: 14,
+            border: "none",
+            background: "#fff",
+            cursor: "pointer",
+            color: "#EF4444",
+          }}
+        >
+          <Trash2 size={16} />
+        </button>
+      )}
+    </div>
+  </article>
+);
   }
 );
 
@@ -1390,24 +1334,6 @@ export function Roles() {
       }
     }
   }, [deletingRol, deleteRol]);
-
-  const handleDuplicate = useCallback(
-    (rol: Rol) => {
-      try {
-        const newRol = {
-          ...rol,
-          nombre: `${rol.nombre} (Copia)`,
-          id: undefined,
-        };
-        addRol(newRol);
-        toast.success("Rol duplicado correctamente");
-      } catch (error) {
-        toast.error("Error al duplicar el rol");
-        console.error("Error duplicating role:", error);
-      }
-    },
-    [addRol]
-  );
 
   return (
     <>
@@ -1637,7 +1563,6 @@ export function Roles() {
                 onView={openView}
                 onEdit={openEdit}
                 onDelete={openConfirm}
-                onDuplicate={handleDuplicate}
               />
             ))}
           </div>
