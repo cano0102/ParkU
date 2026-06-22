@@ -150,19 +150,12 @@ export function Incidentes() {
     },
     {
       id: '2',
-      descripcion: 'Luminaria averiada en zona norte',
-      parqueadero: 'Parqueadero Norte',
-      fecha: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      estado: 'resuelto',
-      notasResolucion: 'Se reemplazó la luminaria por una nueva de mayor potencia.',
-    },
-    {
-      id: '3',
-      descripcion: 'Derrame de aceite en celda B-15',
+      descripcion: 'Derrame de aceite en celda B-15 con caida ',
       parqueadero: 'Parqueadero Principal',
       vehiculo: 'XYZ789',
       fecha: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
       estado: 'pendiente',
+      asignadoA: "Brandon Alexis"
     },
   ]);
 
