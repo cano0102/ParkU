@@ -6,6 +6,7 @@ import {
   Mail,
   ShieldCheck,
   BadgeCheck,
+  AlertCircle,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -18,22 +19,75 @@ const COLORS = {
   text: "#0F172A",
   textLight: "#64748B",
   border: "#E2E8F0",
+  danger: "#EF4444",
 };
 
 export function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [errors, setErrors] = useState<{ email?: string }>({});
   const navigate = useNavigate();
+
+  // Función de validación
+  const validateEmail = (email: string): boolean => {
+    // Expresión regular para validar email institucional SENA
+    const emailRegex = /^[a-zA-Z0-9._-]+@sena\.edu\.co$/;
+    return emailRegex.test(email);
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: { email?: string } = {};
+
+    // Validar que el email no esté vacío
+    if (!email.trim()) {
+      newErrors.email = "El correo electrónico es obligatorio";
+    } 
+    // Validar formato de email
+    else if (!validateEmail(email)) {
+      newErrors.email = "Debes usar un correo institucional (@sena.edu.co)";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validar el formulario antes de enviar
+    if (!validateForm()) {
+      // Mostrar toast de error
+      toast.error("Por favor, corrige los errores del formulario");
+      return;
+    }
+
     setLoading(true);
+    
+    // Simulación de envío
     setTimeout(() => {
       setLoading(false);
       setEmailSent(true);
       toast.success("Enlace de recuperación enviado");
     }, 1500);
+  };
+
+  // Manejar cambios en el email con validación en tiempo real
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setEmail(value);
+    
+    // Limpiar error cuando el usuario escribe
+    if (errors.email) {
+      setErrors({});
+    }
+  };
+
+  // Validar al perder el foco
+  const handleBlur = () => {
+    if (email.trim()) {
+      validateForm();
+    }
   };
 
   return (
@@ -62,13 +116,18 @@ export function ForgotPassword() {
           transition:.25s ease;
         }
 
-        button:hover{
+        button:hover:not(:disabled){
           transform:translateY(-2px);
         }
 
         input:focus{
           border-color:${COLORS.primary} !important;
           box-shadow:0 0 0 4px rgba(57,169,0,.12);
+        }
+
+        input.error{
+          border-color:${COLORS.danger} !important;
+          box-shadow:0 0 0 4px rgba(239,68,68,.12) !important;
         }
 
         @media(max-width:900px){
@@ -380,6 +439,7 @@ export function ForgotPassword() {
                   {/* FORM */}
                   <form
                     onSubmit={handleSubmit}
+                    noValidate
                     style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
                   >
                     <div>
@@ -403,26 +463,57 @@ export function ForgotPassword() {
                             top: "50%",
                             left: 14,
                             transform: "translateY(-50%)",
-                            color: COLORS.textLight,
+                            color: errors.email ? COLORS.danger : COLORS.textLight,
                           }}
                         />
                         <input
-                          type="email"
+                          type="text"
                           placeholder="correo@sena.edu.co"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
+                          onChange={handleEmailChange}
+                          onBlur={handleBlur}
+                          className={errors.email ? "error" : ""}
                           style={{
                             width: "100%",
                             padding: "14px 16px 14px 40px",
                             borderRadius: 12,
-                            border: `1px solid ${COLORS.border}`,
+                            border: `1px solid ${errors.email ? COLORS.danger : COLORS.border}`,
                             background: "#fff",
                             fontSize: 14,
                             outline: "none",
                           }}
                         />
+                        {errors.email && (
+                          <AlertCircle
+                            size={16}
+                            style={{
+                              position: "absolute",
+                              top: "50%",
+                              right: 14,
+                              transform: "translateY(-50%)",
+                              color: COLORS.danger,
+                            }}
+                          />
+                        )}
                       </div>
+                      
+                      {/* Mensaje de error */}
+                      {errors.email && (
+                        <div
+                          style={{
+                            marginTop: 8,
+                            fontSize: 12,
+                            color: COLORS.danger,
+                            fontWeight: 600,
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                          }}
+                        >
+                          <AlertCircle size={14} />
+                          {errors.email}
+                        </div>
+                      )}
                     </div>
 
                     {/* INFO */}
