@@ -28,7 +28,6 @@ import {
   ScanLine,
   Search,
   Filter,
-  History,
   Download,
   Upload,
   Info,
@@ -87,23 +86,6 @@ export interface Parqueadero {
   tipo: "General" | "Motos" | "Visitantes" | "Docentes" | "Administrativos";
 }
 
-export interface TicketSalida {
-  id: string;
-  placa: string;
-  conductor: string;
-  parqueaderoNombre: string;
-  bloque: string;
-  celdaCodigo: string;
-  fechaIngreso: string;
-  horaIngreso: string;
-  timestampIngreso: number;
-  fechaSalida: string;
-  horaSalida: string;
-  timestampSalida: number;
-  duracionMinutos: number;
-  esOficial: boolean;
-}
-
 export interface FormParqueadero {
   nombre: string;
   total: number;
@@ -125,21 +107,19 @@ export interface ToastItem {
 
 export interface State {
   parqueaderos: Parqueadero[];
-  historial: TicketSalida[];
   toasts: ToastItem[];
 }
 
 export type Action =
-  | { type: "INITIALIZE"; parqueaderos: Parqueadero[]; historial: TicketSalida[] }
+  | { type: "INITIALIZE"; parqueaderos: Parqueadero[] }
   | { type: "CREATE_PARQUEADERO"; parqueadero: Parqueadero }
   | { type: "EDIT_PARQUEADERO"; id: number; nombre: string; tipo: Parqueadero["tipo"]; bloque: string; total: number }
   | { type: "DELETE_PARQUEADERO"; id: number }
   | { type: "REGISTRAR_VEHICULO"; parqueaderoId: number; codigo: string; placa: string; conductor: string; esOficial: boolean }
   | { type: "EDITAR_VEHICULO"; parqueaderoId: number; codigo: string; placa: string; conductor: string; esOficial: boolean }
-  | { type: "LIBERAR_CELDA_DIRECTO"; parqueaderoId: number; codigo: string; ticket: TicketSalida }
+  | { type: "LIBERAR_CELDA_DIRECTO"; parqueaderoId: number; codigo: string }
   | { type: "TOGGLE_RESERVA_SENA"; parqueaderoId: number; codigo: string }
-  | { type: "CLEAR_HISTORIAL" }
-  | { type: "IMPORT_STATE"; parqueaderos: Parqueadero[]; historial: TicketSalida[] }
+  | { type: "IMPORT_STATE"; parqueaderos: Parqueadero[] }
   | { type: "ADD_TOAST"; tone: "success" | "danger" | "info"; message: string }
   | { type: "DISMISS_TOAST"; id: number };
 
@@ -155,7 +135,6 @@ export interface LotLayout {
    CONSTANTES
 ============================================================ */
 export const LOCAL_STORAGE_KEY = "sena_parq_datos_v7";
-export const HISTORIAL_STORAGE_KEY = "sena_parq_hist_v7";
 
 export const CELDA_CONFIG = {
   libre:   { bg:"#F0FBE8", border:"#A8D888", text:"#2F6B00", label:"Disponible",      dotColor:"#4CAF50", mapFill:"#1f2a22", mapStroke:"#4CAF50" },
@@ -262,7 +241,6 @@ export const initialParqueaderos: Parqueadero[] = [
 ];
 
 export const loadParqueaderos=():Parqueadero[]=>{ try{ const s=localStorage.getItem(LOCAL_STORAGE_KEY); return s?JSON.parse(s):initialParqueaderos; }catch{ return initialParqueaderos; } };
-export const loadHistorial=():TicketSalida[]=>{ try{ const s=localStorage.getItem(HISTORIAL_STORAGE_KEY); return s?JSON.parse(s):[]; }catch{ return []; } };
 
 /* ============================================================
    REDUCER
@@ -270,16 +248,15 @@ export const loadHistorial=():TicketSalida[]=>{ try{ const s=localStorage.getIte
 let toastSeq=1;
 export function rootReducer(state:State,action:Action):State{
   switch(action.type){
-    case "INITIALIZE": return {...state,parqueaderos:action.parqueaderos,historial:action.historial};
+    case "INITIALIZE": return {...state,parqueaderos:action.parqueaderos};
     case "CREATE_PARQUEADERO":{ const u=[...state.parqueaderos,action.parqueadero]; localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:`Parqueadero "${action.parqueadero.nombre}" creado.`}]}; }
     case "EDIT_PARQUEADERO":{ const u=state.parqueaderos.map(p=>p.id!==action.id?p:{...p,nombre:action.nombre,tipo:action.tipo,bloque:action.bloque.toUpperCase(),total:action.total,celdas:regenerarCeldas(action.bloque,action.total,p.celdas)}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:"Parqueadero actualizado."}]}; }
     case "DELETE_PARQUEADERO":{ const u=state.parqueaderos.filter(p=>p.id!==action.id); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:"Parqueadero eliminado."}]}; }
     case "REGISTRAR_VEHICULO":{ const obj=state.parqueaderos.find(p=>p.id===action.parqueaderoId)?.celdas.find(c=>c.codigo===action.codigo); if(!obj||obj.estado==="ocupado") return state; const now=Date.now(); const fh=formatearFechaHora(now); const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{...c,estado:"ocupado" as CeldaEstado,placa:action.placa,conductor:action.conductor,...fh,timestampIngreso:now,esOficial:action.esOficial})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:`Vehículo ${action.placa} registrado.`}]}; }
     case "EDITAR_VEHICULO":{ const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{...c,placa:action.placa,conductor:action.conductor,esOficial:action.esOficial})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:"Datos actualizados."}]}; }
-    case "LIBERAR_CELDA_DIRECTO":{ const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{codigo:c.codigo,estado:"libre" as CeldaEstado})}); const h=[action.ticket,...state.historial]; localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); localStorage.setItem(HISTORIAL_STORAGE_KEY,JSON.stringify(h)); return {...state,parqueaderos:u,historial:h,toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:`Celda ${action.codigo} liberada.`}]}; }
+    case "LIBERAR_CELDA_DIRECTO":{ const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{codigo:c.codigo,estado:"libre" as CeldaEstado})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:`Celda ${action.codigo} liberada.`}]}; }
     case "TOGGLE_RESERVA_SENA":{ const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{codigo:c.codigo,estado:(c.estado==="sena"?"libre":"sena") as CeldaEstado})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:"Estado reconfigurado."}]}; }
-    case "CLEAR_HISTORIAL":{ localStorage.removeItem(HISTORIAL_STORAGE_KEY); return {...state,historial:[],toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:"Historial vaciado."}]}; }
-    case "IMPORT_STATE":{ localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(action.parqueaderos)); localStorage.setItem(HISTORIAL_STORAGE_KEY,JSON.stringify(action.historial)); return {...state,parqueaderos:action.parqueaderos,historial:action.historial,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:"Copia restaurada."}]}; }
+    case "IMPORT_STATE":{ localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(action.parqueaderos)); return {...state,parqueaderos:action.parqueaderos,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:"Copia restaurada."}]}; }
     case "ADD_TOAST": return {...state,toasts:[...state.toasts,{id:toastSeq++,tone:action.tone,message:action.message}]};
     case "DISMISS_TOAST": return {...state,toasts:state.toasts.filter(t=>t.id!==action.id)};
     default: return state;
@@ -530,12 +507,7 @@ const HighFiCarSVG=memo(({x,y,w,h,placa}:{x:number;y:number;w:number;h:number;pl
 HighFiCarSVG.displayName="HighFiCarSVG";
 
 /* ============================================================
-   PARKING MAP — CORREGIDO
-   Fixes:
-   1. DRAG_THRESHOLD aumentado a 8px (antes 3px causaba falsos drags)
-   2. onClick en celdas en lugar de onPointerUp/onTouchEnd (más confiable)
-   3. transformOrigin: "top left" para que el zoom no desplace las celdas
-   4. El estado "dragged" se evalúa correctamente en handleCellClick
+   PARKING MAP
 ============================================================ */
 const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
   parqueaderos: Parqueadero[];
@@ -572,7 +544,7 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
           celdas: rowCells.map((celda, index) => ({ ...celda, x: PADDING + index * (SPACE_W + GAP_X), y })),
         });
         y += SPACE_H + ROW_GAP;
-        if (row < rowCount - 1) { filas.push({ esCarril: true, y, celdas: [] }); y += LANE_H; }
+        if (row < rowCount - 1) { filas.push({ esCarril: true, y }); y += LANE_H; }
       }
       const libres    = pq.celdas.filter(c => c.estado === "libre").length;
       const ocupados  = pq.celdas.filter(c => c.estado === "ocupado").length;
@@ -595,7 +567,6 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
     return Math.max(ROAD_Y + ROAD_H + 80, lots[lots.length - 1].lotTop + lots[lots.length - 1].lotHeight + 20);
   }, [lots]);
 
-  // ── Drag handlers — SIN setPointerCapture ──
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
     isDraggedRef.current   = false;
@@ -611,7 +582,7 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
     const dy = e.clientY - pointerStartRef.current.y;
     if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
       isDraggedRef.current = true;
-      pendingCellRef.current = null; // cancelar celda si empezó a arrastrar
+      pendingCellRef.current = null;
     }
     if (isDraggedRef.current) {
       setPan({ x: dragOriginRef.current.x + dx, y: dragOriginRef.current.y + dy });
@@ -628,7 +599,6 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
     pendingCellRef.current = null;
   }, [onCellClick]);
 
-  // Handler para registrar la celda candidata al hacer pointerDown sobre ella
   const handleCellPointerDown = useCallback((
     e: React.PointerEvent<SVGGElement>,
     pqId: number,
@@ -636,8 +606,6 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
   ) => {
     e.stopPropagation();
     pendingCellRef.current = { pqId, celda };
-    // NO llamamos al drag handler del contenedor — él ya se dispara
-    // porque el evento burbujea hasta el div padre
   }, []);
 
   return (
@@ -646,7 +614,6 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
       borderRadius: 16, border: `1px solid ${C.border}`,
       background: MAP_THEME.asphalt, boxShadow: "0 2px 8px rgba(15,23,42,.05)"
     }}>
-      {/* Zoom controls */}
       <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", flexDirection: "column", gap: 6 }}>
         {[
           { icon: <ZoomIn size={16} />,   act: () => setZoom(z => Math.min(2.5, z + .15)) },
@@ -660,7 +627,6 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
         ))}
       </div>
 
-      {/* Contenedor pan/drag */}
       <div
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
@@ -782,7 +748,6 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
         </svg>
       </div>
 
-      {/* Tooltip */}
       {hover && (
         <div style={{
           position: "fixed",
@@ -838,10 +803,10 @@ const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, c
 
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(200px,1fr) 120px 100px 80px 80px 80px 90px", background: "#F8FAF8", borderBottom: `1px solid ${C.border}`, padding: "12px 16px", fontSize: 11, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>
+      <div className="pq-table-header">
         <div>Parqueadero</div><div>Tipo</div><div>Ocupación</div><div>Libres</div><div>Ocupadas</div><div>SENA</div><div style={{ textAlign: "right" }}>Acciones</div>
       </div>
-      <div style={{ maxHeight: "calc(100vh - 420px)", overflowY: "auto" }}>
+      <div>
         {parqueaderos.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 24px", color: C.textLight }}>
             <Car size={36} color={C.border} style={{ marginBottom: 12 }} />
@@ -857,13 +822,14 @@ const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, c
           return (
             <React.Fragment key={pq.id}>
               <div
-                style={{ display: "grid", gridTemplateColumns: "minmax(200px,1fr) 120px 100px 80px 80px 80px 90px", padding: "14px 16px", borderBottom: `1px solid ${C.border}`, alignItems: "center", fontSize: 12, transition: "background .15s", cursor: "pointer", background: isExpanded ? "#F8FAF8" : "#fff" }}
+                className="pq-table-row"
+                style={{ background: isExpanded ? "#F8FAF8" : "#fff" }}
                 onMouseEnter={e => (e.currentTarget.style.background = "#F8FAF8")}
                 onMouseLeave={e => (e.currentTarget.style.background = isExpanded ? "#F8FAF8" : "#fff")}
                 onClick={() => setExpandedId(isExpanded ? null : pq.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <MapPin size={16} color={C.primary} />
                   </div>
                   <div>
@@ -871,18 +837,19 @@ const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, c
                     <div style={{ fontSize: 10, color: C.textLight }}>Bloque {pq.bloque} · {pq.total} celdas</div>
                   </div>
                 </div>
-                <div><span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 600, color: C.textLight }}>{pq.tipo}</span></div>
+                <div><span className="pq-cell-label">Tipo</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 600, color: C.textLight }}>{pq.tipo}</span></div>
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span className="pq-cell-label">Ocupación</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
                     <div style={{ flex: 1, height: 6, borderRadius: 999, background: "#E2E8F0", overflow: "hidden" }}>
                       <div style={{ height: "100%", width: `${pct}%`, background: pctColor, borderRadius: 999, transition: "width .3s" }} />
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 700, color: pctColor, minWidth: 28 }}>{pct}%</span>
                   </div>
                 </div>
-                <div style={{ fontWeight: 700, color: C.primary }}>{libres}</div>
-                <div style={{ fontWeight: 700, color: C.danger }}>{ocupados}</div>
-                <div style={{ fontWeight: 700, color: C.amber }}>{senas}</div>
+                <div><span className="pq-cell-label">Libres</span><span style={{ fontWeight: 700, color: C.primary }}>{libres}</span></div>
+                <div><span className="pq-cell-label">Ocupadas</span><span style={{ fontWeight: 700, color: C.danger }}>{ocupados}</span></div>
+                <div><span className="pq-cell-label">SENA</span><span style={{ fontWeight: 700, color: C.amber }}>{senas}</span></div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                   <button title="Ver celdas" onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : pq.id); }}
                     style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -994,123 +961,6 @@ const ActiveVehiclesList = memo(({ parqueaderos, onSelectCell, searchQuery }: { 
 ActiveVehiclesList.displayName = "ActiveVehiclesList";
 
 /* ============================================================
-   HISTORIAL
-============================================================ */
-const HistoryPanel = memo(({ historial, onClear, onImport, parqueaderos }: { historial: TicketSalida[]; onClear: () => void; onImport: (c: string) => void; parqueaderos: Parqueadero[] }) => {
-  const [query, setQuery] = useState("");
-  const stats = useMemo(() => ({
-    total: historial.length,
-    avgDuration: historial.length ? Math.round(historial.reduce((a, t) => a + t.duracionMinutos, 0) / historial.length) : 0,
-    oficiales: historial.filter(t => t.esOficial).length,
-  }), [historial]);
-  const filtered = useMemo(() => {
-    if (!query.trim()) return historial;
-    const q = query.toLowerCase();
-    return historial.filter(t => t.placa.toLowerCase().includes(q) || t.conductor.toLowerCase().includes(q) || t.celdaCodigo.toLowerCase().includes(q));
-  }, [historial, query]);
-  const handleExport = () => {
-    const d = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ parqueaderos, historial }));
-    const a = document.createElement("a"); a.setAttribute("href", d); a.setAttribute("download", "respaldo_parqueadero_sena.json"); a.click();
-  };
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]; if (!f) return;
-    const r = new FileReader(); r.onload = ev => onImport(ev.target?.result as string); r.readAsText(f);
-  };
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 12 }}>
-        {[{ label: "Salidas", value: `${stats.total} vehs` }, { label: "Estadía Promedio", value: `${stats.avgDuration} min` }, { label: "Oficiales Exentos", value: stats.oficiales }].map(s => (
-          <div key={s.label} style={{ borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", padding: 16, boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
-            <div style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>{s.label}</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: C.text, marginTop: 4 }}>{s.value}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
-          <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar placa, conductor..." style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, background: "#fff", fontFamily: "inherit", outline: "none" }} />
-          {query && <button onClick={() => setQuery("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.textLight }}><X size={14} /></button>}
-        </div>
-        <button onClick={handleExport} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, color: C.textLight, cursor: "pointer", fontFamily: "inherit" }}><Download size={14} />Exportar</button>
-        <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, color: C.textLight, cursor: "pointer" }}>
-          <Upload size={14} />Importar<input type="file" accept=".json" onChange={handleFile} style={{ display: "none" }} />
-        </label>
-        {historial.length > 0 && <button onClick={onClear} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.dangerBorder}`, background: C.dangerBg, fontSize: 12, fontWeight: 700, color: C.danger, cursor: "pointer", fontFamily: "inherit" }}><RotateCcw size={14} />Vaciar</button>}
-      </div>
-      <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "100px minmax(140px,1fr) minmax(120px,1fr) 120px 120px 80px", background: "#F8FAF8", borderBottom: `1px solid ${C.border}`, padding: "12px 16px", fontSize: 11, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>
-          <div>Placa</div><div>Conductor</div><div>Ubicación</div><div>Ingreso</div><div>Salida</div><div>Estadía</div>
-        </div>
-        <div style={{ maxHeight: "calc(100vh - 520px)", overflowY: "auto" }}>
-          {filtered.length > 0 ? filtered.map(t => (
-            <div key={t.id} style={{ display: "grid", gridTemplateColumns: "100px minmax(140px,1fr) minmax(120px,1fr) 120px 120px 80px", padding: "12px 16px", borderBottom: `1px solid ${C.border}`, alignItems: "center", fontSize: 12, transition: "background .15s" }}
-              onMouseEnter={e => (e.currentTarget.style.background = "#F8FAF8")} onMouseLeave={e => (e.currentTarget.style.background = "#fff")}>
-              <div><span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, background: "#F1F5F9", color: C.text, padding: "2px 6px", borderRadius: 6, border: `1px solid ${C.border}` }}>{t.placa}</span></div>
-              <div style={{ fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.conductor}</div>
-              <div><span style={{ fontWeight: 700, color: C.text }}>{t.celdaCodigo}</span><div style={{ fontSize: 9, color: C.textLight, marginTop: 1 }}>{t.parqueaderoNombre}</div></div>
-              <div style={{ color: C.textLight, fontSize: 11 }}>{t.fechaIngreso}<div style={{ fontSize: 9 }}>{t.horaIngreso}</div></div>
-              <div style={{ color: C.textLight, fontSize: 11 }}>{t.fechaSalida}<div style={{ fontSize: 9 }}>{t.horaSalida}</div></div>
-              <div style={{ fontWeight: 600, color: C.textLight }}>{t.duracionMinutos} min</div>
-            </div>
-          )) : (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 24px", color: C.textLight }}>
-              <History size={36} color={C.border} style={{ marginBottom: 12 }} />
-              <p style={{ fontWeight: 600, fontSize: 13 }}>Caja vacía</p>
-            </div>
-          )}
-        </div>
-        {filtered.length > 0 && <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.border}`, background: "#F8FAF8", fontSize: 11, color: C.textLight }}>Mostrando <strong>{filtered.length}</strong> de <strong>{historial.length}</strong> registros</div>}
-      </div>
-    </div>
-  );
-});
-HistoryPanel.displayName = "HistoryPanel";
-
-/* ============================================================
-   TICKET MODAL
-============================================================ */
-const TicketModal = memo(({ open, ticket, onConfirm, onCancel }: { open: boolean; ticket: TicketSalida | null; onConfirm: () => void; onCancel: () => void }) => {
-  if (!open || !ticket) return null;
-  return (
-    <Modal open={open} onClose={onCancel} maxWidth={400}>
-      <ModalHeader eyebrow="Salida de Vehículo" title="Ticket de Salida" icon={<Shield size={18} color={C.primary} />} onClose={onCancel} />
-      <div style={{ padding: "1.4rem 1.8rem", background: "#F8FAFC" }}>
-        <div style={{ background: "#fff", border: `1px solid ${C.border}`, boxShadow: "0 2px 8px rgba(15,23,42,.06)", padding: "1.2rem", borderRadius: 12, fontFamily: "monospace", fontSize: 12, color: C.text }}>
-          <div style={{ textAlign: "center", marginBottom: 12 }}>
-            <Shield style={{ margin: "0 auto 4px", display: "block" }} size={28} color={C.primary} />
-            <div style={{ fontWeight: 900, fontSize: 14, fontFamily: "inherit" }}>PARQUEADERO SENA</div>
-            <div style={{ fontSize: 9, color: C.textLight, fontWeight: 700 }}>CEET - Centro de Electricidad</div>
-          </div>
-          <div style={{ borderTop: `1px dashed ${C.border}`, margin: "10px 0" }} />
-          {[["PLACA:", ticket.placa], ["CONDUCTOR:", ticket.conductor], ["CELDA:", `${ticket.celdaCodigo} (${ticket.bloque})`]].map(([k, v]) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}><span>{k}</span><span style={{ fontWeight: 700 }}>{v}</span></div>
-          ))}
-          <div style={{ borderTop: `1px dashed ${C.border}`, margin: "10px 0" }} />
-          {[["INGRESO:", ticket.fechaIngreso], ["SALIDA:", ticket.fechaSalida], ["ESTADÍA:", `${ticket.duracionMinutos} min`]].map(([k, v]) => (
-            <div key={k} style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 11 }}><span>{k}</span><span>{v}</span></div>
-          ))}
-          <div style={{ borderTop: `1px dashed ${C.border}`, margin: "10px 0" }} />
-          {ticket.esOficial ? (
-            <div style={{ borderRadius: 8, background: C.primaryPale, border: `1px solid ${C.primaryLight}`, padding: "8px 10px", textAlign: "center", color: C.primaryDark, fontWeight: 800 }}>VEHÍCULO OFICIAL EXENTO</div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", background: "#F8FAFC", padding: "8px 10px", borderRadius: 8, border: `1px solid ${C.border}` }}>
-              <span style={{ color: C.textLight, fontFamily: "sans-serif", fontWeight: 700 }}>Duración:</span>
-              <span style={{ fontSize: 16, fontWeight: 900, fontFamily: "monospace" }}>{ticket.duracionMinutos} minutos</span>
-            </div>
-          )}
-        </div>
-      </div>
-      <div style={{ display: "flex", gap: 10, borderTop: `1px solid ${C.border}`, padding: "1rem 1.8rem", background: "#fff" }}>
-        <button onClick={onCancel} style={{ flex: 1, padding: "10px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", fontSize: 13, fontWeight: 700, color: C.text, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-        <button onClick={onConfirm} style={{ flex: 1, padding: "10px 16px", borderRadius: 12, border: "none", background: C.primary, fontSize: 13, fontWeight: 800, color: "#fff", cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(57,169,0,.22)" }}>Confirmar Salida</button>
-      </div>
-    </Modal>
-  );
-});
-TicketModal.displayName = "TicketModal";
-
-/* ============================================================
    SMART ASSIGN MODAL
 ============================================================ */
 const SmartAssignModal = memo(({ open, parqueaderos, onClose, onAssign, openScanner, scannedPlate }: { open: boolean; parqueaderos: Parqueadero[]; onClose: () => void; onAssign: (pqId: number, codigo: string, placa: string, conductor: string, esOficial: boolean) => void; openScanner: () => void; scannedPlate?: string }) => {
@@ -1151,7 +1001,7 @@ const SmartAssignModal = memo(({ open, parqueaderos, onClose, onAssign, openScan
           <input list="smart-drivers" value={conductor} onChange={e => setConductor(e.target.value)} placeholder="Nombre completo" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, outline: "none", fontFamily: "inherit", background: "#F8FAFC" }} />
           <datalist id="smart-drivers">{CONDUCTORES_SUGERIDOS.map(c => <option key={c} value={c} />)}</datalist>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Vehículo</label>
             <div style={{ display: "flex", borderRadius: 11, border: `1px solid ${C.border}`, overflow: "hidden" }}>
@@ -1204,11 +1054,10 @@ SmartAssignModal.displayName = "SmartAssignModal";
 export default function Parqueaderos() {
   const [state, dispatch] = useReducer(rootReducer, undefined, () => ({
     parqueaderos: loadParqueaderos(),
-    historial: loadHistorial(),
     toasts: [] as ToastItem[]
   }));
-  const [activeTab, setActiveTab]   = useState<"map" | "table" | "history">("table");
-  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"confirmDelete"|"confirmLiberar"|"confirmClearHistory"|null>(null);
+  const [activeTab, setActiveTab]   = useState<"map" | "table">("table");
+  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"confirmDelete"|"confirmLiberar"|null>(null);
   const [pqEditId, setPqEditId]     = useState<number | null>(null);
   const [pqDeleteId, setPqDeleteId] = useState<number | null>(null);
   const [celdaCoords, setCeldaCoords] = useState<{ parqueaderoId: number; codigo: string } | null>(null);
@@ -1224,7 +1073,6 @@ export default function Parqueaderos() {
   const [camaraLista, setCamaraLista] = useState(false);
   const [scannerOrigin, setScannerOrigin] = useState<"ingreso"|"smartAssign"|null>(null);
   const [scannedPlate, setScannedPlate]   = useState<string | undefined>(undefined);
-  const [activeTicket, setActiveTicket]   = useState<TicketSalida | null>(null);
   const [, tick] = useReducer((c: number) => c + 1, 0);
 
   const videoRef  = useRef<HTMLVideoElement>(null);
@@ -1330,16 +1178,9 @@ export default function Parqueaderos() {
   };
   const cerrarScanner = useCallback(() => setOpenModal(scannerOrigin === "smartAssign" ? "smartAssign" : "ingreso"), [scannerOrigin]);
   const handleRequestLiberar = () => {
-    if (!celdaActiva || !parqueaderoActivo || !celdaCoords) return;
-    const now = Date.now(); const fh = formatearFechaHora(now);
-    const dur = Math.max(1, Math.floor((now - (celdaActiva.timestampIngreso || now)) / 60000));
-    const ticket: TicketSalida = { id: `${celdaActiva.codigo}-${now}`, placa: celdaActiva.placa || "N/A", conductor: celdaActiva.conductor || "Desconocido", parqueaderoNombre: parqueaderoActivo.nombre, bloque: parqueaderoActivo.bloque, celdaCodigo: celdaActiva.codigo, fechaIngreso: celdaActiva.fechaIngreso || fh.fechaIngreso, horaIngreso: celdaActiva.horaIngreso || fh.horaIngreso, timestampIngreso: celdaActiva.timestampIngreso || now, fechaSalida: fh.fechaIngreso, horaSalida: fh.horaIngreso, timestampSalida: now, duracionMinutos: dur, esOficial: !!celdaActiva.esOficial };
-    setActiveTicket(ticket); setOpenModal("confirmLiberar");
-  };
-  const handleConfirmarSalida = () => {
-    if (!activeTicket || !celdaCoords) return;
-    dispatch({ type: "LIBERAR_CELDA_DIRECTO", parqueaderoId: celdaCoords.parqueaderoId, codigo: celdaCoords.codigo, ticket: activeTicket });
-    setOpenModal(null); setActiveTicket(null);
+    if (!celdaCoords) return;
+    dispatch({ type: "LIBERAR_CELDA_DIRECTO", parqueaderoId: celdaCoords.parqueaderoId, codigo: celdaCoords.codigo });
+    setOpenModal(null);
   };
   const handleToggleSena = () => { if (celdaCoords) { dispatch({ type: "TOGGLE_RESERVA_SENA", parqueaderoId: celdaCoords.parqueaderoId, codigo: celdaCoords.codigo }); setOpenModal(null); } };
   const handleCaptureOcr = async () => {
@@ -1391,14 +1232,6 @@ export default function Parqueaderos() {
     dispatch({ type: "REGISTRAR_VEHICULO", parqueaderoId: pqId, codigo, placa, conductor, esOficial });
     setScannedPlate(undefined);
   };
-  const handleImport = (content: string) => {
-    try {
-      const p = JSON.parse(content);
-      if (p.parqueaderos && Array.isArray(p.parqueaderos)) {
-        dispatch({ type: "IMPORT_STATE", parqueaderos: p.parqueaderos, historial: Array.isArray(p.historial) ? p.historial : [] });
-      } else { dispatch({ type: "ADD_TOAST", tone: "danger", message: "Formato inválido." }); }
-    } catch { dispatch({ type: "ADD_TOAST", tone: "danger", message: "Error al leer el archivo." }); }
-  };
 
   const activeFilters = [search, filterTipo !== "Todos" ? filterTipo : ""].filter(Boolean).length;
 
@@ -1411,6 +1244,52 @@ export default function Parqueaderos() {
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+
+        .pq-hero-banner{ display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; }
+        .pq-hero-stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; min-width:280px; }
+
+        .pq-topbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+        .pq-search-wrap{ flex:1; position:relative; min-width:200px; }
+        .pq-view-toggle{ display:flex; border-radius:11px; border:1px solid ${C.border}; overflow:hidden; background:#fff; }
+
+        .pq-content-grid{ display:grid; grid-template-columns:1fr 280px; gap:16px; align-items:start; }
+
+        .pq-table-header{ display:grid; grid-template-columns:minmax(200px,1fr) 120px 100px 80px 80px 80px 90px; background:#F8FAF8; border-bottom:1px solid ${C.border}; padding:12px 16px; font-size:11px; font-weight:800; color:${C.textLight}; text-transform:uppercase; letter-spacing:.5px; }
+        .pq-table-row{ display:grid; grid-template-columns:minmax(200px,1fr) 120px 100px 80px 80px 80px 90px; padding:14px 16px; border-bottom:1px solid ${C.border}; align-items:center; font-size:12px; transition:background .15s; cursor:pointer; }
+        .pq-cell-label{ display:none; }
+
+        @media (max-width: 1024px){
+          .pq-content-grid{ grid-template-columns:1fr; }
+        }
+
+        @media (max-width: 860px){
+          .pq-hero-stats{ grid-template-columns:repeat(2,1fr); min-width:0; width:100%; }
+          .pq-table-header, .pq-table-row{ grid-template-columns:minmax(140px,1fr) 100px 90px 60px 60px 60px 80px; gap:6px; }
+        }
+
+        @media (max-width: 720px){
+          .pq-topbar > .pq-search-wrap{ order:1; min-width:100%; }
+          .pq-topbar > select{ order:2; flex:1; min-width:140px; }
+          .pq-view-toggle{ order:3; flex:1; }
+          .pq-view-toggle button{ flex:1; justify-content:center; }
+          .pq-topbar > button{ order:4; flex:1; justify-content:center; }
+        }
+
+        @media (max-width: 640px){
+          .pq-hero-stats{ grid-template-columns:repeat(2,1fr); }
+          .pq-table-header{ display:none; }
+          .pq-table-row{
+            grid-template-columns:1fr !important;
+            gap:10px; padding:14px 16px;
+            border:1px solid ${C.border}; border-radius:14px;
+            margin:0 0 10px 0; border-bottom:1px solid ${C.border};
+            box-shadow:0 1px 4px rgba(15,23,42,.04);
+          }
+          .pq-table-row > div{ display:flex; flex-direction:column; align-items:flex-start !important; }
+          .pq-table-row > div:last-child{ flex-direction:row; align-items:center !important; justify-content:flex-end !important; padding-top:6px; border-top:1px dashed ${C.border}; margin-top:4px; }
+          .pq-cell-label{ display:block; font-size:9px; font-weight:800; letter-spacing:.5px; text-transform:uppercase; color:${C.textLight}; margin-bottom:3px; }
+          .pq-modal-two-col{ grid-template-columns:1fr !important; }
+        }
       `}</style>
 
       <div className="pq-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1418,7 +1297,7 @@ export default function Parqueaderos() {
         {/* ── HERO ── */}
         <div style={{ position: "relative", overflow: "hidden", borderRadius: 20, background: "linear-gradient(135deg,#39A900,#2D7D00)", padding: "1.4rem 1.6rem", color: "#fff" }}>
           <div style={{ position: "absolute", width: 250, height: 250, borderRadius: "50%", background: "rgba(255,255,255,.07)", top: -80, right: -60 }} />
-          <div style={{ position: "relative", zIndex: 2, display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
+          <div className="pq-hero-banner" style={{ position: "relative", zIndex: 2 }}>
             <div>
               <div style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,.15)", border: "1px solid rgba(255,255,255,.2)", padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800, letterSpacing: 1, textTransform: "uppercase", marginBottom: 8 }}>
                 <Shield size={11} /> Gestión Institucional SENA
@@ -1426,7 +1305,7 @@ export default function Parqueaderos() {
               <h1 style={{ fontSize: "clamp(1.6rem,3vw,2.2rem)", fontWeight: 900, lineHeight: 1, marginBottom: 4 }}>Gestión de Parqueaderos</h1>
               <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>Registro óptico automatizado, celdas de cortesía institucional y reportes de ocupación en tiempo real.</p>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+            <div className="pq-hero-stats">
               {[
                 { label: "Disponibles",    value: stats.libres,   dot: CELDA_CONFIG.libre.dotColor },
                 { label: "Ocupadas",       value: stats.ocupadas, dot: CELDA_CONFIG.ocupado.dotColor },
@@ -1445,8 +1324,8 @@ export default function Parqueaderos() {
         </div>
 
         {/* ── TOPBAR ── */}
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
+        <div className="pq-topbar">
+          <div className="pq-search-wrap">
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por placa, celda, conductor..." style={{ width: "100%", padding: "10px 14px 10px 36px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, background: "#fff", fontFamily: "inherit" }} />
             {search && <button onClick={() => setSearch("")} style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.textLight }}><X size={14} /></button>}
@@ -1457,8 +1336,8 @@ export default function Parqueaderos() {
             {TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
 
-          <div style={{ display: "flex", borderRadius: 11, border: `1px solid ${C.border}`, overflow: "hidden", background: "#fff" }}>
-            {([{ id: "table", label: "Lista", icon: <LayoutGrid size={14} /> }, { id: "map", label: "Plano", icon: <MapIcon size={14} /> }, { id: "history", label: "Historial", icon: <History size={14} /> }] as const).map(t => (
+          <div className="pq-view-toggle">
+            {([{ id: "table", label: "Lista", icon: <LayoutGrid size={14} /> }, { id: "map", label: "Plano", icon: <MapIcon size={14} /> }] as const).map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", fontSize: 12, fontWeight: 700, border: "none", background: activeTab === t.id ? C.primary : "transparent", color: activeTab === t.id ? "#fff" : C.textLight, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
                 {t.icon}{t.label}
               </button>
@@ -1479,20 +1358,18 @@ export default function Parqueaderos() {
 
         {/* ── CONTENIDO POR TAB ── */}
         {activeTab === "table" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, alignItems: "start" }}>
+          <div className="pq-content-grid">
             <ParqueaderosTable parqueaderos={filteredPqs} onEdit={pq => { setPqEditId(pq.id); setPqForm({ nombre: pq.nombre, total: pq.total, bloque: pq.bloque, tipo: pq.tipo }); setFormError(null); setOpenModal("edit"); }} onDelete={id => { setPqDeleteId(id); setOpenModal("confirmDelete"); }} onCellClick={handleCellClick} cellMatchesSearch={cellMatchesSearch} searchQuery={search} />
             <ActiveVehiclesList parqueaderos={state.parqueaderos} onSelectCell={handleCellClick} searchQuery={search} />
           </div>
         )}
 
         {activeTab === "map" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 16, alignItems: "start" }}>
+          <div className="pq-content-grid">
             <ParkingMap parqueaderos={state.parqueaderos} onCellClick={handleCellClick} cellMatchesSearch={cellMatchesSearch} />
             <ActiveVehiclesList parqueaderos={state.parqueaderos} onSelectCell={handleCellClick} searchQuery={search} />
           </div>
         )}
-
-        {activeTab === "history" && <HistoryPanel historial={state.historial} onClear={() => setOpenModal("confirmClearHistory")} onImport={handleImport} parqueaderos={state.parqueaderos} />}
       </div>
 
       {/* ══ MODALES ══ */}
@@ -1503,13 +1380,13 @@ export default function Parqueaderos() {
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
           {formError && <Banner tone="danger" message={formError} />}
           <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: CARRIL 04" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value.toUpperCase() }))} maxLength={2} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
             <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Capacidad *</label><input type="number" min={1} max={40} value={pqForm.total} onChange={e => setPqForm(p => ({ ...p, total: Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1)) }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
           </div>
           <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Categoría</label><select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value as any }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }}>{TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
         </div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           <button onClick={() => setOpenModal(null)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
           <button onClick={handleCreate} style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(57,169,0,.22)" }}>Crear Parqueadero</button>
         </div>
@@ -1521,13 +1398,13 @@ export default function Parqueaderos() {
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
           {formError && <Banner tone="danger" message={formError} />}
           <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value.toUpperCase() }))} maxLength={2} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
             <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Capacidad *</label><input type="number" min={1} max={40} value={pqForm.total} onChange={e => setPqForm(p => ({ ...p, total: Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1)) }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
           </div>
           <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Categoría</label><select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value as any }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }}>{TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
         </div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           <button onClick={() => setOpenModal(null)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
           <button onClick={handleEdit} style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(57,169,0,.22)" }}>Guardar Cambios</button>
         </div>
@@ -1558,7 +1435,7 @@ export default function Parqueaderos() {
             <button onClick={handleToggleSena} style={{ width: "100%", padding: "10px", borderRadius: 11, border: `1px dashed ${C.amberBg}`, background: C.amberBg, color: "#92400E", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🔒 Reservar celda para el SENA</button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}` }}>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           <button onClick={() => setOpenModal(null)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
           <button disabled={!vehiculoForm.placa.trim() || !vehiculoForm.conductor.trim()} onClick={registrarVehiculo}
             style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: vehiculoForm.placa.trim() && vehiculoForm.conductor.trim() ? C.primary : "#E2E8F0", color: vehiculoForm.placa.trim() && vehiculoForm.conductor.trim() ? "#fff" : C.textLight, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: vehiculoForm.placa.trim() && vehiculoForm.conductor.trim() ? "0 6px 18px rgba(57,169,0,.22)" : undefined }}>
@@ -1586,7 +1463,7 @@ export default function Parqueaderos() {
           {celdaActiva?.estado === "sena" ? (
             <>
               <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada exclusivamente para vehículos institucionales SENA.</div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <button onClick={handleToggleSena} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Liberar</button>
                 <button onClick={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: true }); setOpenModal("ingreso"); }} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
               </div>
@@ -1612,9 +1489,9 @@ export default function Parqueaderos() {
                   <div style={{ display: "flex", justifyContent: "flex-end" }}><button onClick={guardarEdicion} style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: C.text, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Guardar</button></div>
                 </div>
               </details>
-              <div style={{ display: "flex", gap: 8, paddingTop: 4 }}>
+              <div style={{ display: "flex", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>
                 <button onClick={handleToggleSena} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔒 Reservar</button>
-                <button onClick={handleRequestLiberar} style={{ flex: 2, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Registrar Salida</button>
+                <button onClick={handleRequestLiberar} style={{ flex: 2, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Liberar Celda</button>
               </div>
             </>
           ) : null}
@@ -1644,7 +1521,7 @@ export default function Parqueaderos() {
         </div>
         {ocrError && <div style={{ padding: "12px 1.8rem", background: C.dangerBg, borderBottom: `1px solid ${C.dangerBorder}` }}><Banner tone="danger" message={ocrError} /></div>}
         <div style={{ padding: "1rem 1.8rem", display: "flex", flexDirection: "column", gap: 12, background: "#F8FAFC", borderTop: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
             <label style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, color: C.textLight, cursor: "pointer" }}>
               <Upload size={14} />Cargar foto<input type="file" accept="image/*" onChange={handleFileOCR} style={{ display: "none" }} />
             </label>
@@ -1668,9 +1545,7 @@ export default function Parqueaderos() {
       </Modal>
 
       <SmartAssignModal open={openModal === "smartAssign"} parqueaderos={state.parqueaderos} onClose={() => { setOpenModal(null); setScannedPlate(undefined); setScannerOrigin(null); }} onAssign={handleSmartAssign} openScanner={() => { setScannerOrigin("smartAssign"); setOpenModal("scanner"); }} scannedPlate={scannedPlate} />
-      <TicketModal open={openModal === "confirmLiberar"} ticket={activeTicket} onConfirm={handleConfirmarSalida} onCancel={() => { setOpenModal("info"); setActiveTicket(null); }} />
       <ConfirmDialog open={openModal === "confirmDelete"} onConfirm={handleDelete} onCancel={() => { setOpenModal(null); setPqDeleteId(null); }} title="Eliminar Parqueadero" message="¿Estás seguro de eliminar este parqueadero? Se perderán todas sus celdas y datos asociados." confirmLabel="Eliminar" />
-      <ConfirmDialog open={openModal === "confirmClearHistory"} onConfirm={() => { dispatch({ type: "CLEAR_HISTORIAL" }); setOpenModal(null); }} onCancel={() => setOpenModal(null)} title="Vaciar Historial" message="¿Confirmas que deseas vaciar el historial de salidas? Esta acción no se puede revertir." confirmLabel="Vaciar" />
       <ToastStack toasts={state.toasts} onDismiss={id => dispatch({ type: "DISMISS_TOAST", id })} />
     </>
   );
