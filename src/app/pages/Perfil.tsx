@@ -11,22 +11,17 @@ import {
   CheckCircle2,
   Sparkles,
   Lock,
-  Clock3,
-  MonitorSmartphone,
+  Eye,
+  EyeOff,
+  Pencil,
+  X,
   BadgeCheck,
 } from "lucide-react";
 
-import {
-  Card,
-  CardContent,
-} from "../components/ui/card";
-
+import { Card, CardContent } from "../components/ui/card";
 import { Button } from "../components/ui/button";
-
 import { Input } from "../components/ui/input";
-
 import { Label } from "../components/ui/label";
-
 import {
   Dialog,
   DialogContent,
@@ -34,77 +29,118 @@ import {
   DialogTitle,
   DialogFooter,
 } from "../components/ui/dialog";
-
 import { Badge } from "../components/ui/badge";
-
 import { toast } from "sonner";
-
 import { useAuth } from "../context/AuthContext";
 
 export function Perfil() {
-  const { user } = useAuth();
+  const { user, updateUser, changePassword } = useAuth();
 
-  const [dialogOpen, setDialogOpen] =
-    useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
 
-  const [passwordData, setPasswordData] =
-    useState({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+  const [editMode, setEditMode] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    nombre: user?.nombre ?? "",
+    numero: user?.numero ?? "",
+  });
 
-  const handlePasswordChange = (
-    e: React.FormEvent,
-  ) => {
-    e.preventDefault();
-
-    if (
-      passwordData.newPassword.length < 8
-    ) {
-      toast.error(
-        "La contraseña debe tener mínimo 8 caracteres",
-      );
-
-      return;
-    }
-
-    if (
-      passwordData.newPassword !==
-      passwordData.confirmPassword
-    ) {
-      toast.error(
-        "Las contraseñas no coinciden",
-      );
-
-      return;
-    }
-
-    toast.success(
-      "Contraseña actualizada correctamente",
-    );
-
-    setDialogOpen(false);
-
-    setPasswordData({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
-  };
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   if (!user) return null;
+
+  const passwordLengthOk = passwordData.newPassword.length >= 8;
+  const passwordsMatch =
+    !!passwordData.newPassword &&
+    passwordData.newPassword === passwordData.confirmPassword;
+  const currentFilled = passwordData.currentPassword.length > 0;
+  const canSubmitPassword = passwordLengthOk && passwordsMatch && currentFilled;
+
+  const handleStartEdit = () => {
+    setProfileForm({ nombre: user.nombre, numero: user.numero });
+    setEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setProfileForm({ nombre: user.nombre, numero: user.numero });
+  };
+
+  const handleSaveProfile = () => {
+    if (!profileForm.nombre.trim()) {
+      toast.error("El nombre no puede estar vacío");
+      return;
+    }
+    updateUser({ nombre: profileForm.nombre.trim(), numero: profileForm.numero.trim() });
+    toast.success("Perfil actualizado correctamente");
+    setEditMode(false);
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentFilled) {
+      toast.error("Ingresa tu contraseña actual");
+      return;
+    }
+    if (!passwordLengthOk) {
+      toast.error("La nueva contraseña debe tener mínimo 8 caracteres");
+      return;
+    }
+    if (!passwordsMatch) {
+      toast.error("Las contraseñas no coinciden");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const ok = changePassword(
+        passwordData.currentPassword,
+        passwordData.newPassword,
+      );
+
+      if (!ok) {
+        toast.error("La contraseña actual no es correcta");
+        return;
+      }
+
+      toast.success("Contraseña actualizada correctamente");
+      setDialogOpen(false);
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setDialogOpen(open);
+    if (!open) {
+      setPasswordData({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    }
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* HERO */}
-
       <div className="relative overflow-hidden rounded-2xl sm:rounded-[32px] bg-gradient-to-br from-[#39A900] via-[#2F8F00] to-[#1F5F00] p-5 sm:p-8 text-white shadow-2xl">
         <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute bottom-0 left-0 h-40 w-40 rounded-full bg-black/10 blur-3xl" />
 
         <div className="relative z-10 flex flex-col gap-5 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
-          {/* Avatar + info */}
           <div className="flex items-start gap-4 sm:gap-5">
             <div className="flex h-16 w-16 sm:h-24 sm:w-24 shrink-0 items-center justify-center rounded-2xl sm:rounded-3xl bg-white/15 text-2xl sm:text-4xl font-black backdrop-blur">
               {user.nombre.charAt(0).toUpperCase()}
@@ -137,15 +173,17 @@ export function Perfil() {
             </div>
           </div>
 
-          {/* STATS */}
           <div className="grid grid-cols-4 sm:grid-cols-2 gap-2 sm:gap-4 lg:w-[360px] lg:grid-cols-2">
             {[
               { label: "Último acceso", value: "Hoy" },
-              { label: "Sesiones",      value: "1"   },
-              { label: "Estado",        value: "Activo" },
-              { label: "Seguridad",     value: "100%" },
+              { label: "Sesiones", value: "1" },
+              { label: "Estado", value: "Activo" },
+              { label: "Seguridad", value: "100%" },
             ].map(({ label, value }) => (
-              <div key={label} className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/10 p-3 sm:p-5 backdrop-blur-xl">
+              <div
+                key={label}
+                className="rounded-2xl sm:rounded-3xl border border-white/10 bg-white/10 p-3 sm:p-5 backdrop-blur-xl"
+              >
                 <div className="text-[10px] sm:text-xs uppercase tracking-wide text-white/70 leading-tight">
                   {label}
                 </div>
@@ -159,28 +197,56 @@ export function Perfil() {
       </div>
 
       {/* GRID */}
-
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        {/* LEFT */}
-
         <div className="space-y-6 xl:col-span-2">
-          {/* INFO */}
-
+          {/* INFO PERSONAL — ahora editable */}
           <Card className="overflow-hidden rounded-2xl sm:rounded-[30px] border border-zinc-200/80 bg-white shadow-sm">
             <div className="border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white px-4 sm:px-6 py-4 sm:py-5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-[#39A900]/10">
-                  <User className="h-5 w-5 sm:h-6 sm:w-6 text-[#39A900]" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-[#39A900]/10">
+                    <User className="h-5 w-5 sm:h-6 sm:w-6 text-[#39A900]" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-black text-zinc-900">
+                      Información personal
+                    </h2>
+                    <p className="text-sm text-zinc-500">
+                      Datos principales del usuario.
+                    </p>
+                  </div>
                 </div>
 
-                <div>
-                  <h2 className="text-xl sm:text-2xl font-black text-zinc-900">
-                    Información personal
-                  </h2>
-                  <p className="text-sm text-zinc-500">
-                    Datos principales del usuario.
-                  </p>
-                </div>
+                {!editMode ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-xl border-zinc-200 shrink-0"
+                    onClick={handleStartEdit}
+                  >
+                    <Pencil className="mr-2 h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                ) : (
+                  <div className="flex gap-2 shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-xl border-zinc-200"
+                      onClick={handleCancelEdit}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="rounded-xl bg-[#39A900] hover:bg-[#2D7D00]"
+                      onClick={handleSaveProfile}
+                    >
+                      <Save className="mr-2 h-3.5 w-3.5" />
+                      Guardar
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -191,9 +257,17 @@ export function Perfil() {
                   Nombre completo
                 </div>
 
-                <p className="text-lg font-black text-zinc-900">
-                  {user.nombre}
-                </p>
+                {editMode ? (
+                  <Input
+                    value={profileForm.nombre}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, nombre: e.target.value })
+                    }
+                    className="h-10 rounded-xl border-zinc-200 bg-white"
+                  />
+                ) : (
+                  <p className="text-lg font-black text-zinc-900">{user.nombre}</p>
+                )}
               </div>
 
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
@@ -201,9 +275,11 @@ export function Perfil() {
                   <Mail className="h-4 w-4" />
                   Correo electrónico
                 </div>
-
-                <p className="text-lg font-black text-zinc-900">
+                <p className="text-lg font-black text-zinc-900 truncate">
                   {user.correo}
+                </p>
+                <p className="mt-1 text-xs text-zinc-400">
+                  El correo no se puede modificar
                 </p>
               </div>
 
@@ -213,26 +289,28 @@ export function Perfil() {
                   Teléfono
                 </div>
 
-                <p className="text-lg font-black text-zinc-900">
-                  {user.telefono ||
-                    "No registrado"}
-                </p>
+                {editMode ? (
+                  <Input
+                    value={profileForm.numero}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, numero: e.target.value })
+                    }
+                    placeholder="Ej: 3001234567"
+                    className="h-10 rounded-xl border-zinc-200 bg-white"
+                  />
+                ) : (
+                  <p className="text-lg font-black text-zinc-900">
+                    {user.numero || "No registrado"}
+                  </p>
+                )}
               </div>
 
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5">
                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-zinc-500">
                   <IdCard className="h-4 w-4" />
-                  Documento
+                  ID de usuario
                 </div>
-
-                <p className="text-lg font-black text-zinc-900">
-                  {
-                    user.tipoDocumento
-                  }{" "}
-                  {
-                    user.identificacion
-                  }
-                </p>
+                <p className="text-lg font-black text-zinc-900">{user.id}</p>
               </div>
 
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-5 md:col-span-2">
@@ -242,10 +320,7 @@ export function Perfil() {
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <p className="text-lg font-black text-zinc-900">
-                    {user.rol}
-                  </p>
-
+                  <p className="text-lg font-black text-zinc-900">{user.rol}</p>
                   <Badge className="border-[#39A900]/20 bg-[#39A900]/10 text-[#39A900]">
                     Permisos habilitados
                   </Badge>
@@ -255,7 +330,6 @@ export function Perfil() {
           </Card>
 
           {/* SEGURIDAD */}
-
           <Card className="overflow-hidden rounded-2xl sm:rounded-[30px] border border-zinc-200/80 bg-white shadow-sm">
             <div className="border-b border-zinc-100 bg-gradient-to-r from-zinc-50 to-white px-4 sm:px-6 py-4 sm:py-5">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
@@ -263,7 +337,6 @@ export function Perfil() {
                   <div className="flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-[#39A900]/10">
                     <Lock className="h-5 w-5 sm:h-6 sm:w-6 text-[#39A900]" />
                   </div>
-
                   <div>
                     <h2 className="text-xl sm:text-2xl font-black text-zinc-900">
                       Seguridad
@@ -291,13 +364,10 @@ export function Perfil() {
                     <Shield className="h-4 w-4 text-[#39A900]" />
                     Contraseña protegida
                   </div>
-
                   <p className="mt-1 text-sm text-zinc-500">
-                    Última actualización:
-                    hace 30 días
+                    Recomendamos cambiarla periódicamente.
                   </p>
                 </div>
-
                 <div className="text-2xl tracking-[5px] text-zinc-400">
                   ••••••••
                 </div>
@@ -307,24 +377,17 @@ export function Perfil() {
         </div>
       </div>
 
-      {/* DIALOG */}
-
-      <Dialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-      >
+      {/* DIALOG CAMBIO DE CONTRASEÑA */}
+      <Dialog open={dialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent className="w-[calc(100%-2rem)] sm:max-w-2xl overflow-hidden rounded-2xl sm:rounded-[32px] border-none bg-white p-0 shadow-2xl">
-          {/* HEADER */}
           <div className="relative overflow-hidden bg-gradient-to-r from-[#39A900] via-[#2F8F00] to-[#1F5F00] px-5 sm:px-8 py-5 sm:py-7 text-white">
             <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-3xl" />
-
             <div className="relative z-10">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3 text-xl sm:text-3xl font-black">
                   <div className="flex h-11 w-11 sm:h-14 sm:w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 backdrop-blur">
                     <Key className="h-5 w-5 sm:h-7 sm:w-7" />
                   </div>
-
                   <div>
                     Cambiar contraseña
                     <p className="mt-1 text-xs sm:text-sm font-medium text-white/80">
@@ -339,69 +402,101 @@ export function Perfil() {
           <form onSubmit={handlePasswordChange}>
             <div className="space-y-5 sm:space-y-7 p-5 sm:p-8">
               <div className="grid grid-cols-1 gap-4 sm:gap-6">
-                {/* ACTUAL */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-zinc-700">
                     Contraseña actual
                   </Label>
                   <div className="relative">
-                    <Lock className="absolute left-4 top-4 h-4 w-4 text-zinc-400" />
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                     <Input
-                      type="password"
+                      type={showCurrent ? "text" : "password"}
                       placeholder="Ingrese contraseña actual"
-                      className="h-12 rounded-2xl border-zinc-200 bg-zinc-50/50 pl-11 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-[#39A900]/20"
+                      className="h-12 rounded-2xl border-zinc-200 bg-zinc-50/50 pl-11 pr-11 shadow-sm focus-visible:ring-2 focus-visible:ring-[#39A900]/20"
                       value={passwordData.currentPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                      }
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrent(!showCurrent)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      {showCurrent ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
-                {/* NUEVA */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-zinc-700">
                     Nueva contraseña
                   </Label>
                   <div className="relative">
-                    <Key className="absolute left-4 top-4 h-4 w-4 text-zinc-400" />
+                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                     <Input
-                      type="password"
+                      type={showNew ? "text" : "password"}
                       placeholder="Ingrese nueva contraseña"
-                      className="h-12 rounded-2xl border-zinc-200 bg-zinc-50/50 pl-11 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-[#39A900]/20"
+                      className="h-12 rounded-2xl border-zinc-200 bg-zinc-50/50 pl-11 pr-11 shadow-sm focus-visible:ring-2 focus-visible:ring-[#39A900]/20"
                       value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, newPassword: e.target.value })
+                      }
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowNew(!showNew)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
                   </div>
                 </div>
 
-                {/* CONFIRMAR */}
                 <div className="space-y-2">
                   <Label className="text-sm font-semibold text-zinc-700">
                     Confirmar contraseña
                   </Label>
                   <div className="relative">
-                    <CheckCircle2 className="absolute left-4 top-4 h-4 w-4 text-zinc-400" />
+                    <CheckCircle2 className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-400" />
                     <Input
-                      type="password"
+                      type={showNew ? "text" : "password"}
                       placeholder="Confirme contraseña"
-                      className="h-12 rounded-2xl border-zinc-200 bg-zinc-50/50 pl-11 shadow-sm transition-all focus-visible:ring-2 focus-visible:ring-[#39A900]/20"
+                      className="h-12 rounded-2xl border-zinc-200 bg-zinc-50/50 pl-11 shadow-sm focus-visible:ring-2 focus-visible:ring-[#39A900]/20"
                       value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                      onChange={(e) =>
+                        setPasswordData({ ...passwordData, confirmPassword: e.target.value })
+                      }
                     />
                   </div>
                 </div>
               </div>
 
-              {/* VALIDACIONES */}
               <div className="rounded-2xl sm:rounded-[28px] border border-zinc-200 bg-gradient-to-r from-zinc-50 to-white p-4 sm:p-5">
                 <div className="mb-3 sm:mb-4 text-sm font-black text-zinc-900">
                   Requisitos de seguridad
                 </div>
                 <div className="space-y-2 sm:space-y-3">
-                  <div className={`flex items-center gap-2 text-sm font-medium ${passwordData.newPassword.length >= 8 ? "text-[#39A900]" : "text-zinc-500"}`}>
+                  <div
+                    className={`flex items-center gap-2 text-sm font-medium ${
+                      currentFilled ? "text-[#39A900]" : "text-zinc-500"
+                    }`}
+                  >
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    Contraseña actual ingresada
+                  </div>
+                  <div
+                    className={`flex items-center gap-2 text-sm font-medium ${
+                      passwordLengthOk ? "text-[#39A900]" : "text-zinc-500"
+                    }`}
+                  >
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
                     Mínimo 8 caracteres
                   </div>
-                  <div className={`flex items-center gap-2 text-sm font-medium ${passwordData.newPassword === passwordData.confirmPassword && passwordData.newPassword ? "text-[#39A900]" : "text-zinc-500"}`}>
+                  <div
+                    className={`flex items-center gap-2 text-sm font-medium ${
+                      passwordsMatch ? "text-[#39A900]" : "text-zinc-500"
+                    }`}
+                  >
                     <CheckCircle2 className="h-4 w-4 shrink-0" />
                     Las contraseñas coinciden
                   </div>
@@ -409,22 +504,22 @@ export function Perfil() {
               </div>
             </div>
 
-            {/* FOOTER */}
             <DialogFooter className="border-t border-zinc-100 bg-zinc-50 px-5 sm:px-8 py-4 sm:py-5 flex-row gap-2 justify-end">
               <Button
                 type="button"
                 variant="outline"
                 className="h-11 sm:h-12 flex-1 sm:flex-none rounded-2xl border-zinc-200 px-5 sm:px-6 font-semibold"
-                onClick={() => setDialogOpen(false)}
+                onClick={() => handleCloseDialog(false)}
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
-                className="h-11 sm:h-12 flex-1 sm:flex-none rounded-2xl bg-[#39A900] px-6 sm:px-8 font-bold shadow-lg hover:bg-[#2D7D00]"
+                disabled={!canSubmitPassword || submitting}
+                className="h-11 sm:h-12 flex-1 sm:flex-none rounded-2xl bg-[#39A900] px-6 sm:px-8 font-bold shadow-lg hover:bg-[#2D7D00] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save className="mr-2 h-4 w-4" />
-                Guardar
+                {submitting ? "Guardando..." : "Guardar"}
               </Button>
             </DialogFooter>
           </form>

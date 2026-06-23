@@ -658,7 +658,7 @@ export default function Dashboard() {
           className="relative mx-auto max-w-[1440px] px-5 py-5"
         >
           {/* ========== HEADER REDISEÑADO ========== */}
-          <motion.header variants={fadeUp} className="mb-6 flex flex-col gap-4 rounded-3xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0]">
+          <motion.header variants={fadeUp} className="mb-6 flex flex-col gap-4 rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0]">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#39A900] text-white shadow-md">
@@ -759,8 +759,8 @@ export default function Dashboard() {
                       <p className="text-xs text-white/70">{selectedLot.block} · {selectedLot.type === "mixed" ? "Mixto" : selectedLot.type === "moto" ? "Motos" : "Automoviles"}</p>
                     </div>
                     <div className="rounded-xl bg-white/20 px-4 py-2 text-right backdrop-blur-sm">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Capacidad</p>
-                      <p className="text-2xl font-bold">{selectedLot.capacity}</p>
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-white">Capacidad</p>
+                      <p className="text-2xl font-bold text-white">{selectedLot.capacity}</p>
                     </div>
                   </div>
 
