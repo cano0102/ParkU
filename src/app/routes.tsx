@@ -64,10 +64,6 @@ export const router = createBrowserRouter([
         element: <Conductores />,
       },
       {
-        path: 'vehiculos',
-        element: <Vehiculos />,
-      },
-      {
         path: 'parqueaderos',
         element: <Parqueaderos />,
       },

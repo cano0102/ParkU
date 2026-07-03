@@ -55,7 +55,6 @@ const menuItems = [
   { path: '/app/roles',        label: 'Roles',          icon: ShieldCheck,     group: 'admin' },
   { path: '/app/usuarios',     label: 'Usuarios',       icon: Users,           group: 'admin' },
   { path: '/app/conductores',  label: 'Conductores',    icon: UserCog,         group: 'admin' },
-  { path: '/app/vehiculos',    label: 'Vehículos',      icon: Car,             group: 'operacion' },
   { path: '/app/parqueaderos', label: 'Parqueaderos',   icon: ParkingCircle,   group: 'operacion' },
   { path: '/app/entrada-salida', label: 'Entrada / Salida', icon: ArrowLeftRight, group: 'operacion' },
   { path: '/app/reservas',     label: 'Reservas',       icon: Calendar,        group: 'operacion' },

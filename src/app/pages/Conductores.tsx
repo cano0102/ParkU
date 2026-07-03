@@ -18,17 +18,24 @@ import {
   User,
   Users,
   UserX,
+  GaugeCircle,
+  Palette,
+  UserCircle2,
+  CheckCircle2,
+  Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useData, Conductor } from "../context/DataContext";
+import { useData, Conductor, Vehiculo } from "../context/DataContext";
 
 const COLORS = {
   primary: "#39A900",
   primaryDark: "#2D7D00",
   text: "#0F172A",
   textLight: "#64748B",
+  textMuted: "#94A3B8",
   border: "#E2E8F0",
-  bg: "#F8FAFC",
+  bg: "#F5F7F8",
+  white: "#FFFFFF",
 } as const;
 
 const AVATAR_GRADIENTS = [
@@ -58,6 +65,27 @@ const getTipoStyle = (tipo: string) => {
   return tipo === "instructor"
     ? { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#2563EB", label: "Instructor", icon: GraduationCap }
     : { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "Aprendiz", icon: BookOpen };
+};
+
+const getTipoVehiculoStyle = (tipo: "carro" | "moto") => {
+  if (tipo === "carro") {
+    return {
+      bg: "#EFF6FF",
+      text: "#2563EB",
+      border: "#BFDBFE",
+      dot: "#3B82F6",
+      label: "Carro",
+      icon: Car,
+    };
+  }
+  return {
+    bg: "#FFFBEB",
+    text: "#D97706",
+    border: "#FDE68A",
+    dot: "#F59E0B",
+    label: "Moto",
+    icon: Bike,
+  };
 };
 
 const sanitizeText = (text: string): string => {
@@ -184,13 +212,14 @@ interface FormState {
   discapacidad: boolean;
   tipoDiscapacidad: string;
   estado: "activo" | "inactivo";
+  // Vehículo
   placa: string;
   tipoVehiculo: "carro" | "moto";
   marca: string;
   modelo: string;
   año: number;
   color: string;
-  descripcion: string;
+  descripcionVehiculo: string;
 }
 
 const emptyForm = (): FormState => ({
@@ -206,7 +235,7 @@ const emptyForm = (): FormState => ({
   modelo: "",
   año: new Date().getFullYear(),
   color: "",
-  descripcion: "",
+  descripcionVehiculo: "",
 });
 
 interface ConfirmDialogProps {
@@ -298,6 +327,205 @@ const ConfirmDialog = memo(({ open, onConfirm, onCancel, title, message }: Confi
 
 ConfirmDialog.displayName = "ConfirmDialog";
 
+// Sub-componente para vista de vehículo
+interface VehiculoViewProps {
+  vehiculo: Vehiculo;
+  onEdit: () => void;
+  onClose: () => void;
+}
+
+const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewProps) => {
+  const tipoStyle = getTipoVehiculoStyle(vehiculo.tipo);
+  const TipoIcon = tipoStyle.icon;
+
+  return (
+    <div>
+      <div
+        style={{
+          padding: "1.6rem 1.8rem 1.4rem",
+          background: `linear-gradient(135deg, ${tipoStyle.dot}, ${tipoStyle.dot}cc)`,
+          color: "#fff",
+          borderRadius: "24px 24px 0 0",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            width: 200,
+            height: 200,
+            borderRadius: "50%",
+            background: "rgba(255,255,255,.07)",
+            top: -80,
+            right: -60,
+          }}
+        />
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div
+              style={{
+                width: 52,
+                height: 52,
+                borderRadius: 14,
+                background: "rgba(255,255,255,.18)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <TipoIcon size={24} />
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                background: "rgba(255,255,255,.15)",
+                border: "none",
+                color: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              aria-label="Cerrar vista"
+            >
+              <X size={15} />
+            </button>
+          </div>
+          <h2 style={{ marginTop: 14, fontSize: 24, fontWeight: 900, lineHeight: 1, letterSpacing: 0.5 }}>
+            {sanitizeText(vehiculo.placa)}
+          </h2>
+          <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <span
+              style={{
+                padding: "4px 12px",
+                borderRadius: 999,
+                fontSize: 10,
+                fontWeight: 800,
+                background: "rgba(255,255,255,.18)",
+                border: "1px solid rgba(255,255,255,.25)",
+              }}
+            >
+              {tipoStyle.label}
+            </span>
+            <span
+              style={{
+                padding: "4px 12px",
+                borderRadius: 999,
+                fontSize: 10,
+                fontWeight: 800,
+                background: "rgba(255,255,255,.18)",
+                border: "1px solid rgba(255,255,255,.25)",
+              }}
+            >
+              {vehiculo.estado}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: "1.4rem 1.8rem" }}>
+        {[
+          { label: "Marca", value: vehiculo.marca, icon: GaugeCircle },
+          { label: "Modelo", value: vehiculo.modelo, icon: GaugeCircle },
+          { label: "Color", value: vehiculo.color, icon: Palette },
+          { label: "Año", value: vehiculo.año, icon: Calendar },
+        ].map((item) => (
+          <div
+            key={item.label}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 12px",
+              borderRadius: 12,
+              background: "#F8FAFC",
+              border: `1px solid ${COLORS.border}`,
+              marginBottom: 8,
+            }}
+          >
+            <item.icon size={14} color={COLORS.textLight} />
+            <div>
+              <div
+                style={{
+                  fontSize: 9,
+                  fontWeight: 700,
+                  color: COLORS.textLight,
+                  textTransform: "uppercase",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {item.label}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>
+                {sanitizeText(String(item.value))}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {vehiculo.descripcion && (
+          <div
+            style={{
+              padding: "10px 12px",
+              borderRadius: 12,
+              background: "#F8FAFC",
+              border: `1px solid ${COLORS.border}`,
+              marginBottom: 8,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 9,
+                fontWeight: 700,
+                color: COLORS.textLight,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                marginBottom: 4,
+              }}
+            >
+              Descripción
+            </div>
+            <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.4 }}>
+              {sanitizeText(vehiculo.descripcion)}
+            </div>
+          </div>
+        )}
+
+        <button
+          onClick={onEdit}
+          style={{
+            marginTop: 12,
+            width: "100%",
+            padding: "12px 20px",
+            borderRadius: 12,
+            border: "none",
+            background: tipoStyle.dot,
+            color: "#fff",
+            fontSize: 13,
+            fontWeight: 800,
+            cursor: "pointer",
+            fontFamily: "inherit",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            boxShadow: `0 6px 18px ${tipoStyle.dot}33`,
+          }}
+        >
+          <Pencil size={14} />
+          Editar vehículo
+        </button>
+      </div>
+    </div>
+  );
+});
+
+VehiculoView.displayName = "VehiculoView";
+
 export function Conductores() {
   const {
     conductores,
@@ -314,12 +542,15 @@ export function Conductores() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [viewVehiculoOpen, setViewVehiculoOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
   const [viewingConductor, setViewingConductor] = useState<Conductor | null>(null);
+  const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
   const [deletingConductor, setDeletingConductor] = useState<Conductor | null>(null);
   const [search, setSearch] = useState("");
   const [filterTipo, setFilterTipo] = useState("todos");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
+  const [filterVehiculoTipo, setFilterVehiculoTipo] = useState("todos");
   const [formData, setFormData] = useState<FormState>(emptyForm());
 
   const getUsuario = useCallback((id: string) => usuarios.find((u) => u.id === id), [usuarios]);
@@ -330,6 +561,8 @@ export function Conductores() {
   const totalAprendices = useMemo(() => conductores.filter((c) => c.tipoConductor === "aprendiz").length, [conductores]);
   const totalVehiculos = useMemo(() => vehiculos.length, [vehiculos]);
   const totalConductores = useMemo(() => conductores.length, [conductores]);
+  const totalCarros = useMemo(() => vehiculos.filter((v) => v.tipo === "carro").length, [vehiculos]);
+  const totalMotos = useMemo(() => vehiculos.filter((v) => v.tipo === "moto").length, [vehiculos]);
 
   const filteredConductores = useMemo(
     () =>
@@ -337,15 +570,24 @@ export function Conductores() {
         const usuario = getUsuario(conductor.usuarioId);
         if (!usuario) return false;
         const q = search.toLowerCase();
+        const vehiculosCond = getVehiculosConductor(conductor.id);
+        const matchVehiculoTipo = filterVehiculoTipo === "todos"
+          ? true
+          : vehiculosCond.some((v) => v.tipo === filterVehiculoTipo);
         const matchesSearch =
           usuario.nombre.toLowerCase().includes(q) ||
           usuario.identificacion.includes(search) ||
-          conductor.centroFormacion.toLowerCase().includes(q);
+          conductor.centroFormacion.toLowerCase().includes(q) ||
+          vehiculosCond.some((v) =>
+            v.placa.toLowerCase().includes(q) ||
+            v.marca.toLowerCase().includes(q) ||
+            v.modelo.toLowerCase().includes(q)
+          );
         const matchesTipo = filterTipo === "todos" ? true : conductor.tipoConductor === filterTipo;
         const matchesEstado = filterEstado === "todos" ? true : conductor.estado === filterEstado;
-        return matchesSearch && matchesTipo && matchesEstado;
+        return matchesSearch && matchesTipo && matchesEstado && matchVehiculoTipo;
       }),
-    [conductores, search, filterTipo, filterEstado, getUsuario]
+    [conductores, search, filterTipo, filterEstado, filterVehiculoTipo, getUsuario, getVehiculosConductor]
   );
 
   const openCreate = useCallback(() => {
@@ -371,7 +613,7 @@ export function Conductores() {
         modelo: v?.modelo || "",
         año: v?.año || new Date().getFullYear(),
         color: v?.color || "",
-        descripcion: v?.descripcion || "",
+        descripcionVehiculo: v?.descripcion || "",
       });
       setViewOpen(false);
       setDialogOpen(true);
@@ -382,6 +624,11 @@ export function Conductores() {
   const openView = useCallback((conductor: Conductor) => {
     setViewingConductor(conductor);
     setViewOpen(true);
+  }, []);
+
+  const openVehiculoView = useCallback((vehiculo: Vehiculo) => {
+    setViewingVehiculo(vehiculo);
+    setViewVehiculoOpen(true);
   }, []);
 
   const openConfirm = useCallback((conductor: Conductor) => {
@@ -421,7 +668,7 @@ export function Conductores() {
             modelo: sanitizeText(formData.modelo.trim()),
             año: formData.año,
             color: sanitizeText(formData.color.trim()),
-            descripcion: sanitizeText(formData.descripcion.trim()),
+            descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
           });
         } else if (formData.placa.trim()) {
@@ -433,7 +680,7 @@ export function Conductores() {
             modelo: sanitizeText(formData.modelo.trim()),
             año: formData.año,
             color: sanitizeText(formData.color.trim()),
-            descripcion: sanitizeText(formData.descripcion.trim()),
+            descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
           });
         }
@@ -450,7 +697,7 @@ export function Conductores() {
             modelo: sanitizeText(formData.modelo.trim()),
             año: formData.año,
             color: sanitizeText(formData.color.trim()),
-            descripcion: sanitizeText(formData.descripcion.trim()),
+            descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
           });
         }
@@ -493,6 +740,24 @@ export function Conductores() {
     [updateConductor]
   );
 
+  const clearFilters = useCallback(() => {
+    setSearch("");
+    setFilterTipo("todos");
+    setFilterEstado("todos");
+    setFilterVehiculoTipo("todos");
+  }, []);
+
+  const activeFiltersCount = useMemo(
+    () =>
+      [
+        search,
+        filterTipo !== "todos" ? filterTipo : "",
+        filterEstado !== "todos" ? filterEstado : "",
+        filterVehiculoTipo !== "todos" ? filterVehiculoTipo : "",
+      ].filter(Boolean).length,
+    [search, filterTipo, filterEstado, filterVehiculoTipo]
+  );
+
   const isEdit = !!editingConductor;
 
   return (
@@ -500,10 +765,56 @@ export function Conductores() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
         .conductores-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
-        .conductor-card{ transition:box-shadow .18s,transform .18s; }
-        .conductor-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-2px); }
-        .action-btn{ transition:background .15s,color .15s; }
-        .action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
+        .conductor-card{ 
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+          border: 1px solid ${COLORS.border};
+          border-radius: 16px;
+          background: #fff;
+          overflow: hidden;
+          position: relative;
+          box-shadow: 0 2px 8px rgba(15,23,42,.05);
+        }
+        .conductor-card:hover{ 
+          transform: translateY(-4px);
+          box-shadow: 0 12px 40px rgba(15,23,42,.12) !important;
+          border-color: ${COLORS.primary};
+        }
+        .conductor-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, ${COLORS.primary}, ${COLORS.primary}66);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+        }
+        .conductor-card:hover::before {
+          opacity: 1;
+        }
+        .action-btn{ 
+          transition: all 0.15s ease;
+          border-radius: 8px;
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: ${COLORS.textLight};
+        }
+        .action-btn:hover{ 
+          background: #F1F5F9 !important; 
+          color: #0F172A !important;
+          transform: scale(1.05);
+        }
+        .action-btn.danger:hover {
+          background: #FEE2E2 !important;
+          color: #DC2626 !important;
+        }
         input:focus,textarea:focus,select:focus{
           outline:none;
           border-color:${COLORS.primary} !important;
@@ -512,6 +823,71 @@ export function Conductores() {
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+        .vehiculo-card {
+          transition: all 0.2s ease;
+          border-radius: 10px;
+          border: 1px solid ${COLORS.border};
+          background: #F8FAFC;
+          padding: 10px 12px;
+          cursor: pointer;
+        }
+        .vehiculo-card:hover {
+          border-color: ${COLORS.primary};
+          background: #F0FDF4;
+          transform: translateX(4px);
+        }
+        .status-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .status-badge.active {
+          background: #DCFCE7;
+          color: #166534;
+        }
+        .status-badge.inactive {
+          background: #FEE2E2;
+          color: #991B1B;
+        }
+        .type-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 700;
+        }
+        .info-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 10px;
+          background: ${COLORS.bg};
+          border: 1px solid ${COLORS.border};
+          transition: all 0.2s ease;
+        }
+        .info-row:hover {
+          border-color: ${COLORS.primary}40;
+          background: #F8FAFC;
+        }
+        .conductores-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+          gap: 16px;
+        }
+        @media (max-width: 640px) {
+          .conductores-grid {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
 
       <div className="conductores-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -564,7 +940,7 @@ export function Conductores() {
                   marginBottom: 8,
                 }}
               >
-                <ShieldCheck size={11} /> Gestión de conductores
+                <ShieldCheck size={11} /> Gestión integral
               </div>
               <h1
                 style={{
@@ -574,7 +950,7 @@ export function Conductores() {
                   marginBottom: 4,
                 }}
               >
-                Gestión de Conductores
+                Conductores y Vehículos
               </h1>
               <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
                 Administra conductores, aprendices, instructores y vehículos autorizados del sistema SENA.
@@ -590,10 +966,10 @@ export function Conductores() {
               }}
             >
               {[
-                { label: "Total", value: totalConductores, icon: Users },
+                { label: "Conductores", value: totalConductores, icon: Users },
                 { label: "Activos", value: totalActivos, icon: UserCheck },
-                { label: "Instructores", value: totalInstructores, icon: GraduationCap },
                 { label: "Vehículos", value: totalVehiculos, icon: Car },
+                { label: "Carros/Motos", value: `${totalCarros}/${totalMotos}`, icon: Bike },
               ].map((s) => (
                 <div
                   key={s.label}
@@ -637,7 +1013,7 @@ export function Conductores() {
               }}
             />
             <input
-              placeholder="Buscar conductor, identificación o centro..."
+              placeholder="Buscar conductor, vehículo, identificación..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={inputStyle}
@@ -660,6 +1036,23 @@ export function Conductores() {
             <option value="todos">Todos los tipos</option>
             <option value="aprendiz">Aprendiz</option>
             <option value="instructor">Instructor</option>
+          </select>
+
+          <select
+            value={filterVehiculoTipo}
+            onChange={(e) => setFilterVehiculoTipo(e.target.value)}
+            style={{
+              ...inputStyle,
+              width: "auto",
+              appearance: "none",
+              paddingRight: 28,
+              cursor: "pointer",
+            }}
+            aria-label="Filtrar por tipo de vehículo"
+          >
+            <option value="todos">Todos los vehículos</option>
+            <option value="carro">Con Carro</option>
+            <option value="moto">Con Moto</option>
           </select>
 
           <select
@@ -695,17 +1088,44 @@ export function Conductores() {
               alignItems: "center",
               gap: 7,
               boxShadow: "0 4px 14px rgba(57,169,0,.25)",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.02)";
+              e.currentTarget.style.boxShadow = "0 6px 20px rgba(57,169,0,.35)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.boxShadow = "0 4px 14px rgba(57,169,0,.25)";
             }}
           >
             <Plus size={15} /> Nuevo Conductor
           </button>
         </div>
 
-        {(search || filterTipo !== "todos" || filterEstado !== "todos") && (
-          <p style={{ fontSize: 11, color: COLORS.textLight }}>
-            Mostrando <strong>{filteredConductores.length}</strong> resultado
-            {filteredConductores.length !== 1 ? "s" : ""}
-          </p>
+        {activeFiltersCount > 0 && (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <p style={{ fontSize: 11, color: COLORS.textLight }}>
+              Mostrando <strong>{filteredConductores.length}</strong> resultado
+              {filteredConductores.length !== 1 ? "s" : ""}
+            </p>
+            <button
+              onClick={clearFilters}
+              style={{
+                fontSize: 11,
+                fontWeight: 600,
+                color: COLORS.primary,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <X size={12} /> Limpiar filtros
+            </button>
+          </div>
         )}
 
         {filteredConductores.length === 0 ? (
@@ -727,13 +1147,7 @@ export function Conductores() {
             <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o registra uno nuevo</p>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
-              gap: 12,
-            }}
-          >
+          <div className="conductores-grid">
             {filteredConductores.map((conductor) => {
               const usuario = getUsuario(conductor.usuarioId);
               const vehiculosCond = getVehiculosConductor(conductor.id);
@@ -746,20 +1160,8 @@ export function Conductores() {
               const TipoIcon = tipoStyle.icon;
 
               return (
-                <div
-                  key={conductor.id}
-                  className="conductor-card"
-                  style={{
-                    borderRadius: 14,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#fff",
-                    overflow: "hidden",
-                    boxShadow: "0 2px 8px rgba(15,23,42,.05)",
-                  }}
-                >
-                  <div style={{ height: 3, background: tipoStyle.dot }} />
-
-                  <div style={{ padding: "14px" }}>
+                <div key={conductor.id} className="conductor-card">
+                  <div style={{ padding: "16px 16px 12px" }}>
                     <div
                       style={{
                         display: "flex",
@@ -817,14 +1219,7 @@ export function Conductores() {
                             {tipoStyle.label}
                           </span>
                           <span
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                              background: activo ? "rgba(57,169,0,.1)" : "rgba(156,163,175,.12)",
-                              color: activo ? COLORS.primaryDark : COLORS.textLight,
-                            }}
+                            className={`status-badge ${activo ? "active" : "inactive"}`}
                           >
                             {conductor.estado}
                           </span>
@@ -848,6 +1243,35 @@ export function Conductores() {
                           )}
                         </div>
                       </div>
+                      <button
+                        onClick={() => handleToggleEstado(conductor.id, conductor.estado)}
+                        style={{
+                          width: 36,
+                          height: 20,
+                          borderRadius: 999,
+                          background: activo ? COLORS.primary : "#CBD5E1",
+                          border: "none",
+                          cursor: "pointer",
+                          position: "relative",
+                          transition: "all 0.3s ease",
+                          flexShrink: 0,
+                        }}
+                        aria-label={activo ? "Desactivar conductor" : "Activar conductor"}
+                      >
+                        <div
+                          style={{
+                            width: 16,
+                            height: 16,
+                            borderRadius: "50%",
+                            background: "#fff",
+                            position: "absolute",
+                            top: 2,
+                            left: activo ? 18 : 2,
+                            transition: "all 0.3s ease",
+                            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                          }}
+                        />
+                      </button>
                     </div>
 
                     <div
@@ -883,61 +1307,56 @@ export function Conductores() {
                           Vehículos registrados
                         </p>
                         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                          {vehiculosCond.map((v) => (
-                            <div
-                              key={v.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "8px 10px",
-                                borderRadius: 10,
-                                background: "#F8FAFC",
-                                border: `1px solid ${COLORS.border}`,
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <div
-                                  style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 8,
-                                    background: `${g1}15`,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  {v.tipo === "moto" ? (
-                                    <Bike size={14} color={g1} />
-                                  ) : (
-                                    <Car size={14} color={g1} />
-                                  )}
-                                </div>
-                                <div>
-                                  <p style={{ fontSize: 11, fontWeight: 700, color: COLORS.text }}>
-                                    {v.placa}
-                                  </p>
-                                  <p style={{ fontSize: 9, color: COLORS.textLight }}>
-                                    {v.marca} {v.modelo} · {v.color}
-                                  </p>
+                          {vehiculosCond.map((v) => {
+                            const vTipoStyle = getTipoVehiculoStyle(v.tipo);
+                            const VIcon = vTipoStyle.icon;
+                            return (
+                              <div
+                                key={v.id}
+                                className="vehiculo-card"
+                                onClick={() => openVehiculoView(v)}
+                              >
+                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                    <div
+                                      style={{
+                                        width: 28,
+                                        height: 28,
+                                        borderRadius: 8,
+                                        background: `${vTipoStyle.dot}15`,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                      }}
+                                    >
+                                      <VIcon size={14} color={vTipoStyle.dot} />
+                                    </div>
+                                    <div>
+                                      <p style={{ fontSize: 11, fontWeight: 700, color: COLORS.text }}>
+                                        {v.placa}
+                                      </p>
+                                      <p style={{ fontSize: 9, color: COLORS.textLight }}>
+                                        {v.marca} {v.modelo}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span
+                                    style={{
+                                      fontSize: 9,
+                                      fontWeight: 700,
+                                      padding: "2px 8px",
+                                      borderRadius: 999,
+                                      background: `${vTipoStyle.dot}15`,
+                                      color: vTipoStyle.dot,
+                                      textTransform: "capitalize",
+                                    }}
+                                  >
+                                    {v.tipo}
+                                  </span>
                                 </div>
                               </div>
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  fontWeight: 700,
-                                  padding: "2px 8px",
-                                  borderRadius: 999,
-                                  background: `${g1}15`,
-                                  color: g1,
-                                  textTransform: "capitalize",
-                                }}
-                              >
-                                {v.tipo}
-                              </span>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -950,101 +1369,36 @@ export function Conductores() {
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
+                      background: COLORS.bg,
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <button
-                        onClick={() => handleToggleEstado(conductor.id, conductor.estado)}
-                        style={{
-                          width: 36,
-                          height: 20,
-                          borderRadius: 999,
-                          background: activo ? COLORS.primary : "#CBD5E1",
-                          border: "none",
-                          cursor: "pointer",
-                          position: "relative",
-                          transition: "background .2s",
-                        }}
-                        aria-label={activo ? "Desactivar conductor" : "Activar conductor"}
-                      >
-                        <div
-                          style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            background: "#fff",
-                            position: "absolute",
-                            top: 2,
-                            left: activo ? 18 : 2,
-                            transition: "left .2s",
-                          }}
-                        />
-                      </button>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: COLORS.textLight }}>
-                        {activo ? "Activo" : "Inactivo"}
-                      </span>
-                    </div>
-
-                    <div style={{ display: "flex", gap: 4 }}>
+                    <span style={{ fontSize: 10, color: COLORS.textLight, fontWeight: 600 }}>
+                      {vehiculosCond.length} vehículo{vehiculosCond.length !== 1 ? "s" : ""}
+                    </span>
+                    <div style={{ display: "flex", gap: 2 }}>
                       <button
                         className="action-btn"
                         title="Ver detalle"
                         onClick={() => openView(conductor)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 7,
-                          border: "none",
-                          background: "transparent",
-                          color: COLORS.textLight,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
                         aria-label={`Ver detalle de ${sanitizeText(usuario.nombre)}`}
                       >
-                        <Eye size={13} />
+                        <Eye size={14} />
                       </button>
                       <button
                         className="action-btn"
                         title="Editar"
                         onClick={() => openEdit(conductor)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 7,
-                          border: "none",
-                          background: "transparent",
-                          color: COLORS.textLight,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
                         aria-label={`Editar ${sanitizeText(usuario.nombre)}`}
                       >
-                        <Pencil size={13} />
+                        <Pencil size={14} />
                       </button>
                       <button
-                        className="action-btn"
+                        className="action-btn danger"
                         title="Eliminar"
                         onClick={() => openConfirm(conductor)}
-                        style={{
-                          width: 28,
-                          height: 28,
-                          borderRadius: 7,
-                          border: "none",
-                          background: "transparent",
-                          color: "#EF4444",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
                         aria-label={`Eliminar ${sanitizeText(usuario.nombre)}`}
                       >
-                        <Trash2 size={13} />
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
@@ -1055,6 +1409,7 @@ export function Conductores() {
         )}
       </div>
 
+      {/* Modal de formulario de conductor con vehículo - PLACA DESTACADA */}
       <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={780}>
         <form
           onSubmit={(e) => {
@@ -1095,7 +1450,7 @@ export function Conductores() {
                     textTransform: "uppercase",
                   }}
                 >
-                  Registro de conductor
+                  Registro integral
                 </div>
                 <h2 style={{ fontSize: 20, fontWeight: 900, color: COLORS.text, lineHeight: 1 }}>
                   {isEdit ? "Editar Conductor" : "Nuevo Conductor"}
@@ -1324,6 +1679,9 @@ export function Conductores() {
                   padding: "10px 14px",
                   background: COLORS.bg,
                   borderBottom: `1px solid ${COLORS.border}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
                 <p
@@ -1337,16 +1695,67 @@ export function Conductores() {
                 >
                   Vehículo asociado
                 </p>
+                {formData.placa && (
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: COLORS.primary,
+                      background: "rgba(57,169,0,.1)",
+                      padding: "2px 10px",
+                      borderRadius: 999,
+                    }}
+                  >
+                    Placa: {formData.placa}
+                  </span>
+                )}
               </div>
               <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <Field label="Placa">
-                  <input
-                    type="text"
-                    placeholder="ABC-123"
-                    value={formData.placa}
-                    onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })}
-                    style={{ ...inputStyle, textTransform: "uppercase" }}
-                  />
+                {/* Campo de placa destacado */}
+                <Field label="Placa *" style={{ gridColumn: "1 / -1" }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 12,
+                      background: "linear-gradient(135deg, #F0FDF4, #DCFCE7)",
+                      padding: "4px 14px 4px 4px",
+                      borderRadius: 11,
+                      border: `2px solid ${COLORS.primary}`,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 42,
+                        height: 42,
+                        borderRadius: 8,
+                        background: COLORS.primary,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#fff",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Car size={18} />
+                    </div>
+                    <input
+                      type="text"
+                      placeholder="Ej: ABC-123"
+                      value={formData.placa}
+                      onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })}
+                      style={{
+                        ...inputStyle,
+                        border: "none",
+                        background: "transparent",
+                        padding: "11px 0",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        color: COLORS.text,
+                      }}
+                      required
+                    />
+                  </div>
                 </Field>
 
                 <Field label="Tipo de vehículo">
@@ -1407,21 +1816,31 @@ export function Conductores() {
                 </Field>
 
                 <Field label="Color">
-                  <input
-                    type="text"
-                    placeholder="ej. Rojo"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    style={inputStyle}
-                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <input
+                      type="color"
+                      value={formData.color || "#000000"}
+                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                      style={{
+                        width: 50,
+                        height: 40,
+                        border: "none",
+                        background: "transparent",
+                        cursor: "pointer",
+                      }}
+                    />
+                    <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>
+                      {formData.color}
+                    </span>
+                  </div>
                 </Field>
 
                 <Field label="Descripción adicional" style={{ gridColumn: "1 / -1" }}>
                   <textarea
                     rows={2}
                     placeholder="Observaciones sobre el vehículo…"
-                    value={formData.descripcion}
-                    onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                    value={formData.descripcionVehiculo}
+                    onChange={(e) => setFormData({ ...formData, descripcionVehiculo: e.target.value })}
                     style={{ ...inputStyle, resize: "none" }}
                   />
                 </Field>
@@ -1476,6 +1895,7 @@ export function Conductores() {
         </form>
       </Modal>
 
+      {/* Modal de vista de conductor */}
       <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={450}>
         {viewingConductor &&
           (() => {
@@ -1578,14 +1998,8 @@ export function Conductores() {
                         <TipoIcon size={10} /> {tipoStyle.label}
                       </span>
                       <span
-                        style={{
-                          padding: "4px 12px",
-                          borderRadius: 999,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          background: "rgba(255,255,255,.18)",
-                          border: "1px solid rgba(255,255,255,.25)",
-                        }}
+                        className={`status-badge ${activo ? "active" : "inactive"}`}
+                        style={{ fontSize: 10 }}
                       >
                         {c.estado}
                       </span>
@@ -1628,6 +2042,95 @@ export function Conductores() {
                     </span>
                   </div>
 
+                  {vehs.length > 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "12px 16px",
+                        borderRadius: 12,
+                        background: "linear-gradient(135deg, #F0FDF4, #DCFCE7)",
+                        border: `2px solid ${COLORS.primary}`,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 40,
+                          height: 40,
+                          borderRadius: 10,
+                          background: COLORS.primary,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#fff",
+                        }}
+                      >
+                        <Car size={20} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div
+                          style={{
+                            fontSize: 9,
+                            fontWeight: 700,
+                            color: COLORS.primaryDark,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.5,
+                          }}
+                        >
+                          Vehículo asignado
+                        </div>
+                        <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.text }}>
+                          {vehs[0].placa}
+                        </div>
+                        <div style={{ fontSize: 11, color: COLORS.textLight }}>
+                          {vehs[0].marca} {vehs[0].modelo} · {vehs[0].año}
+                        </div>
+                      </div>
+                      <span
+                        style={{
+                          padding: "4px 12px",
+                          borderRadius: 999,
+                          fontSize: 10,
+                          fontWeight: 800,
+                          textTransform: "capitalize",
+                          background: "rgba(57,169,0,.15)",
+                          color: COLORS.primaryDark,
+                        }}
+                      >
+                        {vehs[0].tipo}
+                      </span>
+                    </div>
+                  )}
+
+                  {vehs.length > 0 && vehs[0].color && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "8px 12px",
+                        borderRadius: 10,
+                        background: "#F8FAFC",
+                        border: `1px solid ${COLORS.border}`,
+                      }}
+                    >
+                      <Palette size={14} color={COLORS.textLight} />
+                      <span style={{ fontSize: 12, color: COLORS.text }}>
+                        Color: <strong>{vehs[0].color}</strong>
+                      </span>
+                      <div
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 6,
+                          background: vehs[0].color,
+                          border: `1px solid ${COLORS.border}`,
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {c.discapacidad && c.tipoDiscapacidad && (
                     <div
                       style={{
@@ -1647,7 +2150,7 @@ export function Conductores() {
                     </div>
                   )}
 
-                  {vehs.length > 0 && (
+                  {vehs.length > 1 && (
                     <div>
                       <p
                         style={{
@@ -1659,50 +2162,97 @@ export function Conductores() {
                           marginBottom: 8,
                         }}
                       >
-                        Vehículos registrados
+                        Más vehículos registrados ({vehs.length - 1})
                       </p>
                       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {vehs.map((v) => (
-                          <div
-                            key={v.id}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                              padding: "10px 12px",
-                              borderRadius: 12,
-                              background: "#F8FAFC",
-                              border: `1px solid ${COLORS.border}`,
-                            }}
-                          >
+                        {vehs.slice(1).map((v) => {
+                          const vTipoStyle = getTipoVehiculoStyle(v.tipo);
+                          const VIcon = vTipoStyle.icon;
+                          return (
                             <div
+                              key={v.id}
                               style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: 10,
-                                background: `${g1}15`,
                                 display: "flex",
                                 alignItems: "center",
-                                justifyContent: "center",
+                                justifyContent: "space-between",
+                                padding: "10px 12px",
+                                borderRadius: 12,
+                                background: "#F8FAFC",
+                                border: `1px solid ${COLORS.border}`,
+                                cursor: "pointer",
+                                transition: "all 0.2s ease",
+                              }}
+                              onClick={() => {
+                                setViewOpen(false);
+                                openVehiculoView(v);
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = COLORS.primary;
+                                e.currentTarget.style.background = "#F0FDF4";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = COLORS.border;
+                                e.currentTarget.style.background = "#F8FAFC";
                               }}
                             >
-                              {v.tipo === "moto" ? (
-                                <Bike size={16} color={g1} />
-                              ) : (
-                                <Car size={16} color={g1} />
-                              )}
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div
+                                  style={{
+                                    width: 36,
+                                    height: 36,
+                                    borderRadius: 10,
+                                    background: `${g1}15`,
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                >
+                                  <VIcon size={16} color={g1} />
+                                </div>
+                                <div>
+                                  <p style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>
+                                    {v.placa}
+                                  </p>
+                                  <p style={{ fontSize: 10, color: COLORS.textLight }}>
+                                    {v.marca} {v.modelo} · {v.color}
+                                  </p>
+                                </div>
+                              </div>
+                              <span
+                                style={{
+                                  fontSize: 9,
+                                  fontWeight: 700,
+                                  padding: "2px 8px",
+                                  borderRadius: 999,
+                                  background: `${vTipoStyle.dot}15`,
+                                  color: vTipoStyle.dot,
+                                  textTransform: "capitalize",
+                                }}
+                              >
+                                {v.tipo}
+                              </span>
                             </div>
-                            <div>
-                              <p style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>
-                                {v.placa}
-                              </p>
-                              <p style={{ fontSize: 10, color: COLORS.textLight }}>
-                                {v.marca} {v.modelo} · {v.color}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
+                    </div>
+                  )}
+
+                  {vehs.length === 0 && (
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: "20px",
+                        borderRadius: 12,
+                        background: "#FFF8F0",
+                        border: `2px dashed #FDE68A`,
+                      }}
+                    >
+                      <span style={{ fontSize: 13, color: "#92400E" }}>
+                        🚫 No tiene vehículo asignado
+                      </span>
                     </div>
                   )}
 
@@ -1733,6 +2283,23 @@ export function Conductores() {
               </div>
             );
           })()}
+      </Modal>
+
+      {/* Modal de vista de vehículo */}
+      <Modal open={viewVehiculoOpen} onClose={() => setViewVehiculoOpen(false)} maxWidth={450}>
+        {viewingVehiculo && (
+          <VehiculoView
+            vehiculo={viewingVehiculo}
+            onEdit={() => {
+              const conductor = conductores.find((c) => c.id === viewingVehiculo.conductorId);
+              if (conductor) {
+                setViewVehiculoOpen(false);
+                openEdit(conductor);
+              }
+            }}
+            onClose={() => setViewVehiculoOpen(false)}
+          />
+        )}
       </Modal>
 
       <ConfirmDialog

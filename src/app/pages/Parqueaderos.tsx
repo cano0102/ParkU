@@ -2,7 +2,6 @@ import React, {
   useEffect,
   useMemo,
   useRef,
-  useReducer,
   useState,
   useCallback,
   memo,
@@ -27,16 +26,16 @@ import {
   CheckCircle2,
   ScanLine,
   Search,
-  Filter,
-  Download,
   Upload,
   Info,
-  RotateCcw,
   Eye,
   Sparkles,
   MapPin,
+  Wrench,
 } from "lucide-react";
 import { createWorker } from "tesseract.js";
+import { toast } from "sonner";
+import { useData, Celda, Parqueadero, Vehiculo, Conductor } from "../context/DataContext";
 
 /* ============================================================
    PALETA
@@ -59,38 +58,26 @@ const C = {
   infoBg:      "#EFF6FF",
   amber:       "#F59E0B",
   amberBg:     "#FEF3C7",
+  slate:       "#94A3B8",
+  slateBg:     "#F1F5F9",
 };
 
 /* ============================================================
-   TIPOS
+   TIPOS LOCALES DE UI
+   (las entidades de datos -Parqueadero, Celda, Vehiculo, Conductor,
+   ControlSalida- viven en DataContext; aquí solo formularios/layout)
 ============================================================ */
-export type CeldaEstado = "libre" | "ocupado" | "sena";
-
-export interface Celda {
-  codigo: string;
-  estado: CeldaEstado;
-  placa?: string;
-  conductor?: string;
-  fechaIngreso?: string;
-  horaIngreso?: string;
-  timestampIngreso?: number;
-  esOficial?: boolean;
-}
-
-export interface Parqueadero {
-  id: number;
-  nombre: string;
-  total: number;
-  celdas: Celda[];
-  bloque: string;
-  tipo: "General" | "Motos" | "Visitantes" | "Docentes" | "Administrativos";
-}
-
 export interface FormParqueadero {
   nombre: string;
-  total: number;
   bloque: string;
-  tipo: Parqueadero["tipo"];
+  tipo: string;
+  direccion: string;
+  horaInicio: string;
+  horaFin: string;
+  celdasCarros: number;
+  celdasMotos: number;
+  celdasMovilidadReducida: number;
+  descripcion: string;
 }
 
 export interface VehiculoForm {
@@ -99,50 +86,26 @@ export interface VehiculoForm {
   esOficial: boolean;
 }
 
-export interface ToastItem {
-  id: number;
-  tone: "success" | "danger" | "info";
-  message: string;
-}
-
-export interface State {
-  parqueaderos: Parqueadero[];
-  toasts: ToastItem[];
-}
-
-export type Action =
-  | { type: "INITIALIZE"; parqueaderos: Parqueadero[] }
-  | { type: "CREATE_PARQUEADERO"; parqueadero: Parqueadero }
-  | { type: "EDIT_PARQUEADERO"; id: number; nombre: string; tipo: Parqueadero["tipo"]; bloque: string; total: number }
-  | { type: "DELETE_PARQUEADERO"; id: number }
-  | { type: "REGISTRAR_VEHICULO"; parqueaderoId: number; codigo: string; placa: string; conductor: string; esOficial: boolean }
-  | { type: "EDITAR_VEHICULO"; parqueaderoId: number; codigo: string; placa: string; conductor: string; esOficial: boolean }
-  | { type: "LIBERAR_CELDA_DIRECTO"; parqueaderoId: number; codigo: string }
-  | { type: "TOGGLE_RESERVA_SENA"; parqueaderoId: number; codigo: string }
-  | { type: "IMPORT_STATE"; parqueaderos: Parqueadero[] }
-  | { type: "ADD_TOAST"; tone: "success" | "danger" | "info"; message: string }
-  | { type: "DISMISS_TOAST"; id: number };
-
 export interface CeldaPos extends Celda { x: number; y: number; }
 export interface FilaLayout { celdas: CeldaPos[]; esCarril: boolean; y: number; }
 export interface LotLayout {
   pq: Parqueadero; filas: FilaLayout[]; lotTop: number; lotHeight: number;
   ancho: number; celdasPorFila: number; libres: number; ocupados: number;
-  senaCount: number; pct: number;
+  reservadas: number; mantenimiento: number; pct: number;
 }
 
 /* ============================================================
    CONSTANTES
 ============================================================ */
-export const LOCAL_STORAGE_KEY = "sena_parq_datos_v7";
-
 export const CELDA_CONFIG = {
-  libre:   { bg:"#F0FBE8", border:"#A8D888", text:"#2F6B00", label:"Disponible",      dotColor:"#4CAF50", mapFill:"#1f2a22", mapStroke:"#4CAF50" },
-  ocupado: { bg:"#1A1A1A", border:"#EF4444", text:"#ffffff", label:"Ocupado",         dotColor:"#EF4444", mapFill:"#2c1414", mapStroke:"#EF4444" },
-  sena:    { bg:"#FFFBEB", border:"#FCD34D", text:"#78350F", label:"Reservado SENA",  dotColor:"#F59E0B", mapFill:"#332a10", mapStroke:"#F59E0B" },
-};
+  disponible:    { bg:"#F0FBE8", border:"#A8D888", text:"#2F6B00", label:"Disponible",    dotColor:"#4CAF50", mapFill:"#1f2a22", mapStroke:"#4CAF50" },
+  no_disponible: { bg:"#1A1A1A", border:"#EF4444", text:"#ffffff", label:"Ocupado",       dotColor:"#EF4444", mapFill:"#2c1414", mapStroke:"#EF4444" },
+  reservada:     { bg:"#FFFBEB", border:"#FCD34D", text:"#78350F", label:"Reservada",     dotColor:"#F59E0B", mapFill:"#332a10", mapStroke:"#F59E0B" },
+  mantenimiento: { bg:"#F1F5F9", border:"#94A3B8", text:"#334155", label:"Mantenimiento", dotColor:"#94A3B8", mapFill:"#23262b", mapStroke:"#94A3B8" },
+} as const;
 
-export const TIPOS_PARQUEADERO = ["General","Motos","Visitantes","Docentes","Administrativos"] as const;
+export const TIPOS_PARQUEADERO = ["general","motos","visitantes","docentes","administrativos"] as const;
+export const capitalizar = (s:string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const CONDUCTORES_SUGERIDOS = [
   "Andrés Felipe Montoya","Claudia Patricia Restrepo","Juan Carlos Gómez",
@@ -151,10 +114,10 @@ export const CONDUCTORES_SUGERIDOS = [
 ];
 
 export const PLACAS_DEMO = [
-  { placa:"KLO234", conductor:"Carlos Mario Ruiz",      tipo:"Carro", rol:"Docente" },
-  { placa:"MHX75E", conductor:"Liliana Patricia Castro", tipo:"Moto",  rol:"Estudiante" },
-  { placa:"SNA012", conductor:"Oficial CEET SENA",       tipo:"Carro", rol:"Oficial" },
-  { placa:"VIP789", conductor:"Héctor Fabio Jurado",     tipo:"Carro", rol:"Visitante" },
+  { placa:"KLO234", conductor:"Carlos Mario Ruiz",      tipo:"carro", rol:"Docente" },
+  { placa:"MHX75E", conductor:"Liliana Patricia Castro", tipo:"moto",  rol:"Estudiante" },
+  { placa:"SNA012", conductor:"Oficial CEET SENA",       tipo:"carro", rol:"Oficial" },
+  { placa:"VIP789", conductor:"Héctor Fabio Jurado",     tipo:"carro", rol:"Visitante" },
 ];
 
 /* SVG medidas */
@@ -166,6 +129,7 @@ const SPACE_W=46,SPACE_H=28,GAP_X=4,ROW_GAP=6,LANE_H=40,PADDING=50,
 ============================================================ */
 export const PLACA_REGEX = /^[A-Z]{3}\d{2,3}[A-Z0-9]?$/;
 export const validarPlacaColombiana = (p:string) => PLACA_REGEX.test(p.trim().toUpperCase());
+export const esPlacaOficial = (placa:string) => /^(SNA|OFI)/.test(placa.trim().toUpperCase());
 
 const corregirCaracter=(c:string,esperaLetra:boolean)=>{
   const l2d:Record<string,string>={O:"0",I:"1",S:"5",B:"8",Z:"2",G:"6"};
@@ -194,77 +158,36 @@ export const limpiarTextoOCR=(raw:string)=>{
   return "";
 };
 export const normalizarTexto=(t:string,max=60)=>t.trim().replace(/\s+/g," ").slice(0,max);
-export const formatearFechaHora=(ts:number)=>{
-  const d=new Date(ts);
-  return { fechaIngreso:d.toLocaleDateString("es-CO"), horaIngreso:d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}) };
+export const formatearFechaHora=(iso:string)=>{
+  const d=new Date(iso);
+  return { fecha:d.toLocaleDateString("es-CO"), hora:d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}) };
 };
-export const formatearDuracion=(ts:number)=>{
-  const m=Math.max(0,Math.floor((Date.now()-ts)/60000));
+export const formatearDuracion=(iso:string)=>{
+  const m=Math.max(0,Math.floor((Date.now()-new Date(iso).getTime())/60000));
   const h=Math.floor(m/60); const min=m%60;
   return h>0?`${h}h ${min}m`:`${min}m`;
 };
-export const regenerarCeldas=(bloque:string,total:number,anteriores:Celda[]=[]):Celda[]=>
-  Array.from({length:total},(_,i)=>{
-    const codigo=`${bloque.toUpperCase()}${String(i+1).padStart(2,"0")}`;
-    const p=anteriores.find(c=>c.codigo===codigo)||anteriores[i];
-    return p?{...p,codigo}:{codigo,estado:"libre" as CeldaEstado};
-  });
-export const celdasComprometidasAlReducir=(celdas:Celda[],nuevoTotal:number)=>
-  celdas.slice(nuevoTotal).filter(c=>c.estado!=="libre");
-export const crearCeldasIniciales=(
-  bloque:string, total:number,
-  ocupadas:Record<number,{placa:string;conductor:string;esOficial?:boolean}>,
-  senas:number[]
-):Celda[]=>{
-  return Array.from({length:total},(_,i)=>{
-    const num=i+1;
-    const codigo=`${bloque}${String(num).padStart(2,"0")}`;
-    if(ocupadas[num]){
-      const {placa,conductor,esOficial}=ocupadas[num];
-      const ts=Date.now()-1000*60*(num*30+15);
-      return {codigo,estado:"ocupado" as CeldaEstado,placa,conductor,esOficial:!!esOficial,timestampIngreso:ts,...formatearFechaHora(ts)};
-    }
-    return {codigo,estado:(senas.includes(num)?"sena":"libre") as CeldaEstado};
-  });
-};
-
-/* ============================================================
-   DATOS INICIALES
-============================================================ */
-export const initialParqueaderos: Parqueadero[] = [
-  { id:1, nombre:"CARRIL 01 — ADMINISTRACIÓN", bloque:"A", tipo:"Administrativos", total:10,
-    celdas:crearCeldasIniciales("A",10,{2:{placa:"FGH456",conductor:"Andrés Felipe Montoya"},5:{placa:"SNA911",conductor:"Instructor Carlos Mario",esOficial:true}},[3,7]) },
-  { id:2, nombre:"CARRIL 02 — ZONA MOTOS", bloque:"M", tipo:"Motos", total:12,
-    celdas:crearCeldasIniciales("M",12,{2:{placa:"XYZ56D",conductor:"María Camila Torres"},5:{placa:"KLT92C",conductor:"Diego Alejandro Castro"}},[6]) },
-  { id:3, nombre:"CARRIL 03 — DOCENTES Y VISITAS", bloque:"D", tipo:"Docentes", total:8,
-    celdas:crearCeldasIniciales("D",8,{1:{placa:"JDK221",conductor:"Claudia Patricia Restrepo"},5:{placa:"VIP002",conductor:"Paula Andrea Luna"}},[4]) },
-];
-
-export const loadParqueaderos=():Parqueadero[]=>{ try{ const s=localStorage.getItem(LOCAL_STORAGE_KEY); return s?JSON.parse(s):initialParqueaderos; }catch{ return initialParqueaderos; } };
-
-/* ============================================================
-   REDUCER
-============================================================ */
-let toastSeq=1;
-export function rootReducer(state:State,action:Action):State{
-  switch(action.type){
-    case "INITIALIZE": return {...state,parqueaderos:action.parqueaderos};
-    case "CREATE_PARQUEADERO":{ const u=[...state.parqueaderos,action.parqueadero]; localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:`Parqueadero "${action.parqueadero.nombre}" creado.`}]}; }
-    case "EDIT_PARQUEADERO":{ const u=state.parqueaderos.map(p=>p.id!==action.id?p:{...p,nombre:action.nombre,tipo:action.tipo,bloque:action.bloque.toUpperCase(),total:action.total,celdas:regenerarCeldas(action.bloque,action.total,p.celdas)}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:"Parqueadero actualizado."}]}; }
-    case "DELETE_PARQUEADERO":{ const u=state.parqueaderos.filter(p=>p.id!==action.id); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:"Parqueadero eliminado."}]}; }
-    case "REGISTRAR_VEHICULO":{ const obj=state.parqueaderos.find(p=>p.id===action.parqueaderoId)?.celdas.find(c=>c.codigo===action.codigo); if(!obj||obj.estado==="ocupado") return state; const now=Date.now(); const fh=formatearFechaHora(now); const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{...c,estado:"ocupado" as CeldaEstado,placa:action.placa,conductor:action.conductor,...fh,timestampIngreso:now,esOficial:action.esOficial})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:`Vehículo ${action.placa} registrado.`}]}; }
-    case "EDITAR_VEHICULO":{ const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{...c,placa:action.placa,conductor:action.conductor,esOficial:action.esOficial})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:"Datos actualizados."}]}; }
-    case "LIBERAR_CELDA_DIRECTO":{ const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{codigo:c.codigo,estado:"libre" as CeldaEstado})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:`Celda ${action.codigo} liberada.`}]}; }
-    case "TOGGLE_RESERVA_SENA":{ const u=state.parqueaderos.map(p=>p.id!==action.parqueaderoId?p:{...p,celdas:p.celdas.map(c=>c.codigo!==action.codigo?c:{codigo:c.codigo,estado:(c.estado==="sena"?"libre":"sena") as CeldaEstado})}); localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(u)); return {...state,parqueaderos:u,toasts:[...state.toasts,{id:toastSeq++,tone:"info",message:"Estado reconfigurado."}]}; }
-    case "IMPORT_STATE":{ localStorage.setItem(LOCAL_STORAGE_KEY,JSON.stringify(action.parqueaderos)); return {...state,parqueaderos:action.parqueaderos,toasts:[...state.toasts,{id:toastSeq++,tone:"success",message:"Copia restaurada."}]}; }
-    case "ADD_TOAST": return {...state,toasts:[...state.toasts,{id:toastSeq++,tone:action.tone,message:action.message}]};
-    case "DISMISS_TOAST": return {...state,toasts:state.toasts.filter(t=>t.id!==action.id)};
-    default: return state;
-  }
+export function extraerDatosDocumento(texto:string){
+  const limpio=texto.replace(/\r/g,"").replace(/\t/g," ");
+  const lineas=limpio.split("\n").map(l=>l.trim()).filter(Boolean);
+  const mayus=limpio.toUpperCase();
+  let placa="";
+  const idx=lineas.findIndex(l=>/PLACA/i.test(l));
+  if(idx!==-1){ const ctx=`${lineas[idx]} ${lineas[idx+1]||""}`; placa=limpiarTextoOCR(ctx.replace(/PLACA/gi," ")); }
+  if(!placa||!validarPlacaColombiana(placa)) placa=limpiarTextoOCR(mayus);
+  let conductor="";
+  const idxP=lineas.findIndex(l=>/PROPIETARIO|NOMBRE\s*Y\s*APELLIDOS|NOMBRE\s*DEL\s*PROPIETARIO/i.test(l));
+  if(idxP!==-1){ const ml=lineas[idxP].split(/[:#-]/).slice(1).join(" ").trim(); const cand=ml&&/[A-ZÁÉÍÓÚÑ]{3,}/.test(ml)?ml:lineas[idxP+1]||""; conductor=cand.replace(/[^A-ZÁÉÍÓÚÑ\s]/gi," ").replace(/\s+/g," ").trim(); }
+  return { placa, conductor:normalizarTexto(conductor,60), textoCompleto:limpio };
 }
 
 /* ============================================================
-   OCR
+   DERIVAR OCUPANTE DE UNA CELDA A PARTIR DEL CONTEXTO
+============================================================ */
+interface Ocupante { vehiculo: Vehiculo; conductor?: Conductor; esOficial: boolean; controlId: string; fechaEntrada: string; }
+
+/* ============================================================
+   REDUCER OCR (independiente de los datos, sigue igual)
 ============================================================ */
 function calcularUmbralOtsu(hist:number[],total:number):number{
   let sum=0; for(let i=0;i<256;i++) sum+=i*hist[i];
@@ -317,23 +240,6 @@ function preprocesarImagenArchivo(dataUrl:string):Promise<string>{
     };
     img.onerror=()=>rej(new Error("No se pudo cargar la imagen.")); img.src=dataUrl;
   });
-}
-export function extraerDatosDocumento(texto:string){
-  const limpio=texto.replace(/\r/g,"").replace(/\t/g," ");
-  const lineas=limpio.split("\n").map(l=>l.trim()).filter(Boolean);
-  const mayus=limpio.toUpperCase();
-  const esTarjeta=/TARJETA\s*DE\s*PROPIEDAD|PROPIETARIO|LICENCIA\s*DE\s*TR[AÁ]NSITO|MINTRANSPORTE|RUNT/.test(mayus);
-  let placa="";
-  const idx=lineas.findIndex(l=>/PLACA/i.test(l));
-  if(idx!==-1){ const ctx=`${lineas[idx]} ${lineas[idx+1]||""}`; placa=limpiarTextoOCR(ctx.replace(/PLACA/gi," ")); }
-  if(!placa||!validarPlacaColombiana(placa)) placa=limpiarTextoOCR(mayus);
-  let conductor="";
-  const idxP=lineas.findIndex(l=>/PROPIETARIO|NOMBRE\s*Y\s*APELLIDOS|NOMBRE\s*DEL\s*PROPIETARIO/i.test(l));
-  if(idxP!==-1){ const ml=lineas[idxP].split(/[:#-]/).slice(1).join(" ").trim(); const cand=ml&&/[A-ZÁÉÍÓÚÑ]{3,}/.test(ml)?ml:lineas[idxP+1]||""; conductor=cand.replace(/[^A-ZÁÉÍÓÚÑ\s]/gi," ").replace(/\s+/g," ").trim(); }
-  const modelo=limpio.match(/\b(19|20)\d{2}\b/)?.[0]||"";
-  const servicio=mayus.includes("PARTICULAR")?"PARTICULAR":mayus.includes("PUBLICO")||mayus.includes("PÚBLICO")?"PUBLICO":"";
-  const color=mayus.match(/(BLANCO|NEGRO|GRIS|ROJO|AZUL|VERDE|PLATA|AMARILLO|NARANJA)/)?.[0]||"";
-  return { placa, conductor:normalizarTexto(conductor,60), modelo, servicio, color, esTarjetaPropiedad:esTarjeta, textoCompleto:limpio };
 }
 function useOcrPlaca(){
   const workerRef=useRef<any>(null); const initRef=useRef<Promise<any>|null>(null);
@@ -429,30 +335,6 @@ const ConfirmDialog=memo(({open,onConfirm,onCancel,title,message,confirmLabel="C
 });
 ConfirmDialog.displayName="ConfirmDialog";
 
-const ToastStack=memo(({toasts,onDismiss}:{toasts:ToastItem[];onDismiss:(id:number)=>void})=>{
-  if(!toasts.length) return null;
-  const tone={
-    success:{bg:"#16290a",border:"#2D7D00",text:"#EAF7E6"},
-    danger:{bg:"#3a1414",border:"#b13434",text:"#ffd0d0"},
-    info:{bg:"#10202f",border:"#2c5c82",text:"#bfe1ff"},
-  };
-  return(
-    <div style={{position:"fixed",bottom:16,right:16,zIndex:10000,display:"flex",flexDirection:"column",gap:8,width:"min(380px,calc(100vw - 32px))",pointerEvents:"none"}}>
-      {toasts.map(t=>{
-        const s=tone[t.tone];
-        return(
-          <div key={t.id} style={{pointerEvents:"auto",display:"flex",alignItems:"center",gap:10,padding:"12px 14px",borderRadius:14,border:`1px solid ${s.border}`,background:s.bg,color:s.text,boxShadow:"0 10px 30px rgba(0,0,0,.25)",fontFamily:"inherit"}}>
-            {t.tone==="success"?<CheckCircle2 size={16} color={C.primaryLight}/>:<AlertCircle size={16}/>}
-            <span style={{flex:1,fontSize:12,fontWeight:700,lineHeight:1.4}}>{t.message}</span>
-            <button onClick={()=>onDismiss(t.id)} style={{background:"transparent",border:"none",color:"inherit",cursor:"pointer",opacity:.7,padding:2}}><X size={14}/></button>
-          </div>
-        );
-      })}
-    </div>
-  );
-});
-ToastStack.displayName="ToastStack";
-
 const Banner=memo(({tone,message}:{tone:"danger"|"info"|"success";message:string})=>{
   const s=tone==="danger"?{bg:C.dangerBg,border:C.dangerBorder,text:C.danger}
          :tone==="info"?{bg:C.infoBg,border:"#BFDBFE",text:C.info}
@@ -466,7 +348,7 @@ const Banner=memo(({tone,message}:{tone:"danger"|"info"|"success";message:string
 });
 Banner.displayName="Banner";
 
-const EstadoBadge=memo(({estado}:{estado:CeldaEstado})=>{
+const EstadoBadge=memo(({estado}:{estado:Celda["estado"]})=>{
   const cfg=CELDA_CONFIG[estado];
   return(
     <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:"2px 8px",borderRadius:999,fontSize:10,fontWeight:700,background:cfg.bg,color:cfg.text,border:`1px solid ${cfg.border}`}}>
@@ -484,6 +366,17 @@ const MAP_THEME={
   asphalt:"#22262b",asphaltPanel:"#2a2f35",road:"#34393f",
   panelBorder:"rgba(255,255,255,.08)",textBright:"#f4f4f4",textDim:"rgba(244,244,244,.62)",
 };
+
+function getCarColor(placa: string) {
+  const palette = [
+    "#0EA5A4","#06B6D4","#7C3AED","#6366F1","#EF4444",
+    "#FB923C","#F59E0B","#10B981","#3B82F6","#EC4899","#64748B",
+  ];
+  if (!placa) return palette[0];
+  let h = 0;
+  for (let i = 0; i < placa.length; i++) h = (h + placa.charCodeAt(i) * (i + 1)) >>> 0;
+  return palette[h % palette.length];
+}
 
 const HighFiCarSVG=memo(({x,y,w,h,placa}:{x:number;y:number;w:number;h:number;placa:string})=>{
   const color=getCarColor(placa);
@@ -509,9 +402,11 @@ HighFiCarSVG.displayName="HighFiCarSVG";
 /* ============================================================
    PARKING MAP
 ============================================================ */
-const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
+const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellMatchesSearch }: {
   parqueaderos: Parqueadero[];
-  onCellClick: (id: number, c: Celda) => void;
+  celdas: Celda[];
+  getOcupante: (celdaId: string) => Ocupante | null;
+  onCellClick: (celda: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
 }) => {
   const [zoom, setZoom] = useState(1);
@@ -522,7 +417,7 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
   const dragOriginRef   = useRef({ x: 0, y: 0 });
   const pointerStartRef = useRef({ x: 0, y: 0 });
   const isDraggedRef    = useRef(false);
-  const pendingCellRef  = useRef<{ pqId: number; celda: Celda } | null>(null);
+  const pendingCellRef  = useRef<Celda | null>(null);
 
   const DRAG_THRESHOLD = 8;
 
@@ -530,15 +425,16 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
     const result: LotLayout[] = [];
     let currentTop = ROAD_Y + ROAD_H + 28;
     parqueaderos.forEach(pq => {
-      const celdasPorFila = Math.min(8, Math.max(1, pq.total));
+      const celdasPq = celdas.filter(c => c.parqueaderoId === pq.id);
+      const celdasPorFila = Math.min(8, Math.max(1, celdasPq.length || 1));
       const rowWidth = celdasPorFila * (SPACE_W + GAP_X) - GAP_X;
       const ancho = Math.max(PADDING + rowWidth + 20, 420);
       const filas: FilaLayout[] = [];
       let y = currentTop;
-      const rowCount = Math.ceil(pq.total / celdasPorFila);
+      const rowCount = Math.max(1, Math.ceil(celdasPq.length / celdasPorFila));
       for (let row = 0; row < rowCount; row++) {
         const start = row * celdasPorFila;
-        const rowCells = pq.celdas.slice(start, start + celdasPorFila);
+        const rowCells = celdasPq.slice(start, start + celdasPorFila);
         filas.push({
           esCarril: false, y,
           celdas: rowCells.map((celda, index) => ({ ...celda, x: PADDING + index * (SPACE_W + GAP_X), y })),
@@ -546,16 +442,17 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
         y += SPACE_H + ROW_GAP;
         if (row < rowCount - 1) { filas.push({ esCarril: true, y }); y += LANE_H; }
       }
-      const libres    = pq.celdas.filter(c => c.estado === "libre").length;
-      const ocupados  = pq.celdas.filter(c => c.estado === "ocupado").length;
-      const senaCount = pq.celdas.filter(c => c.estado === "sena").length;
-      const pct       = pq.celdas.length ? Math.round(ocupados / pq.celdas.length * 100) : 0;
+      const libres        = celdasPq.filter(c => c.estado === "disponible").length;
+      const ocupados      = celdasPq.filter(c => c.estado === "no_disponible").length;
+      const reservadas    = celdasPq.filter(c => c.estado === "reservada").length;
+      const mantenimiento = celdasPq.filter(c => c.estado === "mantenimiento").length;
+      const pct           = celdasPq.length ? Math.round(ocupados / celdasPq.length * 100) : 0;
       const lotHeight = y - currentTop + 20;
-      result.push({ pq, filas, lotTop: currentTop, lotHeight, ancho, celdasPorFila, libres, ocupados, senaCount, pct });
+      result.push({ pq, filas, lotTop: currentTop, lotHeight, ancho, celdasPorFila, libres, ocupados, reservadas, mantenimiento, pct });
       currentTop = y + SECTION_GAP;
     });
     return result;
-  }, [parqueaderos]);
+  }, [parqueaderos, celdas]);
 
   const totalW = useMemo(() => {
     const maxAncho = lots.length ? Math.max(...lots.map(l => l.ancho)) : 0;
@@ -592,8 +489,7 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
   const handlePointerUp = useCallback(() => {
     setIsDragging(false);
     if (!isDraggedRef.current && pendingCellRef.current) {
-      const { pqId, celda } = pendingCellRef.current;
-      onCellClick(pqId, celda);
+      onCellClick(pendingCellRef.current);
     }
     isDraggedRef.current   = false;
     pendingCellRef.current = null;
@@ -601,11 +497,10 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
 
   const handleCellPointerDown = useCallback((
     e: React.PointerEvent<SVGGElement>,
-    pqId: number,
     celda: Celda
   ) => {
     e.stopPropagation();
-    pendingCellRef.current = { pqId, celda };
+    pendingCellRef.current = celda;
   }, []);
 
   return (
@@ -652,9 +547,9 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
             <pattern id="asp" width="30" height="30" patternUnits="userSpaceOnUse">
               <rect width="30" height="30" fill={MAP_THEME.asphalt} />
             </pattern>
-            <pattern id="senaH" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-              <rect width="8" height="8" fill={CELDA_CONFIG.sena.mapFill} />
-              <line x1="0" y1="0" x2="0" y2="8" stroke={CELDA_CONFIG.sena.mapStroke} strokeWidth="2.5" opacity=".6" />
+            <pattern id="resH" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+              <rect width="8" height="8" fill={CELDA_CONFIG.reservada.mapFill} />
+              <line x1="0" y1="0" x2="0" y2="8" stroke={CELDA_CONFIG.reservada.mapStroke} strokeWidth="2.5" opacity=".6" />
             </pattern>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -682,7 +577,7 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
             <text textAnchor="middle" x="21" y="3" fontSize="8" fontWeight="900" fill="#fff">SALIDA</text>
           </g>
 
-          {lots.map(({ pq, celdasPorFila, libres, ocupados, senaCount, pct, filas, lotTop, lotHeight, ancho }) => {
+          {lots.map(({ pq, celdasPorFila, libres, ocupados, reservadas, mantenimiento, pct, filas, lotTop, lotHeight, ancho }) => {
             const hc = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
             return (
               <g key={pq.id}>
@@ -691,14 +586,14 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
                 <text x={PADDING + 2} y={lotTop + 10} fill="#fff" fontSize="10.5" fontWeight="900">{pq.nombre.toUpperCase()}</text>
                 <text x={PADDING + 2} y={lotTop + 22} fill="rgba(255,255,255,.8)" fontSize="7.5" fontWeight="bold">BLOQUE {pq.bloque}</text>
                 <g transform={`translate(${PADDING - 10},${lotTop + 47})`}>
-                  <circle cx="5" cy="-2.5" r="3.5" fill={CELDA_CONFIG.libre.dotColor} />
+                  <circle cx="5" cy="-2.5" r="3.5" fill={CELDA_CONFIG.disponible.dotColor} />
                   <text x="13" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{libres} libres</text>
-                  <circle cx="70" cy="-2.5" r="3.5" fill={CELDA_CONFIG.ocupado.dotColor} />
+                  <circle cx="70" cy="-2.5" r="3.5" fill={CELDA_CONFIG.no_disponible.dotColor} />
                   <text x="78" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{ocupados} ocupados</text>
-                  {senaCount > 0 && (
-                    <g transform="translate(145,0)">
-                      <circle cx="5" cy="-2.5" r="3.5" fill={CELDA_CONFIG.sena.dotColor} />
-                      <text x="13" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{senaCount} SENA</text>
+                  {reservadas > 0 && (
+                    <g transform="translate(150,0)">
+                      <circle cx="5" cy="-2.5" r="3.5" fill={CELDA_CONFIG.reservada.dotColor} />
+                      <text x="13" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{reservadas} reservadas</text>
                     </g>
                   )}
                 </g>
@@ -713,10 +608,11 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
                     {fila.celdas.map(celda => {
                       const cfg = CELDA_CONFIG[celda.estado];
                       const m = cellMatchesSearch(celda);
+                      const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
                       return (
                         <g
-                          key={`${pq.id}-${celda.codigo}`}
-                          onPointerDown={e => handleCellPointerDown(e, pq.id, celda)}
+                          key={celda.id}
+                          onPointerDown={e => handleCellPointerDown(e, celda)}
                           onMouseMove={e => {
                             if (!isDraggedRef.current) {
                               setHover({ celda, pqNombre: pq.nombre, tipoPq: pq.tipo, clientX: e.clientX, clientY: e.clientY });
@@ -728,15 +624,16 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
                           {m && <rect x={celda.x - 3} y={celda.y - 3} width={SPACE_W + 6} height={SPACE_H + 6} rx="6" fill="none" stroke="#FBBF24" strokeWidth="4.5" filter="url(#glow)" />}
                           <rect
                             x={celda.x} y={celda.y} width={SPACE_W} height={SPACE_H} rx="3.5"
-                            fill={celda.estado === "sena" ? "url(#senaH)" : cfg.mapFill}
+                            fill={celda.estado === "reservada" ? "url(#resH)" : cfg.mapFill}
                             stroke={m ? "#F59E0B" : cfg.mapStroke}
-                            strokeWidth={m ? 2.2 : celda.estado === "libre" ? 1.2 : 1.6}
-                            strokeDasharray={celda.estado === "libre" ? "3,2" : undefined}
+                            strokeWidth={m ? 2.2 : celda.estado === "disponible" ? 1.2 : 1.6}
+                            strokeDasharray={celda.estado === "disponible" ? "3,2" : undefined}
                           />
-                          <text x={celda.x + 4.5} y={celda.y + 8} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="6.8" fontWeight="900">{celda.codigo}</text>
-                          {celda.estado === "libre"   && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 5.5} textAnchor="middle" fontSize="16" fontWeight="900" fill="rgba(255,255,255,.08)">P</text>}
-                          {celda.estado === "ocupado" && <HighFiCarSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={celda.placa || "SENA"} />}
-                          {celda.estado === "sena"    && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7.5" fontWeight="950" fill="#FCD34D">SENA</text>}
+                          <text x={celda.x + 4.5} y={celda.y + 8} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="6.8" fontWeight="900">{celda.numero}</text>
+                          {celda.estado === "disponible"    && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 5.5} textAnchor="middle" fontSize="16" fontWeight="900" fill="rgba(255,255,255,.08)">P</text>}
+                          {celda.estado === "no_disponible" && <HighFiCarSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante?.vehiculo.placa || "···"} />}
+                          {celda.estado === "reservada"      && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7" fontWeight="950" fill="#FCD34D">RESERVA</text>}
+                          {celda.estado === "mantenimiento"  && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#CBD5E1">MANT.</text>}
                         </g>
                       );
                     })}
@@ -748,7 +645,9 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
         </svg>
       </div>
 
-      {hover && (
+      {hover && (() => {
+        const ocupante = hover.celda.estado === "no_disponible" ? getOcupante(hover.celda.id) : null;
+        return (
         <div style={{
           position: "fixed",
           left: Math.min(hover.clientX + 16, window.innerWidth - 224),
@@ -759,29 +658,27 @@ const ParkingMap = memo(({ parqueaderos, onCellClick, cellMatchesSearch }: {
           boxShadow: "0 10px 30px rgba(0,0,0,.35)"
         }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid rgba(255,255,255,.08)", paddingBottom:6, marginBottom:8 }}>
-            <span style={{ fontFamily:"monospace", fontSize:12, fontWeight:900, color:C.primaryLight }}>{hover.celda.codigo}</span>
+            <span style={{ fontFamily:"monospace", fontSize:12, fontWeight:900, color:C.primaryLight }}>{hover.celda.numero}</span>
             <span style={{ fontSize:9, fontWeight:800, color:"rgba(255,255,255,.45)", textTransform:"uppercase" }}>{hover.tipoPq}</span>
           </div>
-          {hover.celda.estado === "ocupado" ? (
+          {ocupante ? (
             <div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
-                <span style={{ fontFamily:"monospace", fontSize:13, fontWeight:900, background:"rgba(255,255,255,.08)", padding:"2px 6px", borderRadius:6 }}>{hover.celda.placa}</span>
-                {hover.celda.esOficial && <span style={{ fontSize:8, fontWeight:900, color:C.primaryLight, border:`1px solid ${C.primary}`, borderRadius:4, padding:"1px 4px" }}>OFICIAL</span>}
+                <span style={{ fontFamily:"monospace", fontSize:13, fontWeight:900, background:"rgba(255,255,255,.08)", padding:"2px 6px", borderRadius:6 }}>{ocupante.vehiculo.placa}</span>
+                {ocupante.esOficial && <span style={{ fontSize:8, fontWeight:900, color:C.primaryLight, border:`1px solid ${C.primary}`, borderRadius:4, padding:"1px 4px" }}>OFICIAL</span>}
               </div>
-              <div style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,.75)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{hover.celda.conductor}</div>
-              {hover.celda.timestampIngreso && (
-                <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid rgba(255,255,255,.08)", fontSize:9, fontWeight:700, color:"rgba(255,255,255,.55)" }}>
-                  <div>Estadía: {formatearDuracion(hover.celda.timestampIngreso)}</div>
-                </div>
-              )}
+              <div style={{ fontSize:11, fontWeight:600, color:"rgba(255,255,255,.75)", marginTop:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{ocupante.conductor?.nombre || "—"}</div>
+              <div style={{ marginTop:8, paddingTop:8, borderTop:"1px solid rgba(255,255,255,.08)", fontSize:9, fontWeight:700, color:"rgba(255,255,255,.55)" }}>
+                <div>Estadía: {formatearDuracion(ocupante.fechaEntrada)}</div>
+              </div>
             </div>
           ) : (
             <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,.7)" }}>
-              {hover.celda.estado === "sena" ? "Reservado SENA" : "Celda libre"}
+              {hover.celda.estado === "reservada" ? "Celda reservada" : hover.celda.estado === "mantenimiento" ? "En mantenimiento" : "Celda libre"}
             </div>
           )}
         </div>
-      )}
+      );})()}
     </div>
   );
 });
@@ -791,20 +688,21 @@ ParkingMap.displayName = "ParkingMap";
 /* ============================================================
    VISTA TABLA
 ============================================================ */
-const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, cellMatchesSearch, searchQuery }: {
+const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onDelete, onCellClick, cellMatchesSearch }: {
   parqueaderos: Parqueadero[];
+  celdas: Celda[];
+  getOcupante: (celdaId: string) => Ocupante | null;
   onEdit: (p: Parqueadero) => void;
-  onDelete: (id: number) => void;
-  onCellClick: (id: number, c: Celda) => void;
+  onDelete: (id: string) => void;
+  onCellClick: (c: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
-  searchQuery: string;
 }) => {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
       <div className="pq-table-header">
-        <div>Parqueadero</div><div>Tipo</div><div>Ocupación</div><div>Libres</div><div>Ocupadas</div><div>SENA</div><div style={{ textAlign: "right" }}>Acciones</div>
+        <div>Parqueadero</div><div>Tipo</div><div>Ocupación</div><div>Libres</div><div>Ocupadas</div><div>Reservadas</div><div style={{ textAlign: "right" }}>Acciones</div>
       </div>
       <div>
         {parqueaderos.length === 0 ? (
@@ -813,11 +711,12 @@ const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, c
             <p style={{ fontWeight: 600, fontSize: 13 }}>No se encontraron parqueaderos</p>
           </div>
         ) : parqueaderos.map(pq => {
-          const libres   = pq.celdas.filter(c => c.estado === "libre").length;
-          const ocupados = pq.celdas.filter(c => c.estado === "ocupado").length;
-          const senas    = pq.celdas.filter(c => c.estado === "sena").length;
-          const pct      = pq.celdas.length ? Math.round(ocupados / pq.celdas.length * 100) : 0;
-          const pctColor = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
+          const celdasPq  = celdas.filter(c => c.parqueaderoId === pq.id);
+          const libres    = celdasPq.filter(c => c.estado === "disponible").length;
+          const ocupados  = celdasPq.filter(c => c.estado === "no_disponible").length;
+          const reservas  = celdasPq.filter(c => c.estado === "reservada").length;
+          const pct       = celdasPq.length ? Math.round(ocupados / celdasPq.length * 100) : 0;
+          const pctColor  = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
           const isExpanded = expandedId === pq.id;
           return (
             <React.Fragment key={pq.id}>
@@ -834,10 +733,10 @@ const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, c
                   </div>
                   <div>
                     <div style={{ fontWeight: 800, color: C.text }}>{pq.nombre}</div>
-                    <div style={{ fontSize: 10, color: C.textLight }}>Bloque {pq.bloque} · {pq.total} celdas</div>
+                    <div style={{ fontSize: 10, color: C.textLight }}>Bloque {pq.bloque} · {celdasPq.length} celdas</div>
                   </div>
                 </div>
-                <div><span className="pq-cell-label">Tipo</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 600, color: C.textLight }}>{pq.tipo}</span></div>
+                <div><span className="pq-cell-label">Tipo</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 600, color: C.textLight }}>{capitalizar(pq.tipo)}</span></div>
                 <div>
                   <span className="pq-cell-label">Ocupación</span>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, width: "100%" }}>
@@ -849,7 +748,7 @@ const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, c
                 </div>
                 <div><span className="pq-cell-label">Libres</span><span style={{ fontWeight: 700, color: C.primary }}>{libres}</span></div>
                 <div><span className="pq-cell-label">Ocupadas</span><span style={{ fontWeight: 700, color: C.danger }}>{ocupados}</span></div>
-                <div><span className="pq-cell-label">SENA</span><span style={{ fontWeight: 700, color: C.amber }}>{senas}</span></div>
+                <div><span className="pq-cell-label">Reservadas</span><span style={{ fontWeight: 700, color: C.amber }}>{reservas}</span></div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                   <button title="Ver celdas" onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : pq.id); }}
                     style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -871,15 +770,16 @@ const ParqueaderosTable = memo(({ parqueaderos, onEdit, onDelete, onCellClick, c
               {isExpanded && (
                 <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, background: "#FAFBFC" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(100px,1fr))", gap: 8 }}>
-                    {pq.celdas.map(celda => {
+                    {celdasPq.map(celda => {
                       const cfg = CELDA_CONFIG[celda.estado];
                       const matched = cellMatchesSearch(celda);
+                      const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
                       return (
-                        <button key={celda.codigo} onClick={() => onCellClick(pq.id, celda)}
-                          style={{ padding: "8px 10px", borderRadius: 10, border: `2px ${celda.estado === "libre" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, background: cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : undefined }}>
-                          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 4 }}>{celda.codigo}</div>
-                          {celda.estado === "ocupado" && (
-                            <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, background: "rgba(255,255,255,.15)", padding: "1px 4px", borderRadius: 4, marginBottom: 2 }}>{celda.placa}</div>
+                        <button key={celda.id} onClick={() => onCellClick(celda)}
+                          style={{ padding: "8px 10px", borderRadius: 10, border: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, background: cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : undefined }}>
+                          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 4 }}>{celda.numero}</div>
+                          {ocupante && (
+                            <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, background: "rgba(255,255,255,.15)", padding: "1px 4px", borderRadius: 4, marginBottom: 2 }}>{ocupante.vehiculo.placa}</div>
                           )}
                           <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                             <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dotColor, flexShrink: 0 }} />
@@ -908,17 +808,31 @@ ParqueaderosTable.displayName = "ParqueaderosTable";
 /* ============================================================
    LISTA VEHÍCULOS ACTIVOS
 ============================================================ */
-const ActiveVehiclesList = memo(({ parqueaderos, onSelectCell, searchQuery }: { parqueaderos: Parqueadero[]; onSelectCell: (id: number, c: Celda) => void; searchQuery: string }) => {
+const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onSelectCell, searchQuery }: {
+  celdas: Celda[];
+  parqueaderos: Parqueadero[];
+  getOcupante: (celdaId: string) => Ocupante | null;
+  onSelectCell: (c: Celda) => void;
+  searchQuery: string;
+}) => {
   const activos = useMemo(() => {
-    const list: any[] = [];
-    parqueaderos.forEach(pq => pq.celdas.forEach(c => c.estado === "ocupado" && list.push({ pqId: pq.id, pqNombre: pq.nombre, tipoPq: pq.tipo, celda: c })));
-    return list.sort((a, b) => (b.celda.timestampIngreso || 0) - (a.celda.timestampIngreso || 0));
-  }, [parqueaderos]);
+    const list: { celda: Celda; pqNombre: string; ocupante: Ocupante }[] = [];
+    celdas.forEach(c => {
+      if (c.estado !== "no_disponible") return;
+      const ocupante = getOcupante(c.id);
+      if (!ocupante) return;
+      const pq = parqueaderos.find(p => p.id === c.parqueaderoId);
+      list.push({ celda: c, pqNombre: pq?.nombre || "—", ocupante });
+    });
+    return list.sort((a, b) => new Date(b.ocupante.fechaEntrada).getTime() - new Date(a.ocupante.fechaEntrada).getTime());
+  }, [celdas, parqueaderos, getOcupante]);
+
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return activos;
     const q = searchQuery.toLowerCase();
-    return activos.filter(v => v.celda.placa?.toLowerCase().includes(q) || v.celda.conductor?.toLowerCase().includes(q) || v.celda.codigo.toLowerCase().includes(q));
+    return activos.filter(v => v.ocupante.vehiculo.placa.toLowerCase().includes(q) || v.ocupante.conductor?.nombre.toLowerCase().includes(q) || v.celda.numero.toLowerCase().includes(q));
   }, [activos, searchQuery]);
+
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, background: "#F8FAF8", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -929,24 +843,22 @@ const ActiveVehiclesList = memo(({ parqueaderos, onSelectCell, searchQuery }: { 
         <span style={{ padding: "2px 8px", borderRadius: 999, background: C.primaryPale, color: C.primaryDark, fontSize: 10, fontWeight: 800 }}>{activos.length}</span>
       </div>
       <div style={{ maxHeight: 400, overflowY: "auto" }}>
-        {filtered.length > 0 ? filtered.map(({ pqId, pqNombre, celda }) => (
-          <div key={`${pqId}-${celda.codigo}`} onClick={() => onSelectCell(pqId, celda)}
+        {filtered.length > 0 ? filtered.map(({ celda, pqNombre, ocupante }) => (
+          <div key={celda.id} onClick={() => onSelectCell(celda)}
             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background .15s" }}
             onMouseEnter={e => (e.currentTarget.style.background = "#F8FAF8")} onMouseLeave={e => (e.currentTarget.style.background = "#fff")}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, background: "#F1F5F9", color: C.text, padding: "1px 6px", borderRadius: 6, border: `1px solid ${C.border}` }}>{celda.placa}</span>
-                <span style={{ fontSize: 9, fontWeight: 700, color: C.textLight }}>Celda {celda.codigo}</span>
-                {celda.esOficial && <span style={{ fontSize: 8, fontWeight: 800, background: C.primaryPale, color: C.primaryDark, padding: "1px 4px", borderRadius: 4 }}>OFICIAL</span>}
+                <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, background: "#F1F5F9", color: C.text, padding: "1px 6px", borderRadius: 6, border: `1px solid ${C.border}` }}>{ocupante.vehiculo.placa}</span>
+                <span style={{ fontSize: 9, fontWeight: 700, color: C.textLight }}>Celda {celda.numero}</span>
+                {ocupante.esOficial && <span style={{ fontSize: 8, fontWeight: 800, background: C.primaryPale, color: C.primaryDark, padding: "1px 4px", borderRadius: 4 }}>OFICIAL</span>}
               </div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.text, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }}>{celda.conductor}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: C.text, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 150 }}>{ocupante.conductor?.nombre || "—"}</div>
               <div style={{ fontSize: 9, color: C.textLight, marginTop: 1, maxWidth: 150, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pqNombre}</div>
             </div>
-            {celda.timestampIngreso && (
-              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", fontSize: 10, fontWeight: 600, color: C.textLight }}><Clock size={8} />{formatearDuracion(celda.timestampIngreso)}</div>
-              </div>
-            )}
+            <div style={{ textAlign: "right", flexShrink: 0 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", fontSize: 10, fontWeight: 600, color: C.textLight }}><Clock size={8} />{formatearDuracion(ocupante.fechaEntrada)}</div>
+            </div>
           </div>
         )) : (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 16px", color: C.textLight }}>
@@ -963,27 +875,47 @@ ActiveVehiclesList.displayName = "ActiveVehiclesList";
 /* ============================================================
    SMART ASSIGN MODAL
 ============================================================ */
-const SmartAssignModal = memo(({ open, parqueaderos, onClose, onAssign, openScanner, scannedPlate }: { open: boolean; parqueaderos: Parqueadero[]; onClose: () => void; onAssign: (pqId: number, codigo: string, placa: string, conductor: string, esOficial: boolean) => void; openScanner: () => void; scannedPlate?: string }) => {
+const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, openScanner, scannedPlate }: {
+  open: boolean;
+  parqueaderos: Parqueadero[];
+  celdas: Celda[];
+  onClose: () => void;
+  onAssign: (celda: Celda, placa: string, conductor: string, esOficial: boolean) => void;
+  openScanner: () => void;
+  scannedPlate?: string;
+}) => {
   const [placa, setPlaca] = useState("");
   const [conductor, setConductor] = useState("");
-  const [tipoVehiculo, setTipoVehiculo] = useState<"Carro" | "Moto">("Carro");
+  const [tipoVehiculo, setTipoVehiculo] = useState<"carro" | "moto">("carro");
   const [rol, setRol] = useState<"Estudiante" | "Docente" | "Administrativo" | "Visitante" | "Oficial">("Estudiante");
-  const [recomendacion, setRecomendacion] = useState<any>(null);
+  const [recomendacion, setRecomendacion] = useState<{ celda: Celda; pq: Parqueadero; motivo: string } | null>(null);
+
   useEffect(() => { if (scannedPlate) setPlaca(scannedPlate); }, [scannedPlate]);
+
   useEffect(() => {
     if (!open) return;
-    let tipo: Parqueadero["tipo"] = "General";
-    if (tipoVehiculo === "Moto") tipo = "Motos";
-    else if (rol === "Docente") tipo = "Docentes";
-    else if (rol === "Administrativo") tipo = "Administrativos";
-    else if (rol === "Visitante") tipo = "Visitantes";
-    let found: any = null;
-    for (const pq of parqueaderos.filter(p => p.tipo === tipo)) { const c = pq.celdas.find(c => c.estado === "libre"); if (c) { found = { pq, celda: c, motivo: `Zona preferencial ${pq.tipo} disponible.` }; break; } }
-    if (!found && tipoVehiculo === "Carro") { for (const pq of parqueaderos.filter(p => p.tipo === "General")) { const c = pq.celdas.find(c => c.estado === "libre"); if (c) { found = { pq, celda: c, motivo: "Zona preferencial ocupada. Asignada zona General." }; break; } } }
-    if (!found) { for (const pq of parqueaderos) { const c = pq.celdas.find(c => c.estado === "libre"); if (c) { found = { pq, celda: c, motivo: `No hay cupo en la zona preferencial. Celda disponible en ${pq.tipo}.` }; break; } } }
-    setRecomendacion(found ? { parqueaderoId: found.pq.id, parqueaderoNombre: found.pq.nombre, codigo: found.celda.codigo, bloque: found.pq.bloque, tipoPq: found.pq.tipo, motivo: found.motivo } : null);
-  }, [open, tipoVehiculo, rol, parqueaderos]);
+    let tipoPref = "general";
+    if (rol === "Docente") tipoPref = "docentes";
+    else if (rol === "Administrativo") tipoPref = "administrativos";
+    else if (rol === "Visitante") tipoPref = "visitantes";
+    if (tipoVehiculo === "moto") tipoPref = "motos";
+
+    let found: { celda: Celda; pq: Parqueadero; motivo: string } | null = null;
+    const buscarEn = (pqs: Parqueadero[], motivoBase: string) => {
+      for (const pq of pqs) {
+        const libre = celdas.find(c => c.parqueaderoId === pq.id && c.estado === "disponible" && c.tipo === tipoVehiculo);
+        if (libre) return { celda: libre, pq, motivo: motivoBase };
+      }
+      return null;
+    };
+    found = buscarEn(parqueaderos.filter(p => p.tipo === tipoPref && p.estado === "activo"), `Zona preferencial ${tipoPref} disponible.`);
+    if (!found) found = buscarEn(parqueaderos.filter(p => p.tipo === "general" && p.estado === "activo"), "Zona preferencial ocupada. Asignada zona general.");
+    if (!found) found = buscarEn(parqueaderos.filter(p => p.estado === "activo"), "No hay cupo en la zona preferencial. Celda disponible en otra zona.");
+    setRecomendacion(found);
+  }, [open, tipoVehiculo, rol, parqueaderos, celdas]);
+
   const valid = validarPlacaColombiana(placa) && conductor.trim().length >= 3 && recomendacion !== null;
+
   return (
     <Modal open={open} onClose={onClose} maxWidth={560}>
       <ModalHeader eyebrow="Asistente Virtual" title="Asignación Inteligente" icon={<Sparkles size={18} color={C.primary} />} onClose={onClose} />
@@ -1005,8 +937,8 @@ const SmartAssignModal = memo(({ open, parqueaderos, onClose, onAssign, openScan
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Vehículo</label>
             <div style={{ display: "flex", borderRadius: 11, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-              {(["Carro", "Moto"] as const).map(t => (
-                <button key={t} onClick={() => setTipoVehiculo(t)} style={{ flex: 1, padding: "10px 8px", fontSize: 12, fontWeight: 700, border: "none", background: tipoVehiculo === t ? C.primary : "#fff", color: tipoVehiculo === t ? "#fff" : C.textLight, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>{t}</button>
+              {(["carro", "moto"] as const).map(t => (
+                <button key={t} onClick={() => setTipoVehiculo(t)} style={{ flex: 1, padding: "10px 8px", fontSize: 12, fontWeight: 700, border: "none", background: tipoVehiculo === t ? C.primary : "#fff", color: tipoVehiculo === t ? "#fff" : C.textLight, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>{capitalizar(t)}</button>
               ))}
             </div>
           </div>
@@ -1025,8 +957,8 @@ const SmartAssignModal = memo(({ open, parqueaderos, onClose, onAssign, openScan
           <div style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: "#F8FAFC", padding: "12px 14px" }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Asignación Sugerida</div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontWeight: 900, fontSize: 13, color: C.primaryDark }}>{recomendacion.codigo}</div>
-              <div><div style={{ fontWeight: 800, color: C.text, fontSize: 13 }}>{recomendacion.parqueaderoNombre}</div><div style={{ fontSize: 10, color: C.textLight }}>{recomendacion.tipoPq} · Bloque {recomendacion.bloque}</div></div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontWeight: 900, fontSize: 13, color: C.primaryDark }}>{recomendacion.celda.numero}</div>
+              <div><div style={{ fontWeight: 800, color: C.text, fontSize: 13 }}>{recomendacion.pq.nombre}</div><div style={{ fontSize: 10, color: C.textLight }}>{capitalizar(recomendacion.pq.tipo)} · Bloque {recomendacion.pq.bloque}</div></div>
             </div>
             <div style={{ padding: "8px 10px", borderRadius: 9, background: "#fff", border: `1px solid ${C.border}`, fontSize: 11, color: C.textLight }}>💡 {recomendacion.motivo}</div>
           </div>
@@ -1036,8 +968,8 @@ const SmartAssignModal = memo(({ open, parqueaderos, onClose, onAssign, openScan
         <button onClick={onClose} style={{ flex: 1, padding: "10px 16px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", fontSize: 13, fontWeight: 700, color: C.text, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
         <button disabled={!valid} onClick={() => {
           if (!recomendacion) return;
-          const eo = rol === "Oficial" || placa.toUpperCase().startsWith("SNA");
-          onAssign(recomendacion.parqueaderoId, recomendacion.codigo, placa.toUpperCase(), normalizarTexto(conductor), eo);
+          const eo = rol === "Oficial" || esPlacaOficial(placa);
+          onAssign(recomendacion.celda, placa.toUpperCase(), normalizarTexto(conductor), eo);
           setPlaca(""); setConductor(""); onClose();
         }} style={{ flex: 1, padding: "10px 16px", borderRadius: 12, border: "none", background: valid ? C.primary : "#E2E8F0", fontSize: 13, fontWeight: 800, color: valid ? "#fff" : C.textLight, cursor: valid ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: valid ? "0 6px 18px rgba(57,169,0,.22)" : undefined }}>
           Confirmar Asignación
@@ -1052,18 +984,22 @@ SmartAssignModal.displayName = "SmartAssignModal";
    APP PRINCIPAL
 ============================================================ */
 export default function Parqueaderos() {
-  const [state, dispatch] = useReducer(rootReducer, undefined, () => ({
-    parqueaderos: loadParqueaderos(),
-    toasts: [] as ToastItem[]
-  }));
+  const {
+    parqueaderos, addParqueadero, updateParqueadero, deleteParqueadero,
+    celdas, addCelda, updateCelda, deleteCelda,
+    conductores, addConductor,
+    vehiculos, addVehiculo,
+    controlesSalida, addControlSalida, updateControlSalida, deleteControlSalida,
+  } = useData();
+
   const [activeTab, setActiveTab]   = useState<"map" | "table">("table");
-  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"confirmDelete"|"confirmLiberar"|null>(null);
-  const [pqEditId, setPqEditId]     = useState<number | null>(null);
-  const [pqDeleteId, setPqDeleteId] = useState<number | null>(null);
-  const [celdaCoords, setCeldaCoords] = useState<{ parqueaderoId: number; codigo: string } | null>(null);
+  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"confirmDelete"|null>(null);
+  const [pqEditId, setPqEditId]     = useState<string | null>(null);
+  const [pqDeleteId, setPqDeleteId] = useState<string | null>(null);
+  const [celdaSeleccionadaId, setCeldaSeleccionadaId] = useState<string | null>(null);
   const [search, setSearch]         = useState("");
   const [filterTipo, setFilterTipo] = useState("Todos");
-  const [pqForm, setPqForm]         = useState<FormParqueadero>({ nombre: "", total: 10, bloque: "A", tipo: "General" });
+  const [pqForm, setPqForm]         = useState<FormParqueadero>({ nombre: "", bloque: "A", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" });
   const [formError, setFormError]   = useState<string | null>(null);
   const [vehiculoForm, setVehiculoForm] = useState<VehiculoForm>({ placa: "", conductor: "", esOficial: false });
   const [placaError, setPlacaError] = useState<string | null>(null);
@@ -1073,18 +1009,14 @@ export default function Parqueaderos() {
   const [camaraLista, setCamaraLista] = useState(false);
   const [scannerOrigin, setScannerOrigin] = useState<"ingreso"|"smartAssign"|null>(null);
   const [scannedPlate, setScannedPlate]   = useState<string | undefined>(undefined);
-  const [, tick] = useReducer((c: number) => c + 1, 0);
+  const [, forceTick] = useState(0);
 
   const videoRef  = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { reconocer, reconocerLicencia, liberarWorker } = useOcrPlaca();
 
-  useEffect(() => { const i = setInterval(() => tick(), 30000); return () => clearInterval(i); }, []);
-  useEffect(() => {
-    if (!state.toasts.length) return;
-    const ts = state.toasts.map(t => setTimeout(() => dispatch({ type: "DISMISS_TOAST", id: t.id }), 5000));
-    return () => ts.forEach(clearTimeout);
-  }, [state.toasts]);
+  // Recalcula "estadía" periódicamente sin tocar el estado real
+  useEffect(() => { const i = setInterval(() => forceTick(t => t + 1), 30000); return () => clearInterval(i); }, []);
 
   const cerrarCamara = useCallback(() => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; setCamaraLista(false); }, []);
   const iniciarCamara = useCallback(async () => {
@@ -1103,86 +1035,228 @@ export default function Parqueaderos() {
   useEffect(() => { if (openModal === "scanner") iniciarCamara(); else cerrarCamara(); return () => cerrarCamara(); }, [openModal, iniciarCamara, cerrarCamara]);
   useEffect(() => () => { liberarWorker(); }, [liberarWorker]);
 
+  /* ── Derivar ocupante de una celda a partir de controlesSalida + vehiculos + conductores ── */
+  const getOcupante = useCallback((celdaId: string): Ocupante | null => {
+    const cs = controlesSalida.find(c => c.celdaId === celdaId && c.estado === "en_parqueadero");
+    if (!cs) return null;
+    const vehiculo = vehiculos.find(v => v.id === cs.vehiculoId);
+    if (!vehiculo) return null;
+    const conductor = conductores.find(c => c.id === vehiculo.conductorId);
+    return { vehiculo, conductor, esOficial: esPlacaOficial(vehiculo.placa), controlId: cs.id, fechaEntrada: cs.fechaEntrada };
+  }, [controlesSalida, vehiculos, conductores]);
+
   const stats = useMemo(() => {
-    const all = state.parqueaderos.flatMap(p => p.celdas);
-    const t = all.length, o = all.filter(c => c.estado === "ocupado").length, l = all.filter(c => c.estado === "libre").length, s = all.filter(c => c.estado === "sena").length;
-    return { total: t, ocupadas: o, libres: l, sena: s, pct: t ? Math.round(o / t * 100) : 0 };
-  }, [state.parqueaderos]);
+    const t = celdas.length;
+    const o = celdas.filter(c => c.estado === "no_disponible").length;
+    const l = celdas.filter(c => c.estado === "disponible").length;
+    const r = celdas.filter(c => c.estado === "reservada").length;
+    return { total: t, ocupadas: o, libres: l, reservadas: r, pct: t ? Math.round(o / t * 100) : 0 };
+  }, [celdas]);
 
-  const celdaActiva     = useMemo(() => { if (!celdaCoords) return null; return state.parqueaderos.find(p => p.id === celdaCoords.parqueaderoId)?.celdas.find(c => c.codigo === celdaCoords.codigo) ?? null; }, [celdaCoords, state.parqueaderos]);
-  const parqueaderoActivo = useMemo(() => { if (!celdaCoords) return null; return state.parqueaderos.find(p => p.id === celdaCoords.parqueaderoId) ?? null; }, [celdaCoords, state.parqueaderos]);
-  const cellMatchesSearch = useCallback((celda: Celda) => { if (!search.trim()) return false; const q = search.toLowerCase(); return !!(celda.placa?.toLowerCase().includes(q) || celda.conductor?.toLowerCase().includes(q) || celda.codigo.toLowerCase().includes(q)); }, [search]);
-  const filteredPqs = useMemo(() => state.parqueaderos.map(pq => {
-    if (filterTipo !== "Todos" && pq.tipo !== filterTipo) return null;
-    let celdas = pq.celdas;
-    if (search.trim()) { const q = search.toLowerCase(); celdas = pq.celdas.filter(c => c.codigo.toLowerCase().includes(q) || c.placa?.toLowerCase().includes(q) || c.conductor?.toLowerCase().includes(q)); }
-    return { ...pq, celdas };
-  }).filter((p): p is Parqueadero => p !== null && p.celdas.length > 0), [state.parqueaderos, filterTipo, search]);
+  const celdaActiva      = useMemo(() => celdas.find(c => c.id === celdaSeleccionadaId) ?? null, [celdas, celdaSeleccionadaId]);
+  const parqueaderoActivo = useMemo(() => celdaActiva ? parqueaderos.find(p => p.id === celdaActiva.parqueaderoId) ?? null : null, [celdaActiva, parqueaderos]);
+  const ocupanteActivo   = useMemo(() => celdaActiva ? getOcupante(celdaActiva.id) : null, [celdaActiva, getOcupante]);
 
-  const handleCellClick = useCallback((pqId: number, celda: Celda) => {
-    setCeldaCoords({ parqueaderoId: pqId, codigo: celda.codigo });
+  const cellMatchesSearch = useCallback((celda: Celda) => {
+    if (!search.trim()) return false;
+    const q = search.toLowerCase();
+    const ocupante = getOcupante(celda.id);
+    return !!(celda.numero.toLowerCase().includes(q) || ocupante?.vehiculo.placa.toLowerCase().includes(q) || ocupante?.conductor?.nombre.toLowerCase().includes(q));
+  }, [search, getOcupante]);
+
+  const filteredPqs = useMemo(() => parqueaderos.filter(pq => filterTipo === "Todos" || pq.tipo === filterTipo), [parqueaderos, filterTipo]);
+  const filteredCeldas = useMemo(() => {
+    if (!search.trim()) return celdas;
+    const q = search.toLowerCase();
+    return celdas.filter(c => {
+      const ocupante = getOcupante(c.id);
+      return c.numero.toLowerCase().includes(q) || ocupante?.vehiculo.placa.toLowerCase().includes(q) || ocupante?.conductor?.nombre.toLowerCase().includes(q);
+    });
+  }, [celdas, search, getOcupante]);
+  const filteredPqsConCeldas = useMemo(
+    () => filteredPqs.filter(pq => filteredCeldas.some(c => c.parqueaderoId === pq.id) || !search.trim()),
+    [filteredPqs, filteredCeldas, search]
+  );
+
+  const handleCellClick = useCallback((celda: Celda) => {
+    setCeldaSeleccionadaId(celda.id);
     setPlacaError(null);
-    if (celda.estado === "ocupado") {
-      setVehiculoForm({ placa: celda.placa || "", conductor: celda.conductor || "", esOficial: !!celda.esOficial });
+    if (celda.estado === "no_disponible") {
+      const ocupante = getOcupante(celda.id);
+      setVehiculoForm({ placa: ocupante?.vehiculo.placa || "", conductor: ocupante?.conductor?.nombre || "", esOficial: ocupante?.esOficial || false });
       setOpenModal("info");
-    } else if (celda.estado === "sena") {
+    } else if (celda.estado === "reservada") {
       setVehiculoForm({ placa: "", conductor: "", esOficial: true });
       setOpenModal("info");
+    } else if (celda.estado === "mantenimiento") {
+      toast.info("Esta celda está en mantenimiento y no puede usarse.");
     } else {
       setVehiculoForm({ placa: "", conductor: "", esOficial: false });
       setOpenModal("ingreso");
     }
-  }, []);
+  }, [getOcupante]);
+
+  const capacidadForm = pqForm.celdasCarros + pqForm.celdasMotos + pqForm.celdasMovilidadReducida;
 
   const handleCreate = () => {
     const nombre = normalizarTexto(pqForm.nombre);
-    const bloque = pqForm.bloque.trim().toUpperCase();
+    const bloque = pqForm.bloque.trim();
     if (!nombre) return setFormError("El nombre es obligatorio.");
-    if (!/^[A-Z0-9]{1,2}$/.test(bloque)) return setFormError("El bloque debe ser 1-2 caracteres.");
-    if (state.parqueaderos.some(p => p.bloque === bloque)) return setFormError(`Ya existe el bloque "${bloque}".`);
-    dispatch({ type: "CREATE_PARQUEADERO", parqueadero: { id: Date.now(), nombre, bloque, tipo: pqForm.tipo, total: pqForm.total, celdas: regenerarCeldas(bloque, pqForm.total) } });
+    if (!bloque) return setFormError("El bloque es obligatorio.");
+    if (parqueaderos.some(p => p.bloque.toLowerCase() === bloque.toLowerCase())) return setFormError(`Ya existe el bloque "${bloque}".`);
+    if (capacidadForm <= 0) return setFormError("Debe definir al menos una celda.");
+    addParqueadero({
+      nombre, bloque, tipo: pqForm.tipo, direccion: pqForm.direccion, descripcion: pqForm.descripcion,
+      horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
+      celdasCarros: pqForm.celdasCarros, celdasMotos: pqForm.celdasMotos, celdasMovilidadReducida: pqForm.celdasMovilidadReducida,
+      capacidad: capacidadForm, estado: "activo",
+    });
+    toast.success(`Parqueadero "${nombre}" creado.`);
     setOpenModal(null);
   };
+
   const handleEdit = () => {
     if (!pqEditId) return;
+    const actual = parqueaderos.find(p => p.id === pqEditId);
+    if (!actual) return;
     const nombre = normalizarTexto(pqForm.nombre);
-    const bloque = pqForm.bloque.trim().toUpperCase();
+    const bloque = pqForm.bloque.trim();
     if (!nombre) return setFormError("El nombre es obligatorio.");
-    if (!/^[A-Z0-9]{1,2}$/.test(bloque)) return setFormError("El bloque debe ser 1-2 caracteres.");
-    if (state.parqueaderos.some(p => p.bloque === bloque && p.id !== pqEditId)) return setFormError(`Ya existe el bloque "${bloque}".`);
-    const actual = state.parqueaderos.find(p => p.id === pqEditId);
-    if (actual && celdasComprometidasAlReducir(actual.celdas, pqForm.total).length > 0) return setFormError("No se puede reducir: celdas finales ocupadas/reservadas.");
-    dispatch({ type: "EDIT_PARQUEADERO", id: pqEditId, nombre, tipo: pqForm.tipo, bloque, total: pqForm.total });
+    if (!bloque) return setFormError("El bloque es obligatorio.");
+    if (parqueaderos.some(p => p.bloque.toLowerCase() === bloque.toLowerCase() && p.id !== pqEditId)) return setFormError(`Ya existe el bloque "${bloque}".`);
+    if (capacidadForm <= 0) return setFormError("Debe definir al menos una celda.");
+
+    const celdasPq = celdas.filter(c => c.parqueaderoId === pqEditId);
+    const tiposMap: { tipo: Celda["tipo"]; prefix: string; anterior: number; nuevo: number }[] = [
+      { tipo: "carro", prefix: "C", anterior: actual.celdasCarros, nuevo: pqForm.celdasCarros },
+      { tipo: "moto", prefix: "M", anterior: actual.celdasMotos, nuevo: pqForm.celdasMotos },
+      { tipo: "movilidad reducida", prefix: "MR", anterior: actual.celdasMovilidadReducida, nuevo: pqForm.celdasMovilidadReducida },
+    ];
+
+    // Validar que las celdas a eliminar (por reducción) no estén ocupadas ni reservadas
+    for (const t of tiposMap) {
+      if (t.nuevo < t.anterior) {
+        const delTipo = celdasPq.filter(c => c.tipo === t.tipo);
+        const sobrantes = delTipo.slice(t.nuevo);
+        if (sobrantes.some(c => c.estado === "no_disponible" || c.estado === "reservada")) {
+          return setFormError(`No se puede reducir ${t.tipo}: hay celdas ocupadas o reservadas en el rango a eliminar.`);
+        }
+      }
+    }
+
+    // Aplicar cambios de celdas
+    for (const t of tiposMap) {
+      const delTipo = celdasPq.filter(c => c.tipo === t.tipo);
+      if (t.nuevo < t.anterior) {
+        delTipo.slice(t.nuevo).forEach(c => deleteCelda(c.id));
+      } else if (t.nuevo > t.anterior) {
+        for (let i = t.anterior; i < t.nuevo; i++) {
+          addCelda({
+            parqueaderoId: pqEditId,
+            numero: `${t.prefix}-${String(i + 1).padStart(3, "0")}`,
+            tipo: t.tipo, estado: "disponible", ocupada: false,
+            nombre: `${nombre}-${t.prefix}${i + 1}`,
+          });
+        }
+      }
+    }
+
+    updateParqueadero(pqEditId, {
+      nombre, bloque, tipo: pqForm.tipo, direccion: pqForm.direccion, descripcion: pqForm.descripcion,
+      horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
+      celdasCarros: pqForm.celdasCarros, celdasMotos: pqForm.celdasMotos, celdasMovilidadReducida: pqForm.celdasMovilidadReducida,
+      capacidad: capacidadForm,
+    });
+    toast.success("Parqueadero actualizado.");
     setOpenModal(null); setPqEditId(null);
   };
-  const handleDelete = () => { if (pqDeleteId) { dispatch({ type: "DELETE_PARQUEADERO", id: pqDeleteId }); setOpenModal(null); setPqDeleteId(null); } };
+
+  const handleDelete = () => {
+    if (!pqDeleteId) return;
+    const celdasPq = celdas.filter(c => c.parqueaderoId === pqDeleteId);
+    celdasPq.forEach(c => {
+      controlesSalida.filter(cs => cs.celdaId === c.id).forEach(cs => deleteControlSalida(cs.id));
+    });
+    deleteParqueadero(pqDeleteId);
+    toast.info("Parqueadero eliminado.");
+    setOpenModal(null); setPqDeleteId(null);
+  };
+
+  /** Busca un conductor existente por nombre (case-insensitive) o crea uno nuevo. */
+  const resolverConductor = useCallback((nombre: string, tipo: Conductor["tipo"]): string => {
+    const existente = conductores.find(c => c.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
+    if (existente) return existente.id;
+    return addConductor({
+      usuarioId: "", nombre, tipoConductor: "aprendiz", centroFormacion: "",
+      discapacidad: false, estado: "activo", tipo, email: "",
+    });
+  }, [conductores, addConductor]);
+
+  /** Busca un vehículo existente por placa o crea uno nuevo. */
+  const resolverVehiculo = useCallback((placa: string, conductorId: string, tipo: "carro" | "moto", parqueaderoId: string, celdaId: string, fechaEntrada: string): string => {
+    const existente = vehiculos.find(v => v.placa === placa);
+    if (existente) return existente.id;
+    return addVehiculo({
+      conductorId, placa, tipo, marca: "", modelo: "", año: new Date().getFullYear(), color: "",
+      descripcion: "", estado: "activo", parqueaderoId, celdaId, fechaEntrada,
+    });
+  }, [vehiculos, addVehiculo]);
+
+  const tipoConductorDesdeParqueadero = (tipoPq: string): Conductor["tipo"] => {
+    if (tipoPq === "docentes") return "docente";
+    if (tipoPq === "administrativos") return "administrativo";
+    return "visitante";
+  };
+
+  const registrarEnCelda = (celda: Celda, placaRaw: string, conductorRaw: string, esOficial: boolean) => {
+    const placa = placaRaw.trim().toUpperCase();
+    const conductorNombre = normalizarTexto(conductorRaw, 60);
+    if (!placa || !conductorNombre) { setPlacaError("Completa todos los campos."); return false; }
+    if (!validarPlacaColombiana(placa)) { setPlacaError("Formato de placa inválido."); return false; }
+    const yaActivo = controlesSalida.some(cs => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find(v => v.id === cs.vehiculoId)?.placa === placa);
+    if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
+
+    const pq = parqueaderos.find(p => p.id === celda.parqueaderoId);
+    const tipoConductor = tipoConductorDesdeParqueadero(pq?.tipo || "");
+    const conductorId = resolverConductor(conductorNombre, tipoConductor);
+    const fechaEntrada = new Date().toISOString().slice(0, 16);
+    const vehiculoTipo: "carro" | "moto" = celda.tipo === "moto" ? "moto" : "carro";
+    const vehiculoId = resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada);
+
+    addControlSalida({ vehiculoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
+    updateCelda(celda.id, { estado: "no_disponible", ocupada: true });
+    toast.success(`Vehículo ${placa} registrado.`);
+    return true;
+  };
+
   const registrarVehiculo = () => {
-    if (!celdaCoords) return;
-    const p = vehiculoForm.placa.trim().toUpperCase();
-    const con = normalizarTexto(vehiculoForm.conductor, 60);
-    if (!p || !con) return setPlacaError("Completa todos los campos.");
-    if (!validarPlacaColombiana(p)) return setPlacaError("Formato de placa inválido.");
-    if (state.parqueaderos.some(pq => pq.celdas.some(c => c.estado === "ocupado" && c.placa === p && !(pq.id === celdaCoords.parqueaderoId && c.codigo === celdaCoords.codigo)))) return setPlacaError("Este vehículo ya está estacionado en otra celda.");
-    const eo = vehiculoForm.esOficial || p.startsWith("SNA") || p.startsWith("OFI");
-    dispatch({ type: "REGISTRAR_VEHICULO", parqueaderoId: celdaCoords.parqueaderoId, codigo: celdaCoords.codigo, placa: p, conductor: con, esOficial: eo });
-    setOpenModal(null);
+    if (!celdaActiva) return;
+    if (registrarEnCelda(celdaActiva, vehiculoForm.placa, vehiculoForm.conductor, vehiculoForm.esOficial)) {
+      setOpenModal(null);
+    }
   };
-  const guardarEdicion = () => {
-    if (!celdaCoords) return;
-    const p = vehiculoForm.placa.trim().toUpperCase();
-    const con = normalizarTexto(vehiculoForm.conductor, 60);
-    if (!p || !con || !validarPlacaColombiana(p)) return setPlacaError("Datos incorrectos.");
-    if (state.parqueaderos.some(pq => pq.celdas.some(c => c.estado === "ocupado" && c.placa === p && !(pq.id === celdaCoords.parqueaderoId && c.codigo === celdaCoords.codigo)))) return setPlacaError("Placa ya registrada en otra celda.");
-    dispatch({ type: "EDITAR_VEHICULO", parqueaderoId: celdaCoords.parqueaderoId, codigo: celdaCoords.codigo, placa: p, conductor: con, esOficial: vehiculoForm.esOficial });
-    setOpenModal(null);
-  };
-  const cerrarScanner = useCallback(() => setOpenModal(scannerOrigin === "smartAssign" ? "smartAssign" : "ingreso"), [scannerOrigin]);
+
   const handleRequestLiberar = () => {
-    if (!celdaCoords) return;
-    dispatch({ type: "LIBERAR_CELDA_DIRECTO", parqueaderoId: celdaCoords.parqueaderoId, codigo: celdaCoords.codigo });
+    if (!celdaActiva) return;
+    const ocupante = getOcupante(celdaActiva.id);
+    if (ocupante) {
+      updateControlSalida(ocupante.controlId, { fechaSalida: new Date().toISOString().slice(0, 16), estado: "finalizado" });
+    }
+    updateCelda(celdaActiva.id, { estado: "disponible", ocupada: false });
+    toast.info(`Celda ${celdaActiva.numero} liberada.`);
     setOpenModal(null);
   };
-  const handleToggleSena = () => { if (celdaCoords) { dispatch({ type: "TOGGLE_RESERVA_SENA", parqueaderoId: celdaCoords.parqueaderoId, codigo: celdaCoords.codigo }); setOpenModal(null); } };
+
+  const handleToggleReserva = () => {
+    if (!celdaActiva) return;
+    const nuevoEstado: Celda["estado"] = celdaActiva.estado === "reservada" ? "disponible" : "reservada";
+    updateCelda(celdaActiva.id, { estado: nuevoEstado });
+    toast.info(nuevoEstado === "reservada" ? "Celda reservada." : "Reserva liberada.");
+    setOpenModal(null);
+  };
+
+  const cerrarScanner = useCallback(() => setOpenModal(scannerOrigin === "smartAssign" ? "smartAssign" : "ingreso"), [scannerOrigin]);
+
   const handleCaptureOcr = async () => {
     if (!videoRef.current) return;
     setOcrLoading(true); setOcrError(null);
@@ -1190,12 +1264,13 @@ export default function Parqueaderos() {
       const d = await reconocer(videoRef.current);
       setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
       setVehiculoForm(prev => ({ ...prev, placa: d.placa, conductor: d.conductor || prev.conductor }));
-      dispatch({ type: "ADD_TOAST", tone: "success", message: `Placa detectada: ${d.placa}` });
+      toast.success(`Placa detectada: ${d.placa}`);
       if (scannerOrigin === "smartAssign") { setScannedPlate(d.placa); cerrarCamara(); setOpenModal("smartAssign"); }
       else { cerrarCamara(); setOpenModal("ingreso"); }
     } catch (e) { setOcrError(e instanceof Error ? e.message : "Error al escanear."); }
     finally { setOcrLoading(false); }
   };
+
   const handleFileOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f) return;
     setOcrLoading(true); setOcrError(null);
@@ -1207,7 +1282,7 @@ export default function Parqueaderos() {
           const d = await reconocerLicencia(url);
           setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
           setVehiculoForm(prev => ({ ...prev, placa: d.placa, conductor: d.conductor || prev.conductor }));
-          dispatch({ type: "ADD_TOAST", tone: "success", message: `Placa detectada: ${d.placa}` });
+          toast.success(`Placa detectada: ${d.placa}`);
           if (scannerOrigin === "smartAssign") { setScannedPlate(d.placa); setOpenModal("smartAssign"); }
           else { setOpenModal("ingreso"); }
         } catch (err) { setOcrError(err instanceof Error ? err.message : "No se reconoció la placa."); }
@@ -1216,6 +1291,7 @@ export default function Parqueaderos() {
       reader.readAsDataURL(f);
     } catch { setOcrError("No se pudo procesar la imagen."); setOcrLoading(false); }
   };
+
   const handleSimOCR = (p: string, con: string, rol: string) => {
     setOcrLoading(true);
     setTimeout(() => {
@@ -1228,8 +1304,9 @@ export default function Parqueaderos() {
       }, 1000);
     }, 800);
   };
-  const handleSmartAssign = (pqId: number, codigo: string, placa: string, conductor: string, esOficial: boolean) => {
-    dispatch({ type: "REGISTRAR_VEHICULO", parqueaderoId: pqId, codigo, placa, conductor, esOficial });
+
+  const handleSmartAssign = (celda: Celda, placa: string, conductorNombre: string, esOficial: boolean) => {
+    registrarEnCelda(celda, placa, conductorNombre, esOficial);
     setScannedPlate(undefined);
   };
 
@@ -1307,10 +1384,10 @@ export default function Parqueaderos() {
             </div>
             <div className="pq-hero-stats">
               {[
-                { label: "Disponibles",    value: stats.libres,   dot: CELDA_CONFIG.libre.dotColor },
-                { label: "Ocupadas",       value: stats.ocupadas, dot: CELDA_CONFIG.ocupado.dotColor },
-                { label: "Reservas SENA",  value: stats.sena,     dot: CELDA_CONFIG.sena.dotColor },
-                { label: "Ocupación",      value: `${stats.pct}%`, dot: "#94A3B8" },
+                { label: "Disponibles",   value: stats.libres,    dot: CELDA_CONFIG.disponible.dotColor },
+                { label: "Ocupadas",      value: stats.ocupadas,  dot: CELDA_CONFIG.no_disponible.dotColor },
+                { label: "Reservadas",    value: stats.reservadas, dot: CELDA_CONFIG.reservada.dotColor },
+                { label: "Ocupación",     value: `${stats.pct}%`, dot: "#94A3B8" },
               ].map(s => (
                 <div key={s.label} style={{ background: "rgba(255,255,255,.12)", border: "1px solid rgba(255,255,255,.2)", borderRadius: 12, padding: "8px 10px", textAlign: "center" }}>
                   <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1, color: "rgba(255,255,255,.65)", textTransform: "uppercase", marginBottom: 2, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
@@ -1333,7 +1410,7 @@ export default function Parqueaderos() {
 
           <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={{ padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer" }}>
             <option value="Todos">Todos los tipos</option>
-            {TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{t}</option>)}
+            {TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{capitalizar(t)}</option>)}
           </select>
 
           <div className="pq-view-toggle">
@@ -1349,70 +1426,87 @@ export default function Parqueaderos() {
           <button onClick={() => setOpenModal("smartAssign")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <Zap size={14} color="#F59E0B" />Asignación Inteligente
           </button>
-          <button onClick={() => { setPqForm({ nombre: "", total: 10, bloque: "A", tipo: "General" }); setFormError(null); setOpenModal("create"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>
+          <button onClick={() => { setPqForm({ nombre: "", bloque: "", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" }); setFormError(null); setOpenModal("create"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>
             <Plus size={15} />Nuevo Parqueadero
           </button>
         </div>
 
-        {activeFilters > 0 && <p style={{ fontSize: 11, color: C.textLight }}>Mostrando <strong>{filteredPqs.length}</strong> resultado{filteredPqs.length !== 1 ? "s" : ""}</p>}
+        {activeFilters > 0 && <p style={{ fontSize: 11, color: C.textLight }}>Mostrando <strong>{filteredPqsConCeldas.length}</strong> resultado{filteredPqsConCeldas.length !== 1 ? "s" : ""}</p>}
 
         {/* ── CONTENIDO POR TAB ── */}
         {activeTab === "table" && (
           <div className="pq-content-grid">
-            <ParqueaderosTable parqueaderos={filteredPqs} onEdit={pq => { setPqEditId(pq.id); setPqForm({ nombre: pq.nombre, total: pq.total, bloque: pq.bloque, tipo: pq.tipo }); setFormError(null); setOpenModal("edit"); }} onDelete={id => { setPqDeleteId(id); setOpenModal("confirmDelete"); }} onCellClick={handleCellClick} cellMatchesSearch={cellMatchesSearch} searchQuery={search} />
-            <ActiveVehiclesList parqueaderos={state.parqueaderos} onSelectCell={handleCellClick} searchQuery={search} />
+            <ParqueaderosTable
+              parqueaderos={filteredPqsConCeldas}
+              celdas={search.trim() ? filteredCeldas : celdas}
+              getOcupante={getOcupante}
+              onEdit={pq => {
+                setPqEditId(pq.id);
+                setPqForm({ nombre: pq.nombre, bloque: pq.bloque, tipo: pq.tipo, direccion: pq.direccion, horaInicio: pq.horaInicio, horaFin: pq.horaFin, celdasCarros: pq.celdasCarros, celdasMotos: pq.celdasMotos, celdasMovilidadReducida: pq.celdasMovilidadReducida, descripcion: pq.descripcion });
+                setFormError(null); setOpenModal("edit");
+              }}
+              onDelete={id => { setPqDeleteId(id); setOpenModal("confirmDelete"); }}
+              onCellClick={handleCellClick}
+              cellMatchesSearch={cellMatchesSearch}
+            />
+            <ActiveVehiclesList celdas={celdas} parqueaderos={parqueaderos} getOcupante={getOcupante} onSelectCell={handleCellClick} searchQuery={search} />
           </div>
         )}
 
         {activeTab === "map" && (
           <div className="pq-content-grid">
-            <ParkingMap parqueaderos={state.parqueaderos} onCellClick={handleCellClick} cellMatchesSearch={cellMatchesSearch} />
-            <ActiveVehiclesList parqueaderos={state.parqueaderos} onSelectCell={handleCellClick} searchQuery={search} />
+            <ParkingMap parqueaderos={filteredPqsConCeldas} celdas={celdas} getOcupante={getOcupante} onCellClick={handleCellClick} cellMatchesSearch={cellMatchesSearch} />
+            <ActiveVehiclesList celdas={celdas} parqueaderos={parqueaderos} getOcupante={getOcupante} onSelectCell={handleCellClick} searchQuery={search} />
           </div>
         )}
       </div>
 
       {/* ══ MODALES ══ */}
 
-      {/* Crear */}
-      <Modal open={openModal === "create"} onClose={() => setOpenModal(null)}>
-        <ModalHeader eyebrow="Registro de Zona" title="Nuevo Parqueadero" icon={<Sparkles size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
+      {/* Crear / Editar (comparten formulario) */}
+      <Modal open={openModal === "create" || openModal === "edit"} onClose={() => setOpenModal(null)}>
+        <ModalHeader eyebrow={openModal === "edit" ? "Editar Zona" : "Registro de Zona"} title={openModal === "edit" ? "Editar Parqueadero" : "Nuevo Parqueadero"} icon={openModal === "edit" ? <Pencil size={18} color={C.primary} /> : <Sparkles size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
           {formError && <Banner tone="danger" message={formError} />}
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: CARRIL 04" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: PQ-8 Bloque D" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
           <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value.toUpperCase() }))} maxLength={2} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Capacidad *</label><input type="number" min={1} max={40} value={pqForm.total} onChange={e => setPqForm(p => ({ ...p, total: Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1)) }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Categoría</label><select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }}>{TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{capitalizar(t)}</option>)}</select></div>
           </div>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Categoría</label><select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value as any }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }}>{TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Dirección</label><input value={pqForm.direccion} onChange={e => setPqForm(p => ({ ...p, direccion: e.target.value }))} placeholder="Ej: Calle 100 # 50-30" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Hora apertura</label><input type="time" value={pqForm.horaInicio} onChange={e => setPqForm(p => ({ ...p, horaInicio: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Hora cierre</label><input type="time" value={pqForm.horaFin} onChange={e => setPqForm(p => ({ ...p, horaFin: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Celdas por tipo</label>
+            <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div>
+                <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700 }}>Carros</span>
+                <input type="number" min={0} max={60} value={pqForm.celdasCarros} onChange={e => setPqForm(p => ({ ...p, celdasCarros: Math.max(0, Math.min(60, parseInt(e.target.value, 10) || 0)) }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
+              </div>
+              <div>
+                <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700 }}>Motos</span>
+                <input type="number" min={0} max={60} value={pqForm.celdasMotos} onChange={e => setPqForm(p => ({ ...p, celdasMotos: Math.max(0, Math.min(60, parseInt(e.target.value, 10) || 0)) }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
+              </div>
+              <div>
+                <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700 }}>M. reducida</span>
+                <input type="number" min={0} max={60} value={pqForm.celdasMovilidadReducida} onChange={e => setPqForm(p => ({ ...p, celdasMovilidadReducida: Math.max(0, Math.min(60, parseInt(e.target.value, 10) || 0)) }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
+              </div>
+            </div>
+            <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Capacidad total: <strong>{capacidadForm}</strong> celdas</p>
+          </div>
+          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Descripción</label><input value={pqForm.descripcion} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           <button onClick={() => setOpenModal(null)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-          <button onClick={handleCreate} style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(57,169,0,.22)" }}>Crear Parqueadero</button>
-        </div>
-      </Modal>
-
-      {/* Editar */}
-      <Modal open={openModal === "edit"} onClose={() => setOpenModal(null)}>
-        <ModalHeader eyebrow="Editar Zona" title="Editar Parqueadero" icon={<Pencil size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
-        <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
-          {formError && <Banner tone="danger" message={formError} />}
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value.toUpperCase() }))} maxLength={2} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Capacidad *</label><input type="number" min={1} max={40} value={pqForm.total} onChange={e => setPqForm(p => ({ ...p, total: Math.max(1, Math.min(40, parseInt(e.target.value, 10) || 1)) }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-          </div>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Categoría</label><select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value as any }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }}>{TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{t}</option>)}</select></div>
-        </div>
-        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
-          <button onClick={() => setOpenModal(null)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-          <button onClick={handleEdit} style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(57,169,0,.22)" }}>Guardar Cambios</button>
+          <button onClick={openModal === "edit" ? handleEdit : handleCreate} style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(57,169,0,.22)" }}>{openModal === "edit" ? "Guardar Cambios" : "Crear Parqueadero"}</button>
         </div>
       </Modal>
 
       {/* Registrar vehículo */}
       <Modal open={openModal === "ingreso"} onClose={() => setOpenModal(null)}>
-        <ModalHeader eyebrow={`Celda ${celdaCoords?.codigo ?? ""}`} title="Registrar Vehículo" icon={<Car size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
+        <ModalHeader eyebrow={`Celda ${celdaActiva?.numero ?? ""}`} title="Registrar Vehículo" icon={<Car size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Placa *</label>
@@ -1432,7 +1526,7 @@ export default function Parqueaderos() {
             <div><div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>Oficial SENA</div><div style={{ fontSize: 10, color: C.textLight }}>Vehículo institucional</div></div>
           </label>
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-            <button onClick={handleToggleSena} style={{ width: "100%", padding: "10px", borderRadius: 11, border: `1px dashed ${C.amberBg}`, background: C.amberBg, color: "#92400E", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🔒 Reservar celda para el SENA</button>
+            <button onClick={handleToggleReserva} style={{ width: "100%", padding: "10px", borderRadius: 11, border: `1px dashed ${C.amberBg}`, background: C.amberBg, color: "#92400E", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🔒 Reservar esta celda</button>
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
@@ -1453,44 +1547,36 @@ export default function Parqueaderos() {
             <button onClick={() => setOpenModal(null)} style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(255,255,255,.15)", border: "none", color: "#fff", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><X size={15} /></button>
           </div>
           <div style={{ marginTop: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,.7)", textTransform: "uppercase" }}>Celda {celdaCoords?.codigo}</div>
-            <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "ocupado" ? celdaActiva.placa : celdaActiva?.estado === "sena" ? "Reservada SENA" : "Celda Libre"}</h2>
-            {celdaActiva?.estado === "ocupado" && <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>{celdaActiva.conductor}</p>}
-            <div style={{ marginTop: 10 }}><EstadoBadge estado={celdaActiva?.estado || "libre"} /></div>
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,.7)", textTransform: "uppercase" }}>Celda {celdaActiva?.numero}</div>
+            <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" ? ocupanteActivo?.vehiculo.placa : celdaActiva?.estado === "reservada" ? "Reservada" : "Celda Libre"}</h2>
+            {celdaActiva?.estado === "no_disponible" && <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>{ocupanteActivo?.conductor?.nombre || "—"}</p>}
+            <div style={{ marginTop: 10 }}>{celdaActiva && <EstadoBadge estado={celdaActiva.estado} />}</div>
           </div>
         </div>
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 10 }}>
-          {celdaActiva?.estado === "sena" ? (
+          {celdaActiva?.estado === "reservada" ? (
             <>
-              <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada exclusivamente para vehículos institucionales SENA.</div>
+              <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada para uso institucional.</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={handleToggleSena} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Liberar</button>
+                <button onClick={handleToggleReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Liberar</button>
                 <button onClick={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: true }); setOpenModal("ingreso"); }} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
               </div>
             </>
-          ) : celdaActiva?.estado === "ocupado" ? (
+          ) : celdaActiva?.estado === "no_disponible" && ocupanteActivo ? (
             <>
               {[
-                { icon: Car,    label: "Placa",        value: <span style={{ fontFamily: "monospace", fontWeight: 900 }}>{celdaActiva.placa}{celdaActiva.esOficial && <span style={{ marginLeft: 6, fontSize: 9, background: C.primaryPale, color: C.primaryDark, padding: "1px 6px", borderRadius: 4 }}>OFICIAL</span>}</span> },
+                { icon: Car,    label: "Placa",        value: <span style={{ fontFamily: "monospace", fontWeight: 900 }}>{ocupanteActivo.vehiculo.placa}{ocupanteActivo.esOficial && <span style={{ marginLeft: 6, fontSize: 9, background: C.primaryPale, color: C.primaryDark, padding: "1px 6px", borderRadius: 4 }}>OFICIAL</span>}</span> },
                 { icon: MapPin, label: "Parqueadero",  value: parqueaderoActivo?.nombre },
-                { icon: Clock,  label: "Ingreso",      value: `${celdaActiva.fechaIngreso} ${celdaActiva.horaIngreso}` },
-                { icon: Clock,  label: "Estadía",      value: celdaActiva.timestampIngreso ? formatearDuracion(celdaActiva.timestampIngreso) : "—" },
+                { icon: Clock,  label: "Ingreso",      value: `${formatearFechaHora(ocupanteActivo.fechaEntrada).fecha} ${formatearFechaHora(ocupanteActivo.fechaEntrada).hora}` },
+                { icon: Clock,  label: "Estadía",      value: formatearDuracion(ocupanteActivo.fechaEntrada) },
               ].map((r, i) => (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 11, background: "#F8FAFC", border: `1px solid ${C.border}` }}>
                   <r.icon size={14} color={C.textLight} />
                   <div><div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>{r.label}</div><div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.value}</div></div>
                 </div>
               ))}
-              <details style={{ borderRadius: 11, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-                <summary style={{ padding: "10px 14px", fontSize: 12, fontWeight: 700, color: C.textLight, cursor: "pointer", background: "#F8FAFC" }}>Editar datos del vehículo</summary>
-                <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10, borderTop: `1px solid ${C.border}` }}>
-                  <input value={vehiculoForm.placa} onChange={e => setVehiculoForm(p => ({ ...p, placa: e.target.value.toUpperCase() }))} placeholder="Placa" style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: "monospace", fontWeight: 700, background: "#F8FAFC" }} />
-                  <input value={vehiculoForm.conductor} onChange={e => setVehiculoForm(p => ({ ...p, conductor: e.target.value }))} placeholder="Conductor" style={{ padding: "9px 12px", borderRadius: 9, border: `1px solid ${C.border}`, fontSize: 12, fontFamily: "inherit", background: "#F8FAFC" }} />
-                  <div style={{ display: "flex", justifyContent: "flex-end" }}><button onClick={guardarEdicion} style={{ padding: "8px 14px", borderRadius: 9, border: "none", background: C.text, color: "#fff", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Guardar</button></div>
-                </div>
-              </details>
               <div style={{ display: "flex", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>
-                <button onClick={handleToggleSena} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔒 Reservar</button>
+                <button onClick={handleToggleReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔒 Reservar</button>
                 <button onClick={handleRequestLiberar} style={{ flex: 2, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Liberar Celda</button>
               </div>
             </>
@@ -1544,20 +1630,8 @@ export default function Parqueaderos() {
         <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
       </Modal>
 
-      <SmartAssignModal open={openModal === "smartAssign"} parqueaderos={state.parqueaderos} onClose={() => { setOpenModal(null); setScannedPlate(undefined); setScannerOrigin(null); }} onAssign={handleSmartAssign} openScanner={() => { setScannerOrigin("smartAssign"); setOpenModal("scanner"); }} scannedPlate={scannedPlate} />
-      <ConfirmDialog open={openModal === "confirmDelete"} onConfirm={handleDelete} onCancel={() => { setOpenModal(null); setPqDeleteId(null); }} title="Eliminar Parqueadero" message="¿Estás seguro de eliminar este parqueadero? Se perderán todas sus celdas y datos asociados." confirmLabel="Eliminar" />
-      <ToastStack toasts={state.toasts} onDismiss={id => dispatch({ type: "DISMISS_TOAST", id })} />
+      <SmartAssignModal open={openModal === "smartAssign"} parqueaderos={parqueaderos} celdas={celdas} onClose={() => { setOpenModal(null); setScannedPlate(undefined); setScannerOrigin(null); }} onAssign={handleSmartAssign} openScanner={() => { setScannerOrigin("smartAssign"); setOpenModal("scanner"); }} scannedPlate={scannedPlate} />
+      <ConfirmDialog open={openModal === "confirmDelete"} onConfirm={handleDelete} onCancel={() => { setOpenModal(null); setPqDeleteId(null); }} title="Eliminar Parqueadero" message="¿Estás seguro de eliminar este parqueadero? Se perderán todas sus celdas y los registros de entrada/salida asociados." confirmLabel="Eliminar" />
     </>
   );
-}
-
-function getCarColor(placa: string) {
-  const palette = [
-    "#0EA5A4","#06B6D4","#7C3AED","#6366F1","#EF4444",
-    "#FB923C","#F59E0B","#10B981","#3B82F6","#EC4899","#64748B",
-  ];
-  if (!placa) return palette[0];
-  let h = 0;
-  for (let i = 0; i < placa.length; i++) h = (h + placa.charCodeAt(i) * (i + 1)) >>> 0;
-  return palette[h % palette.length];
-}
+} 
