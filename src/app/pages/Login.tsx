@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-
 import { ArrowLeft, Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-
 import { signInWithPopup } from "firebase/auth";
 import { auth, provider } from "../../firebase/config";
 
+// Colores
 const COLORS = {
   primary: "#39A900",
   primaryDark: "#2D7D00",
@@ -19,6 +18,7 @@ const COLORS = {
   border: "#E2E8F0",
 };
 
+// Hook de animación
 function useAnimated() {
   const [visible, setVisible] = useState(false);
 
@@ -30,12 +30,14 @@ function useAnimated() {
   return visible;
 }
 
+// Tipos para errores de validación
 interface ValidationErrors {
   email?: string;
   password?: string;
 }
 
 export function Login() {
+  // Estados del formulario
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -46,15 +48,8 @@ export function Login() {
     password: false,
   });
 
-  const { login, googleLogin, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const visible = useAnimated();
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/app/dashboard");
-    }
-  }, [isAuthenticated, navigate]);
 
   // Validaciones en tiempo real
   useEffect(() => {
@@ -66,18 +61,19 @@ export function Login() {
     }
   }, [email, password, touched]);
 
+  // Validadores individuales
   const validateEmail = (value: string): boolean => {
     if (!value.trim()) {
       setErrors((prev) => ({ ...prev, email: "El correo electrónico es obligatorio" }));
       return false;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(value)) {
       setErrors((prev) => ({ ...prev, email: "Ingresa un correo electrónico válido" }));
       return false;
     }
-    
+
     setErrors((prev) => ({ ...prev, email: undefined }));
     return true;
   };
@@ -87,12 +83,12 @@ export function Login() {
       setErrors((prev) => ({ ...prev, password: "La contraseña es obligatoria" }));
       return false;
     }
-    
+
     if (value.length < 6) {
       setErrors((prev) => ({ ...prev, password: "La contraseña debe tener al menos 6 caracteres" }));
       return false;
     }
-    
+
     setErrors((prev) => ({ ...prev, password: undefined }));
     return true;
   };
@@ -100,16 +96,15 @@ export function Login() {
   const validateForm = (): boolean => {
     const isEmailValid = validateEmail(email);
     const isPasswordValid = validatePassword(password);
-    
-    // Marcar todos los campos como tocados para mostrar errores
+
     setTouched({ email: true, password: true });
-    
+
     return isEmailValid && isPasswordValid;
   };
 
   const handleBlur = (field: "email" | "password") => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    
+
     if (field === "email") {
       validateEmail(email);
     } else {
@@ -119,41 +114,13 @@ export function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       toast.error("Por favor, corrige los errores en el formulario");
       return;
     }
-    
-    setLoading(true);
-    try {
-      const success = await login(email, password);
-      if (success) {
-        toast.success("Acceso concedido");
-        navigate("/app/dashboard");
-      } else {
-        toast.error("Credenciales inválidas");
-      }
-    } catch {
-      toast.error("Error al iniciar sesión");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleGoogleLogin = async () => {
-    try {
-      setLoading(true);
-      const result = await signInWithPopup(auth, provider);
-      googleLogin(result.user);
-      toast.success(`Bienvenido ${result.user.displayName}`);
-      navigate("/app/dashboard");
-    } catch (error) {
-      console.log(error);
-      toast.error("Error con Google");
-    } finally {
-      setLoading(false);
-    }
+    // Aquí iría la lógica de autenticación (pendiente)
   };
 
   const isFormValid = email.trim() && password.length >= 6 && !errors.email && !errors.password;
@@ -161,75 +128,71 @@ export function Login() {
   return (
     <>
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
 
-      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
-
-      *{
-        margin:0;
-        padding:0;
-        box-sizing:border-box;
-      }
-
-      body{
-        font-family:'Montserrat',sans-serif;
-        background:${COLORS.background};
-      }
-
-      .fade{
-        opacity:0;
-        transform:translateY(30px);
-        transition:.8s ease;
-      }
-
-      .fade.active{
-        opacity:1;
-        transform:translateY(0);
-      }
-
-      input{
-        font-family:'Montserrat',sans-serif;
-      }
-
-      button{
-        font-family:'Montserrat',sans-serif;
-        transition:.25s ease;
-      }
-
-      button:hover{
-        transform:translateY(-2px);
-      }
-
-      input:focus{
-        border-color:${COLORS.primary} !important;
-        box-shadow:0 0 0 4px rgba(57,169,0,.12);
-      }
-
-      @media(max-width:900px){
-
-        .login-grid{
-          grid-template-columns:1fr !important;
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
         }
 
-        .login-left{
-          display:none !important;
+        body {
+          font-family: 'Montserrat', sans-serif;
+          background: ${COLORS.background};
         }
 
-        .mobile-back{
-          display:flex !important;
-          align-items:center;
-          gap:8px;
-          width:max-content;
-          margin-bottom:1.5rem;
+        .fade {
+          opacity: 0;
+          transform: translateY(30px);
+          transition: 0.8s ease;
         }
 
-      }
+        .fade.active {
+          opacity: 1;
+          transform: translateY(0);
+        }
 
+        input {
+          font-family: 'Montserrat', sans-serif;
+        }
+
+        button {
+          font-family: 'Montserrat', sans-serif;
+          transition: 0.25s ease;
+        }
+
+        button:hover {
+          transform: translateY(-2px);
+        }
+
+        input:focus {
+          border-color: ${COLORS.primary} !important;
+          box-shadow: 0 0 0 4px rgba(57, 169, 0, 0.12);
+        }
+
+        @media (max-width: 900px) {
+          .login-grid {
+            grid-template-columns: 1fr !important;
+          }
+
+          .login-left {
+            display: none !important;
+          }
+
+          .mobile-back {
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            width: max-content;
+            margin-bottom: 1.5rem;
+          }
+        }
       `}</style>
 
       <div
         style={{
           minHeight: "100vh",
-          background: "linear-gradient(180deg,#ffffff 0%,#F3F8F1 100%)",
+          background: "linear-gradient(180deg, #ffffff 0%, #F3F8F1 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -238,15 +201,14 @@ export function Login() {
           overflow: "hidden",
         }}
       >
-        {/* BG */}
-
+        {/* Fondo decorativo */}
         <div
           style={{
             position: "absolute",
             width: 350,
             height: 350,
             borderRadius: "50%",
-            background: "rgba(57,169,0,.07)",
+            background: "rgba(57, 169, 0, 0.07)",
             top: -100,
             right: -100,
             filter: "blur(10px)",
@@ -265,16 +227,15 @@ export function Login() {
             borderRadius: 24,
             background: "#fff",
             border: `1px solid ${COLORS.border}`,
-            boxShadow: "0 20px 55px rgba(15,23,42,.08)",
+            boxShadow: "0 20px 55px rgba(15, 23, 42, 0.08)",
           }}
         >
-          {/* LEFT */}
-
+          {/* Columna izquierda - Presentación */}
           <div
             className="login-left"
             style={{
               padding: "2rem 2.2rem",
-              background: "linear-gradient(135deg,#39A900,#2D7D00)",
+              background: "linear-gradient(135deg, #39A900, #2D7D00)",
               color: "#fff",
               position: "relative",
               overflow: "hidden",
@@ -282,21 +243,17 @@ export function Login() {
               flexDirection: "column",
             }}
           >
-            {/* BG CIRCLE */}
-
             <div
               style={{
                 position: "absolute",
                 width: 280,
                 height: 280,
                 borderRadius: "50%",
-                background: "rgba(255,255,255,.08)",
+                background: "rgba(255, 255, 255, 0.08)",
                 top: -100,
                 right: -80,
               }}
             />
-
-            {/* CONTENT */}
 
             <div
               style={{
@@ -307,8 +264,6 @@ export function Login() {
                 flexDirection: "column",
               }}
             >
-              {/* TOP BAR */}
-
               <div
                 style={{
                   display: "flex",
@@ -324,8 +279,8 @@ export function Login() {
                     alignItems: "center",
                     gap: 8,
                     padding: "10px 14px",
-                    background: "rgba(255,255,255,.14)",
-                    border: "1px solid rgba(255,255,255,.12)",
+                    background: "rgba(255, 255, 255, 0.14)",
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
                     color: "#fff",
                     borderRadius: 12,
                     cursor: "pointer",
@@ -339,7 +294,6 @@ export function Login() {
                 </button>
               </div>
 
-              {/* SENA LOGO */}
               <div style={{ marginBottom: "1rem" }}>
                 <img
                   src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
@@ -355,7 +309,7 @@ export function Login() {
 
               <h1
                 style={{
-                  fontSize: "clamp(2rem,4vw,3rem)",
+                  fontSize: "clamp(2rem, 4vw, 3rem)",
                   lineHeight: 0.95,
                   fontWeight: 900,
                   marginBottom: "1rem",
@@ -364,21 +318,17 @@ export function Login() {
                 Bienvenido a ParkU
               </h1>
 
-              {/* DESCRIPTION */}
-
               <p
                 style={{
                   fontSize: 14,
                   lineHeight: 1.7,
-                  color: "rgba(255,255,255,.92)",
+                  color: "rgba(255, 255, 255, 0.92)",
                   maxWidth: 420,
                 }}
               >
-                Sistema institucional para la gestión inteligente de
-                parqueaderos, accesos y monitoreo vehicular del SENA.
+                Sistema institucional para la gestión inteligente de parqueaderos,
+                accesos y monitoreo vehicular del SENA.
               </p>
-
-              {/* FEATURES */}
 
               <div
                 style={{
@@ -387,43 +337,32 @@ export function Login() {
                   gap: "0.6rem",
                 }}
               >
-                {[
-                  "Control de acceso seguro",
-                  "Monitoreo en tiempo real",
-                  "Gestión automatizada",
-                ].map((item) => (
-                  <div
-                    key={item}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      background: "rgba(255,255,255,.08)",
-                      padding: "10px 14px",
-                      borderRadius: 12,
-                    }}
-                  >
-                    <ShieldCheck size={17} />
-
-                    <span
+                {["Control de acceso seguro", "Monitoreo en tiempo real", "Gestión automatizada"].map(
+                  (item) => (
+                    <div
+                      key={item}
                       style={{
-                        fontWeight: 700,
-                        fontSize: 13,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        background: "rgba(255, 255, 255, 0.08)",
+                        padding: "10px 14px",
+                        borderRadius: 12,
                       }}
                     >
-                      {item}
-                    </span>
-                  </div>
-                ))}
+                      <ShieldCheck size={17} />
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{item}</span>
+                    </div>
+                  )
+                )}
               </div>
             </div>
           </div>
 
-          {/* RIGHT */}
-
+          {/* Columna derecha - Formulario */}
           <div
             style={{
-              padding: "2rem clamp(1.5rem,3vw,2.5rem)",
+              padding: "2rem clamp(1.5rem, 3vw, 2.5rem)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -436,8 +375,7 @@ export function Login() {
                 maxWidth: 360,
               }}
             >
-              {/* HEADER */}
-
+              {/* Botón volver (móvil) */}
               <button
                 type="button"
                 className="mobile-back"
@@ -460,12 +398,7 @@ export function Login() {
                 Volver
               </button>
 
-              <div
-                style={{
-                  marginBottom: "1.5rem",
-                }}
-              >
-                {/* SENA LOGO */}
+              <div style={{ marginBottom: "1.5rem" }}>
                 <div style={{ marginBottom: "0.8rem" }}>
                   <img
                     src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
@@ -492,7 +425,7 @@ export function Login() {
 
                 <h2
                   style={{
-                    fontSize: "clamp(1.8rem,4vw,2.4rem)",
+                    fontSize: "clamp(1.8rem, 4vw, 2.4rem)",
                     fontWeight: 900,
                     color: COLORS.text,
                     lineHeight: 1,
@@ -509,12 +442,10 @@ export function Login() {
                     fontSize: 13,
                   }}
                 >
-                  Ingresa tus credenciales institucionales para acceder al
-                  sistema ParkU.
+                  Ingresa tus credenciales institucionales para acceder al sistema
+                  ParkU.
                 </p>
               </div>
-
-              {/* FORM */}
 
               <form
                 onSubmit={handleLogin}
@@ -525,8 +456,7 @@ export function Login() {
                 }}
                 noValidate
               >
-                {/* EMAIL */}
-
+                {/* Campo email */}
                 <div>
                   <label
                     style={{
@@ -550,14 +480,16 @@ export function Login() {
                       width: "100%",
                       padding: "14px 16px",
                       borderRadius: 12,
-                      border: `1px solid ${errors.email && touched.email ? "#EF4444" : COLORS.border}`,
+                      border: `1px solid ${
+                        errors.email && touched.email ? "#EF4444" : COLORS.border
+                      }`,
                       background: "#fff",
                       fontSize: 14,
                       outline: "none",
                       transition: "border-color .2s",
                     }}
                   />
-                  
+
                   {errors.email && touched.email && (
                     <p
                       style={{
@@ -572,8 +504,7 @@ export function Login() {
                   )}
                 </div>
 
-                {/* PASSWORD */}
-
+                {/* Campo password */}
                 <div>
                   <label
                     style={{
@@ -587,11 +518,7 @@ export function Login() {
                     Contraseña
                   </label>
 
-                  <div
-                    style={{
-                      position: "relative",
-                    }}
-                  >
+                  <div style={{ position: "relative" }}>
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
@@ -602,7 +529,9 @@ export function Login() {
                         width: "100%",
                         padding: "14px 48px 14px 16px",
                         borderRadius: 12,
-                        border: `1px solid ${errors.password && touched.password ? "#EF4444" : COLORS.border}`,
+                        border: `1px solid ${
+                          errors.password && touched.password ? "#EF4444" : COLORS.border
+                        }`,
                         background: "#fff",
                         fontSize: 14,
                         outline: "none",
@@ -628,7 +557,7 @@ export function Login() {
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
-                  
+
                   {errors.password && touched.password && (
                     <p
                       style={{
@@ -643,8 +572,7 @@ export function Login() {
                   )}
                 </div>
 
-                {/* FORGOT */}
-
+                {/* Enlace olvidé contraseña */}
                 <div
                   style={{
                     display: "flex",
@@ -664,8 +592,7 @@ export function Login() {
                   </Link>
                 </div>
 
-                {/* LOGIN */}
-
+                {/* Botón submit */}
                 <button
                   type="submit"
                   disabled={loading || !isFormValid}
@@ -678,49 +605,16 @@ export function Login() {
                     fontWeight: 800,
                     cursor: loading || !isFormValid ? "not-allowed" : "pointer",
                     fontSize: 14,
-                    boxShadow: loading || !isFormValid ? "none" : "0 8px 22px rgba(57,169,0,.2)",
+                    boxShadow:
+                      loading || !isFormValid ? "none" : "0 8px 22px rgba(57, 169, 0, 0.2)",
                     opacity: loading || !isFormValid ? 0.7 : 1,
                   }}
                 >
                   {loading ? "Verificando..." : "Ingresar"}
                 </button>
-
-                {/* GOOGLE */}
-
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  disabled={loading}
-                  style={{
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#fff",
-                    color: COLORS.text,
-                    padding: "14px 20px",
-                    borderRadius: 14,
-                    fontWeight: 700,
-                    cursor: loading ? "not-allowed" : "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 10,
-                    fontSize: 13,
-                    opacity: loading ? 0.7 : 1,
-                  }}
-                >
-                  <img
-                    src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-                    alt="Google"
-                    style={{
-                      width: 18,
-                      height: 18,
-                    }}
-                  />
-                  Continuar con Google
-                </button>
               </form>
 
-              {/* FOOTER */}
-
+              {/* Footer */}
               <div
                 style={{
                   marginTop: "1.2rem",
