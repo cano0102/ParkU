@@ -4,8 +4,8 @@ import { ArrowLeft, Eye, EyeOff, ShieldCheck } from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
-import { signInWithPopup } from "firebase/auth";
-import { auth, provider } from "../../firebase/config";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../firebase/config";
 
 // Colores
 const COLORS = {
@@ -50,6 +50,7 @@ export function Login() {
 
   const navigate = useNavigate();
   const visible = useAnimated();
+  const { login } = useAuth(); // <-- Si tu contexto provee login, úsalo; si no, usa Firebase directamente
 
   // Validaciones en tiempo real
   useEffect(() => {
@@ -112,6 +113,9 @@ export function Login() {
     }
   };
 
+  // ============================================================
+  // 🚀 LOGIN REAL CON FIREBASE
+  // ============================================================
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -120,8 +124,62 @@ export function Login() {
       return;
     }
 
-    // Aquí iría la lógica de autenticación (pendiente)
+    setLoading(true);
+
+    try {
+      // Opción 1: Usar el contexto (recomendado)
+      if (login) {
+        await login(email, password);
+      } else {
+        // Opción 2: Llamar directamente a Firebase (si no tienes contexto)
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+
+      toast.success("¡Bienvenido! Redirigiendo...");
+      navigate("/app/dashboard"); 
+    } catch (error: any) {
+      console.error("Error al iniciar sesión:", error);
+
+      // Manejo de errores comunes de Firebase
+      const errorCode = error.code;
+      let mensaje = "Ocurrió un error inesperado. Intenta de nuevo.";
+
+      switch (errorCode) {
+        case "auth/user-not-found":
+          mensaje = "No existe una cuenta con este correo.";
+          break;
+        case "auth/wrong-password":
+          mensaje = "Contraseña incorrecta. Verifica tus credenciales.";
+          break;
+        case "auth/invalid-email":
+          mensaje = "El formato del correo no es válido.";
+          break;
+        case "auth/too-many-requests":
+          mensaje = "Demasiados intentos fallidos. Intenta más tarde.";
+          break;
+        default:
+          mensaje = error.message || mensaje;
+      }
+
+      toast.error(mensaje);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // ============================================================
+  // LOGIN CON GOOGLE (opcional, ya lo tenías importado)
+  // ============================================================
+  // const handleGoogleLogin = async () => {
+  //   try {
+  //     await signInWithPopup(auth, provider);
+  //     toast.success("Inicio con Google exitoso");
+  //     navigate("/dashboard");
+  //   } catch (error) {
+  //     toast.error("Error al iniciar con Google");
+  //     console.error(error);
+  //   }
+  // };
 
   const isFormValid = email.trim() && password.length >= 6 && !errors.email && !errors.password;
 
@@ -612,6 +670,30 @@ export function Login() {
                 >
                   {loading ? "Verificando..." : "Ingresar"}
                 </button>
+
+                {/* (Opcional) Botón para login con Google */}
+                {/* 
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  style={{
+                    border: "1px solid #ccc",
+                    background: "#fff",
+                    color: "#333",
+                    padding: "12px",
+                    borderRadius: 14,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                  }}
+                >
+                  <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style={{ height: 20 }} />
+                  Continuar con Google
+                </button>
+                */}
               </form>
 
               {/* Footer */}
