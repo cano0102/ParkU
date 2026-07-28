@@ -253,6 +253,7 @@ export function ControlSalidaPage() {
     updateControlSalida,
     vehiculos,
     celdas,
+    updateCelda, // 👈 NECESARIO para sincronizar el estado de la celda con Parqueaderos
     conductores,
     usuarios,
     parqueaderos,
@@ -354,22 +355,35 @@ export function ControlSalidaPage() {
 
     try {
       addControlSalida(formData);
+      // 👇 Sincroniza la celda: al registrar la entrada, queda ocupada
+      // y así se refleja de inmediato en el mapa/tabla de Parqueaderos.
+      updateCelda(formData.celdaId, { estado: 'no_disponible', ocupada: true });
       toast.success('Entrada registrada exitosamente');
       setDialogOpen(false);
     } catch (error) {
       toast.error('Error al registrar la entrada');
       console.error('Error saving entry:', error);
     }
-  }, [formData, addControlSalida, vehiculosEnParqueadero]);
+  }, [formData, addControlSalida, updateCelda, vehiculosEnParqueadero]);
 
   const handleRegistrarSalida = useCallback(() => {
     if (!salidaPendiente) return;
     try {
       const now = new Date().toISOString().slice(0, 16);
+      // Buscamos el control ANTES de actualizarlo, para saber qué celda liberar
+      const control = controlesSalida.find((c) => c.id === salidaPendiente);
+
       updateControlSalida(salidaPendiente, {
         fechaSalida: now,
         estado: 'finalizado',
       });
+
+      // 👇 Sincroniza la celda: al registrar la salida, vuelve a estar disponible
+      // y así se refleja de inmediato en el mapa/tabla de Parqueaderos.
+      if (control) {
+        updateCelda(control.celdaId, { estado: 'disponible', ocupada: false });
+      }
+
       toast.success('Salida registrada exitosamente');
       setConfirmOpen(false);
       setSalidaPendiente(null);
@@ -377,7 +391,7 @@ export function ControlSalidaPage() {
       toast.error('Error al registrar la salida');
       console.error('Error registering exit:', error);
     }
-  }, [salidaPendiente, updateControlSalida]);
+  }, [salidaPendiente, updateControlSalida, updateCelda, controlesSalida]);
 
   const formatDateTime = useCallback((dateStr: string) => {
     if (!dateStr) return '—';

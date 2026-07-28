@@ -4,9 +4,11 @@ import {
   UserCircle, Shield, Mail, Phone, Lock,
   CheckCircle2, XCircle, UserCheck, X,
   Users, UserX, IdCard, KeyRound, Eye as EyeIcon, EyeOff,
+  LayoutGrid, List, Camera,
 } from "lucide-react";
 import { useData, Usuario } from "../context/DataContext";
 import { toast } from "sonner";
+import { Scanner } from "@yudiel/react-qr-scanner";
 
 const COLORS = {
   primary: "#39A900",
@@ -165,6 +167,69 @@ const inputIconStyle: React.CSSProperties = {
   paddingLeft: 38,
 };
 
+// ----------------------------------------------
+// 🔍 COMPONENTE ESCÁNER QR CORREGIDO
+// ----------------------------------------------
+interface ScannerQRProps {
+  onScanSuccess: (data: any) => void;
+  onClose: () => void;
+}
+
+const ScannerQR = memo(({ onScanSuccess, onClose }: ScannerQRProps) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleScan = (result: any) => {
+    if (!result || result.length === 0) return;
+
+    try {
+      // El resultado es un array con el texto del QR en rawValue
+      const raw = result[0]?.rawValue;
+      if (!raw) {
+        setError("No se pudo leer el código QR");
+        toast.error("No se pudo leer el código QR");
+        return;
+      }
+      const parsed = JSON.parse(raw);
+      onScanSuccess(parsed);
+      onClose();
+    } catch (e) {
+      console.error("Error parseando QR:", e);
+      setError("El código QR no contiene datos válidos.");
+      toast.error("QR inválido, intenta de nuevo");
+    }
+  };
+
+  const handleError = (err: any) => {
+    console.error("Error de cámara:", err);
+    setError("No se pudo acceder a la cámara. Verifica los permisos.");
+    toast.error("No se pudo acceder a la cámara");
+  };
+
+  return (
+    <div style={{ position: "relative", maxWidth: 400, margin: "0 auto" }}>
+      <Scanner
+        constraints={{ facingMode: "environment" }}
+        onScan={handleScan}
+        onError={handleError}
+        styles={{
+          container: { borderRadius: 16, overflow: "hidden" },
+          video: { width: "100%", height: "auto" },
+        }}
+      />
+      {error && (
+        <p style={{ color: "#EF4444", fontSize: 12, marginTop: 8, textAlign: "center" }}>
+          {error}
+        </p>
+      )}
+    </div>
+  );
+});
+
+ScannerQR.displayName = "ScannerQR";
+
+// ----------------------------------------------
+// FORMULARIO DE USUARIO (con escáner)
+// ----------------------------------------------
 interface FormState {
   correo: string;
   password: string;
@@ -187,6 +252,7 @@ interface UsuarioFormProps {
 const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFormProps) => {
   const [form, setForm] = useState<FormState>(initial);
   const [showPass, setShowPass] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const isEdit = title.startsWith("Editar");
 
   useEffect(() => {
@@ -195,6 +261,26 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
 
   const set = useCallback((k: keyof FormState, v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
+  }, []);
+
+  // Maneja los datos obtenidos del QR
+  const handleScanSuccess = useCallback((data: any) => {
+    // Mapeo robusto de campos según la estructura típica de la cédula colombiana
+    const identificacion = data.numeroDocumento ?? data.identificacion ?? data.documento ?? "";
+    const nombreCompleto = data.nombreCompleto ?? data.nombres + " " + data.apellidos ?? data.nombre ?? "";
+    const correo = data.correo ?? data.email ?? "";
+    const telefono = data.telefono ?? data.celular ?? data.numero ?? "";
+    const tipoDoc = data.tipoDocumento ?? "CC";
+
+    setForm((prev) => ({
+      ...prev,
+      identificacion: identificacion.toString(),
+      nombre: nombreCompleto.toString(),
+      correo: correo.toString(),
+      numero: telefono.toString(),
+      tipoDocumento: tipoDoc.toString(),
+    }));
+    toast.success("Datos de la cédula cargados correctamente");
   }, []);
 
   const handleSubmit = useCallback(
@@ -222,573 +308,452 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
   const iconColor = COLORS.textLight;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div
-        style={{
-          padding: "1.4rem 1.8rem 1.2rem",
-          borderBottom: `1px solid ${COLORS.border}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "1rem",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
+    <>
+      <form onSubmit={handleSubmit}>
+        <div
+          style={{
+            padding: "1.4rem 1.8rem 1.2rem",
+            borderBottom: `1px solid ${COLORS.border}`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1rem",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: "rgba(57,169,0,.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <UserCheck size={18} color={COLORS.primary} />
+            </div>
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 1,
+                  color: COLORS.primary,
+                  textTransform: "uppercase",
+                }}
+              >
+                Gestión de accesos
+              </div>
+              <h2 style={{ fontSize: 20, fontWeight: 900, color: COLORS.text, lineHeight: 1 }}>{title}</h2>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: "rgba(57,169,0,.1)",
+              width: 34,
+              height: 34,
+              borderRadius: 9,
+              border: `1px solid ${COLORS.border}`,
+              background: "#fff",
+              cursor: "pointer",
+              color: COLORS.textLight,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
             }}
+            aria-label="Cerrar formulario"
           >
-            <UserCheck size={18} color={COLORS.primary} />
-          </div>
-          <div>
+            <X size={16} />
+          </button>
+        </div>
+
+        <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <section
+            style={{
+              borderRadius: 14,
+              border: `1px solid ${COLORS.border}`,
+              overflow: "hidden",
+            }}
+          >
             <div
               style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 1,
-                color: COLORS.primary,
-                textTransform: "uppercase",
+                padding: "10px 14px",
+                background: COLORS.bg,
+                borderBottom: `1px solid ${COLORS.border}`,
               }}
             >
-              Gestión de accesos
-            </div>
-            <h2 style={{ fontSize: 20, fontWeight: 900, color: COLORS.text, lineHeight: 1 }}>{title}</h2>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 9,
-            border: `1px solid ${COLORS.border}`,
-            background: "#fff",
-            cursor: "pointer",
-            color: COLORS.textLight,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          aria-label="Cerrar formulario"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
-        <section
-          style={{
-            borderRadius: 14,
-            border: `1px solid ${COLORS.border}`,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "10px 14px",
-              background: COLORS.bg,
-              borderBottom: `1px solid ${COLORS.border}`,
-            }}
-          >
-            <p
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 1.5,
-                color: COLORS.textLight,
-                textTransform: "uppercase",
-              }}
-            >
-              Documento de identidad
-            </p>
-          </div>
-          <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Field label="Tipo de documento">
-              <select
-                value={form.tipoDocumento}
-                onChange={(e) => set("tipoDocumento", e.target.value)}
-                style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 1.5,
+                  color: COLORS.textLight,
+                  textTransform: "uppercase",
+                }}
               >
-                <option value="CC">Cédula de Ciudadanía (CC)</option>
-                <option value="TI">Tarjeta de Identidad (TI)</option>
-                <option value="CE">Cédula de Extranjería (CE)</option>
-                <option value="PPTE">Cédula de Extranjera (PPTE)</option>
-              </select>
-            </Field>
-            <Field label="Número de identificación">
-              <div style={{ position: "relative" }}>
-                <IdCard
-                  size={14}
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: iconColor,
-                  }}
-                />
-                <input
-                  placeholder="ej. 1001234567"
-                  value={form.identificacion}
-                  onChange={(e) => set("identificacion", e.target.value)}
-                  style={inputIconStyle}
-                />
-              </div>
-            </Field>
-          </div>
-        </section>
-
-        <section
-          style={{
-            borderRadius: 14,
-            border: `1px solid ${COLORS.border}`,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "10px 14px",
-              background: COLORS.bg,
-              borderBottom: `1px solid ${COLORS.border}`,
-            }}
-          >
-            <p
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 1.5,
-                color: COLORS.textLight,
-                textTransform: "uppercase",
-              }}
-            >
-              Datos personales
-            </p>
-          </div>
-          <div style={{ padding: "1rem 1.2rem", display: "flex", flexDirection: "column", gap: 10 }}>
-            <Field label="Nombre completo">
-              <input
-                placeholder="ej. María García López"
-                value={form.nombre}
-                onChange={(e) => set("nombre", e.target.value)}
-                style={inputStyle}
-              />
-            </Field>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Field label="Correo electrónico">
-                <div style={{ position: "relative" }}>
-                  <Mail
-                    size={14}
-                    style={{
-                      position: "absolute",
-                      left: 12,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: iconColor,
-                    }}
-                  />
-                  <input
-                    type="email"
-                    placeholder="correo@sena.edu.co"
-                    value={form.correo}
-                    onChange={(e) => set("correo", e.target.value)}
-                    style={inputIconStyle}
-                  />
-                </div>
-              </Field>
-              <Field label="Teléfono">
-                <div style={{ position: "relative" }}>
-                  <Phone
-                    size={14}
-                    style={{
-                      position: "absolute",
-                      left: 12,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      color: iconColor,
-                    }}
-                  />
-                  <input
-                    placeholder="300 000 0000"
-                    value={form.numero}
-                    onChange={(e) => set("numero", e.target.value)}
-                    style={inputIconStyle}
-                  />
-                </div>
-              </Field>
+                Documento de identidad
+              </p>
             </div>
-          </div>
-        </section>
-
-        <section
-          style={{
-            borderRadius: 14,
-            border: `1px solid ${COLORS.border}`,
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              padding: "10px 14px",
-              background: COLORS.bg,
-              borderBottom: `1px solid ${COLORS.border}`,
-            }}
-          >
-            <p
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 1.5,
-                color: COLORS.textLight,
-                textTransform: "uppercase",
-              }}
-            >
-              Credenciales y acceso
-            </p>
-          </div>
-          <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            <Field label="Contraseña" hint={isEdit ? "vacío = sin cambios" : undefined}>
-              <div style={{ position: "relative" }}>
-                <KeyRound
-                  size={14}
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    color: iconColor,
-                  }}
-                />
-                <input
-                  type={showPass ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={(e) => set("password", e.target.value)}
-                  style={{ ...inputIconStyle, paddingRight: 38 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPass((v) => !v)}
-                  style={{
-                    position: "absolute",
-                    right: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    color: iconColor,
-                    display: "flex",
-                    alignItems: "center",
-                  }}
-                  aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+            <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Field label="Tipo de documento">
+                <select
+                  value={form.tipoDocumento}
+                  onChange={(e) => set("tipoDocumento", e.target.value)}
+                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
                 >
-                  {showPass ? <EyeOff size={14} /> : <EyeIcon size={14} />}
-                </button>
-              </div>
-            </Field>
+                  <option value="CC">Cédula de Ciudadanía (CC)</option>
+                  <option value="TI">Tarjeta de Identidad (TI)</option>
+                  <option value="CE">Cédula de Extranjería (CE)</option>
+                  <option value="PPTE">Cédula de Extranjera (PPTE)</option>
+                </select>
+              </Field>
+              <Field label="Número de identificación">
+                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                  <IdCard
+                    size={14}
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: iconColor,
+                      zIndex: 1,
+                    }}
+                  />
+                  <input
+                    placeholder="ej. 1001234567"
+                    value={form.identificacion}
+                    onChange={(e) => set("identificacion", e.target.value)}
+                    style={{ ...inputIconStyle, paddingRight: 40 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowScanner(true)}
+                    title="Escanear cédula (código QR)"
+                    style={{
+                      position: "absolute",
+                      right: 8,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: COLORS.primary,
+                      display: "flex",
+                      alignItems: "center",
+                      padding: 4,
+                      borderRadius: 6,
+                      transition: "background 0.2s",
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(57,169,0,0.1)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <Camera size={18} />
+                  </button>
+                </div>
+              </Field>
+            </div>
+          </section>
 
-            <Field label="Rol del sistema">
-              <select
-                value={form.rol}
-                onChange={(e) => set("rol", e.target.value)}
-                style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+          <section
+            style={{
+              borderRadius: 14,
+              border: `1px solid ${COLORS.border}`,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                padding: "10px 14px",
+                background: COLORS.bg,
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 1.5,
+                  color: COLORS.textLight,
+                  textTransform: "uppercase",
+                }}
               >
-                <option value="">Seleccionar rol…</option>
-                {roles.map((r) => (
-                  <option key={r.id} value={r.nombre}>
-                    {r.nombre}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            {isEdit && (
-              <div style={{ gridColumn: "1 / -1" }}>
-                <Field label="Estado de la cuenta">
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {(["activo", "inactivo"] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => set("estado", s)}
-                        style={{
-                          flex: 1,
-                          padding: "11px 10px",
-                          borderRadius: 11,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          border: form.estado === s ? "1px solid transparent" : `1px solid ${COLORS.border}`,
-                          background:
-                            form.estado === s
-                              ? s === "activo"
-                                ? "rgba(57,169,0,.1)"
-                                : "rgba(239,68,68,.08)"
-                              : COLORS.bg,
-                          color:
-                            form.estado === s
-                              ? s === "activo"
-                                ? COLORS.primaryDark
-                                : "#B91C1C"
-                              : COLORS.textLight,
-                        }}
-                      >
-                        {s === "activo" ? "✓ Activo" : "✗ Inactivo"}
-                      </button>
-                    ))}
+                Datos personales
+              </p>
+            </div>
+            <div style={{ padding: "1rem 1.2rem", display: "flex", flexDirection: "column", gap: 10 }}>
+              <Field label="Nombre completo">
+                <input
+                  placeholder="ej. María García López"
+                  value={form.nombre}
+                  onChange={(e) => set("nombre", e.target.value)}
+                  style={inputStyle}
+                />
+              </Field>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <Field label="Correo electrónico">
+                  <div style={{ position: "relative" }}>
+                    <Mail
+                      size={14}
+                      style={{
+                        position: "absolute",
+                        left: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: iconColor,
+                      }}
+                    />
+                    <input
+                      type="email"
+                      placeholder="correo@sena.edu.co"
+                      value={form.correo}
+                      onChange={(e) => set("correo", e.target.value)}
+                      style={inputIconStyle}
+                    />
+                  </div>
+                </Field>
+                <Field label="Teléfono">
+                  <div style={{ position: "relative" }}>
+                    <Phone
+                      size={14}
+                      style={{
+                        position: "absolute",
+                        left: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        color: iconColor,
+                      }}
+                    />
+                    <input
+                      placeholder="300 000 0000"
+                      value={form.numero}
+                      onChange={(e) => set("numero", e.target.value)}
+                      style={inputIconStyle}
+                    />
                   </div>
                 </Field>
               </div>
-            )}
-          </div>
-        </section>
-      </div>
+            </div>
+          </section>
 
-      <div
-        style={{
-          padding: "1rem 1.8rem",
-          borderTop: `1px solid ${COLORS.border}`,
-          display: "flex",
-          gap: 10,
-          justifyContent: "flex-end",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onCancel}
+          <section
+            style={{
+              borderRadius: 14,
+              border: `1px solid ${COLORS.border}`,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                padding: "10px 14px",
+                background: COLORS.bg,
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}
+            >
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 1.5,
+                  color: COLORS.textLight,
+                  textTransform: "uppercase",
+                }}
+              >
+                Credenciales y acceso
+              </p>
+            </div>
+            <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Field label="Contraseña" hint={isEdit ? "vacío = sin cambios" : undefined}>
+                <div style={{ position: "relative" }}>
+                  <KeyRound
+                    size={14}
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      color: iconColor,
+                    }}
+                  />
+                  <input
+                    type={showPass ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={form.password}
+                    onChange={(e) => set("password", e.target.value)}
+                    style={{ ...inputIconStyle, paddingRight: 38 }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((v) => !v)}
+                    style={{
+                      position: "absolute",
+                      right: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      color: iconColor,
+                      display: "flex",
+                      alignItems: "center",
+                    }}
+                    aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPass ? <EyeOff size={14} /> : <EyeIcon size={14} />}
+                  </button>
+                </div>
+              </Field>
+
+              <Field label="Rol del sistema">
+                <select
+                  value={form.rol}
+                  onChange={(e) => set("rol", e.target.value)}
+                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+                >
+                  <option value="">Seleccionar rol…</option>
+                  {roles.map((r) => (
+                    <option key={r.id} value={r.nombre}>
+                      {r.nombre}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
+              {isEdit && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <Field label="Estado de la cuenta">
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {(["activo", "inactivo"] as const).map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => set("estado", s)}
+                          style={{
+                            flex: 1,
+                            padding: "11px 10px",
+                            borderRadius: 11,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            fontFamily: "inherit",
+                            border: form.estado === s ? "1px solid transparent" : `1px solid ${COLORS.border}`,
+                            background:
+                              form.estado === s
+                                ? s === "activo"
+                                  ? "rgba(57,169,0,.1)"
+                                  : "rgba(239,68,68,.08)"
+                                : COLORS.bg,
+                            color:
+                              form.estado === s
+                                ? s === "activo"
+                                  ? COLORS.primaryDark
+                                  : "#B91C1C"
+                                : COLORS.textLight,
+                          }}
+                        >
+                          {s === "activo" ? "✓ Activo" : "✗ Inactivo"}
+                        </button>
+                      ))}
+                    </div>
+                  </Field>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+
+        <div
           style={{
-            padding: "11px 20px",
-            borderRadius: 12,
-            border: `1px solid ${COLORS.border}`,
-            background: "#fff",
-            color: COLORS.text,
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
+            padding: "1rem 1.8rem",
+            borderTop: `1px solid ${COLORS.border}`,
+            display: "flex",
+            gap: 10,
+            justifyContent: "flex-end",
           }}
         >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          style={{
-            padding: "11px 24px",
-            borderRadius: 12,
-            border: "none",
-            background: COLORS.primary,
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 800,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            boxShadow: "0 6px 18px rgba(57,169,0,.22)",
-          }}
-        >
-          {isEdit ? "Guardar cambios" : "Crear Usuario"}
-        </button>
-      </div>
-    </form>
+          <button
+            type="button"
+            onClick={onCancel}
+            style={{
+              padding: "11px 20px",
+              borderRadius: 12,
+              border: `1px solid ${COLORS.border}`,
+              background: "#fff",
+              color: COLORS.text,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            style={{
+              padding: "11px 24px",
+              borderRadius: 12,
+              border: "none",
+              background: COLORS.primary,
+              color: "#fff",
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: "pointer",
+              fontFamily: "inherit",
+              boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+            }}
+          >
+            {isEdit ? "Guardar cambios" : "Crear Usuario"}
+          </button>
+        </div>
+      </form>
+
+      {/* Modal para el escáner QR */}
+      <Modal open={showScanner} onClose={() => setShowScanner(false)} maxWidth={450}>
+        <div style={{ padding: "1.5rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 18, fontWeight: 900, color: COLORS.text }}>
+              📷 Escanear cédula
+            </h3>
+            <button
+              onClick={() => setShowScanner(false)}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 9,
+                border: `1px solid ${COLORS.border}`,
+                background: "#fff",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: COLORS.textLight,
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+          <ScannerQR
+            onScanSuccess={handleScanSuccess}
+            onClose={() => setShowScanner(false)}
+          />
+          <p style={{ fontSize: 11, color: COLORS.textLight, marginTop: 16, textAlign: "center" }}>
+            Coloca el código QR de la cédula frente a la cámara.
+          </p>
+        </div>
+      </Modal>
+    </>
   );
 });
 
 UsuarioForm.displayName = "UsuarioForm";
 
-interface ViewModalProps {
-  usuario: Usuario;
-  onClose: () => void;
-  onEdit: () => void;
-}
-
-const ViewModal = memo(({ usuario, onClose, onEdit }: ViewModalProps) => {
-  const [c1, c2] = avatarColors(usuario.nombre);
-  const ini = initials(usuario.nombre);
-  const activo = usuario.estado === "activo";
-  const roleStyle = getRoleAccent(usuario.rol);
-  const protegido = USUARIOS_PROTEGIDOS.includes(usuario.correo);
-
-  return (
-    <>
-      <div
-        style={{
-          padding: "1.6rem 1.8rem 1.4rem",
-          background: `linear-gradient(135deg,${c1},${c2})`,
-          color: "#fff",
-          borderRadius: "24px 24px 0 0",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            position: "absolute",
-            width: 200,
-            height: 200,
-            borderRadius: "50%",
-            background: "rgba(255,255,255,.07)",
-            top: -80,
-            right: -60,
-          }}
-        />
-        <div style={{ position: "relative", zIndex: 2 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-            }}
-          >
-            <div
-              style={{
-                width: 52,
-                height: 52,
-                borderRadius: 14,
-                background: "rgba(255,255,255,.22)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 20,
-                fontWeight: 900,
-              }}
-            >
-              {ini}
-            </div>
-            <button
-              onClick={onClose}
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 9,
-                background: "rgba(255,255,255,.15)",
-                border: "none",
-                color: "#fff",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-              aria-label="Cerrar vista"
-            >
-              <X size={15} />
-            </button>
-          </div>
-          <h2 style={{ marginTop: 14, fontSize: 24, fontWeight: 900, lineHeight: 1 }}>
-            {sanitizeText(usuario.nombre)}
-          </h2>
-          <p style={{ marginTop: 4, fontSize: 12, color: "rgba(255,255,255,.8)" }}>
-            {usuario.tipoDocumento} · {usuario.identificacion}
-          </p>
-          <div style={{ marginTop: 10, display: "flex", gap: 7, flexWrap: "wrap" }}>
-            {[
-              usuario.estado,
-              usuario.rol || "Sin rol",
-              ...(protegido ? ["🔒 Protegido"] : []),
-            ].map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  padding: "4px 12px",
-                  borderRadius: 999,
-                  fontSize: 10,
-                  fontWeight: 800,
-                  background: "rgba(255,255,255,.18)",
-                  border: "1px solid rgba(255,255,255,.25)",
-                  textTransform: "uppercase",
-                  letterSpacing: 0.5,
-                }}
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 8 }}>
-        {[
-          { icon: <Mail size={14} />, label: usuario.correo },
-          { icon: <Phone size={14} />, label: usuario.numero || "—" },
-          {
-            icon: <Shield size={14} style={{ color: roleStyle.dot }} />,
-            label: <span style={{ fontWeight: 700, color: roleStyle.text }}>{usuario.rol || "Sin rol"}</span>,
-          },
-          {
-            icon: activo ? <CheckCircle2 size={14} color={COLORS.primary} /> : <XCircle size={14} color="#EF4444" />,
-            label: (
-              <span style={{ fontWeight: 700, color: activo ? COLORS.primaryDark : "#B91C1C" }}>
-                {activo ? "Cuenta activa" : "Cuenta inactiva"}
-              </span>
-            ),
-          },
-        ].map((row, i) => (
-          <div
-            key={i}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              padding: "10px 14px",
-              borderRadius: 11,
-              border: `1px solid ${COLORS.border}`,
-              background: COLORS.bg,
-              fontSize: 13,
-              color: COLORS.text,
-            }}
-          >
-            <span style={{ color: COLORS.textLight, flexShrink: 0 }}>{row.icon}</span>
-            <span
-              style={{
-                flex: 1,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {row.label}
-            </span>
-          </div>
-        ))}
-
-        <button
-          onClick={onEdit}
-          style={{
-            marginTop: 6,
-            width: "100%",
-            padding: "13px 20px",
-            borderRadius: 12,
-            border: "none",
-            background: `linear-gradient(135deg,${c1},${c2})`,
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 800,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            boxShadow: `0 6px 18px ${c1}55`,
-          }}
-        >
-          <Pencil size={14} />
-          Editar usuario
-        </button>
-      </div>
-    </>
-  );
-});
-
-ViewModal.displayName = "ViewModal";
-
+// ----------------------------------------------
+// CONFIRMACIÓN
+// ----------------------------------------------
 interface ConfirmDialogProps {
   open: boolean;
   onConfirm: () => void;
@@ -889,19 +854,31 @@ const emptyForm = (): FormState => ({
   estado: "activo",
 });
 
+// ----------------------------------------------
+// COMPONENTE PRINCIPAL
+// ----------------------------------------------
 export default function Usuarios() {
   const { usuarios, addUsuario, updateUsuario, deleteUsuario, roles } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewOpen, setViewOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
-  const [viewingUsuario, setViewingUsuario] = useState<Usuario | null>(null);
   const [deletingUsuario, setDeletingUsuario] = useState<Usuario | null>(null);
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [filterRol, setFilterRol] = useState("todos");
+
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9);
+
+  const handleViewModeChange = useCallback((mode: "grid" | "list") => {
+    setViewMode(mode);
+    setItemsPerPage(mode === "list" ? 15 : 9);
+    setCurrentPage(1);
+  }, []);
 
   const totalActivos = useMemo(() => usuarios.filter((u) => u.estado === "activo").length, [usuarios]);
   const totalInactivos = useMemo(() => usuarios.filter((u) => u.estado === "inactivo").length, [usuarios]);
@@ -925,6 +902,32 @@ export default function Usuarios() {
     [usuarios, search, filterEstado, filterRol]
   );
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterEstado, filterRol]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginated = useMemo(
+    () => filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filtered, currentPage, itemsPerPage]
+  );
+
+  const pageNumbers = useMemo(() => {
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+      (p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1
+    );
+    return pages.reduce<(number | "ellipsis")[]>((acc, p, i, arr) => {
+      if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("ellipsis");
+      acc.push(p);
+      return acc;
+    }, []);
+  }, [totalPages, currentPage]);
+
   const openCreate = useCallback(() => {
     setEditingUsuario(null);
     setFormInitial(emptyForm());
@@ -944,16 +947,10 @@ export default function Usuarios() {
         identificacion: u.identificacion,
         estado: u.estado,
       });
-      setViewOpen(false);
       setDialogOpen(true);
     },
     []
   );
-
-  const openView = useCallback((u: Usuario) => {
-    setViewingUsuario(u);
-    setViewOpen(true);
-  }, []);
 
   const openConfirm = useCallback((u: Usuario) => {
     if (USUARIOS_PROTEGIDOS.includes(u.correo)) {
@@ -1023,6 +1020,8 @@ export default function Usuarios() {
         .u-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-2px); }
         .u-btn{ transition:background .15s,opacity .15s; }
         .u-btn:hover{ opacity:.85; }
+        .u-page-btn{ transition:background .15s,border-color .15s,color .15s; }
+        .u-page-btn:not(:disabled):hover{ border-color:${COLORS.primary}; color:${COLORS.primaryDark}; }
         input:focus,select:focus,textarea:focus{
           outline:none;
           border-color:${COLORS.primary} !important;
@@ -1030,6 +1029,15 @@ export default function Usuarios() {
         }
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+        @media (max-width:640px){
+          .u-view-label{ display:none; }
+          .u-list-header{ display:none !important; }
+          .u-list-row{
+            grid-template-columns:1fr !important;
+            grid-auto-flow:row;
+            gap:6px !important;
+          }
+        }
       `}</style>
 
       <div className="u-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1204,6 +1212,53 @@ export default function Usuarios() {
             ))}
           </select>
 
+          <div
+            style={{
+              display: "flex",
+              gap: 2,
+              padding: 3,
+              borderRadius: 11,
+              border: `1px solid ${COLORS.border}`,
+              background: COLORS.bg,
+            }}
+            role="group"
+            aria-label="Modo de visualización"
+          >
+            {(
+              [
+                { mode: "grid" as const, icon: <LayoutGrid size={14} />, label: "Cuadrícula" },
+                { mode: "list" as const, icon: <List size={14} />, label: "Lista" },
+              ]
+            ).map((v) => (
+              <button
+                key={v.mode}
+                type="button"
+                onClick={() => handleViewModeChange(v.mode)}
+                title={v.label}
+                aria-label={v.label}
+                aria-pressed={viewMode === v.mode}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "8px 12px",
+                  borderRadius: 8,
+                  border: "none",
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  background: viewMode === v.mode ? "#fff" : "transparent",
+                  color: viewMode === v.mode ? COLORS.primaryDark : COLORS.textLight,
+                  boxShadow: viewMode === v.mode ? "0 1px 4px rgba(15,23,42,.1)" : "none",
+                }}
+              >
+                {v.icon}
+                <span className="u-view-label">{v.label}</span>
+              </button>
+            ))}
+          </div>
+
           <button
             className="u-btn"
             onClick={openCreate}
@@ -1259,169 +1314,129 @@ export default function Usuarios() {
             <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o crea uno nuevo</p>
           </div>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
-              gap: 12,
-            }}
-          >
-            {filtered.map((u) => {
-              const protegido = USUARIOS_PROTEGIDOS.includes(u.correo);
-              const activo = u.estado === "activo";
-              const roleStyle = getRoleAccent(u.rol);
-              const [c1, c2] = avatarColors(u.nombre);
-              const ini = initials(u.nombre);
+          <>
+            {viewMode === "grid" ? (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))",
+                gap: 12,
+              }}
+            >
+              {paginated.map((u) => {
+                const protegido = USUARIOS_PROTEGIDOS.includes(u.correo);
+                const activo = u.estado === "activo";
+                const roleStyle = getRoleAccent(u.rol);
+                const [c1, c2] = avatarColors(u.nombre);
+                const ini = initials(u.nombre);
 
-              return (
-                <div
-                  key={u.id}
-                  className="u-card"
-                  style={{
-                    borderRadius: 16,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#fff",
-                    overflow: "hidden",
-                    boxShadow: "0 2px 8px rgba(15,23,42,.05)",
-                  }}
-                >
+                return (
                   <div
+                    key={u.id}
+                    className="u-card"
                     style={{
-                      height: 3,
-                      background: `linear-gradient(90deg,${roleStyle.dot},${roleStyle.dot}66)`,
-                    }}
-                  />
-
-                  <div
-                    style={{
-                      padding: "14px 14px 10px",
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 12,
+                      borderRadius: 16,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                      overflow: "hidden",
+                      boxShadow: "0 2px 8px rgba(15,23,42,.05)",
                     }}
                   >
                     <div
                       style={{
-                        width: 46,
-                        height: 46,
-                        borderRadius: 12,
-                        flexShrink: 0,
-                        background: `linear-gradient(135deg,${c1},${c2})`,
+                        height: 3,
+                        background: `linear-gradient(90deg,${roleStyle.dot},${roleStyle.dot}66)`,
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        padding: "14px 14px 10px",
                         display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontSize: 16,
-                        fontWeight: 900,
-                        color: "#fff",
-                        boxShadow: `0 3px 10px ${c1}44`,
+                        alignItems: "flex-start",
+                        gap: 12,
                       }}
                     >
-                      {ini}
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
+                          width: 46,
+                          height: 46,
+                          borderRadius: 12,
+                          flexShrink: 0,
+                          background: `linear-gradient(135deg,${c1},${c2})`,
                           display: "flex",
-                          alignItems: "flex-start",
-                          justifyContent: "space-between",
-                          gap: 8,
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 16,
+                          fontWeight: 900,
+                          color: "#fff",
+                          boxShadow: `0 3px 10px ${c1}44`,
                         }}
                       >
-                        <div style={{ minWidth: 0 }}>
-                          <p
-                            style={{
-                              fontSize: 13,
-                              fontWeight: 800,
-                              color: COLORS.text,
-                              lineHeight: 1.2,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {sanitizeText(u.nombre)}
-                          </p>
-                          <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1 }}>
-                            {u.tipoDocumento} · {u.identificacion}
-                          </p>
-                        </div>
-
-                        <button
-                          onClick={() => handleToggleEstado(u)}
-                          title={activo ? "Desactivar" : "Activar"}
-                          style={{
-                            flexShrink: 0,
-                            width: 36,
-                            height: 20,
-                            borderRadius: 999,
-                            border: "none",
-                            cursor: "pointer",
-                            position: "relative",
-                            background: activo ? COLORS.primary : "#CBD5E1",
-                            transition: "background .2s",
-                          }}
-                          aria-label={activo ? "Desactivar usuario" : "Activar usuario"}
-                        >
-                          <span
-                            style={{
-                              position: "absolute",
-                              top: 3,
-                              left: activo ? 18 : 3,
-                              width: 14,
-                              height: 14,
-                              borderRadius: "50%",
-                              background: "#fff",
-                              transition: "left .2s",
-                              boxShadow: "0 1px 3px rgba(0,0,0,.2)",
-                            }}
-                          />
-                        </button>
+                        {ini}
                       </div>
 
-                      <div style={{ marginTop: 7, display: "flex", flexWrap: "wrap", gap: 5 }}>
-                        <span
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div
                           style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "3px 9px",
-                            borderRadius: 999,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            background: roleStyle.bg,
-                            color: roleStyle.text,
-                            border: `1px solid ${roleStyle.border}`,
+                            display: "flex",
+                            alignItems: "flex-start",
+                            justifyContent: "space-between",
+                            gap: 8,
                           }}
                         >
-                          <Shield size={9} /> {u.rol || "Sin rol"}
-                        </span>
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                            padding: "3px 9px",
-                            borderRadius: 999,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.3,
-                            background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
-                            color: activo ? "#166534" : "#B91C1C",
-                          }}
-                        >
-                          <span
+                          <div style={{ minWidth: 0 }}>
+                            <p
+                              style={{
+                                fontSize: 13,
+                                fontWeight: 800,
+                                color: COLORS.text,
+                                lineHeight: 1.2,
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                              }}
+                            >
+                              {sanitizeText(u.nombre)}
+                            </p>
+                            <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1 }}>
+                              {u.tipoDocumento} · {u.identificacion}
+                            </p>
+                          </div>
+
+                          <button
+                            onClick={() => handleToggleEstado(u)}
+                            title={activo ? "Desactivar" : "Activar"}
                             style={{
-                              width: 5,
-                              height: 5,
-                              borderRadius: "50%",
-                              background: activo ? COLORS.primary : "#EF4444",
+                              flexShrink: 0,
+                              width: 36,
+                              height: 20,
+                              borderRadius: 999,
+                              border: "none",
+                              cursor: "pointer",
+                              position: "relative",
+                              background: activo ? COLORS.primary : "#CBD5E1",
+                              transition: "background .2s",
                             }}
-                          />
-                          {u.estado}
-                        </span>
-                        {protegido && (
+                            aria-label={activo ? "Desactivar usuario" : "Activar usuario"}
+                          >
+                            <span
+                              style={{
+                                position: "absolute",
+                                top: 3,
+                                left: activo ? 18 : 3,
+                                width: 14,
+                                height: 14,
+                                borderRadius: "50%",
+                                background: "#fff",
+                                transition: "left .2s",
+                                boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                              }}
+                            />
+                          </button>
+                        </div>
+
+                        <div style={{ marginTop: 7, display: "flex", flexWrap: "wrap", gap: 5 }}>
                           <span
                             style={{
                               display: "inline-flex",
@@ -1431,136 +1446,511 @@ export default function Usuarios() {
                               borderRadius: 999,
                               fontSize: 10,
                               fontWeight: 700,
-                              background: "#FFFBEB",
-                              color: "#92400E",
-                              border: "1px solid #FDE68A",
+                              background: roleStyle.bg,
+                              color: roleStyle.text,
+                              border: `1px solid ${roleStyle.border}`,
                             }}
                           >
-                            <Lock size={9} /> Protegido
+                            <Shield size={9} /> {u.rol || "Sin rol"}
+                          </span>
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 4,
+                              padding: "3px 9px",
+                              borderRadius: 999,
+                              fontSize: 10,
+                              fontWeight: 700,
+                              textTransform: "uppercase",
+                              letterSpacing: 0.3,
+                              background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
+                              color: activo ? "#166534" : "#B91C1C",
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: "50%",
+                                background: activo ? COLORS.primary : "#EF4444",
+                              }}
+                            />
+                            {u.estado}
+                          </span>
+                          {protegido && (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 4,
+                                padding: "3px 9px",
+                                borderRadius: 999,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                background: "#FFFBEB",
+                                color: "#92400E",
+                                border: "1px solid #FDE68A",
+                              }}
+                            >
+                              <Lock size={9} /> Protegido
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        padding: "0 14px 12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 5,
+                      }}
+                    >
+                      {[
+                        { icon: <Mail size={12} />, text: u.correo },
+                        { icon: <Phone size={12} />, text: u.numero || "—" },
+                      ].map((row, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "8px 12px",
+                            borderRadius: 9,
+                            border: `1px solid ${COLORS.border}`,
+                            background: COLORS.bg,
+                            fontSize: 11,
+                            color: COLORS.textLight,
+                          }}
+                        >
+                          <span style={{ color: COLORS.textLight, flexShrink: 0 }}>{row.icon}</span>
+                          <span
+                            style={{
+                              flex: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {row.text}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div
+                      style={{
+                        borderTop: `1px solid ${COLORS.border}`,
+                        padding: "8px 12px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 5,
+                          fontSize: 10,
+                          color: COLORS.textLight,
+                        }}
+                      >
+                        <UserCheck size={12} color={COLORS.primary} />
+                        Registrado
+                      </div>
+                      <div style={{ display: "flex", gap: 4 }}>
+                        {[
+                          {
+                            icon: <Pencil size={12} />,
+                            title: "Editar",
+                            color: COLORS.textLight,
+                            bg: COLORS.bg,
+                            onClick: () => openEdit(u),
+                          },
+                          ...(!protegido
+                            ? [
+                                {
+                                  icon: <Trash2 size={12} />,
+                                  title: "Eliminar",
+                                  color: "#EF4444",
+                                  bg: "#FEF2F2",
+                                  onClick: () => openConfirm(u),
+                                },
+                              ]
+                            : []),
+                        ].map((btn, i) => (
+                          <button
+                            key={i}
+                            title={btn.title}
+                            onClick={btn.onClick}
+                            className="u-btn"
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              border: `1px solid ${COLORS.border}`,
+                              background: btn.bg,
+                              color: btn.color,
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                            aria-label={btn.title}
+                          >
+                            {btn.icon}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            ) : (
+            <div
+              style={{
+                borderRadius: 16,
+                border: `1px solid ${COLORS.border}`,
+                background: "#fff",
+                overflow: "hidden",
+                boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+              }}
+            >
+              <div
+                className="u-list-header"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "minmax(200px,2fr) minmax(160px,1.4fr) 130px 110px 100px 90px",
+                  gap: 10,
+                  padding: "10px 14px",
+                  background: COLORS.bg,
+                  borderBottom: `1px solid ${COLORS.border}`,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 0.6,
+                  textTransform: "uppercase",
+                  color: COLORS.textLight,
+                }}
+              >
+                <span>Usuario</span>
+                <span>Correo</span>
+                <span>Documento</span>
+                <span>Rol</span>
+                <span>Estado</span>
+                <span style={{ textAlign: "right" }}>Acciones</span>
+              </div>
+
+              {paginated.map((u, idx) => {
+                const protegido = USUARIOS_PROTEGIDOS.includes(u.correo);
+                const activo = u.estado === "activo";
+                const roleStyle = getRoleAccent(u.rol);
+                const [c1, c2] = avatarColors(u.nombre);
+                const ini = initials(u.nombre);
+
+                return (
+                  <div
+                    key={u.id}
+                    className="u-list-row"
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(200px,2fr) minmax(160px,1.4fr) 130px 110px 100px 90px",
+                      gap: 10,
+                      alignItems: "center",
+                      padding: "10px 14px",
+                      borderBottom: idx === paginated.length - 1 ? "none" : `1px solid ${COLORS.border}`,
+                      fontSize: 12,
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 9,
+                          flexShrink: 0,
+                          background: `linear-gradient(135deg,${c1},${c2})`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 12,
+                          fontWeight: 900,
+                          color: "#fff",
+                        }}
+                      >
+                        {ini}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <p
+                          style={{
+                            fontWeight: 800,
+                            color: COLORS.text,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {sanitizeText(u.nombre)}
+                        </p>
+                        {protegido && (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 3,
+                              fontSize: 9,
+                              fontWeight: 700,
+                              color: "#92400E",
+                            }}
+                          >
+                            <Lock size={8} /> Protegido
                           </span>
                         )}
                       </div>
                     </div>
-                  </div>
 
-                  <div
-                    style={{
-                      padding: "0 14px 12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 5,
-                    }}
-                  >
-                    {[
-                      { icon: <Mail size={12} />, text: u.correo },
-                      { icon: <Phone size={12} />, text: u.numero || "—" },
-                    ].map((row, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: "8px 12px",
-                          borderRadius: 9,
-                          border: `1px solid ${COLORS.border}`,
-                          background: COLORS.bg,
-                          fontSize: 11,
-                          color: COLORS.textLight,
-                        }}
-                      >
-                        <span style={{ color: COLORS.textLight, flexShrink: 0 }}>{row.icon}</span>
-                        <span
-                          style={{
-                            flex: 1,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {row.text}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div
-                    style={{
-                      borderTop: `1px solid ${COLORS.border}`,
-                      padding: "8px 12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
                     <div
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 5,
-                        fontSize: 10,
+                        gap: 6,
                         color: COLORS.textLight,
+                        minWidth: 0,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
                       }}
+                      title={u.correo}
                     >
-                      <UserCheck size={12} color={COLORS.primary} />
-                      Registrado
+                      <Mail size={11} style={{ flexShrink: 0 }} />
+                      {u.correo}
                     </div>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      {[
-                        {
-                          icon: <Eye size={12} />,
-                          title: "Ver",
+
+                    <div style={{ color: COLORS.textLight, fontSize: 11 }}>
+                      {u.tipoDocumento} · {u.identificacion}
+                    </div>
+
+                    <div>
+                      <span
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "3px 9px",
+                          borderRadius: 999,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          background: roleStyle.bg,
+                          color: roleStyle.text,
+                          border: `1px solid ${roleStyle.border}`,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        <Shield size={9} /> {u.rol || "Sin rol"}
+                      </span>
+                    </div>
+
+                    <div>
+                      <button
+                        onClick={() => handleToggleEstado(u)}
+                        title={activo ? "Desactivar" : "Activar"}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          padding: "4px 9px",
+                          borderRadius: 999,
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: 10,
+                          fontWeight: 700,
+                          textTransform: "uppercase",
+                          letterSpacing: 0.3,
+                          background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
+                          color: activo ? "#166534" : "#B91C1C",
+                          fontFamily: "inherit",
+                        }}
+                        aria-label={activo ? "Desactivar usuario" : "Activar usuario"}
+                      >
+                        <span
+                          style={{
+                            width: 5,
+                            height: 5,
+                            borderRadius: "50%",
+                            background: activo ? COLORS.primary : "#EF4444",
+                          }}
+                        />
+                        {u.estado}
+                      </button>
+                    </div>
+
+                    <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                      <button
+                        title="Editar"
+                        onClick={() => openEdit(u)}
+                        className="u-btn"
+                        style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 7,
+                          border: `1px solid ${COLORS.border}`,
+                          background: COLORS.bg,
                           color: COLORS.textLight,
-                          bg: COLORS.bg,
-                          onClick: () => openView(u),
-                        },
-                        {
-                          icon: <Pencil size={12} />,
-                          title: "Editar",
-                          color: COLORS.textLight,
-                          bg: COLORS.bg,
-                          onClick: () => openEdit(u),
-                        },
-                        ...(!protegido
-                          ? [
-                              {
-                                icon: <Trash2 size={12} />,
-                                title: "Eliminar",
-                                color: "#EF4444",
-                                bg: "#FEF2F2",
-                                onClick: () => openConfirm(u),
-                              },
-                            ]
-                          : []),
-                      ].map((btn, i) => (
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
+                        aria-label="Editar"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      {!protegido && (
                         <button
-                          key={i}
-                          title={btn.title}
-                          onClick={btn.onClick}
+                          title="Eliminar"
+                          onClick={() => openConfirm(u)}
                           className="u-btn"
                           style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 8,
+                            width: 26,
+                            height: 26,
+                            borderRadius: 7,
                             border: `1px solid ${COLORS.border}`,
-                            background: btn.bg,
-                            color: btn.color,
+                            background: "#FEF2F2",
+                            color: "#EF4444",
                             cursor: "pointer",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
                           }}
-                          aria-label={btn.title}
+                          aria-label="Eliminar"
                         >
-                          {btn.icon}
+                          <Trash2 size={12} />
                         </button>
-                      ))}
+                      )}
                     </div>
                   </div>
+                );
+              })}
+            </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 4px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: COLORS.textLight }}>
+                <span>
+                  Mostrando{" "}
+                  <strong style={{ color: COLORS.text }}>
+                    {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filtered.length)}
+                  </strong>{" "}
+                  de <strong style={{ color: COLORS.text }}>{filtered.length}</strong>
+                </span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  style={{
+                    ...inputStyle,
+                    width: "auto",
+                    padding: "6px 10px",
+                    fontSize: 11,
+                    appearance: "none",
+                    cursor: "pointer",
+                  }}
+                  aria-label="Usuarios por página"
+                >
+                  {(viewMode === "list" ? [15, 25, 50, 100] : [9, 18, 36, 60]).map((n) => (
+                    <option key={n} value={n}>
+                      {n} por página
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {totalPages > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <button
+                    className="u-page-btn"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      padding: "7px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                      color: currentPage === 1 ? COLORS.border : COLORS.text,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    ← Anterior
+                  </button>
+
+                  {pageNumbers.map((p, i) =>
+                    p === "ellipsis" ? (
+                      <span key={`e-${i}`} style={{ padding: "0 4px", color: COLORS.textLight, fontSize: 11 }}>
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        className="u-page-btn"
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          border: p === currentPage ? "1px solid transparent" : `1px solid ${COLORS.border}`,
+                          background: p === currentPage ? COLORS.primary : "#fff",
+                          color: p === currentPage ? "#fff" : COLORS.text,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    className="u-page-btn"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: "7px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                      color: currentPage === totalPages ? COLORS.border : COLORS.text,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Siguiente →
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
@@ -1573,16 +1963,6 @@ export default function Usuarios() {
           onSave={handleSave}
           onCancel={() => setDialogOpen(false)}
         />
-      </Modal>
-
-      <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={420}>
-        {viewingUsuario && (
-          <ViewModal
-            usuario={viewingUsuario}
-            onClose={() => setViewOpen(false)}
-            onEdit={() => openEdit(viewingUsuario)}
-          />
-        )}
       </Modal>
 
       <ConfirmDialog

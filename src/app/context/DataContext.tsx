@@ -133,59 +133,82 @@ export interface Movimiento {
   conductorNombre: string;
 }
 
+export interface Incidente {
+  id: string;
+  descripcion: string;
+  parqueaderoId: string;
+  celdaId?: string;
+  celdaNumero?: string;
+  vehiculo?: string;
+  conductor?: string;
+  evidencia?: string;
+  fecha: string;
+  estado: 'pendiente' | 'resuelto';
+  asignadoA?: string;
+  notasResolucion?: string;
+}
+
 /* ═══════════════════════════════════════════════════════
    CONTEXT TYPE
    ═══════════════════════════════════════════════════════ */
-interface DataContextType {
+export interface DataContextType {
   roles: Rol[];
-  addRol: (rol: Omit<Rol, 'id'>) => void;
+  addRol: (rol: Omit<Rol, 'id'>) => string;
   updateRol: (id: string, rol: Partial<Rol>) => void;
   deleteRol: (id: string) => void;
 
   usuarios: Usuario[];
-  addUsuario: (usuario: Omit<Usuario, 'id'>) => void;
+  addUsuario: (usuario: Omit<Usuario, 'id'>) => string;
   updateUsuario: (id: string, usuario: Partial<Usuario>) => void;
   deleteUsuario: (id: string) => void;
 
   parqueaderos: Parqueadero[];
-  addParqueadero: (parqueadero: Omit<Parqueadero, 'id'>) => void;
+  addParqueadero: (parqueadero: Omit<Parqueadero, 'id'>) => string;
   updateParqueadero: (id: string, parqueadero: Partial<Parqueadero>) => void;
   deleteParqueadero: (id: string) => void;
 
   celdas: Celda[];
-  addCelda: (celda: Omit<Celda, 'id'>) => void;
+  addCelda: (celda: Omit<Celda, 'id'>) => string;
   updateCelda: (id: string, celda: Partial<Celda>) => void;
   deleteCelda: (id: string) => void;
 
   conductores: Conductor[];
-  addConductor: (conductor: Omit<Conductor, 'id'>) => void;
+  addConductor: (conductor: Omit<Conductor, 'id'>) => string;
   updateConductor: (id: string, conductor: Partial<Conductor>) => void;
   deleteConductor: (id: string) => void;
 
   vehiculos: Vehiculo[];
-  addVehiculo: (vehiculo: Omit<Vehiculo, 'id'>) => void;
+  addVehiculo: (vehiculo: Omit<Vehiculo, 'id'>) => string;
   updateVehiculo: (id: string, vehiculo: Partial<Vehiculo>) => void;
   deleteVehiculo: (id: string) => void;
 
   asignaciones: AsignacionCelda[];
-  addAsignacion: (asignacion: Omit<AsignacionCelda, 'id'>) => void;
+  addAsignacion: (asignacion: Omit<AsignacionCelda, 'id'>) => string;
   updateAsignacion: (id: string, asignacion: Partial<AsignacionCelda>) => void;
   deleteAsignacion: (id: string) => void;
 
   controlesSalida: ControlSalida[];
-  addControlSalida: (control: Omit<ControlSalida, 'id'>) => void;
+  addControlSalida: (control: Omit<ControlSalida, 'id'>) => string;
   updateControlSalida: (id: string, control: Partial<ControlSalida>) => void;
   deleteControlSalida: (id: string) => void;
 
   reservas: Reserva[];
-  addReserva: (reserva: Omit<Reserva, 'id'>) => void;
+  addReserva: (reserva: Omit<Reserva, 'id'>) => string;
   updateReserva: (id: string, reserva: Partial<Reserva>) => void;
   deleteReserva: (id: string) => void;
+
+  incidentes: Incidente[];
+  addIncidente: (incidente: Omit<Incidente, 'id'>) => string;
+  updateIncidente: (id: string, incidente: Partial<Incidente>) => void;
+  deleteIncidente: (id: string) => void;
 
   movimientos: Movimiento[];
 }
 
-const DataContext = createContext<DataContextType | undefined>(undefined);
+export const DataContext = createContext<DataContextType | undefined>(undefined);
+
+const createEntityId = (prefix: string) =>
+  `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 /* ═══════════════════════════════════════════════════════
    DATOS INICIALES
@@ -209,8 +232,36 @@ const initialRoles: Rol[] = [
 ];
 
 const initialUsuarios: Usuario[] = [
-  { id: '1', correo: 'admin@parku.edu', password: 'admin123', nombre: 'Juan Pérez', numero: '3001234567', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '1234567890', estado: 'activo' },
-  { id: '2', correo: 'operador@parku.edu', password: 'operador123', nombre: 'María González', numero: '3009876543', rol: 'Operador', tipoDocumento: 'CC', identificacion: '0987654321', estado: 'activo' },
+  {
+    id: '1', correo: 'carlos.lopez@sena.edu.co', password: 'Pass1234', nombre: 'Carlos López M.', numero: '3101234567', rol: '1', tipoDocumento: 'CC', identificacion: '1234567890', estado: 'activo'
+  },
+  {
+    id: '2', correo: 'ana.martinez@sena.edu.co', password: 'Pass1234', nombre: 'Ana Martínez R.', numero: '3102345678', rol: '2', tipoDocumento: 'CC', identificacion: '2345678901', estado: 'activo'
+  },
+  {
+    id: '3', correo: 'pedro.ruiz@sena.edu.co', password: 'Pass1234', nombre: 'Pedro Ruiz G.', numero: '3103456789', rol: '2', tipoDocumento: 'CC', identificacion: '3456789012', estado: 'activo'
+  },
+  {
+    id: '4', correo: 'maria.diaz@ext.com', password: 'Pass1234', nombre: 'María Díaz P.', numero: '3104567890', rol: '3', tipoDocumento: 'CC', identificacion: '4567890123', estado: 'activo'
+  },
+  {
+    id: '5', correo: 'jorge.silva@sena.edu.co', password: 'Pass1234', nombre: 'Jorge Silva T.', numero: '3105678901', rol: '1', tipoDocumento: 'CC', identificacion: '5678901234', estado: 'activo'
+  },
+  {
+    id: '6', correo: 'laura.gomez@sena.edu.co', password: 'Pass1234', nombre: 'Laura Gómez H.', numero: '3106789012', rol: '2', tipoDocumento: 'CC', identificacion: '6789012345', estado: 'activo'
+  },
+  {
+    id: '7', correo: 'diego.herrera@sena.edu.co', password: 'Pass1234', nombre: 'Diego Herrera F.', numero: '3107890123', rol: '2', tipoDocumento: 'CC', identificacion: '7890123456', estado: 'activo'
+  },
+  {
+    id: '8', correo: 'sofia.castillo@ext.com', password: 'Pass1234', nombre: 'Sofía Castillo', numero: '3108901234', rol: '3', tipoDocumento: 'CC', identificacion: '8901234567', estado: 'activo'
+  },
+  {
+    id: '9', correo: 'andres.morales@sena.edu.co', password: 'Pass1234', nombre: 'Andrés Morales', numero: '3109012345', rol: '1', tipoDocumento: 'CC', identificacion: '9012345678', estado: 'activo'
+  },
+  {
+    id: '10', correo: 'camila.rodriguez@sena.edu.co', password: 'Pass1234', nombre: 'Camila Rodríguez', numero: '3100123456', rol: '3', tipoDocumento: 'CC', identificacion: '0123456789', estado: 'activo'
+  }
 ];
 
 const initialParqueaderos: Parqueadero[] = [
@@ -313,6 +364,33 @@ const initialMovimientos: Movimiento[] = [
   { id: 'm16', placa: 'RTY333', tipo: 'salida', fecha: '2025-06-20T13:15', parqueaderoId: '5', conductorNombre: 'Lucía Torres' },
 ];
 
+const initialIncidentes: Incidente[] = [
+  {
+    id: '1',
+    descripcion: 'Vehículo mal estacionado bloqueando entrada',
+    parqueaderoId: '1',
+    celdaId: 'c0',
+    celdaNumero: 'C-001',
+    vehiculo: 'ABC123',
+    conductor: 'Carlos López M.',
+    fecha: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    estado: 'pendiente',
+    asignadoA: 'Juan Pérez',
+  },
+  {
+    id: '2',
+    descripcion: 'Derrame de aceite con posible caída de vehículo',
+    parqueaderoId: '3',
+    celdaId: 'c45',
+    celdaNumero: 'C-045',
+    vehiculo: 'DEF456',
+    conductor: 'Ana Martínez R.',
+    fecha: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    estado: 'pendiente',
+    asignadoA: 'Brandon Alexis',
+  },
+];
+
 /* ═══════════════════════════════════════════════════════
    PROVIDER
    ═══════════════════════════════════════════════════════ */
@@ -327,14 +405,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [controlesSalida, setControlesSalida] = useState<ControlSalida[]>(initialControlesSalida);
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [movimientos] = useState<Movimiento[]>(initialMovimientos);
+  const [incidentes, setIncidentes] = useState<Incidente[]>(initialIncidentes);
 
   /* ── CRUD Roles ── */
-  const addRol = (rol: Omit<Rol, 'id'>) => setRoles(prev => [...prev, { ...rol, id: Date.now().toString() }]);
+  const addRol = (rol: Omit<Rol, 'id'>) => {
+    const id = Date.now().toString();
+    setRoles(prev => [...prev, { ...rol, id }]);
+    return id;
+  };
   const updateRol = (id: string, rol: Partial<Rol>) => setRoles(prev => prev.map(r => r.id === id ? { ...r, ...rol } : r));
   const deleteRol = (id: string) => setRoles(prev => prev.filter(r => r.id !== id));
 
   /* ── CRUD Usuarios ── */
-  const addUsuario = (usuario: Omit<Usuario, 'id'>) => setUsuarios(prev => [...prev, { ...usuario, id: Date.now().toString() }]);
+  const addUsuario = (usuario: Omit<Usuario, 'id'>) => {
+    const id = Date.now().toString();
+    setUsuarios(prev => [...prev, { ...usuario, id }]);
+    return id;
+  };
   const updateUsuario = (id: string, usuario: Partial<Usuario>) => setUsuarios(prev => prev.map(u => u.id === id ? { ...u, ...usuario } : u));
   const deleteUsuario = (id: string) => setUsuarios(prev => prev.filter(u => u.id !== id));
 
@@ -348,39 +435,73 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     for (let i = 0; i < parqueadero.celdasMotos; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `M-${String(cnt).padStart(3, '0')}`, tipo: 'moto', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-M${cnt}` });
     for (let i = 0; i < parqueadero.celdasMovilidadReducida; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `MR-${String(cnt).padStart(3, '0')}`, tipo: 'movilidad reducida', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-MR${cnt}` });
     setCeldas(prev => [...prev, ...newCeldas.map(c => ({ ...c, id: `${Date.now()}-${cnt++}` }))]);
+    return newPq.id;
   };
   const updateParqueadero = (id: string, parqueadero: Partial<Parqueadero>) => setParqueaderos(prev => prev.map(p => p.id === id ? { ...p, ...parqueadero } : p));
   const deleteParqueadero = (id: string) => { setParqueaderos(prev => prev.filter(p => p.id !== id)); setCeldas(prev => prev.filter(c => c.parqueaderoId !== id)); };
 
   /* ── CRUD Celdas ── */
-  const addCelda = (celda: Omit<Celda, 'id'>) => setCeldas(prev => [...prev, { ...celda, id: Date.now().toString() }]);
+  const addCelda = (celda: Omit<Celda, 'id'>) => {
+    const id = Date.now().toString();
+    setCeldas(prev => [...prev, { ...celda, id }]);
+    return id;
+  };
   const updateCelda = (id: string, celda: Partial<Celda>) => setCeldas(prev => prev.map(c => c.id === id ? { ...c, ...celda } : c));
   const deleteCelda = (id: string) => setCeldas(prev => prev.filter(c => c.id !== id));
 
   /* ── CRUD Conductores ── */
-  const addConductor = (conductor: Omit<Conductor, 'id'>) => setConductores(prev => [...prev, { ...conductor, id: Date.now().toString() }]);
+  const addConductor = (conductor: Omit<Conductor, 'id'>) => {
+    const id = Date.now().toString();
+    setConductores(prev => [...prev, { ...conductor, id }]);
+    return id;
+  };
   const updateConductor = (id: string, conductor: Partial<Conductor>) => setConductores(prev => prev.map(c => c.id === id ? { ...c, ...conductor } : c));
   const deleteConductor = (id: string) => setConductores(prev => prev.filter(c => c.id !== id));
 
   /* ── CRUD Vehículos ── */
-  const addVehiculo = (vehiculo: Omit<Vehiculo, 'id'>) => setVehiculos(prev => [...prev, { ...vehiculo, id: Date.now().toString() }]);
+  const addVehiculo = (vehiculo: Omit<Vehiculo, 'id'>) => {
+    const id = Date.now().toString();
+    setVehiculos(prev => [...prev, { ...vehiculo, id }]);
+    return id;
+  };
   const updateVehiculo = (id: string, vehiculo: Partial<Vehiculo>) => setVehiculos(prev => prev.map(v => v.id === id ? { ...v, ...vehiculo } : v));
   const deleteVehiculo = (id: string) => setVehiculos(prev => prev.filter(v => v.id !== id));
 
   /* ── CRUD Asignaciones ── */
-  const addAsignacion = (asignacion: Omit<AsignacionCelda, 'id'>) => setAsignaciones(prev => [...prev, { ...asignacion, id: Date.now().toString() }]);
+  const addAsignacion = (asignacion: Omit<AsignacionCelda, 'id'>) => {
+    const id = Date.now().toString();
+    setAsignaciones(prev => [...prev, { ...asignacion, id }]);
+    return id;
+  };
   const updateAsignacion = (id: string, asignacion: Partial<AsignacionCelda>) => setAsignaciones(prev => prev.map(a => a.id === id ? { ...a, ...asignacion } : a));
   const deleteAsignacion = (id: string) => setAsignaciones(prev => prev.filter(a => a.id !== id));
 
   /* ── CRUD Control Salida ── */
-  const addControlSalida = (control: Omit<ControlSalida, 'id'>) => setControlesSalida(prev => [...prev, { ...control, id: Date.now().toString() }]);
+  const addControlSalida = (control: Omit<ControlSalida, 'id'>) => {
+    const id = Date.now().toString();
+    setControlesSalida(prev => [...prev, { ...control, id }]);
+    return id;
+  };
   const updateControlSalida = (id: string, control: Partial<ControlSalida>) => setControlesSalida(prev => prev.map(c => c.id === id ? { ...c, ...control } : c));
   const deleteControlSalida = (id: string) => setControlesSalida(prev => prev.filter(c => c.id !== id));
 
   /* ── CRUD Reservas ── */
-  const addReserva = (reserva: Omit<Reserva, 'id'>) => setReservas(prev => [...prev, { ...reserva, id: Date.now().toString() }]);
+  const addReserva = (reserva: Omit<Reserva, 'id'>) => {
+    const id = Date.now().toString();
+    setReservas(prev => [...prev, { ...reserva, id }]);
+    return id;
+  };
   const updateReserva = (id: string, reserva: Partial<Reserva>) => setReservas(prev => prev.map(r => r.id === id ? { ...r, ...reserva } : r));
   const deleteReserva = (id: string) => setReservas(prev => prev.filter(r => r.id !== id));
+
+  /* ── CRUD Incidentes ── */
+  const addIncidente = (incidente: Omit<Incidente, 'id'>) => {
+    const id = Date.now().toString();
+    setIncidentes(prev => [...prev, { ...incidente, id }]);
+    return id;
+  };
+  const updateIncidente = (id: string, incidente: Partial<Incidente>) => setIncidentes(prev => prev.map(i => i.id === id ? { ...i, ...incidente } : i));
+  const deleteIncidente = (id: string) => setIncidentes(prev => prev.filter(i => i.id !== id));
 
   /* Movimientos se calculan automáticamente desde controlesSalida + vehiculos */
   const movimientosDerivados = useMemo((): Movimiento[] => {
@@ -422,6 +543,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       asignaciones, addAsignacion, updateAsignacion, deleteAsignacion,
       controlesSalida, addControlSalida, updateControlSalida, deleteControlSalida,
       reservas, addReserva, updateReserva, deleteReserva,
+      incidentes, addIncidente, updateIncidente, deleteIncidente,
       movimientos: movimientosDerivados,
     }}>
       {children}

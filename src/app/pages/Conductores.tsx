@@ -4,7 +4,6 @@ import {
   Pencil,
   Trash2,
   Eye,
-  Search,
   ShieldCheck,
   Car,
   Bike,
@@ -17,12 +16,12 @@ import {
   UserCheck,
   User,
   Users,
-  UserX,
   GaugeCircle,
   Palette,
-  UserCircle2,
-  CheckCircle2,
   Calendar,
+  LayoutGrid,
+  List,
+  Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useData, Conductor, Vehiculo } from "../context/DataContext";
@@ -177,11 +176,12 @@ interface FieldProps {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  style?: React.CSSProperties;
 }
 
-const Field = memo(({ label, children, hint }: FieldProps) => {
+const Field = memo(({ label, children, hint, style }: FieldProps) => {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 5, ...style }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <label style={{ fontSize: 12, fontWeight: 700, color: COLORS.text }}>{label}</label>
         {hint && <span style={{ fontSize: 10, color: COLORS.textLight }}>{hint}</span>}
@@ -212,7 +212,6 @@ interface FormState {
   discapacidad: boolean;
   tipoDiscapacidad: string;
   estado: "activo" | "inactivo";
-  // Vehículo
   placa: string;
   tipoVehiculo: "carro" | "moto";
   marca: string;
@@ -540,11 +539,9 @@ export function Conductores() {
   } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [viewOpen, setViewOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [viewVehiculoOpen, setViewVehiculoOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
-  const [viewingConductor, setViewingConductor] = useState<Conductor | null>(null);
   const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
   const [deletingConductor, setDeletingConductor] = useState<Conductor | null>(null);
   const [search, setSearch] = useState("");
@@ -552,6 +549,17 @@ export function Conductores() {
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [filterVehiculoTipo, setFilterVehiculoTipo] = useState("todos");
   const [formData, setFormData] = useState<FormState>(emptyForm());
+
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9);
+
+  const handleViewModeChange = useCallback((mode: "grid" | "list") => {
+    setViewMode(mode);
+    setItemsPerPage(mode === "list" ? 15 : 9);
+    setCurrentPage(1);
+  }, []);
 
   const getUsuario = useCallback((id: string) => usuarios.find((u) => u.id === id), [usuarios]);
   const getVehiculosConductor = useCallback((id: string) => vehiculos.filter((v) => v.conductorId === id), [vehiculos]);
@@ -575,8 +583,8 @@ export function Conductores() {
           ? true
           : vehiculosCond.some((v) => v.tipo === filterVehiculoTipo);
         const matchesSearch =
-          usuario.nombre.toLowerCase().includes(q) ||
-          usuario.identificacion.includes(search) ||
+          conductor.nombre.toLowerCase().includes(q) ||
+          conductor.email.toLowerCase().includes(q) ||
           conductor.centroFormacion.toLowerCase().includes(q) ||
           vehiculosCond.some((v) =>
             v.placa.toLowerCase().includes(q) ||
@@ -589,6 +597,32 @@ export function Conductores() {
       }),
     [conductores, search, filterTipo, filterEstado, filterVehiculoTipo, getUsuario, getVehiculosConductor]
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterTipo, filterEstado, filterVehiculoTipo]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredConductores.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginatedConductores = useMemo(
+    () => filteredConductores.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredConductores, currentPage, itemsPerPage]
+  );
+
+  const pageNumbers = useMemo(() => {
+    const pages = Array.from({ length: totalPages }, (_, i) => i + 1).filter(
+      (p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1
+    );
+    return pages.reduce<(number | "ellipsis")[]>((acc, p, i, arr) => {
+      if (i > 0 && p - (arr[i - 1] as number) > 1) acc.push("ellipsis");
+      acc.push(p);
+      return acc;
+    }, []);
+  }, [totalPages, currentPage]);
 
   const openCreate = useCallback(() => {
     setEditingConductor(null);
@@ -615,16 +649,10 @@ export function Conductores() {
         color: v?.color || "",
         descripcionVehiculo: v?.descripcion || "",
       });
-      setViewOpen(false);
       setDialogOpen(true);
     },
     [vehiculos]
   );
-
-  const openView = useCallback((conductor: Conductor) => {
-    setViewingConductor(conductor);
-    setViewOpen(true);
-  }, []);
 
   const openVehiculoView = useCallback((vehiculo: Vehiculo) => {
     setViewingVehiculo(vehiculo);
@@ -646,13 +674,22 @@ export function Conductores() {
       return;
     }
 
+    const usuarioSeleccionado = usuarios.find((u) => u.id === formData.usuarioId);
+    if (!usuarioSeleccionado) {
+      toast.error("El usuario seleccionado no es válido");
+      return;
+    }
+
     const conductorData = {
       usuarioId: formData.usuarioId,
+      nombre: usuarioSeleccionado.nombre,
+      email: usuarioSeleccionado.correo,
       tipoConductor: formData.tipoConductor,
       centroFormacion: sanitizeText(formData.centroFormacion.trim()),
       discapacidad: formData.discapacidad,
       tipoDiscapacidad: sanitizeText(formData.tipoDiscapacidad.trim()),
       estado: formData.estado,
+      tipo: editingConductor?.tipo || "docente",
     };
 
     try {
@@ -682,15 +719,17 @@ export function Conductores() {
             color: sanitizeText(formData.color.trim()),
             descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
+            parqueaderoId: "",
+            celdaId: "",
+            fechaEntrada: new Date().toISOString(),
           });
         }
         toast.success("Conductor actualizado correctamente");
       } else {
-        addConductor(conductorData);
-        const newConductor = conductores[conductores.length - 1];
-        if (newConductor && formData.placa.trim()) {
+        const newId = addConductor(conductorData);
+        if (newId && formData.placa.trim()) {
           addVehiculo({
-            conductorId: newConductor.id,
+            conductorId: newId,
             placa: formData.placa.toUpperCase().trim(),
             tipo: formData.tipoVehiculo,
             marca: sanitizeText(formData.marca.trim()),
@@ -699,6 +738,9 @@ export function Conductores() {
             color: sanitizeText(formData.color.trim()),
             descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
+            parqueaderoId: "",
+            celdaId: "",
+            fechaEntrada: new Date().toISOString(),
           });
         }
         toast.success("Conductor creado correctamente");
@@ -708,7 +750,7 @@ export function Conductores() {
       toast.error("Error al guardar el conductor");
       console.error("Error saving conductor:", error);
     }
-  }, [formData, editingConductor, conductores, vehiculos, addConductor, updateConductor, deleteConductor, addVehiculo, updateVehiculo]);
+  }, [formData, editingConductor, usuarios, vehiculos, addConductor, updateConductor, addVehiculo, updateVehiculo]);
 
   const handleDelete = useCallback(() => {
     if (deletingConductor) {
@@ -763,41 +805,228 @@ export function Conductores() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap');
         .conductores-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
-        .conductor-card{ 
-          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        .conductores-root .mono{ font-family:'JetBrains Mono','Montserrat',monospace; }
+
+        .conductor-card{
+          --accent: ${COLORS.primary};
+          transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.25s ease;
           border: 1px solid ${COLORS.border};
-          border-radius: 16px;
+          border-radius: 18px;
           background: #fff;
           overflow: hidden;
           position: relative;
-          box-shadow: 0 2px 8px rgba(15,23,42,.05);
+          box-shadow: 0 1px 2px rgba(15,23,42,.04);
+          display: flex;
+          flex-direction: column;
         }
-        .conductor-card:hover{ 
-          transform: translateY(-4px);
-          box-shadow: 0 12px 40px rgba(15,23,42,.12) !important;
-          border-color: ${COLORS.primary};
+        .conductor-card:hover{
+          transform: translateY(-3px);
+          box-shadow: 0 16px 36px rgba(15,23,42,.10);
+          border-color: color-mix(in srgb, var(--accent) 45%, ${COLORS.border});
         }
-        .conductor-card::before {
-          content: '';
+        .conductor-card.is-inactive{
+          --accent: #94A3B8;
+        }
+        .conductor-card.is-inactive .card-top{
+          opacity: .82;
+        }
+
+        .conductor-card .status-rail{
           position: absolute;
           top: 0;
           left: 0;
-          right: 0;
-          height: 4px;
-          background: linear-gradient(90deg, ${COLORS.primary}, ${COLORS.primary}66);
-          opacity: 0;
-          transition: opacity 0.3s ease;
+          bottom: 0;
+          width: 4px;
+          background: var(--accent);
         }
-        .conductor-card:hover::before {
-          opacity: 1;
+
+        .card-top{
+          padding: 18px 18px 14px 22px;
+          display: flex;
+          gap: 12px;
         }
-        .action-btn{ 
+
+        .card-avatar{
+          width: 46px;
+          height: 46px;
+          border-radius: 13px;
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-weight: 900;
+          font-size: 15px;
+          letter-spacing: 0.3px;
+          box-shadow: 0 4px 10px -3px rgba(0,0,0,.25);
+        }
+
+        .card-identity{
+          flex: 1;
+          min-width: 0;
+        }
+        .card-name{
+          font-size: 14.5px;
+          font-weight: 800;
+          color: ${COLORS.text};
+          line-height: 1.25;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .card-doc{
+          font-size: 10.5px;
+          color: ${COLORS.textLight};
+          margin-top: 2px;
+          font-weight: 600;
+        }
+
+        .card-switch{
+          width: 34px;
+          height: 19px;
+          border-radius: 999px;
+          border: none;
+          cursor: pointer;
+          position: relative;
+          flex-shrink: 0;
+          transition: background .25s ease;
+        }
+        .card-switch .knob{
+          width: 15px;
+          height: 15px;
+          border-radius: 50%;
+          background: #fff;
+          position: absolute;
+          top: 2px;
+          transition: left .25s ease;
+          box-shadow: 0 1px 2px rgba(0,0,0,.3);
+        }
+
+        .card-tags{
+          display: flex;
+          gap: 6px;
+          flex-wrap: wrap;
+          padding: 0 18px 0 22px;
+          margin-top: -2px;
+        }
+        .card-tag{
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 9.5px;
+          font-weight: 800;
+          padding: 3px 9px;
+          border-radius: 999px;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        .plate-block{
+          margin: 12px 18px 0 22px;
+          border-radius: 12px;
+          border: 1.5px dashed ${COLORS.border};
+          padding: 9px 12px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          transition: border-color .2s ease, background .2s ease;
+        }
+        .plate-block.has-plate{
+          border-style: solid;
+          border-color: color-mix(in srgb, var(--accent) 35%, ${COLORS.border});
+          background: color-mix(in srgb, var(--accent) 6%, white);
+        }
+        .plate-chip{
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 13px;
+          font-weight: 700;
+          letter-spacing: 1px;
+          color: ${COLORS.text};
+          background: #fff;
+          border: 1px solid ${COLORS.border};
+          border-radius: 7px;
+          padding: 4px 9px;
+          flex-shrink: 0;
+        }
+        .plate-meta{
+          flex: 1;
+          min-width: 0;
+          font-size: 10.5px;
+          color: ${COLORS.textLight};
+          font-weight: 600;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .plate-empty{
+          font-size: 11px;
+          color: ${COLORS.textMuted};
+          font-weight: 600;
+          font-style: italic;
+        }
+
+        .plate-list{
+          margin: 12px 18px 0 22px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .plate-row{
+          border-radius: 10px;
+          border: 1.5px solid color-mix(in srgb, var(--accent) 30%, ${COLORS.border});
+          background: color-mix(in srgb, var(--accent) 5%, white);
+          padding: 7px 10px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          cursor: pointer;
+          transition: background .2s ease, border-color .2s ease, transform .2s ease;
+        }
+        .plate-row:hover{
+          background: color-mix(in srgb, var(--accent) 10%, white);
+          border-color: var(--accent);
+          transform: translateX(2px);
+        }
+        .plate-row .plate-chip{
+          font-size: 12px;
+          padding: 3px 8px;
+        }
+        .plate-row .plate-meta{
+          font-size: 10px;
+        }
+
+        .card-center{
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          margin: 10px 18px 0 22px;
+          font-size: 11px;
+          color: ${COLORS.textLight};
+        }
+        .card-center svg{ flex-shrink: 0; }
+        .card-center span{
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .card-footer{
+          margin-top: auto;
+          border-top: 1px solid ${COLORS.border};
+          padding: 9px 14px 9px 18px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          background: ${COLORS.bg};
+        }
+
+        .action-btn{
           transition: all 0.15s ease;
           border-radius: 8px;
-          width: 32px;
-          height: 32px;
+          width: 30px;
+          height: 30px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -806,15 +1035,16 @@ export function Conductores() {
           cursor: pointer;
           color: ${COLORS.textLight};
         }
-        .action-btn:hover{ 
-          background: #F1F5F9 !important; 
-          color: #0F172A !important;
-          transform: scale(1.05);
+        .action-btn:hover{
+          background: #fff !important;
+          color: ${COLORS.text} !important;
+          box-shadow: 0 1px 3px rgba(15,23,42,.15);
         }
         .action-btn.danger:hover {
           background: #FEE2E2 !important;
           color: #DC2626 !important;
         }
+
         input:focus,textarea:focus,select:focus{
           outline:none;
           border-color:${COLORS.primary} !important;
@@ -823,6 +1053,7 @@ export function Conductores() {
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+
         .vehiculo-card {
           transition: all 0.2s ease;
           border-radius: 10px;
@@ -880,12 +1111,103 @@ export function Conductores() {
         }
         .conductores-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-          gap: 16px;
+          grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+          gap: 14px;
         }
         @media (max-width: 640px) {
           .conductores-grid {
             grid-template-columns: 1fr;
+          }
+        }
+
+        .view-toggle {
+          display: flex;
+          gap: 2px;
+          padding: 3px;
+          border-radius: 11px;
+          border: 1px solid ${COLORS.border};
+          background: ${COLORS.bg};
+        }
+        .view-toggle-btn {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: none;
+          cursor: pointer;
+          font-family: inherit;
+          font-size: 12px;
+          font-weight: 700;
+          background: transparent;
+          color: ${COLORS.textLight};
+        }
+        .view-toggle-btn.active {
+          background: #fff;
+          color: ${COLORS.primaryDark};
+          box-shadow: 0 1px 4px rgba(15,23,42,.1);
+        }
+
+        .conductores-list {
+          border-radius: 16px;
+          border: 1px solid ${COLORS.border};
+          background: #fff;
+          overflow: hidden;
+          box-shadow: 0 2px 8px rgba(15,23,42,.05);
+        }
+        .list-header {
+          display: grid;
+          grid-template-columns: minmax(200px,1.6fr) minmax(140px,1fr) 150px 120px 110px 100px;
+          gap: 10px;
+          padding: 10px 14px;
+          background: ${COLORS.bg};
+          border-bottom: 1px solid ${COLORS.border};
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.6px;
+          text-transform: uppercase;
+          color: ${COLORS.textLight};
+        }
+        .list-row {
+          display: grid;
+          grid-template-columns: minmax(200px,1.6fr) minmax(140px,1fr) 150px 120px 110px 100px;
+          gap: 10px;
+          align-items: center;
+          padding: 10px 14px;
+          border-bottom: 1px solid ${COLORS.border};
+          font-size: 12px;
+          transition: background .15s ease;
+        }
+        .list-row:last-child { border-bottom: none; }
+        .list-row:hover { background: #F8FAFC; }
+        .list-plate-chip {
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          color: ${COLORS.text};
+          background: #F8FAFC;
+          border: 1px solid ${COLORS.border};
+          border-radius: 6px;
+          padding: 2px 7px;
+          display: inline-block;
+        }
+
+        .page-btn {
+          transition: background .15s, border-color .15s, color .15s;
+        }
+        .page-btn:not(:disabled):hover {
+          border-color: ${COLORS.primary};
+          color: ${COLORS.primaryDark};
+        }
+
+        @media (max-width: 780px) {
+          .view-toggle-label { display: none; }
+          .list-header { display: none; }
+          .list-row {
+            grid-template-columns: 1fr !important;
+            grid-auto-flow: row;
+            gap: 6px !important;
           }
         }
       `}</style>
@@ -1002,16 +1324,6 @@ export function Conductores() {
 
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
           <div style={{ flex: 1, position: "relative", minWidth: 180 }}>
-            <Search
-              size={14}
-              style={{
-                position: "absolute",
-                left: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                color: COLORS.textLight,
-              }}
-            />
             <input
               placeholder="Buscar conductor, vehículo, identificación..."
               value={search}
@@ -1071,6 +1383,28 @@ export function Conductores() {
             <option value="activo">Activos</option>
             <option value="inactivo">Inactivos</option>
           </select>
+
+          <div className="view-toggle" role="group" aria-label="Modo de visualización">
+            {(
+              [
+                { mode: "grid" as const, icon: <LayoutGrid size={14} />, label: "Cuadrícula" },
+                { mode: "list" as const, icon: <List size={14} />, label: "Lista" },
+              ]
+            ).map((v) => (
+              <button
+                key={v.mode}
+                type="button"
+                onClick={() => handleViewModeChange(v.mode)}
+                title={v.label}
+                aria-label={v.label}
+                aria-pressed={viewMode === v.mode}
+                className={`view-toggle-btn${viewMode === v.mode ? " active" : ""}`}
+              >
+                {v.icon}
+                <span className="view-toggle-label">{v.label}</span>
+              </button>
+            ))}
+          </div>
 
           <button
             onClick={openCreate}
@@ -1147,269 +1481,456 @@ export function Conductores() {
             <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o registra uno nuevo</p>
           </div>
         ) : (
-          <div className="conductores-grid">
-            {filteredConductores.map((conductor) => {
-              const usuario = getUsuario(conductor.usuarioId);
-              const vehiculosCond = getVehiculosConductor(conductor.id);
-              if (!usuario) return null;
+          <>
+            {viewMode === "grid" ? (
+              <div className="conductores-grid">
+                {paginatedConductores.map((conductor) => {
+                  const usuario = getUsuario(conductor.usuarioId);
+                  const vehiculosCond = getVehiculosConductor(conductor.id);
+                  if (!usuario) return null;
 
-              const [g1, g2] = getAvatarGradient(usuario.nombre);
-              const initials = getInitials(usuario.nombre);
-              const tipoStyle = getTipoStyle(conductor.tipoConductor);
-              const activo = conductor.estado === "activo";
-              const TipoIcon = tipoStyle.icon;
+                  const [g1, g2] = getAvatarGradient(conductor.nombre);
+                  const initials = getInitials(conductor.nombre);
+                  const tipoStyle = getTipoStyle(conductor.tipoConductor);
+                  const activo = conductor.estado === "activo";
+                  const TipoIcon = tipoStyle.icon;
+                  const vehiculoPrincipal = vehiculosCond[0];
+                  const vTipoStyle = vehiculoPrincipal ? getTipoVehiculoStyle(vehiculoPrincipal.tipo) : null;
 
-              return (
-                <div key={conductor.id} className="conductor-card">
-                  <div style={{ padding: "16px 16px 12px" }}>
+                  return (
                     <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        marginBottom: 12,
-                      }}
+                      key={conductor.id}
+                      className={`conductor-card${activo ? "" : " is-inactive"}`}
                     >
-                      <div
-                        style={{
-                          width: 48,
-                          height: 48,
-                          borderRadius: 12,
-                          flexShrink: 0,
-                          background: `linear-gradient(135deg, ${g1}, ${g2})`,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                          fontWeight: 900,
-                          fontSize: 16,
-                        }}
-                      >
-                        {initials}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            color: COLORS.text,
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {sanitizeText(usuario.nombre)}
-                        </p>
-                        <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 2 }}>
-                          {usuario.tipoDocumento} · {usuario.identificacion}
-                        </p>
-                        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                          <span
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 700,
-                              padding: "2px 8px",
-                              borderRadius: 999,
-                              background: tipoStyle.bg,
-                              color: tipoStyle.text,
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 3,
-                            }}
-                          >
-                            <TipoIcon size={10} />
-                            {tipoStyle.label}
-                          </span>
-                          <span
-                            className={`status-badge ${activo ? "active" : "inactive"}`}
-                          >
-                            {conductor.estado}
-                          </span>
-                          {conductor.discapacidad && (
-                            <span
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 700,
-                                padding: "2px 8px",
-                                borderRadius: 999,
-                                background: "#F3E8FF",
-                                color: "#9333EA",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 3,
-                              }}
-                            >
-                              <Accessibility size={10} />
-                              Discapacidad
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleToggleEstado(conductor.id, conductor.estado)}
-                        style={{
-                          width: 36,
-                          height: 20,
-                          borderRadius: 999,
-                          background: activo ? COLORS.primary : "#CBD5E1",
-                          border: "none",
-                          cursor: "pointer",
-                          position: "relative",
-                          transition: "all 0.3s ease",
-                          flexShrink: 0,
-                        }}
-                        aria-label={activo ? "Desactivar conductor" : "Activar conductor"}
-                      >
+                      <div className="status-rail" style={{ background: activo ? COLORS.primary : "#CBD5E1" }} />
+
+                      <div className="card-top">
                         <div
-                          style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            background: "#fff",
-                            position: "absolute",
-                            top: 2,
-                            left: activo ? 18 : 2,
-                            transition: "all 0.3s ease",
-                            boxShadow: "0 1px 3px rgba(0,0,0,.2)",
-                          }}
-                        />
-                      </button>
-                    </div>
-
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        padding: "8px 10px",
-                        borderRadius: 10,
-                        background: "#F8FAFC",
-                        border: `1px solid ${COLORS.border}`,
-                        marginBottom: vehiculosCond.length > 0 ? 12 : 0,
-                      }}
-                    >
-                      <Building2 size={13} color={COLORS.textLight} />
-                      <span style={{ fontSize: 11, color: COLORS.text }}>
-                        {sanitizeText(conductor.centroFormacion) || "—"}
-                      </span>
-                    </div>
-
-                    {vehiculosCond.length > 0 && (
-                      <div>
-                        <p
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 800,
-                            letterSpacing: 1,
-                            color: COLORS.textLight,
-                            textTransform: "uppercase",
-                            marginBottom: 8,
-                          }}
+                          className="card-avatar"
+                          style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}
                         >
-                          Vehículos registrados
-                        </p>
-                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {initials}
+                        </div>
+
+                        <div className="card-identity">
+                          <p className="card-name">{sanitizeText(conductor.nombre)}</p>
+                          <p className="card-doc">
+                            {usuario.tipoDocumento} · {usuario.identificacion}
+                          </p>
+                        </div>
+
+                        <button
+                          className="card-switch"
+                          onClick={() => handleToggleEstado(conductor.id, conductor.estado)}
+                          style={{ background: activo ? COLORS.primary : "#CBD5E1" }}
+                          aria-label={activo ? "Desactivar conductor" : "Activar conductor"}
+                        >
+                          <div className="knob" style={{ left: activo ? 17 : 2 }} />
+                        </button>
+                      </div>
+
+                      <div className="card-tags">
+                        <span
+                          className="card-tag"
+                          style={{ background: tipoStyle.bg, color: tipoStyle.text }}
+                        >
+                          <TipoIcon size={10} />
+                          {tipoStyle.label}
+                        </span>
+                        <span className={`status-badge ${activo ? "active" : "inactive"}`}>
+                          {conductor.estado}
+                        </span>
+                        {conductor.discapacidad && (
+                          <span
+                            className="card-tag"
+                            style={{ background: "#F3E8FF", color: "#9333EA" }}
+                          >
+                            <Accessibility size={10} />
+                            Discapacidad
+                          </span>
+                        )}
+                      </div>
+
+                      {vehiculosCond.length === 0 ? (
+                        <div className="plate-block">
+                          <Car size={15} color={COLORS.textMuted} style={{ flexShrink: 0 }} />
+                          <span className="plate-empty">Sin vehículo asignado</span>
+                        </div>
+                      ) : vehiculosCond.length === 1 && vehiculoPrincipal && vTipoStyle ? (
+                        <div
+                          className="plate-block has-plate"
+                          onClick={() => openVehiculoView(vehiculoPrincipal)}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <span className="plate-chip">{vehiculoPrincipal.placa}</span>
+                          <span className="plate-meta">
+                            {vehiculoPrincipal.marca} {vehiculoPrincipal.modelo}
+                          </span>
+                          <vTipoStyle.icon size={15} color={vTipoStyle.dot} style={{ flexShrink: 0 }} />
+                        </div>
+                      ) : (
+                        <div className="plate-list">
                           {vehiculosCond.map((v) => {
-                            const vTipoStyle = getTipoVehiculoStyle(v.tipo);
-                            const VIcon = vTipoStyle.icon;
+                            const vStyle = getTipoVehiculoStyle(v.tipo);
+                            const VIcon = vStyle.icon;
                             return (
                               <div
                                 key={v.id}
-                                className="vehiculo-card"
+                                className="plate-row"
                                 onClick={() => openVehiculoView(v)}
                               >
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                    <div
-                                      style={{
-                                        width: 28,
-                                        height: 28,
-                                        borderRadius: 8,
-                                        background: `${vTipoStyle.dot}15`,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                      }}
-                                    >
-                                      <VIcon size={14} color={vTipoStyle.dot} />
-                                    </div>
-                                    <div>
-                                      <p style={{ fontSize: 11, fontWeight: 700, color: COLORS.text }}>
-                                        {v.placa}
-                                      </p>
-                                      <p style={{ fontSize: 9, color: COLORS.textLight }}>
-                                        {v.marca} {v.modelo}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <span
-                                    style={{
-                                      fontSize: 9,
-                                      fontWeight: 700,
-                                      padding: "2px 8px",
-                                      borderRadius: 999,
-                                      background: `${vTipoStyle.dot}15`,
-                                      color: vTipoStyle.dot,
-                                      textTransform: "capitalize",
-                                    }}
-                                  >
-                                    {v.tipo}
-                                  </span>
-                                </div>
+                                <span className="plate-chip">{v.placa}</span>
+                                <span className="plate-meta">
+                                  {v.marca} {v.modelo}
+                                </span>
+                                <VIcon size={13} color={vStyle.dot} style={{ flexShrink: 0 }} />
                               </div>
                             );
                           })}
                         </div>
-                      </div>
-                    )}
-                  </div>
+                      )}
 
-                  <div
+                      <div className="card-center">
+                        <Building2 size={12} color={COLORS.textLight} />
+                        <span>{sanitizeText(conductor.centroFormacion) || "—"}</span>
+                      </div>
+
+                      <div className="card-footer">
+                        <span style={{ fontSize: 10, color: COLORS.textLight, fontWeight: 700 }}>
+                          {vehiculosCond.length} vehículo{vehiculosCond.length !== 1 ? "s" : ""}
+                        </span>
+                        <div style={{ display: "flex", gap: 2 }}>
+                          <button
+                            className="action-btn"
+                            title="Editar"
+                            onClick={() => openEdit(conductor)}
+                            aria-label={`Editar ${sanitizeText(conductor.nombre)}`}
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            className="action-btn danger"
+                            title="Eliminar"
+                            onClick={() => openConfirm(conductor)}
+                            aria-label={`Eliminar ${sanitizeText(conductor.nombre)}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="conductores-list">
+                <div className="list-header">
+                  <span>Conductor</span>
+                  <span>Centro de formación</span>
+                  <span>Vehículo(s)</span>
+                  <span>Tipo</span>
+                  <span>Estado</span>
+                  <span style={{ textAlign: "right" }}>Acciones</span>
+                </div>
+
+                {paginatedConductores.map((conductor) => {
+                  const usuario = getUsuario(conductor.usuarioId);
+                  const vehiculosCond = getVehiculosConductor(conductor.id);
+                  if (!usuario) return null;
+
+                  const [g1, g2] = getAvatarGradient(conductor.nombre);
+                  const initials = getInitials(conductor.nombre);
+                  const tipoStyle = getTipoStyle(conductor.tipoConductor);
+                  const activo = conductor.estado === "activo";
+                  const TipoIcon = tipoStyle.icon;
+
+                  return (
+                    <div key={conductor.id} className="list-row">
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
+                        <div
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 9,
+                            flexShrink: 0,
+                            background: `linear-gradient(135deg,${g1},${g2})`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 12,
+                            fontWeight: 900,
+                            color: "#fff",
+                          }}
+                        >
+                          {initials}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <p
+                            style={{
+                              fontWeight: 800,
+                              color: COLORS.text,
+                              whiteSpace: "nowrap",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                            }}
+                          >
+                            {sanitizeText(conductor.nombre)}
+                          </p>
+                          <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1 }}>
+                            {usuario.tipoDocumento} · {usuario.identificacion}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 6,
+                          color: COLORS.textLight,
+                          minWidth: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                        title={conductor.centroFormacion}
+                      >
+                        <Building2 size={11} style={{ flexShrink: 0 }} />
+                        {sanitizeText(conductor.centroFormacion) || "—"}
+                      </div>
+
+                      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                        {vehiculosCond.length === 0 ? (
+                          <span style={{ fontSize: 11, color: COLORS.textMuted, fontStyle: "italic" }}>
+                            Sin vehículo
+                          </span>
+                        ) : (
+                          vehiculosCond.slice(0, 2).map((v) => (
+                            <span
+                              key={v.id}
+                              className="list-plate-chip"
+                              style={{ cursor: "pointer", width: "fit-content" }}
+                              onClick={() => openVehiculoView(v)}
+                            >
+                              {v.placa}
+                            </span>
+                          ))
+                        )}
+                        {vehiculosCond.length > 2 && (
+                          <span style={{ fontSize: 10, color: COLORS.textLight }}>
+                            +{vehiculosCond.length - 2} más
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                            padding: "3px 9px",
+                            borderRadius: 999,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            background: tipoStyle.bg,
+                            color: tipoStyle.text,
+                            border: `1px solid ${tipoStyle.border}`,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          <TipoIcon size={9} /> {tipoStyle.label}
+                        </span>
+                      </div>
+
+                      <div>
+                        <button
+                          onClick={() => handleToggleEstado(conductor.id, conductor.estado)}
+                          title={activo ? "Desactivar" : "Activar"}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 5,
+                            padding: "4px 9px",
+                            borderRadius: 999,
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: 10,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                            letterSpacing: 0.3,
+                            background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
+                            color: activo ? "#166534" : "#B91C1C",
+                            fontFamily: "inherit",
+                          }}
+                          aria-label={activo ? "Desactivar conductor" : "Activar conductor"}
+                        >
+                          <span
+                            style={{
+                              width: 5,
+                              height: 5,
+                              borderRadius: "50%",
+                              background: activo ? COLORS.primary : "#EF4444",
+                            }}
+                          />
+                          {conductor.estado}
+                        </button>
+                      </div>
+
+                      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+                        <button
+                          title="Editar"
+                          onClick={() => openEdit(conductor)}
+                          className="action-btn"
+                          style={{
+                            width: 26,
+                            height: 26,
+                            border: `1px solid ${COLORS.border}`,
+                            background: COLORS.bg,
+                          }}
+                          aria-label="Editar"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          title="Eliminar"
+                          onClick={() => openConfirm(conductor)}
+                          className="action-btn danger"
+                          style={{
+                            width: 26,
+                            height: 26,
+                            border: `1px solid ${COLORS.border}`,
+                            background: "#FEF2F2",
+                            color: "#EF4444",
+                          }}
+                          aria-label="Eliminar"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 10,
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "10px 4px",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: COLORS.textLight }}>
+                <span>
+                  Mostrando{" "}
+                  <strong style={{ color: COLORS.text }}>
+                    {(currentPage - 1) * itemsPerPage + 1}–{Math.min(currentPage * itemsPerPage, filteredConductores.length)}
+                  </strong>{" "}
+                  de <strong style={{ color: COLORS.text }}>{filteredConductores.length}</strong>
+                </span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  style={{
+                    ...inputStyle,
+                    width: "auto",
+                    padding: "6px 10px",
+                    fontSize: 11,
+                    appearance: "none",
+                    cursor: "pointer",
+                  }}
+                  aria-label="Conductores por página"
+                >
+                  {(viewMode === "list" ? [15, 25, 50, 100] : [9, 18, 36, 60]).map((n) => (
+                    <option key={n} value={n}>
+                      {n} por página
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {totalPages > 1 && (
+                <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <button
+                    className="page-btn"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
                     style={{
-                      borderTop: `1px solid ${COLORS.border}`,
-                      padding: "8px 12px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      background: COLORS.bg,
+                      padding: "7px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                      color: currentPage === 1 ? COLORS.border : COLORS.text,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
                     }}
                   >
-                    <span style={{ fontSize: 10, color: COLORS.textLight, fontWeight: 600 }}>
-                      {vehiculosCond.length} vehículo{vehiculosCond.length !== 1 ? "s" : ""}
-                    </span>
-                    <div style={{ display: "flex", gap: 2 }}>
+                    ← Anterior
+                  </button>
+
+                  {pageNumbers.map((p, i) =>
+                    p === "ellipsis" ? (
+                      <span key={`e-${i}`} style={{ padding: "0 4px", color: COLORS.textLight, fontSize: 11 }}>
+                        …
+                      </span>
+                    ) : (
                       <button
-                        className="action-btn"
-                        title="Ver detalle"
-                        onClick={() => openView(conductor)}
-                        aria-label={`Ver detalle de ${sanitizeText(usuario.nombre)}`}
+                        key={p}
+                        className="page-btn"
+                        onClick={() => setCurrentPage(p)}
+                        style={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 8,
+                          border: p === currentPage ? "1px solid transparent" : `1px solid ${COLORS.border}`,
+                          background: p === currentPage ? COLORS.primary : "#fff",
+                          color: p === currentPage ? "#fff" : COLORS.text,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                        }}
                       >
-                        <Eye size={14} />
+                        {p}
                       </button>
-                      <button
-                        className="action-btn"
-                        title="Editar"
-                        onClick={() => openEdit(conductor)}
-                        aria-label={`Editar ${sanitizeText(usuario.nombre)}`}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        className="action-btn danger"
-                        title="Eliminar"
-                        onClick={() => openConfirm(conductor)}
-                        aria-label={`Eliminar ${sanitizeText(usuario.nombre)}`}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
+                    )
+                  )}
+
+                  <button
+                    className="page-btn"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: "7px 12px",
+                      borderRadius: 8,
+                      border: `1px solid ${COLORS.border}`,
+                      background: "#fff",
+                      color: currentPage === totalPages ? COLORS.border : COLORS.text,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      cursor: currentPage === totalPages ? "not-allowed" : "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    Siguiente →
+                  </button>
                 </div>
-              );
-            })}
-          </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
-      {/* Modal de formulario de conductor con vehículo - PLACA DESTACADA */}
+      {/* Modal de formulario de conductor con vehículo */}
       <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={780}>
         <form
           onSubmit={(e) => {
@@ -1555,38 +2076,51 @@ export function Conductores() {
 
                   {isEdit && (
                     <Field label="Estado">
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {(["activo", "inactivo"] as const).map((s) => (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => setFormData({ ...formData, estado: s })}
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.textLight }}>Inactivo</span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setFormData({
+                              ...formData,
+                              estado: formData.estado === "activo" ? "inactivo" : "activo",
+                            })
+                          }
+                          style={{
+                            width: 44,
+                            height: 24,
+                            borderRadius: 999,
+                            background: formData.estado === "activo" ? COLORS.primary : "#CBD5E1",
+                            border: "none",
+                            cursor: "pointer",
+                            position: "relative",
+                            transition: "background .2s",
+                          }}
+                          aria-label={formData.estado === "activo" ? "Desactivar" : "Activar"}
+                        >
+                          <div
                             style={{
-                              flex: 1,
-                              padding: "11px 10px",
-                              borderRadius: 11,
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: "pointer",
-                              fontFamily: "inherit",
-                              border: formData.estado === s ? "1px solid transparent" : `1px solid ${COLORS.border}`,
-                              background:
-                                formData.estado === s
-                                  ? s === "activo"
-                                    ? "rgba(57,169,0,.1)"
-                                    : "rgba(239,68,68,.08)"
-                                  : COLORS.bg,
-                              color:
-                                formData.estado === s
-                                  ? s === "activo"
-                                    ? COLORS.primaryDark
-                                    : "#B91C1C"
-                                  : COLORS.textLight,
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              background: "#fff",
+                              position: "absolute",
+                              top: 2,
+                              left: formData.estado === "activo" ? 22 : 2,
+                              transition: "left .2s",
+                              boxShadow: "0 1px 3px rgba(0,0,0,.2)",
                             }}
-                          >
-                            {s === "activo" ? "✓ Activo" : "✗ Inactivo"}
-                          </button>
-                        ))}
+                          />
+                        </button>
+                        <span
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: formData.estado === "activo" ? COLORS.primaryDark : "#B91C1C",
+                          }}
+                        >
+                          {formData.estado === "activo" ? "Activo" : "Inactivo"}
+                        </span>
                       </div>
                     </Field>
                   )}
@@ -1711,7 +2245,6 @@ export function Conductores() {
                 )}
               </div>
               <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                {/* Campo de placa destacado */}
                 <Field label="Placa *" style={{ gridColumn: "1 / -1" }}>
                   <div
                     style={{
@@ -1893,396 +2426,6 @@ export function Conductores() {
             </button>
           </div>
         </form>
-      </Modal>
-
-      {/* Modal de vista de conductor */}
-      <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={450}>
-        {viewingConductor &&
-          (() => {
-            const c = viewingConductor;
-            const usuario = getUsuario(c.usuarioId);
-            const vehs = getVehiculosConductor(c.id);
-            if (!usuario) return null;
-
-            const [g1, g2] = getAvatarGradient(usuario.nombre);
-            const initials = getInitials(usuario.nombre);
-            const tipoStyle = getTipoStyle(c.tipoConductor);
-            const TipoIcon = tipoStyle.icon;
-            const activo = c.estado === "activo";
-
-            return (
-              <div>
-                <div
-                  style={{
-                    padding: "1.6rem 1.8rem 1.4rem",
-                    background: `linear-gradient(135deg, ${g1}, ${g2})`,
-                    color: "#fff",
-                    borderRadius: "24px 24px 0 0",
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      position: "absolute",
-                      width: 200,
-                      height: 200,
-                      borderRadius: "50%",
-                      background: "rgba(255,255,255,.07)",
-                      top: -80,
-                      right: -60,
-                    }}
-                  />
-                  <div style={{ position: "relative", zIndex: 2 }}>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: 14,
-                          background: "rgba(255,255,255,.18)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontSize: 22,
-                          fontWeight: 900,
-                        }}
-                      >
-                        {initials}
-                      </div>
-                      <button
-                        onClick={() => setViewOpen(false)}
-                        style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: 9,
-                          background: "rgba(255,255,255,.15)",
-                          border: "none",
-                          color: "#fff",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                        }}
-                        aria-label="Cerrar vista"
-                      >
-                        <X size={15} />
-                      </button>
-                    </div>
-                    <h2 style={{ marginTop: 14, fontSize: 22, fontWeight: 900, lineHeight: 1 }}>
-                      {sanitizeText(usuario.nombre)}
-                    </h2>
-                    <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>
-                      {usuario.tipoDocumento} · {usuario.identificacion}
-                    </p>
-                    <div style={{ marginTop: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      <span
-                        style={{
-                          padding: "4px 12px",
-                          borderRadius: 999,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          background: "rgba(255,255,255,.18)",
-                          border: "1px solid rgba(255,255,255,.25)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                        }}
-                      >
-                        <TipoIcon size={10} /> {tipoStyle.label}
-                      </span>
-                      <span
-                        className={`status-badge ${activo ? "active" : "inactive"}`}
-                        style={{ fontSize: 10 }}
-                      >
-                        {c.estado}
-                      </span>
-                      {c.discapacidad && (
-                        <span
-                          style={{
-                            padding: "4px 12px",
-                            borderRadius: 999,
-                            fontSize: 10,
-                            fontWeight: 800,
-                            background: "rgba(255,255,255,.18)",
-                            border: "1px solid rgba(255,255,255,.25)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Accessibility size={10} /> Discapacidad
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 12 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      padding: "12px",
-                      borderRadius: 12,
-                      background: "#F8FAFC",
-                      border: `1px solid ${COLORS.border}`,
-                    }}
-                  >
-                    <Building2 size={16} color={COLORS.textLight} />
-                    <span style={{ fontSize: 13, color: COLORS.text }}>
-                      {sanitizeText(c.centroFormacion) || "—"}
-                    </span>
-                  </div>
-
-                  {vehs.length > 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "12px 16px",
-                        borderRadius: 12,
-                        background: "linear-gradient(135deg, #F0FDF4, #DCFCE7)",
-                        border: `2px solid ${COLORS.primary}`,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 10,
-                          background: COLORS.primary,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#fff",
-                        }}
-                      >
-                        <Car size={20} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div
-                          style={{
-                            fontSize: 9,
-                            fontWeight: 700,
-                            color: COLORS.primaryDark,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.5,
-                          }}
-                        >
-                          Vehículo asignado
-                        </div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: COLORS.text }}>
-                          {vehs[0].placa}
-                        </div>
-                        <div style={{ fontSize: 11, color: COLORS.textLight }}>
-                          {vehs[0].marca} {vehs[0].modelo} · {vehs[0].año}
-                        </div>
-                      </div>
-                      <span
-                        style={{
-                          padding: "4px 12px",
-                          borderRadius: 999,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          textTransform: "capitalize",
-                          background: "rgba(57,169,0,.15)",
-                          color: COLORS.primaryDark,
-                        }}
-                      >
-                        {vehs[0].tipo}
-                      </span>
-                    </div>
-                  )}
-
-                  {vehs.length > 0 && vehs[0].color && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "8px 12px",
-                        borderRadius: 10,
-                        background: "#F8FAFC",
-                        border: `1px solid ${COLORS.border}`,
-                      }}
-                    >
-                      <Palette size={14} color={COLORS.textLight} />
-                      <span style={{ fontSize: 12, color: COLORS.text }}>
-                        Color: <strong>{vehs[0].color}</strong>
-                      </span>
-                      <div
-                        style={{
-                          width: 20,
-                          height: 20,
-                          borderRadius: 6,
-                          background: vehs[0].color,
-                          border: `1px solid ${COLORS.border}`,
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {c.discapacidad && c.tipoDiscapacidad && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "12px",
-                        borderRadius: 12,
-                        background: "#F3E8FF",
-                        border: `1px solid #E9D5FF`,
-                      }}
-                    >
-                      <Accessibility size={16} color="#9333EA" />
-                      <span style={{ fontSize: 13, color: "#9333EA" }}>
-                        {sanitizeText(c.tipoDiscapacidad)}
-                      </span>
-                    </div>
-                  )}
-
-                  {vehs.length > 1 && (
-                    <div>
-                      <p
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 800,
-                          letterSpacing: 1,
-                          color: COLORS.textLight,
-                          textTransform: "uppercase",
-                          marginBottom: 8,
-                        }}
-                      >
-                        Más vehículos registrados ({vehs.length - 1})
-                      </p>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        {vehs.slice(1).map((v) => {
-                          const vTipoStyle = getTipoVehiculoStyle(v.tipo);
-                          const VIcon = vTipoStyle.icon;
-                          return (
-                            <div
-                              key={v.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                padding: "10px 12px",
-                                borderRadius: 12,
-                                background: "#F8FAFC",
-                                border: `1px solid ${COLORS.border}`,
-                                cursor: "pointer",
-                                transition: "all 0.2s ease",
-                              }}
-                              onClick={() => {
-                                setViewOpen(false);
-                                openVehiculoView(v);
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.borderColor = COLORS.primary;
-                                e.currentTarget.style.background = "#F0FDF4";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.borderColor = COLORS.border;
-                                e.currentTarget.style.background = "#F8FAFC";
-                              }}
-                            >
-                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                <div
-                                  style={{
-                                    width: 36,
-                                    height: 36,
-                                    borderRadius: 10,
-                                    background: `${g1}15`,
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                  }}
-                                >
-                                  <VIcon size={16} color={g1} />
-                                </div>
-                                <div>
-                                  <p style={{ fontSize: 13, fontWeight: 700, color: COLORS.text }}>
-                                    {v.placa}
-                                  </p>
-                                  <p style={{ fontSize: 10, color: COLORS.textLight }}>
-                                    {v.marca} {v.modelo} · {v.color}
-                                  </p>
-                                </div>
-                              </div>
-                              <span
-                                style={{
-                                  fontSize: 9,
-                                  fontWeight: 700,
-                                  padding: "2px 8px",
-                                  borderRadius: 999,
-                                  background: `${vTipoStyle.dot}15`,
-                                  color: vTipoStyle.dot,
-                                  textTransform: "capitalize",
-                                }}
-                              >
-                                {v.tipo}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {vehs.length === 0 && (
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "20px",
-                        borderRadius: 12,
-                        background: "#FFF8F0",
-                        border: `2px dashed #FDE68A`,
-                      }}
-                    >
-                      <span style={{ fontSize: 13, color: "#92400E" }}>
-                        🚫 No tiene vehículo asignado
-                      </span>
-                    </div>
-                  )}
-
-                  <button
-                    onClick={() => openEdit(c)}
-                    style={{
-                      width: "100%",
-                      padding: "13px 20px",
-                      borderRadius: 12,
-                      border: "none",
-                      background: g1,
-                      color: "#fff",
-                      fontSize: 13,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 8,
-                      boxShadow: `0 6px 18px ${g1}33`,
-                    }}
-                  >
-                    <Pencil size={14} />
-                    Editar conductor
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
       </Modal>
 
       {/* Modal de vista de vehículo */}

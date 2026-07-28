@@ -45,6 +45,13 @@ const GRUPO_ICONS: Record<PermisosKeys, React.ReactNode> = {
   seguridad: <ShieldCheck size={13} />,
 };
 
+const GRUPO_LABELS: Record<PermisosKeys, string> = {
+  administracion: "Administración",
+  operaciones: "Operaciones",
+  parqueadero: "Parqueadero",
+  seguridad: "Seguridad",
+};
+
 const GRUPO_COLORS: Record<PermisosKeys, string> = {
   administracion: "#EF4444",
   operaciones: "#2563EB",
@@ -992,236 +999,123 @@ const RoleCard = memo(
     const accent = getRolAccent(rol.nombre);
     const activo = rol.estado === "activo";
 
-    const activePermissions = useMemo(
+    const gruposDesglose = useMemo(
       () =>
-        Object.entries(rol.permisos)
-          .filter(([, value]) => value)
-          .map(([key]) => PERMISO_LABELS[key] ?? key)
-          .slice(0, 3),
+        (Object.entries(PERMISOS) as [PermisosKeys, typeof PERMISOS[PermisosKeys]][]).map(
+          ([grupo, permisos]) => {
+            const keys = Object.keys(permisos) as Array<keyof PermisosState>;
+            const on = keys.filter((k) => rol.permisos[k]).length;
+            return { grupo, on, total: keys.length };
+          }
+        ),
       [rol.permisos]
     );
+
+    const filledBars = pct === 0 ? 0 : Math.max(1, Math.ceil(pct / 20));
+    const barHeights = [7, 11, 15, 19, 23];
 
     const handleView = useCallback(() => onView(rol), [onView, rol]);
     const handleEdit = useCallback(() => onEdit(rol), [onEdit, rol]);
     const handleDelete = useCallback(() => onDelete(rol), [onDelete, rol]);
 
-   return (
-  <article
-    style={{
-      background: "#fff",
-      borderRadius: 20,
-      border: `1px solid ${COLORS.border}`,
-      overflow: "hidden",
-      display: "flex",
-      flexDirection: "column",
-      boxShadow: "0 4px 14px rgba(15,23,42,.06)",
-      transition: ".25s",
-      height: "100%",
-    }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.transform = "translateY(-4px)";
-      e.currentTarget.style.boxShadow =
-        "0 14px 28px rgba(15,23,42,.12)";
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.transform = "translateY(0)";
-      e.currentTarget.style.boxShadow =
-        "0 4px 14px rgba(15,23,42,.06)";
-    }}
-  >
-    <div
-      style={{
-        height: 6,
-        background: accent,
-      }}
-    />
+    return (
+      <article className="role-card" style={{ ["--accent" as any]: accent }}>
+        <div className="role-card-top" style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+          <div className="role-card-top-row">
+            <div className="role-icon" style={{ background: `${accent}15` }}>
+              <Shield size={20} color={accent} />
+            </div>
+            <span
+              className="role-status-pill"
+              style={{
+                background: activo ? "rgba(57,169,0,.12)" : "rgba(148,163,184,.16)",
+                color: activo ? COLORS.primaryDark : COLORS.textLight,
+              }}
+            >
+              {activo ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+              {rol.estado}
+            </span>
+          </div>
 
-    <div style={{ padding: 20 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-        }}
-      >
-        <div
-          style={{
-            width: 52,
-            height: 52,
-            borderRadius: 14,
-            background: `${accent}15`,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Shield size={24} color={accent} />
+          <div className="role-name-row">
+            <h3 className="role-name">{sanitizeText(rol.nombre)}</h3>
+            {protegido && (
+              <span className="role-lock" title="Rol protegido del sistema">
+                <Lock size={11} />
+              </span>
+            )}
+          </div>
+
+          <p className="role-desc">{rol.descripcion || "Sin descripción"}</p>
         </div>
 
-        <span
-          style={{
-            padding: "6px 10px",
-            borderRadius: 999,
-            background: activo
-              ? "rgba(57,169,0,.12)"
-              : "rgba(239,68,68,.12)",
-            color: activo
-              ? COLORS.primaryDark
-              : "#EF4444",
-            fontSize: 11,
-            fontWeight: 800,
-          }}
-        >
-          {rol.estado}
-        </span>
-      </div>
+        <div className="role-card-body">
+          <div className="clearance-row">
+            <span className="clearance-label">Nivel de acceso</span>
+            <span className="clearance-pct" style={{ color: accent }}>
+              {pct}%
+            </span>
+          </div>
+          <div className="clearance-bars">
+            {barHeights.map((h, i) => (
+              <div
+                key={i}
+                className="clearance-bar"
+                style={{
+                  height: h,
+                  background: i < filledBars ? accent : "#E2E8F0",
+                }}
+              />
+            ))}
+          </div>
 
-      <h3
-        style={{
-          marginTop: 14,
-          fontSize: 20,
-          fontWeight: 900,
-          color: COLORS.text,
-        }}
-      >
-        {rol.nombre}
-      </h3>
-
-      <p
-        style={{
-          fontSize: 12,
-          color: COLORS.textLight,
-          marginTop: 4,
-          minHeight: 34,
-        }}
-      >
-        {rol.descripcion || "Sin descripción"}
-      </p>
-
-      <div style={{ marginTop: 18 }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            marginBottom: 8,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 11,
-              color: COLORS.textLight,
-              fontWeight: 700,
-            }}
-          >
-            Nivel de acceso
-          </span>
-
-          <span
-            style={{
-              color: accent,
-              fontWeight: 900,
-            }}
-          >
-            {pct}%
-          </span>
+          <div className="group-grid">
+            {gruposDesglose.map(({ grupo, on, total: totalGrupo }) => {
+              const color = GRUPO_COLORS[grupo];
+              const activeGroup = on > 0;
+              return (
+                <div
+                  key={grupo}
+                  className="group-chip"
+                  style={{
+                    background: activeGroup ? `${color}12` : "#F8FAFC",
+                    color: activeGroup ? color : COLORS.textLight,
+                    border: `1px solid ${activeGroup ? `${color}30` : COLORS.border}`,
+                  }}
+                  title={GRUPO_LABELS[grupo]}
+                >
+                  {GRUPO_ICONS[grupo]}
+                  <span>{on}/{totalGrupo}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div
-          style={{
-            height: 8,
-            borderRadius: 999,
-            background: "#E2E8F0",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "100%",
-              width: `${pct}%`,
-              background: accent,
-              borderRadius: 999,
-            }}
-          />
+        <div className="role-card-footer">
+          <button className="role-action-btn" onClick={handleView} aria-label={`Ver detalle de ${sanitizeText(rol.nombre)}`} title="Ver detalle">
+            <Eye size={15} />
+          </button>
+          <span className="role-action-divider" />
+          <button className="role-action-btn" onClick={handleEdit} aria-label={`Editar ${sanitizeText(rol.nombre)}`} title="Editar">
+            <Pencil size={15} />
+          </button>
+          {!protegido && (
+            <>
+              <span className="role-action-divider" />
+              <button
+                className="role-action-btn danger"
+                onClick={handleDelete}
+                aria-label={`Eliminar ${sanitizeText(rol.nombre)}`}
+                title="Eliminar"
+              >
+                <Trash2 size={15} />
+              </button>
+            </>
+          )}
         </div>
-      </div>
-
-      <div
-        style={{
-          marginTop: 20,
-          display: "flex",
-          flexWrap: "wrap",
-          gap: 6,
-        }}
-      >
-        {activePermissions.slice(0, 4).map((p) => (
-          <span
-            key={p}
-            style={{
-              padding: "6px 10px",
-              borderRadius: 999,
-              background: `${accent}12`,
-              color: accent,
-              fontSize: 11,
-              fontWeight: 700,
-            }}
-          >
-            {p}
-          </span>
-        ))}
-      </div>
-    </div>
-
-    <div
-      style={{
-        marginTop: "auto",
-        borderTop: `1px solid ${COLORS.border}`,
-        display: "flex",
-      }}
-    >
-      <button
-        onClick={handleView}
-        style={{
-          flex: 1,
-          padding: 14,
-          border: "none",
-          background: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        <Eye size={16} />
-      </button>
-
-      <button
-        onClick={handleEdit}
-        style={{
-          flex: 1,
-          padding: 14,
-          border: "none",
-          background: "#fff",
-          cursor: "pointer",
-        }}
-      >
-        <Pencil size={16} />
-      </button>
-
-      {!protegido && (
-        <button
-          onClick={handleDelete}
-          style={{
-            flex: 1,
-            padding: 14,
-            border: "none",
-            background: "#fff",
-            cursor: "pointer",
-            color: "#EF4444",
-          }}
-        >
-          <Trash2 size={16} />
-        </button>
-      )}
-    </div>
-  </article>
-);
+      </article>
+    );
   }
 );
 
@@ -1348,6 +1242,173 @@ export function Roles() {
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+
+        /* ---------- Tarjeta de rol (rediseño) ---------- */
+        .role-card{
+          background: #fff;
+          border-radius: 18px;
+          border: 1px solid ${COLORS.border};
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+          box-shadow: 0 1px 2px rgba(15,23,42,.04);
+          transition: transform .22s cubic-bezier(.4,0,.2,1), box-shadow .22s cubic-bezier(.4,0,.2,1), border-color .22s ease;
+        }
+        .role-card:hover{
+          transform: translateY(-3px);
+          box-shadow: 0 14px 30px rgba(15,23,42,.10);
+          border-color: color-mix(in srgb, var(--accent) 40%, ${COLORS.border});
+        }
+
+        .role-card-top{
+          padding: 16px 16px 12px;
+        }
+        .role-card-top-row{
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+        .role-icon{
+          width: 40px;
+          height: 40px;
+          border-radius: 11px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .role-status-pill{
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          padding: 4px 9px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+
+        .role-name-row{
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-top: 12px;
+        }
+        .role-name{
+          font-size: 16px;
+          font-weight: 900;
+          color: ${COLORS.text};
+          line-height: 1.2;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .role-lock{
+          flex-shrink: 0;
+          width: 18px;
+          height: 18px;
+          border-radius: 5px;
+          background: #F1F5F9;
+          color: ${COLORS.textLight};
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .role-desc{
+          margin-top: 4px;
+          font-size: 11.5px;
+          color: ${COLORS.textLight};
+          line-height: 1.5;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          min-height: 33px;
+        }
+
+        .role-card-body{
+          padding: 14px 16px 4px;
+          flex: 1;
+        }
+        .clearance-row{
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+        .clearance-label{
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.5px;
+          text-transform: uppercase;
+          color: ${COLORS.textLight};
+        }
+        .clearance-pct{
+          font-size: 14px;
+          font-weight: 900;
+        }
+        .clearance-bars{
+          display: flex;
+          align-items: flex-end;
+          gap: 4px;
+          height: 24px;
+          margin-bottom: 14px;
+        }
+        .clearance-bar{
+          flex: 1;
+          border-radius: 2px;
+          transition: background .3s ease;
+        }
+
+        .group-grid{
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 6px;
+          margin-bottom: 14px;
+        }
+        .group-chip{
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 8px;
+          border-radius: 9px;
+          font-size: 10.5px;
+          font-weight: 800;
+        }
+
+        .role-card-footer{
+          margin-top: auto;
+          border-top: 1px solid ${COLORS.border};
+          display: flex;
+          align-items: center;
+          background: ${COLORS.bg};
+        }
+        .role-action-btn{
+          flex: 1;
+          padding: 11px;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          color: ${COLORS.textLight};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background .15s ease, color .15s ease;
+        }
+        .role-action-btn:hover{
+          background: #fff;
+          color: ${COLORS.text};
+        }
+        .role-action-btn.danger:hover{
+          background: #FEE2E2;
+          color: #DC2626;
+        }
+        .role-action-divider{
+          width: 1px;
+          align-self: stretch;
+          background: ${COLORS.border};
+        }
       `}</style>
 
       <div className="roles-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -1552,8 +1613,8 @@ export function Roles() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill,minmax(190px,1fr))",
-              gap: 10,
+              gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))",
+              gap: 14,
             }}
           >
             {filteredRoles.map((rol) => (

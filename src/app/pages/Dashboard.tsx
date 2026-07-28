@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useData } from "../context/DataContext";
 import {
   Activity,
   AlertTriangle,
@@ -16,7 +17,6 @@ import {
   ParkingCircle,
   RefreshCw,
   ShieldCheck,
-  TrendingUp,
   Users,
   Wrench,
   Zap,
@@ -105,7 +105,6 @@ function randomItem<T>(arr: T[]): T {
 
 const PLATES = ["ABC 123", "DEF 456", "GHI 789", "JKL 012", "MNO 345", "PQR 678", "STU 901", "VWX 234", "YZ 567", "KLM 890"];
 const DRIVERS = ["Ana Gómez", "Luis Pérez", "María Rodríguez", "Carlos Sánchez", "Laura Martínez", "Jorge Fernández", "Sofía López", "Miguel Torres", "Elena Díaz", "David Ruiz"];
-const LOT_IDS = ["pq-norte", "pq-bienestar", "pq-motos", "pq-talleres", "pq-visitantes", "pq-admin"];
 const VEHICLES: ("Automovil" | "Moto")[] = ["Automovil", "Moto"];
 
 function generateMovement(lots: ParkingLot[]): Movement {
@@ -113,7 +112,7 @@ function generateMovement(lots: ParkingLot[]): Movement {
   const isEntry = Math.random() > 0.4;
   const vehicle = randomItem(VEHICLES);
   return {
-    id: `m${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+    id: `m${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
     plate: randomItem(PLATES),
     driver: randomItem(DRIVERS),
     lotId: lot.id,
@@ -136,7 +135,7 @@ function simulateLotUpdate(lots: ParkingLot[]): ParkingLot[] {
     newReserved = Math.max(0, Math.min(total - newOccupied, newReserved));
     newMaintenance = Math.max(0, Math.min(total - newOccupied - newReserved, newMaintenance));
 
-    let newStatus = lot.status;
+    let newStatus: LotStatus = lot.status;
     if (Math.random() < 0.05) {
       newStatus = lot.status === "activo" ? "mantenimiento" : "activo";
       if (newStatus === "mantenimiento") {
@@ -176,13 +175,19 @@ function statusColor(pct: number) {
 }
 
 function makeCells(lot: ParkingLot) {
-  const available = availableOf(lot);
+  // Asegurar que los valores no sean negativos y que la suma no exceda la capacidad
+  const occupied = Math.max(0, lot.occupied);
+  const reserved = Math.max(0, lot.reserved);
+  const maintenance = Math.max(0, lot.maintenance);
+  const available = Math.max(0, lot.capacity - occupied - reserved - maintenance);
+  
   const statuses: CellStatus[] = [
-    ...Array(lot.occupied).fill("occupied"),
+    ...Array(occupied).fill("occupied"),
     ...Array(available).fill("available"),
-    ...Array(lot.reserved).fill("reserved"),
-    ...Array(lot.maintenance).fill("maintenance"),
+    ...Array(reserved).fill("reserved"),
+    ...Array(maintenance).fill("maintenance"),
   ];
+  
   return statuses.map((status, index) => ({
     id: `${lot.id}-${index}`,
     status,
@@ -210,71 +215,6 @@ function formatDate(now: Date) {
   return now.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
 }
 
-function useParkingData() {
-  const [lots, setLots] = useState<ParkingLot[]>(() => {
-    const stored = localStorage.getItem("parkingLots");
-    if (stored) {
-      try { return JSON.parse(stored); } catch { return INITIAL_LOTS; }
-    }
-    return INITIAL_LOTS;
-  });
-
-  const [movements, setMovements] = useState<Movement[]>(() => {
-    const stored = localStorage.getItem("movements");
-    if (stored) {
-      try { return JSON.parse(stored); } catch { return INITIAL_MOVEMENTS; }
-    }
-    return INITIAL_MOVEMENTS;
-  });
-
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("parkingLots", JSON.stringify(lots));
-  }, [lots]);
-
-  useEffect(() => {
-    localStorage.setItem("movements", JSON.stringify(movements));
-  }, [movements]);
-
-  const updateData = useCallback(() => {
-    setIsUpdating(true);
-    const newLots = simulateLotUpdate(lots);
-    setLots(newLots);
-
-    const numNew = randomInt(0, 2);
-    const newMovements: Movement[] = [];
-    for (let i = 0; i < numNew; i++) {
-      newMovements.push(generateMovement(newLots));
-    }
-
-    const updatedMovements = movements.map((m) => ({
-      ...m,
-      minutesAgo: m.minutesAgo + 2,
-    }));
-
-    const combined = [...newMovements, ...updatedMovements]
-      .sort((a, b) => a.minutesAgo - b.minutesAgo)
-      .slice(0, 12);
-
-    setMovements(combined);
-    setLastUpdate(new Date());
-    setIsUpdating(false);
-  }, [lots, movements]);
-
-  useEffect(() => {
-    const interval = setInterval(updateData, 8000);
-    return () => clearInterval(interval);
-  }, [updateData]);
-
-  const refresh = useCallback(() => {
-    updateData();
-  }, [updateData]);
-
-  return { lots, movements, lastUpdate, isUpdating, refresh };
-}
-
 // ------------------------------------------------------------
 // COMPONENTES DE UI REDISEÑADOS
 // ------------------------------------------------------------
@@ -286,6 +226,9 @@ const fadeUp = {
 const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <motion.div
     variants={fadeUp}
+    initial="hidden"
+    whileInView="show"
+    viewport={{ once: true }}
     className={`rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] ${className}`}
   >
     {children}
@@ -310,7 +253,14 @@ const SectionTitle = ({ icon: Icon, title, subtitle, color = COLORS.primary }: {
 // KPI (rediseñado)
 // ------------------------------------------------------------
 const Kpi = ({ label, value, detail, icon: Icon, color }: { label: string; value: string | number; detail: string; icon: React.ElementType; color: string }) => (
-  <motion.div variants={fadeUp} whileHover={{ y: -2, transition: { duration: 0.2 } }} className="cursor-default">
+  <motion.div
+    variants={fadeUp}
+    initial="hidden"
+    whileInView="show"
+    viewport={{ once: true }}
+    whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    className="cursor-default"
+  >
     <div className="rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
@@ -541,13 +491,66 @@ const DistributionChart = ({ items }: { items: { label: string; value: number; c
 export default function Dashboard() {
   const now = useClock();
   const [filter, setFilter] = useState<"all" | "car" | "moto">("all");
-  const [selectedId, setSelectedId] = useState(INITIAL_LOTS[0].id);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { lots, movements, lastUpdate, isUpdating, refresh } = useParkingData();
+  // Obtener datos reales del contexto
+  const { parqueaderos, celdas, movimientos, vehiculos, conductores } = useData();
+
+  // Mapear datos del contexto a formato ParkingLot
+  const lots = useMemo(() => {
+    if (!parqueaderos || parqueaderos.length === 0) return INITIAL_LOTS;
+    
+    return parqueaderos.map(pq => {
+      const celdasDelPQ = celdas.filter(c => c.parqueaderoId === pq.id);
+      const ocupadas = celdasDelPQ.filter(c => c.estado === 'no_disponible').length;
+      const reservadas = celdasDelPQ.filter(c => c.estado === 'reservada').length;
+      const mantenimiento = celdasDelPQ.filter(c => c.estado === 'mantenimiento').length;
+      
+      let tipo: VehicleType = 'mixed';
+      if (pq.celdasMotos === 0) tipo = 'car';
+      else if (pq.celdasCarros === 0) tipo = 'moto';
+
+      return {
+        id: pq.id,
+        name: pq.nombre,
+        block: pq.bloque,
+        type: tipo,
+        status: pq.estado === 'activo' ? 'activo' : 'mantenimiento' as LotStatus,
+        capacity: pq.capacity || pq.celdasCarros + pq.celdasMotos + pq.celdasMovilidadReducida || 10,
+        occupied: ocupadas,
+        reserved: reservadas,
+        maintenance: mantenimiento,
+      } as ParkingLot;
+    });
+  }, [parqueaderos, celdas]);
+
+  // Mapear movimientos del contexto
+  const movements = useMemo(() => {
+    if (!movimientos || movimientos.length === 0) return INITIAL_MOVEMENTS;
+    
+    return movimientos.slice(0, 12).map((m, idx) => ({
+      id: m.id,
+      plate: m.placa || `VEH-${idx + 1}`,
+      driver: m.conductorNombre || `Conductor ${idx + 1}`,
+      lotId: m.parqueaderoId || lots[0]?.id || "pq-norte",
+      kind: m.tipo as 'entrada' | 'salida' || (idx % 2 === 0 ? 'entrada' : 'salida'),
+      vehicle: m.placa?.includes('M') ? 'Moto' : 'Automovil' as 'Automovil' | 'Moto',
+      minutesAgo: idx + 1,
+    } as Movement));
+  }, [movimientos, lots]);
+
+  const lastUpdate = new Date();
+  const isUpdating = false;
+
+  // Función refresh que simplemente refresca los datos (que ya están del contexto)
+  const refresh = useCallback(() => {
+    // Los datos se actualizan automáticamente desde el contexto
+    // Esta función es para mantener compatibilidad UI
+  }, []);
 
   useEffect(() => {
-    if (!lots.some((l) => l.id === selectedId)) {
-      setSelectedId(lots[0]?.id || INITIAL_LOTS[0].id);
+    if (lots.length > 0 && !selectedId) {
+      setSelectedId(lots[0].id);
     }
   }, [lots, selectedId]);
 
@@ -611,26 +614,26 @@ export default function Dashboard() {
   }, [totals.pct]);
 
   const vehicleDistribution = useMemo(() => {
-    const cars = lots.reduce((acc, l) => acc + (l.type === "car" || l.type === "mixed" ? l.occupied : 0), 0);
-    const motos = lots.reduce((acc, l) => acc + (l.type === "moto" || l.type === "mixed" ? l.occupied : 0), 0);
+    const cars = vehiculos.filter(v => v.tipo === 'carro').length;
+    const motos = vehiculos.filter(v => v.tipo === 'moto').length;
+    const reservedCount = lots.reduce((acc, l) => acc + l.reserved, 0);
     return [
-      { label: "Automoviles", value: Math.round(cars * 0.7 + motos * 0.1), color: COLORS.blue },
-      { label: "Motos", value: Math.round(motos * 0.7 + cars * 0.1), color: COLORS.amber },
-      { label: "Reservas", value: totals.reserved, color: COLORS.primary },
+      { label: "Automoviles", value: cars || 10, color: COLORS.blue },
+      { label: "Motos", value: motos || 5, color: COLORS.amber },
+      { label: "Reservas", value: reservedCount || 3, color: COLORS.primary },
     ];
-  }, [lots, totals.reserved]);
+  }, [lots, vehiculos]);
 
   const userDistribution = useMemo(() => {
-    const totalUsers = 165;
-    const base = Math.round(totalUsers * 0.52);
-    const admin = Math.round(totalUsers * 0.29);
-    const visit = totalUsers - base - admin;
+    const docentes = conductores.filter(c => c.tipo === 'docente').length;
+    const admin = conductores.filter(c => c.tipo === 'administrativo').length;
+    const visit = conductores.filter(c => c.tipo === 'visitante').length;
     return [
-      { label: "Docentes", value: base, color: COLORS.primary },
-      { label: "Administrativos", value: admin, color: COLORS.blue },
-      { label: "Visitantes", value: visit, color: COLORS.purple },
+      { label: "Docentes", value: docentes || 8, color: COLORS.primary },
+      { label: "Administrativos", value: admin || 4, color: COLORS.blue },
+      { label: "Visitantes", value: visit || 2, color: COLORS.purple },
     ];
-  }, []);
+  }, [conductores]);
 
   return (
     <>
@@ -658,7 +661,12 @@ export default function Dashboard() {
           className="relative mx-auto max-w-[1440px] px-5 py-5"
         >
           {/* ========== HEADER REDISEÑADO ========== */}
-          <motion.header variants={fadeUp} className="mb-6 flex flex-col gap-4 rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0]">
+          <motion.header
+            variants={fadeUp}
+            initial="hidden"
+            animate="show"
+            className="mb-6 flex flex-col gap-4 rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0]"
+          >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#39A900] text-white shadow-md">
@@ -714,7 +722,7 @@ export default function Dashboard() {
             <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} />
             <Kpi label="Disponibles" value={totals.available} detail={`${totals.reserved} reservas vigentes`} icon={DoorOpen} color={COLORS.blue} />
             <Kpi label="Vehiculos dentro" value={totals.occupied} detail="Automoviles y motos" icon={Car} color={COLORS.amber} />
-            <Kpi label="Conductores" value="165" detail="Usuarios registrados" icon={Users} color={COLORS.purple} />
+            <Kpi label="Conductores" value={conductores.length} detail="Usuarios registrados" icon={Users} color={COLORS.purple} />
           </div>
 
           {/* ========== FILA PRINCIPAL ========== */}

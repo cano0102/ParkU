@@ -32,6 +32,11 @@ import {
   Sparkles,
   MapPin,
   Wrench,
+  AlertTriangle,
+  FileText,
+  Calendar,
+  UserCircle2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { createWorker } from "tesseract.js";
 import { toast } from "sonner";
@@ -64,8 +69,6 @@ const C = {
 
 /* ============================================================
    TIPOS LOCALES DE UI
-   (las entidades de datos -Parqueadero, Celda, Vehiculo, Conductor,
-   ControlSalida- viven en DataContext; aquí solo formularios/layout)
 ============================================================ */
 export interface FormParqueadero {
   nombre: string;
@@ -84,6 +87,13 @@ export interface VehiculoForm {
   placa: string;
   conductor: string;
   esOficial: boolean;
+}
+
+export interface IncidenteForm {
+  descripcion: string;
+  asignadoA: string;
+  notasResolucion: string;
+  evidencia: string; // base64 o URL de objeto
 }
 
 export interface CeldaPos extends Celda { x: number; y: number; }
@@ -182,12 +192,18 @@ export function extraerDatosDocumento(texto:string){
 }
 
 /* ============================================================
-   DERIVAR OCUPANTE DE UNA CELDA A PARTIR DEL CONTEXTO
+   DERIVAR OCUPANTE DE UNA CELDA
 ============================================================ */
-interface Ocupante { vehiculo: Vehiculo; conductor?: Conductor; esOficial: boolean; controlId: string; fechaEntrada: string; }
+interface Ocupante { 
+  vehiculo: Vehiculo; 
+  conductor?: Conductor; 
+  esOficial: boolean; 
+  controlId: string; 
+  fechaEntrada: string; 
+}
 
 /* ============================================================
-   REDUCER OCR (independiente de los datos, sigue igual)
+   REDUCER OCR
 ============================================================ */
 function calcularUmbralOtsu(hist:number[],total:number):number{
   let sum=0; for(let i=0;i<256;i++) sum+=i*hist[i];
@@ -440,7 +456,7 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
           celdas: rowCells.map((celda, index) => ({ ...celda, x: PADDING + index * (SPACE_W + GAP_X), y })),
         });
         y += SPACE_H + ROW_GAP;
-        if (row < rowCount - 1) { filas.push({ esCarril: true, y }); y += LANE_H; }
+        if (row < rowCount - 1) { filas.push({ esCarril: true, y, celdas: [] }); y += LANE_H; }
       }
       const libres        = celdasPq.filter(c => c.estado === "disponible").length;
       const ocupados      = celdasPq.filter(c => c.estado === "no_disponible").length;
@@ -609,6 +625,10 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
                       const cfg = CELDA_CONFIG[celda.estado];
                       const m = cellMatchesSearch(celda);
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
+                      
+                      // Determinar si la celda está realmente ocupada
+                      const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
+                      
                       return (
                         <g
                           key={celda.id}
@@ -631,7 +651,10 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
                           />
                           <text x={celda.x + 4.5} y={celda.y + 8} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="6.8" fontWeight="900">{celda.numero}</text>
                           {celda.estado === "disponible"    && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 5.5} textAnchor="middle" fontSize="16" fontWeight="900" fill="rgba(255,255,255,.08)">P</text>}
-                          {celda.estado === "no_disponible" && <HighFiCarSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante?.vehiculo.placa || "···"} />}
+                          {estaOcupada && ocupante && <HighFiCarSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />}
+                          {celda.estado === "no_disponible" && !ocupante && (
+                            <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#EF4444">⚠️ ERROR</text>
+                          )}
                           {celda.estado === "reservada"      && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7" fontWeight="950" fill="#FCD34D">RESERVA</text>}
                           {celda.estado === "mantenimiento"  && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#CBD5E1">MANT.</text>}
                         </g>
@@ -647,6 +670,8 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
 
       {hover && (() => {
         const ocupante = hover.celda.estado === "no_disponible" ? getOcupante(hover.celda.id) : null;
+        const estaOcupada = hover.celda.estado === "no_disponible" && ocupante !== null;
+        
         return (
         <div style={{
           position: "fixed",
@@ -661,7 +686,7 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
             <span style={{ fontFamily:"monospace", fontSize:12, fontWeight:900, color:C.primaryLight }}>{hover.celda.numero}</span>
             <span style={{ fontSize:9, fontWeight:800, color:"rgba(255,255,255,.45)", textTransform:"uppercase" }}>{hover.tipoPq}</span>
           </div>
-          {ocupante ? (
+          {estaOcupada && ocupante ? (
             <div>
               <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
                 <span style={{ fontFamily:"monospace", fontSize:13, fontWeight:900, background:"rgba(255,255,255,.08)", padding:"2px 6px", borderRadius:6 }}>{ocupante.vehiculo.placa}</span>
@@ -674,7 +699,10 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
             </div>
           ) : (
             <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,.7)" }}>
-              {hover.celda.estado === "reservada" ? "Celda reservada" : hover.celda.estado === "mantenimiento" ? "En mantenimiento" : "Celda libre"}
+              {hover.celda.estado === "reservada" ? "Celda reservada" : 
+               hover.celda.estado === "mantenimiento" ? "En mantenimiento" : 
+               hover.celda.estado === "no_disponible" ? "⚠️ Error: celda marcada ocupada sin vehículo" :
+               "Celda libre"}
             </div>
           )}
         </div>
@@ -774,12 +802,16 @@ const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onD
                       const cfg = CELDA_CONFIG[celda.estado];
                       const matched = cellMatchesSearch(celda);
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
+                      const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
                       return (
                         <button key={celda.id} onClick={() => onCellClick(celda)}
                           style={{ padding: "8px 10px", borderRadius: 10, border: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, background: cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : undefined }}>
                           <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 4 }}>{celda.numero}</div>
-                          {ocupante && (
+                          {estaOcupada && ocupante && (
                             <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, background: "rgba(255,255,255,.15)", padding: "1px 4px", borderRadius: 4, marginBottom: 2 }}>{ocupante.vehiculo.placa}</div>
+                          )}
+                          {celda.estado === "no_disponible" && !ocupante && (
+                            <div style={{ fontSize: 8, color: C.danger, fontWeight: 700, marginBottom: 2 }}>⚠️ Error</div>
                           )}
                           <div style={{ display: "flex", alignItems: "center", gap: 3 }}>
                             <span style={{ width: 5, height: 5, borderRadius: "50%", background: cfg.dotColor, flexShrink: 0 }} />
@@ -803,7 +835,7 @@ const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onD
     </div>
   );
 });
-ParqueaderosTable.displayName = "ParqueaderosTable";
+ParqueaderosTable.displayName="ParqueaderosTable";
 
 /* ============================================================
    LISTA VEHÍCULOS ACTIVOS
@@ -870,7 +902,7 @@ const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onSelectCe
     </div>
   );
 });
-ActiveVehiclesList.displayName = "ActiveVehiclesList";
+ActiveVehiclesList.displayName="ActiveVehiclesList";
 
 /* ============================================================
    SMART ASSIGN MODAL
@@ -978,7 +1010,7 @@ const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, 
     </Modal>
   );
 });
-SmartAssignModal.displayName = "SmartAssignModal";
+SmartAssignModal.displayName="SmartAssignModal";
 
 /* ============================================================
    APP PRINCIPAL
@@ -990,10 +1022,12 @@ export default function Parqueaderos() {
     conductores, addConductor,
     vehiculos, addVehiculo,
     controlesSalida, addControlSalida, updateControlSalida, deleteControlSalida,
+    reservas, addReserva, updateReserva, deleteReserva,
+    addIncidente,
   } = useData();
 
   const [activeTab, setActiveTab]   = useState<"map" | "table">("table");
-  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"confirmDelete"|null>(null);
+  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"confirmDelete"|"incidente"|"reserva"|null>(null);
   const [pqEditId, setPqEditId]     = useState<string | null>(null);
   const [pqDeleteId, setPqDeleteId] = useState<string | null>(null);
   const [celdaSeleccionadaId, setCeldaSeleccionadaId] = useState<string | null>(null);
@@ -1002,6 +1036,8 @@ export default function Parqueaderos() {
   const [pqForm, setPqForm]         = useState<FormParqueadero>({ nombre: "", bloque: "A", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" });
   const [formError, setFormError]   = useState<string | null>(null);
   const [vehiculoForm, setVehiculoForm] = useState<VehiculoForm>({ placa: "", conductor: "", esOficial: false });
+  const [incidenteForm, setIncidenteForm] = useState<IncidenteForm>({ descripcion: "", asignadoA: "", notasResolucion: "", evidencia: "" });
+  const [incidenteError, setIncidenteError] = useState<string | null>(null);
   const [placaError, setPlacaError] = useState<string | null>(null);
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError]     = useState<string | null>(null);
@@ -1010,12 +1046,42 @@ export default function Parqueaderos() {
   const [scannerOrigin, setScannerOrigin] = useState<"ingreso"|"smartAssign"|null>(null);
   const [scannedPlate, setScannedPlate]   = useState<string | undefined>(undefined);
   const [, forceTick] = useState(0);
+  
+  // Estado para el formulario de reserva
+  const [reservaForm, setReservaForm] = useState({
+    vehiculoId: "",
+    parqueaderoId: "",
+    celdaId: "",
+    fechaReserva: new Date().toISOString().split("T")[0],
+    horaInicio: "08:00",
+    horaFin: "18:00",
+    estado: "pendiente" as "pendiente" | "activa" | "completada" | "cancelada",
+  });
+  const [reservaError, setReservaError] = useState<string | null>(null);
 
   const videoRef  = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { reconocer, reconocerLicencia, liberarWorker } = useOcrPlaca();
 
-  // Recalcula "estadía" periódicamente sin tocar el estado real
+  // Manejador para subir evidencia en incidentes
+  const handleIncidenteFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('El archivo debe ser una imagen');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setIncidenteForm(prev => ({ ...prev, evidencia: ev.target?.result as string || '' }));
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const removeIncidenteEvidencia = useCallback(() => {
+    setIncidenteForm(prev => ({ ...prev, evidencia: '' }));
+  }, []);
+
   useEffect(() => { const i = setInterval(() => forceTick(t => t + 1), 30000); return () => clearInterval(i); }, []);
 
   const cerrarCamara = useCallback(() => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; setCamaraLista(false); }, []);
@@ -1035,14 +1101,60 @@ export default function Parqueaderos() {
   useEffect(() => { if (openModal === "scanner") iniciarCamara(); else cerrarCamara(); return () => cerrarCamara(); }, [openModal, iniciarCamara, cerrarCamara]);
   useEffect(() => () => { liberarWorker(); }, [liberarWorker]);
 
-  /* ── Derivar ocupante de una celda a partir de controlesSalida + vehiculos + conductores ── */
+  /* ── FUNCIÓN DE SINCRONIZACIÓN DE CELDAS ── */
+  const sincronizarCeldasOcupadas = useCallback(() => {
+    const celdasOcupadas = celdas.filter(c => c.estado === "no_disponible");
+    let corregidas = 0;
+
+    celdasOcupadas.forEach(celda => {
+      const controlActivo = controlesSalida.find(cs => cs.celdaId === celda.id && cs.estado === "en_parqueadero");
+      const vehiculoAsociado = vehiculos.find(v => v.celdaId === celda.id);
+
+      if (!controlActivo && !vehiculoAsociado) {
+        updateCelda(celda.id, { estado: "disponible", ocupada: false });
+        corregidas++;
+      }
+    });
+
+    if (corregidas > 0) {
+      toast.success(`Se corrigieron ${corregidas} celdas inconsistentes.`);
+    } else {
+      toast.info("Todas las celdas están sincronizadas correctamente.");
+    }
+  }, [celdas, controlesSalida, vehiculos, updateCelda]);
+
+  /* ── DERIVAR OCUPANTE DE UNA CELDA ── */
   const getOcupante = useCallback((celdaId: string): Ocupante | null => {
+    // 1. Buscar control de salida activo
     const cs = controlesSalida.find(c => c.celdaId === celdaId && c.estado === "en_parqueadero");
-    if (!cs) return null;
-    const vehiculo = vehiculos.find(v => v.id === cs.vehiculoId);
-    if (!vehiculo) return null;
-    const conductor = conductores.find(c => c.id === vehiculo.conductorId);
-    return { vehiculo, conductor, esOficial: esPlacaOficial(vehiculo.placa), controlId: cs.id, fechaEntrada: cs.fechaEntrada };
+    if (cs) {
+      const vehiculo = vehiculos.find(v => v.id === cs.vehiculoId);
+      if (vehiculo) {
+        const conductor = conductores.find(c => c.id === vehiculo.conductorId);
+        return { 
+          vehiculo, 
+          conductor, 
+          esOficial: esPlacaOficial(vehiculo.placa), 
+          controlId: cs.id, 
+          fechaEntrada: cs.fechaEntrada 
+        };
+      }
+    }
+
+    // 2. Si no hay control activo, buscar vehículo asociado directamente a la celda
+    const vehiculoEnCelda = vehiculos.find(v => v.celdaId === celdaId);
+    if (vehiculoEnCelda) {
+      const conductor = conductores.find(c => c.id === vehiculoEnCelda.conductorId);
+      return {
+        vehiculo: vehiculoEnCelda,
+        conductor: conductor || undefined,
+        esOficial: esPlacaOficial(vehiculoEnCelda.placa),
+        controlId: "",
+        fechaEntrada: vehiculoEnCelda.fechaEntrada || new Date().toISOString(),
+      };
+    }
+
+    return null;
   }, [controlesSalida, vehiculos, conductores]);
 
   const stats = useMemo(() => {
@@ -1081,9 +1193,16 @@ export default function Parqueaderos() {
   const handleCellClick = useCallback((celda: Celda) => {
     setCeldaSeleccionadaId(celda.id);
     setPlacaError(null);
+    setIncidenteError(null);
+    // Resetear evidencia al abrir incidente
+    setIncidenteForm(prev => ({ ...prev, evidencia: '' }));
     if (celda.estado === "no_disponible") {
       const ocupante = getOcupante(celda.id);
-      setVehiculoForm({ placa: ocupante?.vehiculo.placa || "", conductor: ocupante?.conductor?.nombre || "", esOficial: ocupante?.esOficial || false });
+      setVehiculoForm({ 
+        placa: ocupante?.vehiculo.placa || "", 
+        conductor: ocupante?.conductor?.nombre || "", 
+        esOficial: ocupante?.esOficial || false 
+      });
       setOpenModal("info");
     } else if (celda.estado === "reservada") {
       setVehiculoForm({ placa: "", conductor: "", esOficial: true });
@@ -1095,6 +1214,82 @@ export default function Parqueaderos() {
       setOpenModal("ingreso");
     }
   }, [getOcupante]);
+
+  /* ── Función para abrir el modal de reserva desde una celda ── */
+  const openReservaFromCelda = useCallback((celda: Celda) => {
+    setCeldaSeleccionadaId(celda.id);
+    setReservaForm(prev => ({
+      ...prev,
+      parqueaderoId: celda.parqueaderoId,
+      celdaId: celda.id,
+      fechaReserva: new Date().toISOString().split("T")[0],
+      horaInicio: "08:00",
+      horaFin: "18:00",
+      estado: "pendiente",
+    }));
+    setReservaError(null);
+    setOpenModal("reserva");
+  }, []);
+
+  /* ── Función para crear la reserva ── */
+  const handleCrearReserva = useCallback(() => {
+    if (!reservaForm.vehiculoId) {
+      setReservaError("Selecciona un vehículo");
+      return;
+    }
+    if (!reservaForm.celdaId) {
+      setReservaError("Selecciona una celda");
+      return;
+    }
+    if (!reservaForm.fechaReserva) {
+      setReservaError("La fecha es requerida");
+      return;
+    }
+    if (!reservaForm.horaInicio || !reservaForm.horaFin) {
+      setReservaError("El horario es requerido");
+      return;
+    }
+
+    // Validar que el horario sea válido
+    const toMinutes = (hhmm: string) => {
+      const [h, m] = hhmm.split(":").map(Number);
+      return h * 60 + m;
+    };
+    if (toMinutes(reservaForm.horaFin) <= toMinutes(reservaForm.horaInicio)) {
+      setReservaError("La hora de fin debe ser posterior a la hora de inicio");
+      return;
+    }
+
+    try {
+      // Verificar que no haya conflicto de horario en la misma celda
+      const conflicto = reservas.find(r => {
+        if (r.celdaId !== reservaForm.celdaId) return false;
+        if (r.fechaReserva !== reservaForm.fechaReserva) return false;
+        if (r.estado === "cancelada") return false;
+        const rInicio = toMinutes(r.horaInicio);
+        const rFin = toMinutes(r.horaFin);
+        const inicio = toMinutes(reservaForm.horaInicio);
+        const fin = toMinutes(reservaForm.horaFin);
+        return inicio < rFin && fin > rInicio;
+      });
+
+      if (conflicto) {
+        const vehiculo = vehiculos.find(v => v.id === conflicto.vehiculoId);
+        setReservaError(`La celda ya está reservada de ${conflicto.horaInicio} a ${conflicto.horaFin} (vehículo ${vehiculo?.placa || "—"})`);
+        return;
+      }
+
+      const { parqueaderoId, ...payload } = reservaForm;
+      addReserva(payload);
+      toast.success(`Reserva creada para la celda ${celdaActiva?.numero}`);
+      setOpenModal(null);
+      setReservaError(null);
+      setReservaForm(prev => ({ ...prev, vehiculoId: "", horaInicio: "08:00", horaFin: "18:00" }));
+    } catch (error) {
+      setReservaError("Error al crear la reserva");
+      console.error(error);
+    }
+  }, [reservaForm, addReserva, celdaActiva, reservas, vehiculos]);
 
   const capacidadForm = pqForm.celdasCarros + pqForm.celdasMotos + pqForm.celdasMovilidadReducida;
 
@@ -1133,7 +1328,6 @@ export default function Parqueaderos() {
       { tipo: "movilidad reducida", prefix: "MR", anterior: actual.celdasMovilidadReducida, nuevo: pqForm.celdasMovilidadReducida },
     ];
 
-    // Validar que las celdas a eliminar (por reducción) no estén ocupadas ni reservadas
     for (const t of tiposMap) {
       if (t.nuevo < t.anterior) {
         const delTipo = celdasPq.filter(c => c.tipo === t.tipo);
@@ -1144,7 +1338,6 @@ export default function Parqueaderos() {
       }
     }
 
-    // Aplicar cambios de celdas
     for (const t of tiposMap) {
       const delTipo = celdasPq.filter(c => c.tipo === t.tipo);
       if (t.nuevo < t.anterior) {
@@ -1182,7 +1375,6 @@ export default function Parqueaderos() {
     setOpenModal(null); setPqDeleteId(null);
   };
 
-  /** Busca un conductor existente por nombre (case-insensitive) o crea uno nuevo. */
   const resolverConductor = useCallback((nombre: string, tipo: Conductor["tipo"]): string => {
     const existente = conductores.find(c => c.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
     if (existente) return existente.id;
@@ -1192,7 +1384,6 @@ export default function Parqueaderos() {
     });
   }, [conductores, addConductor]);
 
-  /** Busca un vehículo existente por placa o crea uno nuevo. */
   const resolverVehiculo = useCallback((placa: string, conductorId: string, tipo: "carro" | "moto", parqueaderoId: string, celdaId: string, fechaEntrada: string): string => {
     const existente = vehiculos.find(v => v.placa === placa);
     if (existente) return existente.id;
@@ -1239,8 +1430,16 @@ export default function Parqueaderos() {
   const handleRequestLiberar = () => {
     if (!celdaActiva) return;
     const ocupante = getOcupante(celdaActiva.id);
-    if (ocupante) {
-      updateControlSalida(ocupante.controlId, { fechaSalida: new Date().toISOString().slice(0, 16), estado: "finalizado" });
+    if (ocupante && ocupante.controlId) {
+      updateControlSalida(ocupante.controlId, { 
+        fechaSalida: new Date().toISOString().slice(0, 16), 
+        estado: "finalizado" 
+      });
+    }
+    const vehiculoEnCelda = vehiculos.find(v => v.celdaId === celdaActiva.id);
+    if (vehiculoEnCelda) {
+      // Si tu DataContext permite actualizar vehículos, actualiza la celdaId
+      // updateVehiculo(vehiculoEnCelda.id, { celdaId: null });
     }
     updateCelda(celdaActiva.id, { estado: "disponible", ocupada: false });
     toast.info(`Celda ${celdaActiva.numero} liberada.`);
@@ -1309,6 +1508,36 @@ export default function Parqueaderos() {
     registrarEnCelda(celda, placa, conductorNombre, esOficial);
     setScannedPlate(undefined);
   };
+
+  /* ── REGISTRAR INCIDENTE (con evidencia) ── */
+  const registrarIncidente = useCallback(() => {
+    if (!celdaActiva || !ocupanteActivo) return;
+    const { descripcion, asignadoA, notasResolucion, evidencia } = incidenteForm;
+    if (!descripcion.trim()) {
+      setIncidenteError("La descripción del incidente es obligatoria.");
+      return;
+    }
+
+    const incidenteData = {
+      descripcion: descripcion.trim(),
+      parqueaderoId: celdaActiva.parqueaderoId,
+      celdaId: celdaActiva.id,
+      celdaNumero: celdaActiva.numero,
+      vehiculo: ocupanteActivo.vehiculo.placa,
+      conductor: ocupanteActivo.conductor?.nombre || "",
+      asignadoA: asignadoA.trim() || undefined,
+      notasResolucion: notasResolucion.trim() || undefined,
+      evidencia: evidencia || undefined,
+      fecha: new Date().toISOString(),
+      estado: "pendiente" as const,
+    };
+
+    addIncidente(incidenteData);
+    setIncidenteForm({ descripcion: "", asignadoA: "", notasResolucion: "", evidencia: "" });
+    setIncidenteError(null);
+    setOpenModal(null);
+    toast.success("Incidente registrado correctamente.");
+  }, [celdaActiva, ocupanteActivo, incidenteForm, addIncidente]);
 
   const activeFilters = [search, filterTipo !== "Todos" ? filterTipo : ""].filter(Boolean).length;
 
@@ -1421,6 +1650,27 @@ export default function Parqueaderos() {
             ))}
           </div>
 
+          {/* BOTÓN DE SINCRONIZACIÓN */}
+          <button 
+            onClick={sincronizarCeldasOcupadas}
+            style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 6, 
+              padding: "10px 14px", 
+              borderRadius: 11, 
+              border: `1px solid ${C.dangerBorder}`, 
+              background: C.dangerBg, 
+              color: C.danger, 
+              fontSize: 12, 
+              fontWeight: 700, 
+              cursor: "pointer", 
+              fontFamily: "inherit" 
+            }}
+          >
+            <Wrench size={14} /> Sincronizar Celdas
+          </button>
+
           {activeFilters > 0 && <button onClick={() => { setSearch(""); setFilterTipo("Todos"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", color: C.textLight, fontSize: 12, fontFamily: "inherit" }}><X size={14} />Limpiar</button>}
 
           <button onClick={() => setOpenModal("smartAssign")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
@@ -1463,7 +1713,7 @@ export default function Parqueaderos() {
 
       {/* ══ MODALES ══ */}
 
-      {/* Crear / Editar (comparten formulario) */}
+      {/* ── MODAL CREAR / EDITAR ── */}
       <Modal open={openModal === "create" || openModal === "edit"} onClose={() => setOpenModal(null)}>
         <ModalHeader eyebrow={openModal === "edit" ? "Editar Zona" : "Registro de Zona"} title={openModal === "edit" ? "Editar Parqueadero" : "Nuevo Parqueadero"} icon={openModal === "edit" ? <Pencil size={18} color={C.primary} /> : <Sparkles size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1504,7 +1754,7 @@ export default function Parqueaderos() {
         </div>
       </Modal>
 
-      {/* Registrar vehículo */}
+      {/* ── MODAL REGISTRAR VEHÍCULO ── */}
       <Modal open={openModal === "ingreso"} onClose={() => setOpenModal(null)}>
         <ModalHeader eyebrow={`Celda ${celdaActiva?.numero ?? ""}`} title="Registrar Vehículo" icon={<Car size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
@@ -1538,7 +1788,7 @@ export default function Parqueaderos() {
         </div>
       </Modal>
 
-      {/* Info celda */}
+      {/* ── MODAL INFO CELDA ── */}
       <Modal open={openModal === "info"} onClose={() => setOpenModal(null)} maxWidth={480}>
         <div style={{ background: `linear-gradient(135deg,${C.primary},${C.primaryDark})`, borderRadius: "24px 24px 0 0", padding: "1.6rem 1.8rem", color: "#fff", position: "relative", overflow: "hidden" }}>
           <div style={{ position: "absolute", width: 200, height: 200, borderRadius: "50%", background: "rgba(255,255,255,.07)", top: -80, right: -60 }} />
@@ -1548,8 +1798,8 @@ export default function Parqueaderos() {
           </div>
           <div style={{ marginTop: 14 }}>
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,.7)", textTransform: "uppercase" }}>Celda {celdaActiva?.numero}</div>
-            <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" ? ocupanteActivo?.vehiculo.placa : celdaActiva?.estado === "reservada" ? "Reservada" : "Celda Libre"}</h2>
-            {celdaActiva?.estado === "no_disponible" && <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>{ocupanteActivo?.conductor?.nombre || "—"}</p>}
+            <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" && ocupanteActivo ? ocupanteActivo.vehiculo.placa : celdaActiva?.estado === "reservada" ? "Reservada" : "Celda Libre"}</h2>
+            {celdaActiva?.estado === "no_disponible" && ocupanteActivo && <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>{ocupanteActivo.conductor?.nombre || "—"}</p>}
             <div style={{ marginTop: 10 }}>{celdaActiva && <EstadoBadge estado={celdaActiva.estado} />}</div>
           </div>
         </div>
@@ -1558,7 +1808,7 @@ export default function Parqueaderos() {
             <>
               <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada para uso institucional.</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={handleToggleReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Liberar</button>
+                <button onClick={handleToggleReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Liberar Reserva</button>
                 <button onClick={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: true }); setOpenModal("ingreso"); }} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
               </div>
             </>
@@ -1576,16 +1826,387 @@ export default function Parqueaderos() {
                 </div>
               ))}
               <div style={{ display: "flex", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>
-                <button onClick={handleToggleReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔒 Reservar</button>
-                <button onClick={handleRequestLiberar} style={{ flex: 2, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Liberar Celda</button>
+                <button onClick={handleRequestLiberar} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Liberar Celda</button>
+                <button 
+                  onClick={() => setOpenModal("incidente")}
+                  style={{ flex: 1, padding: "10px", borderRadius: 11, border: `2px solid ${C.primary}`, background: "transparent", color: C.primary, fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                >
+                  <AlertTriangle size={14} style={{ marginRight: 4 }} />
+                  Reportar Incidente
+                </button>
+              </div>
+            </>
+          ) : celdaActiva?.estado === "disponible" ? (
+            <>
+              <div style={{ padding: "12px 14px", borderRadius: 11, background: C.primaryPale, border: `1px solid ${C.primaryLight}`, fontSize: 12, color: C.primaryDark, fontWeight: 600 }}>
+                ✅ Celda disponible para estacionar.
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: false }); setOpenModal("ingreso"); }} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>Estacionar Vehículo</button>
+                <button 
+                  onClick={() => {
+                    if (celdaActiva) {
+                      openReservaFromCelda(celdaActiva);
+                      setOpenModal(null);
+                    }
+                  }} 
+                  style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
+                >
+                  📅 Reservar Celda
+                </button>
               </div>
             </>
           ) : null}
         </div>
       </Modal>
 
-      {/* Scanner OCR */}
-      <Modal open={openModal === "scanner"} onClose={cerrarScanner} maxWidth={560}>
+      {/* ── MODAL RESERVA ── */}
+      <Modal open={openModal === "reserva"} onClose={() => setOpenModal(null)} maxWidth={680}>
+        <div>
+          <div
+            style={{
+              padding: "1.4rem 1.8rem",
+              borderBottom: `1px solid ${C.border}`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div
+                style={{
+                  width: 38, height: 38, borderRadius: 10,
+                  background: "rgba(57,169,0,.1)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}
+              >
+                <Calendar size={18} color={C.primary} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+                  Reserva de celda
+                </div>
+                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>
+                  Reservar Celda {celdaActiva?.numero || ""}
+                </h2>
+              </div>
+            </div>
+            <button
+              onClick={() => setOpenModal(null)}
+              aria-label="Cerrar"
+              style={{
+                width: 34, height: 34, borderRadius: 9,
+                border: `1px solid ${C.border}`,
+                background: "#fff", cursor: "pointer", color: C.textLight,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
+            {reservaError && <Banner tone="danger" message={reservaError} />}
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label htmlFor="vehiculoReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Vehículo *
+                </label>
+                <select
+                  id="vehiculoReserva"
+                  value={reservaForm.vehiculoId}
+                  onChange={(e) => setReservaForm(prev => ({ ...prev, vehiculoId: e.target.value }))}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                >
+                  <option value="">Seleccionar vehículo...</option>
+                  {vehiculos.map(v => (
+                    <option key={v.id} value={v.id}>
+                      {v.placa} — {v.marca} {v.modelo}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="fechaReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Fecha de reserva *
+                </label>
+                <input
+                  id="fechaReserva"
+                  type="date"
+                  min={new Date().toISOString().split("T")[0]}
+                  value={reservaForm.fechaReserva}
+                  onChange={(e) => setReservaForm(prev => ({ ...prev, fechaReserva: e.target.value }))}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="horaInicioReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Hora de inicio *
+                </label>
+                <input
+                  id="horaInicioReserva"
+                  type="time"
+                  value={reservaForm.horaInicio}
+                  onChange={(e) => setReservaForm(prev => ({ ...prev, horaInicio: e.target.value }))}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="horaFinReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                  Hora de fin *
+                </label>
+                <input
+                  id="horaFinReserva"
+                  type="time"
+                  value={reservaForm.horaFin}
+                  onChange={(e) => setReservaForm(prev => ({ ...prev, horaFin: e.target.value }))}
+                  style={{
+                    width: "100%", padding: "11px 14px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                />
+              </div>
+
+              <div style={{ gridColumn: "1 / -1" }}>
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "10px 12px", borderRadius: 11,
+                  background: "#F8FAFC", border: `1px solid ${C.border}`,
+                }}>
+                  <MapPin size={14} color={C.primary} />
+                  <span style={{ fontSize: 12, color: C.text }}>
+                    Reservando para: <strong>Celda {celdaActiva?.numero}</strong> · 
+                    {parqueaderoActivo && ` ${parqueaderoActivo.nombre}`}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            style={{
+              padding: "1rem 1.8rem",
+              borderTop: `1px solid ${C.border}`,
+              display: "flex", gap: 10, justifyContent: "flex-end",
+            }}
+          >
+            <button
+              onClick={() => setOpenModal(null)}
+              style={{
+                padding: "10px 20px", borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: "#fff", color: C.text,
+                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleCrearReserva}
+              disabled={!reservaForm.vehiculoId || !reservaForm.fechaReserva || !reservaForm.horaInicio || !reservaForm.horaFin}
+              style={{
+                padding: "10px 24px", borderRadius: 12,
+                border: "none", 
+                background: reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin 
+                  ? C.primary 
+                  : "#E2E8F0",
+                color: reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin 
+                  ? "#fff" 
+                  : C.textLight,
+                fontSize: 13, fontWeight: 800, 
+                cursor: reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin 
+                  ? "pointer" 
+                  : "not-allowed",
+                fontFamily: "inherit",
+                boxShadow: reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin 
+                  ? "0 6px 18px rgba(57,169,0,.22)" 
+                  : undefined,
+              }}
+            >
+              📅 Crear Reserva
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── MODAL INCIDENTE (con evidencia) ── */}
+      <Modal open={openModal === "incidente"} onClose={() => setOpenModal(null)} maxWidth={520}>
+        <ModalHeader 
+          eyebrow={`Celda ${celdaActiva?.numero ?? ""} · ${ocupanteActivo?.vehiculo.placa || ""}`} 
+          title="Registrar Incidente" 
+          icon={<AlertTriangle size={18} color={C.primary} />}
+          onClose={() => setOpenModal(null)} 
+        />
+        <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
+          {incidenteError && <Banner tone="danger" message={incidenteError} />}
+          
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Descripción del incidente *</label>
+            <textarea
+              rows={3}
+              value={incidenteForm.descripcion}
+              onChange={(e) => setIncidenteForm(prev => ({ ...prev, descripcion: e.target.value }))}
+              placeholder="Describe el incidente o novedad en la celda..."
+              style={{
+                width: "100%",
+                padding: "11px 14px",
+                borderRadius: 11,
+                border: `1px solid ${C.border}`,
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: "#F8FAFC",
+                resize: "vertical",
+                minHeight: 80,
+                outline: "none",
+              }}
+            />
+          </div>
+          
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Asignar a (opcional)</label>
+            <input
+              type="text"
+              value={incidenteForm.asignadoA}
+              onChange={(e) => setIncidenteForm(prev => ({ ...prev, asignadoA: e.target.value }))}
+              placeholder="Nombre del responsable"
+              style={{
+                width: "100%",
+                padding: "11px 14px",
+                borderRadius: 11,
+                border: `1px solid ${C.border}`,
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: "#F8FAFC",
+                outline: "none",
+              }}
+            />
+          </div>
+          
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Notas de resolución (opcional)</label>
+            <textarea
+              rows={2}
+              value={incidenteForm.notasResolucion}
+              onChange={(e) => setIncidenteForm(prev => ({ ...prev, notasResolucion: e.target.value }))}
+              placeholder="¿Qué acciones se deben tomar o se tomaron?"
+              style={{
+                width: "100%",
+                padding: "11px 14px",
+                borderRadius: 11,
+                border: `1px solid ${C.border}`,
+                fontSize: 13,
+                fontFamily: "inherit",
+                background: "#F8FAFC",
+                resize: "vertical",
+                outline: "none",
+              }}
+            />
+          </div>
+
+          {/* Evidencia fotográfica */}
+          <div>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+              Evidencia fotográfica (opcional)
+            </label>
+            <div style={{
+              borderRadius: 11, border: `2px dashed ${C.border}`,
+              background: "#F8FAFC", overflow: "hidden",
+              transition: "border-color .2s",
+            }}>
+              <input
+                type="file"
+                id="evidenciaIncidente"
+                accept="image/*"
+                onChange={handleIncidenteFileChange}
+                style={{ display: "none" }}
+              />
+              {incidenteForm.evidencia ? (
+                <div style={{ padding: "12px", textAlign: "center", position: "relative" }}>
+                  <button
+                    onClick={removeIncidenteEvidencia}
+                    aria-label="Quitar evidencia"
+                    style={{
+                      position: "absolute", top: 8, right: 8,
+                      width: 24, height: 24, borderRadius: 7,
+                      border: "none", background: "rgba(15,23,42,.55)",
+                      color: "#fff", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <X size={13} />
+                  </button>
+                  <img
+                    src={incidenteForm.evidencia}
+                    alt="Evidencia del incidente"
+                    style={{ maxHeight: 120, margin: "0 auto", borderRadius: 8 }}
+                  />
+                  <p style={{ fontSize: 11, color: C.primary, marginTop: 8 }}>Evidencia cargada ✓</p>
+                </div>
+              ) : (
+                <label htmlFor="evidenciaIncidente" style={{ cursor: "pointer", display: "block" }}>
+                  <div style={{ padding: "16px", textAlign: "center" }}>
+                    <Upload size={32} color={C.textLight} style={{ margin: "0 auto 8px" }} />
+                    <p style={{ fontSize: 12, color: C.textLight }}>Toca para cargar imagen de evidencia</p>
+                    <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>Formatos: JPG, PNG, GIF</p>
+                  </div>
+                </label>
+              )}
+            </div>
+          </div>
+          
+          <div style={{ fontSize: 12, color: C.textLight, background: C.bg, padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}` }}>
+            <div style={{ fontWeight: 600, marginBottom: 4, color: C.text }}>Información automática:</div>
+            <div>Vehículo: <strong>{ocupanteActivo?.vehiculo.placa || "No registrado"}</strong></div>
+            <div>Conductor: <strong>{ocupanteActivo?.conductor?.nombre || "No registrado"}</strong></div>
+            <div>Parqueadero: <strong>{parqueaderoActivo?.nombre || "No registrado"}</strong></div>
+            <div>Celda: <strong>{celdaActiva?.numero || "No registrada"}</strong></div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}` }}>
+          <button onClick={() => { setOpenModal(null); setIncidenteError(null); setIncidenteForm(prev => ({ ...prev, evidencia: '' })); }} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
+          <button
+            onClick={registrarIncidente}
+            style={{
+              padding: "10px 24px",
+              borderRadius: 12,
+              border: "none",
+              background: incidenteForm.descripcion.trim() ? C.primary : "#E2E8F0",
+              color: incidenteForm.descripcion.trim() ? "#fff" : C.textLight,
+              fontSize: 13,
+              fontWeight: 800,
+              cursor: incidenteForm.descripcion.trim() ? "pointer" : "not-allowed",
+              fontFamily: "inherit",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              boxShadow: incidenteForm.descripcion.trim() ? "0 6px 18px rgba(57,169,0,.22)" : undefined,
+            }}
+          >
+            <FileText size={16} />
+            Registrar Incidente
+          </button>
+        </div>
+      </Modal>
+
+      {/* ── MODAL ESCÁNER OCR ── */}
+      <Modal open={openModal === "scanner"} onClose={cerrarScanner} maxWidth={440}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.4rem 1.8rem", borderBottom: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 38, height: 38, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center" }}><ScanLine size={18} color={C.primary} /></div>
@@ -1596,10 +2217,10 @@ export default function Parqueaderos() {
           </div>
           <button onClick={cerrarScanner} style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", color: C.textLight, display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} /></button>
         </div>
-        <div style={{ position: "relative", background: "#000", aspectRatio: "16/9", overflow: "hidden" }}>
+        <div style={{ position: "relative", background: "#000", aspectRatio: "4/3", maxHeight: 320, overflow: "hidden" }}>
           <video ref={videoRef} autoPlay playsInline muted onLoadedMetadata={() => setCamaraLista(true)} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-            <div style={{ width: "90%", maxWidth: 560, aspectRatio: "16/9", border: `3px solid ${C.primary}`, borderRadius: 12, boxShadow: `0 0 0 9999px rgba(15,23,42,.65)` }} />
+            <div style={{ width: "78%", maxWidth: 300, aspectRatio: "3/1", border: `3px solid ${C.primary}`, borderRadius: 10, boxShadow: `0 0 0 9999px rgba(15,23,42,.65)` }} />
           </div>
           {!camaraLista && !ocrError && <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "rgba(15,23,42,.9)", color: "#fff" }}><Loader2 size={28} color={C.primary} style={{ animation: "spin 1s linear infinite" }} /><span style={{ fontSize: 12, fontWeight: 700 }}>Iniciando cámara...</span></div>}
           {ocrLoading && <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,.85)", color: "#fff" }}><Loader2 size={28} color={C.primary} style={{ animation: "spin 1s linear infinite" }} /><span style={{ fontSize: 12, fontWeight: 700, marginTop: 8 }}>Analizando matrícula...</span></div>}
@@ -1630,8 +2251,11 @@ export default function Parqueaderos() {
         <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
       </Modal>
 
+      {/* ── SMART ASSIGN MODAL ── */}
       <SmartAssignModal open={openModal === "smartAssign"} parqueaderos={parqueaderos} celdas={celdas} onClose={() => { setOpenModal(null); setScannedPlate(undefined); setScannerOrigin(null); }} onAssign={handleSmartAssign} openScanner={() => { setScannerOrigin("smartAssign"); setOpenModal("scanner"); }} scannedPlate={scannedPlate} />
+
+      {/* ── CONFIRM DIALOGS ── */}
       <ConfirmDialog open={openModal === "confirmDelete"} onConfirm={handleDelete} onCancel={() => { setOpenModal(null); setPqDeleteId(null); }} title="Eliminar Parqueadero" message="¿Estás seguro de eliminar este parqueadero? Se perderán todas sus celdas y los registros de entrada/salida asociados." confirmLabel="Eliminar" />
     </>
   );
-} 
+}

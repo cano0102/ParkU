@@ -16,9 +16,10 @@ import {
   Clock,
   X,
   Trash2,
+  ParkingCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useData } from '../context/DataContext';
+import { useData, type Celda, type Incidente } from '../context/DataContext';
 
 /* ─── Paleta (misma que Roles) ─── */
 const C = {
@@ -35,21 +36,18 @@ const C = {
 
 const MAX_EVIDENCIA_MB = 5;
 
-/* ─── Tipo de estado ─── */
-type EstadoIncidente = 'resuelto' | 'pendiente';
-type Incidente = {
-  id: string;
-  descripcion: string;
-  parqueadero: string;
-  vehiculo?: string;
-  evidencia?: string;
-  fecha: string;
-  estado: EstadoIncidente;
-  asignadoA?: string;
-  notasResolucion?: string;
+/* ─── Config visual del estado de celda (mismo modelo que el módulo de Parqueaderos/Celdas) ─── */
+const CELDA_ESTADO_CONFIG: Record<Celda['estado'], { bg: string; text: string; border: string; label: string }> = {
+  disponible:    { bg: "#F0FBE8", text: "#2F6B00", border: "#A8D888", label: "Disponible" },
+  no_disponible: { bg: "#FEE2E2", text: "#991B1B", border: "#FCA5A5", label: "Ocupada" },
+  reservada:     { bg: "#FEF3C7", text: "#92400E", border: "#FDE68A", label: "Reservada" },
+  mantenimiento: { bg: "#F1F5F9", text: "#475569", border: "#CBD5E1", label: "Mantenimiento" },
 };
 
-/* ─── Configuración de estado ─── */
+/* ─── Tipo de estado del incidente ─── */
+type EstadoIncidente = 'resuelto' | 'pendiente';
+
+/* ─── Configuración de estado del incidente ─── */
 const ESTADO_CONFIG: Record<EstadoIncidente, {
   bg: string; text: string; border: string; dot: string; label: string; icon: React.ReactNode;
 }> = {
@@ -131,33 +129,26 @@ function EstadoBadgeInline({ estado }: { estado: EstadoIncidente }) {
   );
 }
 
+/* ─── Badge de celda inline (usa la paleta del módulo de Parqueaderos/Celdas) ─── */
+function CeldaBadgeInline({ numero, estado }: { numero: string; estado?: Celda['estado'] }) {
+  const cfg = estado ? CELDA_ESTADO_CONFIG[estado] : { bg: "#F1F5F9", text: C.textLight, border: C.border, label: "" };
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
+      background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}`,
+    }}>
+      <ParkingCircle size={10} />
+      Celda {numero}
+    </span>
+  );
+}
+
 /* ══════════════════════════════════════════════════════
    MAIN COMPONENT - Incidentes (estilo Roles)
 ══════════════════════════════════════════════════════ */
 export function Incidentes() {
-  const { parqueaderos, vehiculos } = useData();
-
-  // Estado local con datos de ejemplo (en producción vendrían de useData)
-  const [incidentes, setIncidentes] = useState<Incidente[]>([
-    {
-      id: '1',
-      descripcion: 'Vehículo mal estacionado bloqueando entrada',
-      parqueadero: 'Parqueadero Principal',
-      vehiculo: 'ABC123',
-      fecha: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-      estado: 'pendiente',
-      asignadoA: 'Juan Pérez',
-    },
-    {
-      id: '2',
-      descripcion: 'Derrame de aceite en celda B-15 con caida ',
-      parqueadero: 'Parqueadero Principal',
-      vehiculo: 'XYZ789',
-      fecha: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-      estado: 'pendiente',
-      asignadoA: "Brandon Alexis"
-    },
-  ]);
+  const { parqueaderos, celdas, vehiculos, conductores, incidentes, updateIncidente, deleteIncidente } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -169,12 +160,34 @@ export function Incidentes() {
 
   const [formData, setFormData] = useState({
     descripcion: '',
-    parqueadero: '',
+    parqueaderoId: '',
+    celdaId: '',
     vehiculo: '',
-    evidencia: '',
     asignadoA: '',
+    evidencia: '',
     notasResolucion: '',
   });
+
+  /* ─── Lookups rápidos hacia el módulo de Parqueaderos/Celdas ─── */
+  const parqueaderoPorId = useMemo(() => new Map(parqueaderos.map((p) => [p.id, p])), [parqueaderos]);
+  const celdaPorId = useMemo(() => new Map(celdas.map((c) => [c.id, c])), [celdas]);
+
+  const nombreParqueadero = (id: string) => parqueaderoPorId.get(id)?.nombre ?? '—';
+  const celdaDe = (id?: string) => (id ? celdaPorId.get(id) : undefined);
+
+  const ocupanteDeCelda = (celdaId?: string) => {
+    if (!celdaId) return null;
+    const veh = vehiculos.find((v) => v.celdaId === celdaId);
+    if (!veh) return null;
+    const cond = conductores.find((c) => c.id === veh.conductorId);
+    return { vehiculo: veh, conductorNombre: cond?.nombre };
+  };
+
+  const celdasDelParqueadero = useMemo(
+    () => celdas.filter((c) => c.parqueaderoId === formData.parqueaderoId),
+    [celdas, formData.parqueaderoId]
+  );
+  const ocupanteSeleccionado = ocupanteDeCelda(formData.celdaId);
 
   /* ─── Stats ──────────────────────────────────────────── */
   const pendientes = incidentes.filter(i => i.estado === 'pendiente').length;
@@ -183,7 +196,7 @@ export function Incidentes() {
 
   /* ─── Handlers ───────────────────────────────────────── */
   const resetForm = () => {
-    setFormData({ descripcion: '', parqueadero: '', vehiculo: '', evidencia: '', asignadoA: '', notasResolucion: '' });
+    setFormData({ descripcion: '', parqueaderoId: '', celdaId: '', vehiculo: '', asignadoA: '', evidencia: '', notasResolucion: '' });
     setIsEditing(false);
     setSelectedIncidente(null);
   };
@@ -197,10 +210,11 @@ export function Incidentes() {
     setSelectedIncidente(incidente);
     setFormData({
       descripcion: incidente.descripcion,
-      parqueadero: incidente.parqueadero,
+      parqueaderoId: incidente.parqueaderoId,
+      celdaId: incidente.celdaId || '',
       vehiculo: incidente.vehiculo || '',
-      evidencia: incidente.evidencia || '',
       asignadoA: incidente.asignadoA || '',
+      evidencia: incidente.evidencia || '',
       notasResolucion: incidente.notasResolucion || '',
     });
     setIsEditing(true);
@@ -208,31 +222,34 @@ export function Incidentes() {
     setDialogOpen(true);
   };
 
+  const handleParqueaderoChange = (parqueaderoId: string) => {
+    setFormData({ ...formData, parqueaderoId, celdaId: '' });
+  };
+
+  const handleCeldaChange = (celdaId: string) => {
+    const ocupante = ocupanteDeCelda(celdaId);
+    setFormData({
+      ...formData,
+      celdaId,
+      vehiculo: ocupante ? ocupante.vehiculo.placa : formData.vehiculo,
+    });
+  };
+
   const handleSave = () => {
-    if (!formData.descripcion || !formData.parqueadero) {
+    if (!formData.descripcion || !formData.parqueaderoId) {
       toast.error('Descripción y Parqueadero son obligatorios');
       return;
     }
 
     if (isEditing && selectedIncidente) {
-      setIncidentes(incidentes.map(inc =>
-        inc.id === selectedIncidente.id
-          ? { ...inc, ...formData, vehiculo: formData.vehiculo || undefined, notasResolucion: formData.notasResolucion || undefined }
-          : inc
-      ));
+      updateIncidente(selectedIncidente.id, {
+        ...formData,
+        celdaId: formData.celdaId || undefined,
+        vehiculo: formData.vehiculo || undefined,
+        notasResolucion: formData.notasResolucion || undefined,
+      });
       toast.success('Incidente actualizado correctamente');
     } else {
-      const nuevo: Incidente = {
-        id: Date.now().toString(),
-        ...formData,
-        vehiculo: formData.vehiculo || undefined,
-        evidencia: formData.evidencia || undefined,
-        asignadoA: formData.asignadoA || undefined,
-        notasResolucion: formData.notasResolucion || undefined,
-        fecha: new Date().toISOString(),
-        estado: 'pendiente',
-      };
-      setIncidentes([nuevo, ...incidentes]);
       toast.success('Incidente registrado correctamente');
     }
     setDialogOpen(false);
@@ -245,18 +262,19 @@ export function Incidentes() {
 
   const confirmDeleteAction = () => {
     if (!confirmDelete) return;
-    setIncidentes(incidentes.filter(i => i.id !== confirmDelete.id));
+    deleteIncidente(confirmDelete.id);
     toast.success('Incidente eliminado');
     setConfirmDelete(null);
   };
 
   const toggleEstado = (id: string) => {
-    setIncidentes(incidentes.map(inc =>
-      inc.id === id
-        ? { ...inc, estado: inc.estado === 'resuelto' ? 'pendiente' : 'resuelto' }
-        : inc
-    ));
-    toast.success('Estado del incidente actualizado');
+    const incidente = incidentes.find(i => i.id === id);
+    if (incidente) {
+      updateIncidente(id, {
+        estado: incidente.estado === 'resuelto' ? 'pendiente' : 'resuelto'
+      });
+      toast.success('Estado del incidente actualizado');
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -291,15 +309,18 @@ export function Incidentes() {
     incidentes
       .filter(inc => {
         const q = search.toLowerCase();
+        const pqNombre = nombreParqueadero(inc.parqueaderoId).toLowerCase();
+        const celdaNumero = celdaDe(inc.celdaId)?.numero.toLowerCase() ?? '';
         const matchesSearch =
           inc.descripcion.toLowerCase().includes(q) ||
-          inc.parqueadero.toLowerCase().includes(q) ||
+          pqNombre.includes(q) ||
+          celdaNumero.includes(q) ||
           (inc.vehiculo && inc.vehiculo.toLowerCase().includes(q));
         const matchesEstado = filterEstado === 'todos' ? true : inc.estado === filterEstado;
         return matchesSearch && matchesEstado;
       })
       .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()),
-    [incidentes, search, filterEstado]
+    [incidentes, search, filterEstado, parqueaderoPorId, celdaPorId]
   );
 
   const activeFiltersCount = [search, filterEstado !== 'todos' ? filterEstado : ''].filter(Boolean).length;
@@ -320,6 +341,7 @@ export function Incidentes() {
           border-color:${C.primary} !important;
           box-shadow:0 0 0 3px rgba(57,169,0,.12);
         }
+        select:disabled{ opacity:.55; cursor:not-allowed; }
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
@@ -384,7 +406,7 @@ export function Incidentes() {
             <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
             <input
               aria-label="Buscar incidente"
-              placeholder="Buscar incidente por descripción, parqueadero o placa..."
+              placeholder="Buscar por descripción, parqueadero, celda o placa..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               style={{
@@ -477,6 +499,7 @@ export function Incidentes() {
             {filteredIncidentes.map((incidente) => {
               const cfg = ESTADO_CONFIG[incidente.estado];
               const fecha = new Date(incidente.fecha);
+              const celdaObj = celdaDe(incidente.celdaId);
 
               return (
                 <div
@@ -488,10 +511,8 @@ export function Incidentes() {
                     boxShadow: "0 2px 8px rgba(15,23,42,.05)",
                   }}
                 >
-                  {/* stripe */}
                   <div style={{ height: 3, background: incidente.estado === 'resuelto' ? C.success : C.warning }} />
 
-                  {/* header */}
                   <div style={{ padding: "14px" }}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
                       <div
@@ -513,6 +534,9 @@ export function Incidentes() {
                         </p>
                         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                           <EstadoBadgeInline estado={incidente.estado} />
+                          {celdaObj && (
+                            <CeldaBadgeInline numero={celdaObj.numero} estado={celdaObj.estado} />
+                          )}
                           {incidente.evidencia && (
                             <span style={{
                               display: "inline-flex", alignItems: "center", gap: 4,
@@ -526,11 +550,13 @@ export function Incidentes() {
                       </div>
                     </div>
 
-                    {/* detalles */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
                         <MapPin size={12} color={C.textLight} />
-                        <span>{incidente.parqueadero}</span>
+                        <span>
+                          {nombreParqueadero(incidente.parqueaderoId)}
+                          {celdaObj && <> · Celda <strong>{celdaObj.numero}</strong></>}
+                        </span>
                       </div>
                       {incidente.vehiculo && (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
@@ -550,12 +576,10 @@ export function Incidentes() {
                       </div>
                     </div>
 
-                    {/* footer actions */}
                     <div style={{
                       borderTop: `1px solid ${C.border}`, paddingTop: 12,
                       display: "flex", justifyContent: "space-between", alignItems: "center",
                     }}>
-                      {/* switch estado */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <button
                           onClick={() => toggleEstado(incidente.id)}
@@ -637,7 +661,6 @@ export function Incidentes() {
       {/* ── MODAL CREAR / EDITAR ── */}
       <Modal open={dialogOpen} onClose={() => { setDialogOpen(false); resetForm(); }} maxWidth={640}>
         <div>
-          {/* Header */}
           <div
             style={{
               padding: "1.4rem 1.8rem",
@@ -680,10 +703,8 @@ export function Incidentes() {
             </button>
           </div>
 
-          {/* Body */}
           <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {/* Descripción */}
               <div>
                 <label htmlFor="descripcion" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Descripción *
@@ -702,29 +723,74 @@ export function Incidentes() {
                 />
               </div>
 
-              {/* Parqueadero */}
-              <div>
-                <label htmlFor="parqueadero" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Parqueadero *
-                </label>
-                <select
-                  id="parqueadero"
-                  value={formData.parqueadero}
-                  onChange={(e) => setFormData({ ...formData, parqueadero: e.target.value })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: "#F8FAFC",
-                  }}
-                >
-                  <option value="">Seleccionar parqueadero...</option>
-                  {parqueaderos.map((p) => (
-                    <option key={p.id} value={p.nombre}>{p.nombre}</option>
-                  ))}
-                </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label htmlFor="parqueadero" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                    Parqueadero *
+                  </label>
+                  <select
+                    id="parqueadero"
+                    value={formData.parqueaderoId}
+                    onChange={(e) => handleParqueaderoChange(e.target.value)}
+                    style={{
+                      width: "100%", padding: "11px 14px", borderRadius: 11,
+                      border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                      fontFamily: "inherit", background: "#F8FAFC",
+                    }}
+                  >
+                    <option value="">Seleccionar parqueadero...</option>
+                    {parqueaderos.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="celda" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                    Celda
+                  </label>
+                  <select
+                    id="celda"
+                    value={formData.celdaId}
+                    onChange={(e) => handleCeldaChange(e.target.value)}
+                    disabled={!formData.parqueaderoId || celdasDelParqueadero.length === 0}
+                    style={{
+                      width: "100%", padding: "11px 14px", borderRadius: 11,
+                      border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                      fontFamily: "inherit", background: "#F8FAFC",
+                    }}
+                  >
+                    <option value="">
+                      {formData.parqueaderoId ? "Sin celda específica" : "Elige un parqueadero primero"}
+                    </option>
+                    {celdasDelParqueadero.map((c) => {
+                      const ocupante = ocupanteDeCelda(c.id);
+                      return (
+                        <option key={c.id} value={c.id}>
+                          {c.numero} · {CELDA_ESTADO_CONFIG[c.estado].label}
+                          {ocupante ? ` (${ocupante.vehiculo.placa})` : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
 
-              {/* Vehículo */}
+              {formData.celdaId && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginTop: -8 }}>
+                  <CeldaBadgeInline
+                    numero={celdaDe(formData.celdaId)?.numero ?? ''}
+                    estado={celdaDe(formData.celdaId)?.estado}
+                  />
+                  {ocupanteSeleccionado && (
+                    <span style={{ fontSize: 11, color: C.textLight }}>
+                      Ocupada por <strong>{ocupanteSeleccionado.vehiculo.placa}</strong>
+                      {ocupanteSeleccionado.conductorNombre ? ` — ${ocupanteSeleccionado.conductorNombre}` : ''}
+                    </span>
+                  )}
+                </div>
+              )}
+
               <div>
                 <label htmlFor="vehiculo" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Vehículo (opcional)
@@ -746,9 +812,11 @@ export function Incidentes() {
                     </option>
                   ))}
                 </select>
+                <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
+                  Si seleccionas una celda ocupada, la placa se sugiere automáticamente.
+                </p>
               </div>
 
-              {/* Asignado a */}
               <div>
                 <label htmlFor="asignadoA" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Asignar a
@@ -767,7 +835,6 @@ export function Incidentes() {
                 />
               </div>
 
-              {/* Notas de resolución (solo si está editando un incidente resuelto, o si quiere dejarlas listas) */}
               {isEditing && selectedIncidente?.estado === 'resuelto' && (
                 <div>
                   <label htmlFor="notasResolucion" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
@@ -788,7 +855,6 @@ export function Incidentes() {
                 </div>
               )}
 
-              {/* Evidencia fotográfica */}
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                   Evidencia fotográfica
@@ -841,7 +907,6 @@ export function Incidentes() {
             </div>
           </div>
 
-          {/* Footer */}
           <div
             style={{
               padding: "1rem 1.8rem",
@@ -880,13 +945,14 @@ export function Incidentes() {
         {selectedIncidente && (() => {
           const cfg = ESTADO_CONFIG[selectedIncidente.estado];
           const fecha = new Date(selectedIncidente.fecha);
+          const celdaObj = celdaDe(selectedIncidente.celdaId);
 
           return (
             <div>
               <div
                 style={{
                   padding: "1.6rem 1.8rem 1.4rem",
-                  background: `linear-gradient(135deg, ${selectedIncidente.estado === 'resuelto' ? C.success : C.warning}, ${selectedIncidente.estado === 'resuelto' ? C.success : C.warning}cc)`,
+                  background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
                   color: "#fff",
                   borderRadius: "24px 24px 0 0",
                   position: "relative",
@@ -928,7 +994,7 @@ export function Incidentes() {
                   <h2 style={{ marginTop: 12, fontSize: 18, fontWeight: 800, lineHeight: 1.3 }}>
                     {selectedIncidente.descripcion}
                   </h2>
-                  <div style={{ marginTop: 10 }}>
+                  <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
                     <span style={{
                       display: "inline-flex", alignItems: "center", gap: 6,
                       padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
@@ -937,13 +1003,25 @@ export function Incidentes() {
                       <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />
                       {cfg.label}
                     </span>
+                    {celdaObj && (
+                      <span style={{
+                        display: "inline-flex", alignItems: "center", gap: 6,
+                        padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                        background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+                      }}>
+                        <ParkingCircle size={11} /> Celda {celdaObj.numero}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
               <div style={{ padding: "1.4rem 1.8rem" }}>
                 {[
-                  { label: "Parqueadero", value: selectedIncidente.parqueadero, icon: MapPin },
+                  { label: "Parqueadero", value: nombreParqueadero(selectedIncidente.parqueaderoId), icon: MapPin },
+                  ...(celdaObj
+                    ? [{ label: "Celda", value: `${celdaObj.numero} · ${CELDA_ESTADO_CONFIG[celdaObj.estado].label} actualmente`, icon: ParkingCircle }]
+                    : []),
                   { label: "Fecha y hora", value: fecha.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }), icon: Clock },
                   ...(selectedIncidente.vehiculo ? [{ label: "Vehículo", value: selectedIncidente.vehiculo, icon: Car }] : []),
                   ...(selectedIncidente.asignadoA ? [{ label: "Asignado a", value: selectedIncidente.asignadoA, icon: User }] : []),
