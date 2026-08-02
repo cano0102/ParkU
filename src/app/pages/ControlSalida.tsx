@@ -253,7 +253,7 @@ export function ControlSalidaPage() {
     updateControlSalida,
     vehiculos,
     celdas,
-    updateCelda, // 👈 NECESARIO para sincronizar el estado de la celda con Parqueaderos
+    updateCelda,
     conductores,
     usuarios,
     parqueaderos,
@@ -265,6 +265,9 @@ export function ControlSalidaPage() {
   const [filterEstado, setFilterEstado] = useState<'todos' | 'en_parqueadero' | 'finalizado'>('todos');
   const [formData, setFormData] = useState<FormState>(emptyForm());
   const [salidaPendiente, setSalidaPendiente] = useState<string | null>(null);
+
+  // 🔍 Estado para la búsqueda de vehículos en el formulario
+  const [vehicleSearch, setVehicleSearch] = useState('');
 
   const getVehiculo = useCallback((vehiculoId: string) => vehiculos.find((v) => v.id === vehiculoId), [vehiculos]);
   const getCelda = useCallback((celdaId: string) => celdas.find((c) => c.id === celdaId), [celdas]);
@@ -288,10 +291,43 @@ export function ControlSalidaPage() {
     [conductores, usuarios, getConductorVehiculo]
   );
 
+  // Celdas disponibles (sin filtrar por tipo)
   const celdasDisponibles = useMemo(
     () => celdas.filter((c) => c.estado === 'disponible'),
     [celdas]
   );
+
+  // 🚗 Filtro de vehículos según búsqueda (placa, marca, modelo)
+  const filteredVehiculos = useMemo(() => {
+    const q = vehicleSearch.toLowerCase().trim();
+    if (!q) return vehiculos;
+    return vehiculos.filter(
+      (v) =>
+        v.placa.toLowerCase().includes(q) ||
+        v.marca.toLowerCase().includes(q) ||
+        v.modelo.toLowerCase().includes(q)
+    );
+  }, [vehiculos, vehicleSearch]);
+
+  // 🏷️ Seleccionar el vehículo actual para obtener su tipo
+  const selectedVehicle = useMemo(
+    () => (formData.vehiculoId ? getVehiculo(formData.vehiculoId) : null),
+    [formData.vehiculoId, getVehiculo]
+  );
+
+  // 🚧 Filtrar celdas disponibles según el tipo del vehículo seleccionado
+  const celdasDisponiblesFiltradas = useMemo(() => {
+    if (!selectedVehicle) {
+      // Si no hay vehículo seleccionado, mostramos todas las disponibles
+      return celdasDisponibles;
+    }
+    const tipoVehiculo = (selectedVehicle as any).tipo; // asumimos que existe 'tipo'
+    if (!tipoVehiculo) {
+      // Si el vehículo no tiene tipo, mostramos todas
+      return celdasDisponibles;
+    }
+    return celdasDisponibles.filter((c) => c.tipo === tipoVehiculo);
+  }, [selectedVehicle, celdasDisponibles]);
 
   const vehiculosEnParqueadero = useMemo(
     () => controlesSalida.filter((c) => c.estado === 'en_parqueadero'),
@@ -326,6 +362,7 @@ export function ControlSalidaPage() {
 
   const openCreate = useCallback(() => {
     setFormData(emptyForm());
+    setVehicleSearch(''); // Limpiar búsqueda al abrir
     setDialogOpen(true);
   }, []);
 
@@ -353,10 +390,16 @@ export function ControlSalidaPage() {
       return;
     }
 
+    // Validación extra por tipo (por si acaso)
+    const vehiculo = getVehiculo(formData.vehiculoId);
+    const celda = getCelda(formData.celdaId);
+    if (vehiculo && celda && (vehiculo as any).tipo && celda.tipo !== (vehiculo as any).tipo) {
+      toast.error(`El tipo de vehículo (${(vehiculo as any).tipo}) no coincide con el tipo de celda (${celda.tipo})`);
+      return;
+    }
+
     try {
       addControlSalida(formData);
-      // 👇 Sincroniza la celda: al registrar la entrada, queda ocupada
-      // y así se refleja de inmediato en el mapa/tabla de Parqueaderos.
       updateCelda(formData.celdaId, { estado: 'no_disponible', ocupada: true });
       toast.success('Entrada registrada exitosamente');
       setDialogOpen(false);
@@ -364,13 +407,12 @@ export function ControlSalidaPage() {
       toast.error('Error al registrar la entrada');
       console.error('Error saving entry:', error);
     }
-  }, [formData, addControlSalida, updateCelda, vehiculosEnParqueadero]);
+  }, [formData, addControlSalida, updateCelda, vehiculosEnParqueadero, getVehiculo, getCelda]);
 
   const handleRegistrarSalida = useCallback(() => {
     if (!salidaPendiente) return;
     try {
       const now = new Date().toISOString().slice(0, 16);
-      // Buscamos el control ANTES de actualizarlo, para saber qué celda liberar
       const control = controlesSalida.find((c) => c.id === salidaPendiente);
 
       updateControlSalida(salidaPendiente, {
@@ -378,8 +420,6 @@ export function ControlSalidaPage() {
         estado: 'finalizado',
       });
 
-      // 👇 Sincroniza la celda: al registrar la salida, vuelve a estar disponible
-      // y así se refleja de inmediato en el mapa/tabla de Parqueaderos.
       if (control) {
         updateCelda(control.celdaId, { estado: 'disponible', ocupada: false });
       }
@@ -1125,6 +1165,7 @@ export function ControlSalidaPage() {
 
           <div style={{ padding: '1.4rem 1.8rem' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* 🚗 Vehículo con input de búsqueda */}
               <div>
                 <label
                   style={{
@@ -1137,9 +1178,42 @@ export function ControlSalidaPage() {
                 >
                   Vehículo *
                 </label>
+                {/* Input para filtrar la lista */}
+                <div style={{ position: 'relative', marginBottom: 6 }}>
+                  <Search
+                    size={14}
+                    style={{
+                      position: 'absolute',
+                      left: 12,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: COLORS.textLight,
+                    }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Buscar vehículo por placa, marca o modelo..."
+                    value={vehicleSearch}
+                    onChange={(e) => setVehicleSearch(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px 9px 36px',
+                      borderRadius: 11,
+                      border: `1px solid ${COLORS.border}`,
+                      fontSize: 13,
+                      background: '#F8FAFC',
+                      fontFamily: 'inherit',
+                      outline: 'none',
+                    }}
+                  />
+                </div>
                 <select
                   value={formData.vehiculoId}
-                  onChange={(e) => setFormData({ ...formData, vehiculoId: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, vehiculoId: e.target.value });
+                    // Al cambiar vehículo, limpiar la celda seleccionada porque puede quedar inválida
+                    setFormData((prev) => ({ ...prev, celdaId: '' }));
+                  }}
                   style={{
                     width: '100%',
                     padding: '11px 14px',
@@ -1153,13 +1227,14 @@ export function ControlSalidaPage() {
                   required
                 >
                   <option value="">Seleccionar vehículo...</option>
-                  {vehiculos.map((v) => {
+                  {filteredVehiculos.map((v) => {
                     const conductor = conductores.find((c) => c.id === v.conductorId);
                     const usuario = conductor ? usuarios.find((u) => u.id === conductor.usuarioId) : null;
                     const enParqueadero = vehiculosEnParqueadero.some((c) => c.vehiculoId === v.id);
+                    const tipo = (v as any).tipo ? ` [${(v as any).tipo}]` : '';
                     return (
                       <option key={v.id} value={v.id}>
-                        {v.placa} — {v.marca} {v.modelo} ({usuario?.nombre || 'Sin conductor'})
+                        {v.placa} — {v.marca} {v.modelo}{tipo} ({usuario?.nombre || 'Sin conductor'})
                         {enParqueadero ? ' ⚠️ Ya en parqueadero' : ''}
                       </option>
                     );
@@ -1171,8 +1246,14 @@ export function ControlSalidaPage() {
                       ⚠️ Este vehículo ya se encuentra en el parqueadero
                     </p>
                   )}
+                {vehicleSearch && filteredVehiculos.length === 0 && (
+                  <p style={{ fontSize: 10, color: COLORS.warning, marginTop: 4 }}>
+                    No se encontraron vehículos con ese criterio.
+                  </p>
+                )}
               </div>
 
+              {/* 🅿️ Celda con validación por tipo */}
               <div>
                 <label
                   style={{
@@ -1201,18 +1282,33 @@ export function ControlSalidaPage() {
                   required
                 >
                   <option value="">Seleccionar celda...</option>
-                  {celdasDisponibles.map((c) => {
+                  {celdasDisponiblesFiltradas.map((c) => {
                     const parq = parqueaderos.find((p) => p.id === c.parqueaderoId);
+                    const tipoLabel = c.tipo ? ` (${c.tipo})` : '';
                     return (
                       <option key={c.id} value={c.id}>
-                        {c.numero} — {parq?.nombre || 'Sin parqueadero'} ({c.tipo})
+                        {c.numero} — {parq?.nombre || 'Sin parqueadero'}{tipoLabel}
                       </option>
                     );
                   })}
                 </select>
-                {celdasDisponibles.length === 0 && (
+                {selectedVehicle && (selectedVehicle as any).tipo && (
+                  <>
+                    {celdasDisponiblesFiltradas.length === 0 ? (
+                      <p style={{ fontSize: 10, color: COLORS.danger, marginTop: 4 }}>
+                        ⚠️ No hay celdas disponibles del tipo <strong>{(selectedVehicle as any).tipo}</strong>.
+                        Por favor libera una celda compatible o selecciona otro vehículo.
+                      </p>
+                    ) : (
+                      <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 4 }}>
+                        Mostrando solo celdas de tipo <strong>{(selectedVehicle as any).tipo}</strong>.
+                      </p>
+                    )}
+                  </>
+                )}
+                {!selectedVehicle && celdasDisponibles.length === 0 && (
                   <p style={{ fontSize: 10, color: COLORS.danger, marginTop: 4 }}>
-                    ⚠️ No hay celdas disponibles. Por favor libera alguna celda primero.
+                    ⚠️ No hay celdas disponibles en el sistema.
                   </p>
                 )}
               </div>
@@ -1281,7 +1377,10 @@ export function ControlSalidaPage() {
               disabled={
                 !formData.vehiculoId ||
                 !formData.celdaId ||
-                vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId)
+                vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) ||
+                (selectedVehicle &&
+                  (selectedVehicle as any).tipo &&
+                  !celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
               }
               style={{
                 padding: '10px 24px',
@@ -1290,13 +1389,15 @@ export function ControlSalidaPage() {
                 background:
                   formData.vehiculoId &&
                   formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId)
+                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
+                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
                     ? COLORS.primary
                     : COLORS.border,
                 color:
                   formData.vehiculoId &&
                   formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId)
+                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
+                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
                     ? '#fff'
                     : COLORS.textLight,
                 fontSize: 13,
@@ -1304,14 +1405,16 @@ export function ControlSalidaPage() {
                 cursor:
                   formData.vehiculoId &&
                   formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId)
+                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
+                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
                     ? 'pointer'
                     : 'default',
                 fontFamily: 'inherit',
                 boxShadow:
                   formData.vehiculoId &&
                   formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId)
+                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
+                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
                     ? '0 6px 18px rgba(57,169,0,.22)'
                     : 'none',
                 flex: '1 1 auto',

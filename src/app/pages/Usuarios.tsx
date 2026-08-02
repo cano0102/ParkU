@@ -51,6 +51,16 @@ const sanitizeText = (text: string): string => {
   return element.innerHTML;
 };
 
+// ----------------------------------------------
+// 🔧 REGLAS DE VALIDACIÓN (correcciones)
+// ----------------------------------------------
+const NOMBRE_MIN = 3;
+const NOMBRE_MAX = 100;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 64;
+const TELEFONO_REGEX = /^[0-9()+\-\s]{7,15}$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 interface ModalProps {
   open: boolean;
   onClose: () => void;
@@ -134,9 +144,10 @@ interface FieldProps {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  error?: string;
 }
 
-const Field = memo(({ label, children, hint }: FieldProps) => {
+const Field = memo(({ label, children, hint, error }: FieldProps) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -144,6 +155,9 @@ const Field = memo(({ label, children, hint }: FieldProps) => {
         {hint && <span style={{ fontSize: 10, color: COLORS.textLight }}>{hint}</span>}
       </div>
       {children}
+      {error && (
+        <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626" }}>{error}</span>
+      )}
     </div>
   );
 });
@@ -160,6 +174,10 @@ const inputStyle: React.CSSProperties = {
   fontFamily: "inherit",
   background: COLORS.bg,
   color: COLORS.text,
+};
+
+const inputErrorStyle: React.CSSProperties = {
+  borderColor: "#DC2626",
 };
 
 const inputIconStyle: React.CSSProperties = {
@@ -244,7 +262,7 @@ interface FormState {
 interface UsuarioFormProps {
   initial: FormState;
   title: string;
-  roles: { id: string; nombre: string }[];
+  roles: { id: string; nombre: string; estado?: "activo" | "inactivo" }[];
   onSave: (data: FormState) => void;
   onCancel: () => void;
 }
@@ -253,14 +271,30 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
   const [form, setForm] = useState<FormState>(initial);
   const [showPass, setShowPass] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const isEdit = title.startsWith("Editar");
 
   useEffect(() => {
     setForm(initial);
+    setErrors({});
   }, [initial]);
+
+  // Solo se muestran roles activos en el selector (corrección: no mostrar roles desactivados)
+  const rolesDisponibles = useMemo(
+    () => roles.filter((r) => r.estado !== "inactivo"),
+    [roles]
+  );
 
   const set = useCallback((k: keyof FormState, v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
+    setErrors((e) => ({ ...e, [k]: undefined }));
+  }, []);
+
+  // Teléfono: solo permite dígitos, espacios, paréntesis, guiones y "+"
+  const setTelefono = useCallback((raw: string) => {
+    const filtrado = raw.replace(/[^0-9()+\-\s]/g, "");
+    setForm((f) => ({ ...f, numero: filtrado }));
+    setErrors((e) => ({ ...e, numero: undefined }));
   }, []);
 
   // Maneja los datos obtenidos del QR
@@ -269,7 +303,7 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
     const identificacion = data.numeroDocumento ?? data.identificacion ?? data.documento ?? "";
     const nombreCompleto = data.nombreCompleto ?? data.nombres + " " + data.apellidos ?? data.nombre ?? "";
     const correo = data.correo ?? data.email ?? "";
-    const telefono = data.telefono ?? data.celular ?? data.numero ?? "";
+    const telefonoCrudo = (data.telefono ?? data.celular ?? data.numero ?? "").toString();
     const tipoDoc = data.tipoDocumento ?? "CC";
 
     setForm((prev) => ({
@@ -277,39 +311,77 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
       identificacion: identificacion.toString(),
       nombre: nombreCompleto.toString(),
       correo: correo.toString(),
-      numero: telefono.toString(),
+      numero: telefonoCrudo.replace(/[^0-9()+\-\s]/g, ""),
       tipoDocumento: tipoDoc.toString(),
     }));
     toast.success("Datos de la cédula cargados correctamente");
   }, []);
 
+  const validate = useCallback((f: FormState) => {
+    const nextErrors: Partial<Record<keyof FormState, string>> = {};
+    const nombre = f.nombre.trim();
+    const correo = f.correo.trim();
+    const numero = f.numero.trim();
+
+    // Nombre completo: longitud mínima y máxima
+    if (!nombre) {
+      nextErrors.nombre = "El nombre es obligatorio";
+    } else if (nombre.length < NOMBRE_MIN) {
+      nextErrors.nombre = `El nombre debe tener al menos ${NOMBRE_MIN} caracteres`;
+    } else if (nombre.length > NOMBRE_MAX) {
+      nextErrors.nombre = `El nombre no puede superar ${NOMBRE_MAX} caracteres`;
+    }
+
+    // Correo: formato válido
+    if (!correo) {
+      nextErrors.correo = "El correo es obligatorio";
+    } else if (!EMAIL_REGEX.test(correo)) {
+      nextErrors.correo = "Ingresa un correo electrónico válido";
+    }
+
+    // Teléfono: solo números (y separadores comunes), longitud razonable
+    if (numero && !TELEFONO_REGEX.test(numero)) {
+      nextErrors.numero = "El teléfono solo debe contener números (7 a 15 dígitos)";
+    }
+
+    // Rol obligatorio
+    if (!f.rol) {
+      nextErrors.rol = "Debe seleccionar un rol";
+    }
+
+    // Contraseña: obligatoria al crear; si se escribe (crear o editar), validar longitud
+    if (!isEdit && !f.password) {
+      nextErrors.password = "La contraseña es obligatoria";
+    } else if (f.password && (f.password.length < PASSWORD_MIN || f.password.length > PASSWORD_MAX)) {
+      nextErrors.password = `La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`;
+    }
+
+    return nextErrors;
+  }, [isEdit]);
+
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+
+      const nextErrors = validate(form);
+      if (Object.keys(nextErrors).length > 0) {
+        setErrors(nextErrors);
+        toast.error("Revisa los campos marcados en rojo");
+        return;
+      }
+
       const sanitizedNombre = sanitizeText(form.nombre.trim());
-      const sanitizedCorreo = sanitizeText(form.correo.trim());
-      if (!sanitizedNombre) {
-        toast.error("El nombre es obligatorio");
-        return;
-      }
-      if (!sanitizedCorreo) {
-        toast.error("El correo es obligatorio");
-        return;
-      }
-      if (!form.rol) {
-        toast.error("Debe seleccionar un rol");
-        return;
-      }
-      onSave({ ...form, nombre: sanitizedNombre, correo: sanitizedCorreo });
+      const sanitizedCorreo = sanitizeText(form.correo.trim().toLowerCase());
+      onSave({ ...form, nombre: sanitizedNombre, correo: sanitizedCorreo, numero: form.numero.trim() });
     },
-    [form, onSave]
+    [form, onSave, validate]
   );
 
   const iconColor = COLORS.textLight;
 
   return (
     <>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <div
           style={{
             padding: "1.4rem 1.8rem 1.2rem",
@@ -426,7 +498,7 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
                   <input
                     placeholder="ej. 1001234567"
                     value={form.identificacion}
-                    onChange={(e) => set("identificacion", e.target.value)}
+                    onChange={(e) => set("identificacion", e.target.value.replace(/[^0-9A-Za-z]/g, ""))}
                     style={{ ...inputIconStyle, paddingRight: 40 }}
                   />
                   <button
@@ -485,16 +557,17 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
               </p>
             </div>
             <div style={{ padding: "1rem 1.2rem", display: "flex", flexDirection: "column", gap: 10 }}>
-              <Field label="Nombre completo">
+              <Field label="Nombre completo" hint={`${form.nombre.trim().length}/${NOMBRE_MAX}`} error={errors.nombre}>
                 <input
                   placeholder="ej. María García López"
                   value={form.nombre}
+                  maxLength={NOMBRE_MAX}
                   onChange={(e) => set("nombre", e.target.value)}
-                  style={inputStyle}
+                  style={errors.nombre ? { ...inputStyle, ...inputErrorStyle } : inputStyle}
                 />
               </Field>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <Field label="Correo electrónico">
+                <Field label="Correo electrónico" error={errors.correo}>
                   <div style={{ position: "relative" }}>
                     <Mail
                       size={14}
@@ -511,11 +584,11 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
                       placeholder="correo@sena.edu.co"
                       value={form.correo}
                       onChange={(e) => set("correo", e.target.value)}
-                      style={inputIconStyle}
+                      style={errors.correo ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
                     />
                   </div>
                 </Field>
-                <Field label="Teléfono">
+                <Field label="Teléfono" error={errors.numero}>
                   <div style={{ position: "relative" }}>
                     <Phone
                       size={14}
@@ -528,10 +601,13 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
                       }}
                     />
                     <input
+                      type="tel"
+                      inputMode="numeric"
                       placeholder="300 000 0000"
                       value={form.numero}
-                      onChange={(e) => set("numero", e.target.value)}
-                      style={inputIconStyle}
+                      maxLength={15}
+                      onChange={(e) => setTelefono(e.target.value)}
+                      style={errors.numero ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
                     />
                   </div>
                 </Field>
@@ -566,7 +642,11 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
               </p>
             </div>
             <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Field label="Contraseña" hint={isEdit ? "vacío = sin cambios" : undefined}>
+              <Field
+                label="Contraseña"
+                hint={isEdit ? "vacío = sin cambios" : `mín. ${PASSWORD_MIN} caracteres`}
+                error={errors.password}
+              >
                 <div style={{ position: "relative" }}>
                   <KeyRound
                     size={14}
@@ -582,8 +662,13 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
                     type={showPass ? "text" : "password"}
                     placeholder="••••••••"
                     value={form.password}
+                    maxLength={PASSWORD_MAX}
                     onChange={(e) => set("password", e.target.value)}
-                    style={{ ...inputIconStyle, paddingRight: 38 }}
+                    style={
+                      errors.password
+                        ? { ...inputIconStyle, ...inputErrorStyle, paddingRight: 38 }
+                        : { ...inputIconStyle, paddingRight: 38 }
+                    }
                   />
                   <button
                     type="button"
@@ -607,14 +692,18 @@ const UsuarioForm = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFo
                 </div>
               </Field>
 
-              <Field label="Rol del sistema">
+              <Field label="Rol del sistema" error={errors.rol}>
                 <select
                   value={form.rol}
                   onChange={(e) => set("rol", e.target.value)}
-                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+                  style={
+                    errors.rol
+                      ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" }
+                      : { ...inputStyle, appearance: "none", cursor: "pointer" }
+                  }
                 >
                   <option value="">Seleccionar rol…</option>
-                  {roles.map((r) => (
+                  {rolesDisponibles.map((r) => (
                     <option key={r.id} value={r.nombre}>
                       {r.nombre}
                     </option>
@@ -961,9 +1050,34 @@ export default function Usuarios() {
     setConfirmOpen(true);
   }, []);
 
+  // Corrección: evita registrar dos usuarios iguales (mismo correo o misma identificación)
+  const encontrarDuplicado = useCallback(
+    (data: FormState, excludeId?: string) => {
+      const correoNuevo = data.correo.trim().toLowerCase();
+      const idNuevo = data.identificacion.trim();
+      return usuarios.find(
+        (u) =>
+          u.id !== excludeId &&
+          (u.correo.trim().toLowerCase() === correoNuevo ||
+            (idNuevo && u.identificacion.trim() === idNuevo))
+      );
+    },
+    [usuarios]
+  );
+
   const handleSave = useCallback(
     (data: FormState) => {
       try {
+        const duplicado = encontrarDuplicado(data, editingUsuario?.id);
+        if (duplicado) {
+          const motivo =
+            duplicado.correo.trim().toLowerCase() === data.correo.trim().toLowerCase()
+              ? "Ya existe un usuario registrado con ese correo"
+              : "Ya existe un usuario registrado con ese número de identificación";
+          toast.error(motivo);
+          return;
+        }
+
         if (editingUsuario) {
           updateUsuario(editingUsuario.id, data);
           toast.success("Usuario actualizado correctamente");
@@ -977,7 +1091,7 @@ export default function Usuarios() {
         console.error("Error saving user:", error);
       }
     },
-    [editingUsuario, addUsuario, updateUsuario]
+    [editingUsuario, addUsuario, updateUsuario, encontrarDuplicado]
   );
 
   const handleDelete = useCallback(() => {

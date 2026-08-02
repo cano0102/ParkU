@@ -204,14 +204,30 @@ interface RolFormProps {
   onCancel: () => void;
   title: string;
   isEditing?: boolean;
+  existingRoles: Rol[];
+  editingRolId?: string | null;
 }
 
-const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false }: RolFormProps) => {
+const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, existingRoles, editingRolId = null }: RolFormProps) => {
   const [form, setForm] = useState<FormState>(initial);
+  const [nombreError, setNombreError] = useState<string>("");
 
   useEffect(() => {
     setForm(initial);
+    setNombreError("");
   }, [initial]);
+
+  const handleNombreChange = useCallback(
+    (value: string) => {
+      setForm((f) => ({ ...f, nombre: value }));
+      const trimmed = value.trim().toLowerCase();
+      const duplicado = existingRoles.some(
+        (r) => r.id !== editingRolId && r.nombre.trim().toLowerCase() === trimmed
+      );
+      setNombreError(trimmed && duplicado ? "Ya existe un rol con este nombre" : "");
+    },
+    [existingRoles, editingRolId]
+  );
 
   const handleTogglePermiso = useCallback((k: keyof PermisosState) => {
     setForm((f) => ({
@@ -232,14 +248,23 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false }: R
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      const sanitizedName = sanitizeText(form.nombre.trim());
-      if (!sanitizedName) {
+      const rawName = form.nombre.trim();
+      if (!rawName) {
         toast.error("El nombre es obligatorio");
         return;
       }
+      const duplicado = existingRoles.some(
+        (r) => r.id !== editingRolId && r.nombre.trim().toLowerCase() === rawName.toLowerCase()
+      );
+      if (duplicado) {
+        setNombreError("Ya existe un rol con este nombre");
+        toast.error("Ya existe un rol con este nombre");
+        return;
+      }
+      const sanitizedName = sanitizeText(rawName);
       onSave({ ...form, nombre: sanitizedName });
     },
-    [form, onSave]
+    [form, onSave, existingRoles, editingRolId]
   );
 
   const activeCount = useMemo(() => countActive(form.permisos), [form.permisos]);
@@ -334,12 +359,12 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false }: R
                 type="text"
                 placeholder="ej. Operador de turno"
                 value={form.nombre}
-                onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                onChange={(e) => handleNombreChange(e.target.value)}
                 style={{
                   width: "100%",
                   padding: "11px 14px",
                   borderRadius: 11,
-                  border: `1px solid ${COLORS.border}`,
+                  border: `1px solid ${nombreError ? "#EF4444" : COLORS.border}`,
                   fontSize: 13,
                   outline: "none",
                   fontFamily: "inherit",
@@ -347,7 +372,17 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false }: R
                 }}
                 required
                 aria-required="true"
+                aria-invalid={!!nombreError}
+                aria-describedby={nombreError ? "role-name-error" : undefined}
               />
+              {nombreError && (
+                <p
+                  id="role-name-error"
+                  style={{ marginTop: 5, fontSize: 11, fontWeight: 700, color: "#EF4444" }}
+                >
+                  {nombreError}
+                </p>
+              )}
             </div>
 
             {isEditing && (
@@ -985,11 +1020,13 @@ const RoleCard = memo(
     onView,
     onEdit,
     onDelete,
+    onToggleEstado,
   }: {
     rol: Rol;
     onView: (rol: Rol) => void;
     onEdit: (rol: Rol) => void;
     onDelete: (rol: Rol) => void;
+    onToggleEstado: (rol: Rol) => void;
   }) => {
     const activeCount = useMemo(() => countActive(rol.permisos), [rol.permisos]);
     const total = useMemo(() => Object.keys(rol.permisos).length, [rol.permisos]);
@@ -1017,6 +1054,13 @@ const RoleCard = memo(
     const handleView = useCallback(() => onView(rol), [onView, rol]);
     const handleEdit = useCallback(() => onEdit(rol), [onEdit, rol]);
     const handleDelete = useCallback(() => onDelete(rol), [onDelete, rol]);
+    const handleToggleEstado = useCallback(
+      (e: React.MouseEvent) => {
+        e.stopPropagation();
+        onToggleEstado(rol);
+      },
+      [onToggleEstado, rol]
+    );
 
     return (
       <article className="role-card" style={{ ["--accent" as any]: accent }}>
@@ -1025,16 +1069,37 @@ const RoleCard = memo(
             <div className="role-icon" style={{ background: `${accent}15` }}>
               <Shield size={20} color={accent} />
             </div>
-            <span
-              className="role-status-pill"
-              style={{
-                background: activo ? "rgba(57,169,0,.12)" : "rgba(148,163,184,.16)",
-                color: activo ? COLORS.primaryDark : COLORS.textLight,
-              }}
-            >
-              {activo ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
-              {rol.estado}
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <span
+                className="role-status-pill"
+                style={{
+                  background: activo ? "rgba(57,169,0,.12)" : "rgba(148,163,184,.16)",
+                  color: activo ? COLORS.primaryDark : COLORS.textLight,
+                }}
+              >
+                {activo ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
+                {rol.estado}
+              </span>
+              {!protegido && (
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={activo}
+                  aria-label={activo ? `Deshabilitar rol ${sanitizeText(rol.nombre)}` : `Habilitar rol ${sanitizeText(rol.nombre)}`}
+                  title={activo ? "Deshabilitar rol" : "Habilitar rol"}
+                  onClick={handleToggleEstado}
+                  className="role-switch"
+                  style={{
+                    background: activo ? COLORS.primary : "#CBD5E1",
+                  }}
+                >
+                  <span
+                    className="role-switch-knob"
+                    style={{ transform: activo ? "translateX(14px)" : "translateX(0)" }}
+                  />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="role-name-row">
@@ -1196,6 +1261,31 @@ export function Roles() {
     setConfirmOpen(true);
   }, []);
 
+  const handleToggleEstado = useCallback(
+    (rol: Rol) => {
+      if (ROLES_PROTEGIDOS.includes(rol.nombre as any)) {
+        toast.error("Este rol está protegido y no puede deshabilitarse");
+        return;
+      }
+      try {
+        const nuevoEstado = rol.estado === "activo" ? "inactivo" : "activo";
+        updateRol(rol.id, {
+          nombre: rol.nombre,
+          descripcion: rol.descripcion,
+          permisos: rol.permisos,
+          estado: nuevoEstado,
+        });
+        toast.success(
+          nuevoEstado === "activo" ? "Rol habilitado correctamente" : "Rol deshabilitado correctamente"
+        );
+      } catch (error) {
+        toast.error("Error al cambiar el estado del rol");
+        console.error("Error toggling role state:", error);
+      }
+    },
+    [updateRol]
+  );
+
   const handleSave = useCallback(
     (data: FormState) => {
       try {
@@ -1287,6 +1377,26 @@ export function Roles() {
           font-weight: 800;
           text-transform: uppercase;
           letter-spacing: 0.3px;
+        }
+        .role-switch{
+          position: relative;
+          width: 30px;
+          height: 17px;
+          border-radius: 999px;
+          border: none;
+          cursor: pointer;
+          padding: 2px;
+          flex-shrink: 0;
+          transition: background .18s ease;
+        }
+        .role-switch-knob{
+          display: block;
+          width: 13px;
+          height: 13px;
+          border-radius: 50%;
+          background: #fff;
+          box-shadow: 0 1px 2px rgba(15,23,42,.25);
+          transition: transform .18s ease;
         }
 
         .role-name-row{
@@ -1624,6 +1734,7 @@ export function Roles() {
                 onView={openView}
                 onEdit={openEdit}
                 onDelete={openConfirm}
+                onToggleEstado={handleToggleEstado}
               />
             ))}
           </div>
@@ -1638,6 +1749,8 @@ export function Roles() {
           isEditing={!!editingRol}
           onSave={handleSave}
           onCancel={() => setDialogOpen(false)}
+          existingRoles={roles}
+          editingRolId={editingRol?.id ?? null}
         />
       </Modal>
 
