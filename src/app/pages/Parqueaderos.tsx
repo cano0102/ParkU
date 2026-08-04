@@ -37,6 +37,8 @@ import {
   Calendar,
   UserCircle2,
   Image as ImageIcon,
+  Bike,
+  Accessibility,
 } from "lucide-react";
 import { createWorker } from "tesseract.js";
 import { toast } from "sonner";
@@ -113,6 +115,39 @@ export const CELDA_CONFIG = {
   reservada:     { bg:"#FFFBEB", border:"#FCD34D", text:"#78350F", label:"Reservada",     dotColor:"#F59E0B", mapFill:"#332a10", mapStroke:"#F59E0B" },
   mantenimiento: { bg:"#F1F5F9", border:"#94A3B8", text:"#334155", label:"Mantenimiento", dotColor:"#94A3B8", mapFill:"#23262b", mapStroke:"#94A3B8" },
 } as const;
+
+/* Configuración visual por TIPO DE VEHÍCULO de la celda (carro / moto / movilidad reducida).
+   Esto es independiente del estado (disponible/ocupada/etc.) y se usa para que, tanto en el
+   plano como en la lista, sea inmediato distinguir qué celdas son de carro y cuáles de moto. */
+export const TIPO_CELDA_CONFIG = {
+  carro: {
+    label: "Carro",
+    shortLabel: "Carro",
+    icon: Car,
+    accent: "#3B82F6",      // azul
+    accentSoft: "#DBEAFE",
+    accentDark: "#1D4ED8",
+  },
+  moto: {
+    label: "Moto",
+    shortLabel: "Moto",
+    icon: Bike,
+    accent: "#F97316",      // naranja
+    accentSoft: "#FFEDD5",
+    accentDark: "#C2410C",
+  },
+  "movilidad reducida": {
+    label: "Movilidad Reducida",
+    shortLabel: "M. Reducida",
+    icon: Accessibility,
+    accent: "#8B5CF6",      // violeta
+    accentSoft: "#EDE9FE",
+    accentDark: "#6D28D9",
+  },
+} as const;
+
+export const getTipoCeldaConfig = (tipo: string) =>
+  (TIPO_CELDA_CONFIG as Record<string, typeof TIPO_CELDA_CONFIG["carro"]>)[tipo] || TIPO_CELDA_CONFIG.carro;
 
 export const TIPOS_PARQUEADERO = ["general","motos","visitantes","docentes","administrativos"] as const;
 export const capitalizar = (s:string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -375,6 +410,23 @@ const EstadoBadge=memo(({estado}:{estado:Celda["estado"]})=>{
 });
 EstadoBadge.displayName="EstadoBadge";
 
+/* Insignia reutilizable que muestra el TIPO de celda (carro / moto / movilidad reducida)
+   con su propio icono y color, para usarse tanto en la tabla como en las tarjetas expandidas. */
+const TipoBadge=memo(({tipo,size="sm"}:{tipo:string;size?:"sm"|"md"})=>{
+  const cfg=getTipoCeldaConfig(tipo);
+  const Icon=cfg.icon;
+  const iconSize=size==="sm"?10:12;
+  const pad=size==="sm"?"2px 7px":"3px 9px";
+  const font=size==="sm"?9.5:11;
+  return(
+    <span style={{display:"inline-flex",alignItems:"center",gap:4,padding:pad,borderRadius:999,fontSize:font,fontWeight:800,background:cfg.accentSoft,color:cfg.accentDark,border:`1px solid ${cfg.accent}55`}}>
+      <Icon size={iconSize} strokeWidth={2.5}/>
+      {cfg.shortLabel}
+    </span>
+  );
+});
+TipoBadge.displayName="TipoBadge";
+
 /* ============================================================
    SVG — MAPA
 ============================================================ */
@@ -414,6 +466,33 @@ const HighFiCarSVG=memo(({x,y,w,h,placa}:{x:number;y:number;w:number;h:number;pl
   );
 });
 HighFiCarSVG.displayName="HighFiCarSVG";
+
+/* Silueta de moto/scooter en alta fidelidad para celdas ocupadas de tipo "moto".
+   Se dibuja en vertical (de frente), coherente con la orientación de la celda. */
+const HighFiMotoSVG=memo(({x,y,w,h,placa}:{x:number;y:number;w:number;h:number;placa:string})=>{
+  const color=getCarColor(placa);
+  const bw=w*.34,bh=h*.82,bx=x+(w-bw)/2,by=y+(h-bh)/2;
+  return(
+    <g pointerEvents="none">
+      {/* sombra */}
+      <ellipse cx={bx+bw/2} cy={by+bh-1} rx={bw*.7} ry={1.6} fill="#000" opacity=".28"/>
+      {/* rueda trasera y delantera */}
+      <circle cx={bx+bw/2} cy={by+bh-3} r={bw*.42} fill="#111" stroke="#374151" strokeWidth=".5"/>
+      <circle cx={bx+bw/2} cy={by+3.2} r={bw*.4} fill="#111" stroke="#374151" strokeWidth=".5"/>
+      {/* cuerpo / tanque */}
+      <rect x={bx+bw*.18} y={by+bh*.28} width={bw*.64} height={bh*.44} rx={bw*.28} fill={color} stroke="#0F172A" strokeWidth=".6"/>
+      {/* asiento */}
+      <rect x={bx+bw*.12} y={by+bh*.55} width={bw*.76} height={bh*.16} rx={bw*.2} fill="#1E293B" opacity=".9"/>
+      {/* manubrio */}
+      <rect x={bx-bw*.12} y={by+bh*.1} width={bw*1.24} height={bh*.08} rx={bh*.04} fill="#334155"/>
+      {/* espejo/faros */}
+      <rect x={bx+bw*.3} y={by-.3} width={bw*.4} height={1.1} rx=".5" fill="#FDE047"/>
+      <rect x={bx+bw*.32} y={by+bh-1.4} width={bw*.36} height={1} rx=".4" fill="#EF4444"/>
+      <text x={bx+bw/2} y={by+bh/2+1.6} textAnchor="middle" fontSize="2" fontWeight="bold" fill="#000" fontFamily="monospace">{placa.slice(0,5)}</text>
+    </g>
+  );
+});
+HighFiMotoSVG.displayName="HighFiMotoSVG";
 
 /* ============================================================
    PARKING MAP
@@ -525,6 +604,41 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
       borderRadius: 16, border: `1px solid ${C.border}`,
       background: MAP_THEME.asphalt, boxShadow: "0 2px 8px rgba(15,23,42,.05)"
     }}>
+      {/* ── LEYENDA GLOBAL: tipo de celda + estado ── */}
+      <div style={{
+        position: "absolute", top: 12, left: 12, zIndex: 10,
+        display: "flex", flexWrap: "wrap", gap: 6, maxWidth: "calc(100% - 120px)",
+      }}>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "rgba(20,22,25,.8)", border: "1px solid rgba(255,255,255,.14)",
+          borderRadius: 11, padding: "6px 10px", backdropFilter: "blur(3px)",
+        }}>
+          {Object.entries(TIPO_CELDA_CONFIG).map(([key, cfg]) => {
+            const Icon = cfg.icon;
+            return (
+              <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ width: 10, height: 10, borderRadius: 3, background: cfg.accent, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }} />
+                <Icon size={11} color={cfg.accent} strokeWidth={2.5} />
+                <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", whiteSpace: "nowrap" }}>{cfg.shortLabel}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10,
+          background: "rgba(20,22,25,.8)", border: "1px solid rgba(255,255,255,.14)",
+          borderRadius: 11, padding: "6px 10px", backdropFilter: "blur(3px)",
+        }}>
+          {Object.entries(CELDA_CONFIG).map(([key, cfg]) => (
+            <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: cfg.dotColor, flexShrink: 0 }} />
+              <span style={{ fontSize: 9.5, fontWeight: 700, color: "rgba(255,255,255,.85)", whiteSpace: "nowrap" }}>{cfg.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", flexDirection: "column", gap: 6 }}>
         {[
           { icon: <ZoomIn size={16} />,   act: () => setZoom(z => Math.min(2.5, z + .15)) },
@@ -623,11 +737,14 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
                   <g key={`f-${fi}`}>
                     {fila.celdas.map(celda => {
                       const cfg = CELDA_CONFIG[celda.estado];
+                      const tipoCfg = getTipoCeldaConfig(celda.tipo);
+                      const TipoIcon = tipoCfg.icon;
                       const m = cellMatchesSearch(celda);
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
                       
                       // Determinar si la celda está realmente ocupada
                       const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
+                      const esMoto = celda.tipo === "moto";
                       
                       return (
                         <g
@@ -649,9 +766,30 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
                             strokeWidth={m ? 2.2 : celda.estado === "disponible" ? 1.2 : 1.6}
                             strokeDasharray={celda.estado === "disponible" ? "3,2" : undefined}
                           />
-                          <text x={celda.x + 4.5} y={celda.y + 8} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="6.8" fontWeight="900">{celda.numero}</text>
-                          {celda.estado === "disponible"    && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 5.5} textAnchor="middle" fontSize="16" fontWeight="900" fill="rgba(255,255,255,.08)">P</text>}
-                          {estaOcupada && ocupante && <HighFiCarSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />}
+                          {/* Franja lateral de color según TIPO de celda (carro/moto/m.reducida) — visible en cualquier estado */}
+                          <rect x={celda.x} y={celda.y} width={3.4} height={SPACE_H} rx="1.6" fill={tipoCfg.accent} opacity={.95} />
+                          {/* Insignia con icono del tipo, esquina superior derecha */}
+                          <g transform={`translate(${celda.x + SPACE_W - 10.5},${celda.y + 1.5})`}>
+                            <rect width="9.5" height="9.5" rx="2.5" fill={tipoCfg.accent} opacity=".92"/>
+                            <TipoIcon x={1.4} y={1.4} width={6.7} height={6.7} color="#fff" strokeWidth={3}/>
+                          </g>
+                          <text x={celda.x + 6.5} y={celda.y + 8} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="6.8" fontWeight="900">{celda.numero}</text>
+                          {celda.estado === "disponible" && !estaOcupada && (
+                            <TipoIcon
+                              x={celda.x + SPACE_W / 2 - 6.5}
+                              y={celda.y + SPACE_H / 2 - 5}
+                              width={13}
+                              height={13}
+                              color={tipoCfg.accent}
+                              opacity={.32}
+                              strokeWidth={2}
+                            />
+                          )}
+                          {estaOcupada && ocupante && (
+                            esMoto
+                              ? <HighFiMotoSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
+                              : <HighFiCarSVG  x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
+                          )}
                           {celda.estado === "no_disponible" && !ocupante && (
                             <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#EF4444">⚠️ ERROR</text>
                           )}
@@ -671,6 +809,8 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
       {hover && (() => {
         const ocupante = hover.celda.estado === "no_disponible" ? getOcupante(hover.celda.id) : null;
         const estaOcupada = hover.celda.estado === "no_disponible" && ocupante !== null;
+        const tipoCfg = getTipoCeldaConfig(hover.celda.tipo);
+        const TipoIcon = tipoCfg.icon;
         
         return (
         <div style={{
@@ -685,6 +825,12 @@ const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellM
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid rgba(255,255,255,.08)", paddingBottom:6, marginBottom:8 }}>
             <span style={{ fontFamily:"monospace", fontSize:12, fontWeight:900, color:C.primaryLight }}>{hover.celda.numero}</span>
             <span style={{ fontSize:9, fontWeight:800, color:"rgba(255,255,255,.45)", textTransform:"uppercase" }}>{hover.tipoPq}</span>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:5, marginBottom:8 }}>
+            <span style={{ display:"inline-flex", alignItems:"center", justifyContent:"center", width:16, height:16, borderRadius:5, background:tipoCfg.accent }}>
+              <TipoIcon size={10} color="#fff" strokeWidth={2.5}/>
+            </span>
+            <span style={{ fontSize:10, fontWeight:800, color:"rgba(255,255,255,.8)" }}>{tipoCfg.label}</span>
           </div>
           {estaOcupada && ocupante ? (
             <div>
@@ -746,6 +892,13 @@ const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onD
           const pct       = celdasPq.length ? Math.round(ocupados / celdasPq.length * 100) : 0;
           const pctColor  = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
           const isExpanded = expandedId === pq.id;
+
+          // Desglose de celdas libres por tipo de vehículo, para distinguir carro vs moto de un vistazo
+          const libresPorTipo = Object.keys(TIPO_CELDA_CONFIG).reduce<Record<string, number>>((acc, tipo) => {
+            acc[tipo] = celdasPq.filter(c => c.tipo === tipo && c.estado === "disponible").length;
+            return acc;
+          }, {});
+
           return (
             <React.Fragment key={pq.id}>
               <div
@@ -759,9 +912,22 @@ const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onD
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <MapPin size={16} color={C.primary} />
                   </div>
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 800, color: C.text }}>{pq.nombre}</div>
-                    <div style={{ fontSize: 10, color: C.textLight }}>Bloque {pq.bloque} · {celdasPq.length} celdas</div>
+                    <div style={{ fontSize: 10, color: C.textLight, marginBottom: 3 }}>Bloque {pq.bloque} · {celdasPq.length} celdas</div>
+                    <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+                      {Object.entries(TIPO_CELDA_CONFIG).map(([tipo, cfg]) => {
+                        const total = celdasPq.filter(c => c.tipo === tipo).length;
+                        if (!total) return null;
+                        const Icon = cfg.icon;
+                        return (
+                          <span key={tipo} title={`${cfg.label}: ${libresPorTipo[tipo]} libres de ${total}`}
+                            style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "1px 6px", borderRadius: 999, background: cfg.accentSoft, color: cfg.accentDark, fontSize: 9, fontWeight: 800 }}>
+                            <Icon size={9} strokeWidth={2.5} />{libresPorTipo[tipo]}/{total}
+                          </span>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
                 <div><span className="pq-cell-label">Tipo</span><span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 600, color: C.textLight }}>{capitalizar(pq.tipo)}</span></div>
@@ -797,16 +963,38 @@ const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onD
               </div>
               {isExpanded && (
                 <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, background: "#FAFBFC" }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(100px,1fr))", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
+                    {Object.entries(TIPO_CELDA_CONFIG).map(([tipo, cfg]) => {
+                      const total = celdasPq.filter(c => c.tipo === tipo).length;
+                      if (!total) return null;
+                      const Icon = cfg.icon;
+                      return (
+                        <div key={tipo} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ width: 20, height: 20, borderRadius: 6, background: cfg.accent, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Icon size={12} color="#fff" strokeWidth={2.5} />
+                          </span>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: C.text }}>{cfg.label}: <strong style={{ color: cfg.accentDark }}>{total}</strong> celdas</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(110px,1fr))", gap: 8 }}>
                     {celdasPq.map(celda => {
                       const cfg = CELDA_CONFIG[celda.estado];
+                      const tipoCfg = getTipoCeldaConfig(celda.tipo);
+                      const TipoIcon = tipoCfg.icon;
                       const matched = cellMatchesSearch(celda);
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
                       const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
                       return (
                         <button key={celda.id} onClick={() => onCellClick(celda)}
-                          style={{ padding: "8px 10px", borderRadius: 10, border: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, background: cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : undefined }}>
-                          <div style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1, marginBottom: 4 }}>{celda.numero}</div>
+                          style={{ position: "relative", padding: "8px 10px 8px 12px", borderRadius: 10, border: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, borderLeft: `4px solid ${tipoCfg.accent}`, background: cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : undefined }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+                            <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{celda.numero}</span>
+                            <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 5, background: tipoCfg.accent, flexShrink: 0 }}>
+                              <TipoIcon size={10} color="#fff" strokeWidth={2.5} />
+                            </span>
+                          </div>
                           {estaOcupada && ocupante && (
                             <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, background: "rgba(255,255,255,.15)", padding: "1px 4px", borderRadius: 4, marginBottom: 2 }}>{ocupante.vehiculo.placa}</div>
                           )}
@@ -875,12 +1063,18 @@ const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onSelectCe
         <span style={{ padding: "2px 8px", borderRadius: 999, background: C.primaryPale, color: C.primaryDark, fontSize: 10, fontWeight: 800 }}>{activos.length}</span>
       </div>
       <div style={{ maxHeight: 400, overflowY: "auto" }}>
-        {filtered.length > 0 ? filtered.map(({ celda, pqNombre, ocupante }) => (
+        {filtered.length > 0 ? filtered.map(({ celda, pqNombre, ocupante }) => {
+          const tipoCfg = getTipoCeldaConfig(celda.tipo);
+          const TipoIcon = tipoCfg.icon;
+          return (
           <div key={celda.id} onClick={() => onSelectCell(celda)}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${C.border}`, cursor: "pointer", transition: "background .15s" }}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${C.border}`, borderLeft: `3px solid ${tipoCfg.accent}`, cursor: "pointer", transition: "background .15s" }}
             onMouseEnter={e => (e.currentTarget.style.background = "#F8FAF8")} onMouseLeave={e => (e.currentTarget.style.background = "#fff")}>
             <div style={{ minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 18, height: 18, borderRadius: 5, background: tipoCfg.accentSoft, flexShrink: 0 }}>
+                  <TipoIcon size={11} color={tipoCfg.accentDark} strokeWidth={2.5} />
+                </span>
                 <span style={{ fontFamily: "monospace", fontSize: 11, fontWeight: 800, background: "#F1F5F9", color: C.text, padding: "1px 6px", borderRadius: 6, border: `1px solid ${C.border}` }}>{ocupante.vehiculo.placa}</span>
                 <span style={{ fontSize: 9, fontWeight: 700, color: C.textLight }}>Celda {celda.numero}</span>
                 {ocupante.esOficial && <span style={{ fontSize: 8, fontWeight: 800, background: C.primaryPale, color: C.primaryDark, padding: "1px 4px", borderRadius: 4 }}>OFICIAL</span>}
@@ -892,7 +1086,7 @@ const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onSelectCe
               <div style={{ display: "flex", alignItems: "center", gap: 3, justifyContent: "flex-end", fontSize: 10, fontWeight: 600, color: C.textLight }}><Clock size={8} />{formatearDuracion(ocupante.fechaEntrada)}</div>
             </div>
           </div>
-        )) : (
+        );}) : (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 16px", color: C.textLight }}>
             <Info size={20} color={C.border} style={{ marginBottom: 8 }} />
             <span style={{ fontSize: 12, fontWeight: 600 }}>No hay vehículos activos</span>
@@ -969,9 +1163,16 @@ const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, 
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Vehículo</label>
             <div style={{ display: "flex", borderRadius: 11, border: `1px solid ${C.border}`, overflow: "hidden" }}>
-              {(["carro", "moto"] as const).map(t => (
-                <button key={t} onClick={() => setTipoVehiculo(t)} style={{ flex: 1, padding: "10px 8px", fontSize: 12, fontWeight: 700, border: "none", background: tipoVehiculo === t ? C.primary : "#fff", color: tipoVehiculo === t ? "#fff" : C.textLight, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>{capitalizar(t)}</button>
-              ))}
+              {(["carro", "moto"] as const).map(t => {
+                const cfg = getTipoCeldaConfig(t);
+                const Icon = cfg.icon;
+                const active = tipoVehiculo === t;
+                return (
+                  <button key={t} onClick={() => setTipoVehiculo(t)} style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 8px", fontSize: 12, fontWeight: 700, border: "none", background: active ? cfg.accent : "#fff", color: active ? "#fff" : C.textLight, cursor: "pointer", fontFamily: "inherit", transition: "all .15s" }}>
+                    <Icon size={13} strokeWidth={2.5}/>{capitalizar(t)}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div>
@@ -989,7 +1190,7 @@ const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, 
           <div style={{ borderRadius: 11, border: `1px solid ${C.border}`, background: "#F8FAFC", padding: "12px 14px" }}>
             <div style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Asignación Sugerida</div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontWeight: 900, fontSize: 13, color: C.primaryDark }}>{recomendacion.celda.numero}</div>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: getTipoCeldaConfig(recomendacion.celda.tipo).accentSoft, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontWeight: 900, fontSize: 13, color: getTipoCeldaConfig(recomendacion.celda.tipo).accentDark }}>{recomendacion.celda.numero}</div>
               <div><div style={{ fontWeight: 800, color: C.text, fontSize: 13 }}>{recomendacion.pq.nombre}</div><div style={{ fontSize: 10, color: C.textLight }}>{capitalizar(recomendacion.pq.tipo)} · Bloque {recomendacion.pq.bloque}</div></div>
             </div>
             <div style={{ padding: "8px 10px", borderRadius: 9, background: "#fff", border: `1px solid ${C.border}`, fontSize: 11, color: C.textLight }}>💡 {recomendacion.motivo}</div>
@@ -1800,7 +2001,7 @@ export default function Parqueaderos() {
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,.7)", textTransform: "uppercase" }}>Celda {celdaActiva?.numero}</div>
             <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" && ocupanteActivo ? ocupanteActivo.vehiculo.placa : celdaActiva?.estado === "reservada" ? "Reservada" : "Celda Libre"}</h2>
             {celdaActiva?.estado === "no_disponible" && ocupanteActivo && <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>{ocupanteActivo.conductor?.nombre || "—"}</p>}
-            <div style={{ marginTop: 10 }}>{celdaActiva && <EstadoBadge estado={celdaActiva.estado} />}</div>
+            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>{celdaActiva && <EstadoBadge estado={celdaActiva.estado} />}{celdaActiva && <TipoBadge tipo={celdaActiva.tipo} />}</div>
           </div>
         </div>
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 10 }}>

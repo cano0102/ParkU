@@ -22,6 +22,7 @@ import {
   LayoutGrid,
   List,
   Mail,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useData, Conductor, Vehiculo } from "../context/DataContext";
@@ -92,6 +93,8 @@ const sanitizeText = (text: string): string => {
   element.textContent = text;
   return element.innerHTML;
 };
+
+const PLACA_REGEX = /^[A-Z0-9]{5,8}$/;
 
 interface ModalProps {
   open: boolean;
@@ -176,10 +179,11 @@ interface FieldProps {
   label: string;
   children: React.ReactNode;
   hint?: string;
+  error?: string;
   style?: React.CSSProperties;
 }
 
-const Field = memo(({ label, children, hint, style }: FieldProps) => {
+const Field = memo(({ label, children, hint, error, style }: FieldProps) => {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 5, ...style }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -187,6 +191,20 @@ const Field = memo(({ label, children, hint, style }: FieldProps) => {
         {hint && <span style={{ fontSize: 10, color: COLORS.textLight }}>{hint}</span>}
       </div>
       {children}
+      {error && (
+        <span
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+            fontSize: 10.5,
+            fontWeight: 600,
+            color: "#DC2626",
+          }}
+        >
+          <AlertCircle size={11} /> {error}
+        </span>
+      )}
     </div>
   );
 });
@@ -205,6 +223,11 @@ const inputStyle: React.CSSProperties = {
   color: COLORS.text,
 };
 
+const inputErrorStyle: React.CSSProperties = {
+  border: "1px solid #FCA5A5",
+  background: "#FEF2F2",
+};
+
 interface FormState {
   usuarioId: string;
   tipoConductor: "aprendiz" | "instructor";
@@ -215,9 +238,6 @@ interface FormState {
   placa: string;
   tipoVehiculo: "carro" | "moto";
   marca: string;
-  modelo: string;
-  año: number;
-  color: string;
   descripcionVehiculo: string;
 }
 
@@ -231,11 +251,14 @@ const emptyForm = (): FormState => ({
   placa: "",
   tipoVehiculo: "carro",
   marca: "",
-  modelo: "",
-  año: new Date().getFullYear(),
-  color: "",
   descripcionVehiculo: "",
 });
+
+interface FormErrors {
+  usuarioId?: string;
+  centroFormacion?: string;
+  placa?: string;
+}
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -549,6 +572,9 @@ export function Conductores() {
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [filterVehiculoTipo, setFilterVehiculoTipo] = useState("todos");
   const [formData, setFormData] = useState<FormState>(emptyForm());
+  const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [usuarioSearch, setUsuarioSearch] = useState("");
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -624,9 +650,30 @@ export function Conductores() {
     }, []);
   }, [totalPages, currentPage]);
 
+  // Usuarios que ya son conductores (para evitar duplicados), excluyendo el que se está editando
+  const usuariosConConductorIds = useMemo(() => {
+    const ids = new Set(conductores.map((c) => c.usuarioId));
+    if (editingConductor) ids.delete(editingConductor.usuarioId);
+    return ids;
+  }, [conductores, editingConductor]);
+
+  const usuariosFiltrados = useMemo(() => {
+    const q = usuarioSearch.toLowerCase().trim();
+    if (!q) return usuarios;
+    return usuarios.filter(
+      (u) =>
+        u.nombre.toLowerCase().includes(q) ||
+        u.identificacion.toLowerCase().includes(q) ||
+        u.correo.toLowerCase().includes(q)
+    );
+  }, [usuarios, usuarioSearch]);
+
   const openCreate = useCallback(() => {
     setEditingConductor(null);
     setFormData(emptyForm());
+    setFormErrors({});
+    setTouched({});
+    setUsuarioSearch("");
     setDialogOpen(true);
   }, []);
 
@@ -644,11 +691,11 @@ export function Conductores() {
         placa: v?.placa || "",
         tipoVehiculo: (v?.tipo as "carro" | "moto") || "carro",
         marca: v?.marca || "",
-        modelo: v?.modelo || "",
-        año: v?.año || new Date().getFullYear(),
-        color: v?.color || "",
         descripcionVehiculo: v?.descripcion || "",
       });
+      setFormErrors({});
+      setTouched({});
+      setUsuarioSearch("");
       setDialogOpen(true);
     },
     [vehiculos]
@@ -664,26 +711,74 @@ export function Conductores() {
     setConfirmOpen(true);
   }, []);
 
-  const handleSave = useCallback(() => {
-    if (!formData.usuarioId) {
-      toast.error("Selecciona un usuario");
-      return;
+  // Placas ya registradas en otros vehículos (para evitar duplicados), excluyendo el vehículo del conductor en edición
+  const placasOcupadas = useMemo(() => {
+    const conductorId = editingConductor?.id;
+    return new Set(
+      vehiculos
+        .filter((v) => v.conductorId !== conductorId)
+        .map((v) => v.placa.toUpperCase().trim())
+    );
+  }, [vehiculos, editingConductor]);
+
+  // Validación en vivo del formulario
+  const validate = useCallback((data: FormState): FormErrors => {
+    const errors: FormErrors = {};
+    if (!data.usuarioId) {
+      errors.usuarioId = "Selecciona un usuario";
+    } else if (usuariosConConductorIds.has(data.usuarioId)) {
+      errors.usuarioId = "Este usuario ya está registrado como conductor";
     }
-    if (!formData.centroFormacion.trim()) {
-      toast.error("El centro de formación es requerido");
+    if (!data.centroFormacion.trim()) {
+      errors.centroFormacion = "El centro de formación es requerido";
+    }
+    const placa = data.placa.trim().toUpperCase();
+    if (!placa) {
+      errors.placa = "La placa es obligatoria";
+    } else if (!PLACA_REGEX.test(placa)) {
+      errors.placa = "Formato de placa inválido (ej: ABC123)";
+    } else if (placasOcupadas.has(placa)) {
+      errors.placa = "Esta placa ya está registrada en otro vehículo";
+    }
+    return errors;
+  }, [usuariosConConductorIds, placasOcupadas]);
+
+  useEffect(() => {
+    setFormErrors(validate(formData));
+  }, [formData, validate]);
+
+  const isValid = useMemo(() => Object.keys(formErrors).length === 0, [formErrors]);
+
+  const usuarioSeleccionado = useMemo(
+    () => usuarios.find((u) => u.id === formData.usuarioId),
+    [usuarios, formData.usuarioId]
+  );
+
+  const markTouched = useCallback((field: string) => {
+    setTouched((t) => ({ ...t, [field]: true }));
+  }, []);
+
+  const handleSave = useCallback(() => {
+    const errors = validate(formData);
+    setFormErrors(errors);
+    setTouched({ usuarioId: true, centroFormacion: true, placa: true });
+
+    if (Object.keys(errors).length > 0) {
+      const firstError = Object.values(errors)[0];
+      toast.error(firstError || "Revisa los campos del formulario");
       return;
     }
 
-    const usuarioSeleccionado = usuarios.find((u) => u.id === formData.usuarioId);
-    if (!usuarioSeleccionado) {
+    const usuarioSel = usuarios.find((u) => u.id === formData.usuarioId);
+    if (!usuarioSel) {
       toast.error("El usuario seleccionado no es válido");
       return;
     }
 
     const conductorData = {
       usuarioId: formData.usuarioId,
-      nombre: usuarioSeleccionado.nombre,
-      email: usuarioSeleccionado.correo,
+      nombre: usuarioSel.nombre,
+      email: usuarioSel.correo,
       tipoConductor: formData.tipoConductor,
       centroFormacion: sanitizeText(formData.centroFormacion.trim()),
       discapacidad: formData.discapacidad,
@@ -696,29 +791,24 @@ export function Conductores() {
       if (editingConductor) {
         updateConductor(editingConductor.id, conductorData);
 
+        const vehiculoData = {
+          placa: formData.placa.toUpperCase().trim(),
+          tipo: formData.tipoVehiculo,
+          marca: sanitizeText(formData.marca.trim()),
+          modelo: "",
+          año: new Date().getFullYear(),
+          color: "",
+          descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
+          estado: "activo" as const,
+        };
+
         const existingVehiculo = vehiculos.find((v) => v.conductorId === editingConductor.id);
         if (existingVehiculo) {
-          updateVehiculo(existingVehiculo.id, {
-            placa: formData.placa.toUpperCase().trim(),
-            tipo: formData.tipoVehiculo,
-            marca: sanitizeText(formData.marca.trim()),
-            modelo: sanitizeText(formData.modelo.trim()),
-            año: formData.año,
-            color: sanitizeText(formData.color.trim()),
-            descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
-            estado: "activo",
-          });
-        } else if (formData.placa.trim()) {
+          updateVehiculo(existingVehiculo.id, vehiculoData);
+        } else {
           addVehiculo({
             conductorId: editingConductor.id,
-            placa: formData.placa.toUpperCase().trim(),
-            tipo: formData.tipoVehiculo,
-            marca: sanitizeText(formData.marca.trim()),
-            modelo: sanitizeText(formData.modelo.trim()),
-            año: formData.año,
-            color: sanitizeText(formData.color.trim()),
-            descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
-            estado: "activo",
+            ...vehiculoData,
             parqueaderoId: "",
             celdaId: "",
             fechaEntrada: new Date().toISOString(),
@@ -727,15 +817,15 @@ export function Conductores() {
         toast.success("Conductor actualizado correctamente");
       } else {
         const newId = addConductor(conductorData);
-        if (newId && formData.placa.trim()) {
+        if (newId) {
           addVehiculo({
             conductorId: newId,
             placa: formData.placa.toUpperCase().trim(),
             tipo: formData.tipoVehiculo,
             marca: sanitizeText(formData.marca.trim()),
-            modelo: sanitizeText(formData.modelo.trim()),
-            año: formData.año,
-            color: sanitizeText(formData.color.trim()),
+            modelo: "",
+            año: new Date().getFullYear(),
+            color: "",
             descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
             parqueaderoId: "",
@@ -750,7 +840,7 @@ export function Conductores() {
       toast.error("Error al guardar el conductor");
       console.error("Error saving conductor:", error);
     }
-  }, [formData, editingConductor, usuarios, vehiculos, addConductor, updateConductor, addVehiculo, updateVehiculo]);
+  }, [formData, editingConductor, usuarios, vehiculos, validate, addConductor, updateConductor, addVehiculo, updateVehiculo, deleteVehiculo]);
 
   const handleDelete = useCallback(() => {
     if (deletingConductor) {
@@ -1199,6 +1289,26 @@ export function Conductores() {
         .page-btn:not(:disabled):hover {
           border-color: ${COLORS.primary};
           color: ${COLORS.primaryDark};
+        }
+
+        .usuario-option {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 9px 10px;
+          border-radius: 9px;
+          cursor: pointer;
+          transition: background .15s ease;
+        }
+        .usuario-option:hover {
+          background: #F0FDF4;
+        }
+        .usuario-option.disabled {
+          opacity: .45;
+          cursor: not-allowed;
+        }
+        .usuario-option.disabled:hover {
+          background: transparent;
         }
 
         @media (max-width: 780px) {
@@ -2027,20 +2137,103 @@ export function Conductores() {
                 </p>
               </div>
               <div style={{ padding: "1rem 1.2rem", display: "flex", flexDirection: "column", gap: 12 }}>
-                <Field label="Usuario vinculado *">
-                  <select
-                    value={formData.usuarioId}
-                    onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })}
-                    style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
-                    required
+                <Field
+                  label="Usuario vinculado *"
+                  error={touched.usuarioId ? formErrors.usuarioId : undefined}
+                >
+                  <input
+                    type="text"
+                    placeholder="Buscar por nombre, identificación o correo..."
+                    value={usuarioSearch}
+                    onChange={(e) => setUsuarioSearch(e.target.value)}
+                    style={inputStyle}
+                  />
+                  <div
+                    style={{
+                      marginTop: 6,
+                      maxHeight: 170,
+                      overflowY: "auto",
+                      borderRadius: 11,
+                      border: `1px solid ${COLORS.border}`,
+                      padding: 4,
+                      background: "#fff",
+                    }}
                   >
-                    <option value="">Seleccionar usuario...</option>
-                    {usuarios.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre} — {u.identificacion}
-                      </option>
-                    ))}
-                  </select>
+                    {usuariosFiltrados.length === 0 && (
+                      <p style={{ fontSize: 11, color: COLORS.textMuted, padding: "10px 8px" }}>
+                        Sin resultados
+                      </p>
+                    )}
+                    {usuariosFiltrados.map((u) => {
+                      const yaEsConductor = usuariosConConductorIds.has(u.id);
+                      const selected = formData.usuarioId === u.id;
+                      return (
+                        <div
+                          key={u.id}
+                          className={`usuario-option${yaEsConductor ? " disabled" : ""}`}
+                          onClick={() => {
+                            if (yaEsConductor) return;
+                            setFormData({ ...formData, usuarioId: u.id });
+                            markTouched("usuarioId");
+                          }}
+                          style={{
+                            background: selected ? "rgba(57,169,0,.1)" : "transparent",
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: 8,
+                              flexShrink: 0,
+                              background: `linear-gradient(135deg, ${getAvatarGradient(u.nombre)[0]}, ${getAvatarGradient(u.nombre)[1]})`,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#fff",
+                              fontSize: 11,
+                              fontWeight: 800,
+                            }}
+                          >
+                            {getInitials(u.nombre)}
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <p style={{ fontSize: 12, fontWeight: 700, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {u.nombre}
+                            </p>
+                            <p style={{ fontSize: 10, color: COLORS.textLight }}>
+                              {u.tipoDocumento} · {u.identificacion}
+                              {yaEsConductor ? " — ya es conductor" : ""}
+                            </p>
+                          </div>
+                          {selected && <ShieldCheck size={14} color={COLORS.primary} />}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {usuarioSeleccionado && (
+                    <div
+                      style={{
+                        marginTop: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "8px 12px",
+                        borderRadius: 10,
+                        background: "#F0FDF4",
+                        border: `1px solid ${COLORS.primary}33`,
+                      }}
+                    >
+                      <Mail size={13} color={COLORS.primaryDark} />
+                      <span style={{ fontSize: 11, color: COLORS.primaryDark, fontWeight: 700 }}>
+                        {usuarioSeleccionado.correo}
+                      </span>
+                      <span style={{ marginLeft: "auto", fontSize: 10, color: COLORS.textLight }}>
+                        Seleccionado: {usuarioSeleccionado.nombre}
+                      </span>
+                    </div>
+                  )}
                 </Field>
 
                 <div style={{ display: "grid", gridTemplateColumns: isEdit ? "1fr 1fr" : "1fr", gap: 10 }}>
@@ -2126,13 +2319,20 @@ export function Conductores() {
                   )}
                 </div>
 
-                <Field label="Centro de formación *">
+                <Field
+                  label="Centro de formación *"
+                  error={touched.centroFormacion ? formErrors.centroFormacion : undefined}
+                >
                   <input
                     type="text"
                     placeholder="ej. Centro de Tecnología"
                     value={formData.centroFormacion}
                     onChange={(e) => setFormData({ ...formData, centroFormacion: e.target.value })}
-                    style={inputStyle}
+                    onBlur={() => markTouched("centroFormacion")}
+                    style={{
+                      ...inputStyle,
+                      ...(touched.centroFormacion && formErrors.centroFormacion ? inputErrorStyle : {}),
+                    }}
                     required
                   />
                 </Field>
@@ -2245,7 +2445,12 @@ export function Conductores() {
                 )}
               </div>
               <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <Field label="Placa *" style={{ gridColumn: "1 / -1" }}>
+                <Field
+                  label="Placa *"
+                  error={touched.placa ? formErrors.placa : undefined}
+                  hint="Sin espacios ni guiones, ej: ABC123"
+                  style={{ gridColumn: "1 / -1" }}
+                >
                   <div
                     style={{
                       display: "flex",
@@ -2254,7 +2459,7 @@ export function Conductores() {
                       background: "linear-gradient(135deg, #F0FDF4, #DCFCE7)",
                       padding: "4px 14px 4px 4px",
                       borderRadius: 11,
-                      border: `2px solid ${COLORS.primary}`,
+                      border: `2px solid ${touched.placa && formErrors.placa ? "#FCA5A5" : COLORS.primary}`,
                     }}
                   >
                     <div
@@ -2274,9 +2479,12 @@ export function Conductores() {
                     </div>
                     <input
                       type="text"
-                      placeholder="Ej: ABC-123"
+                      placeholder="Ej: ABC123"
                       value={formData.placa}
                       onChange={(e) => setFormData({ ...formData, placa: e.target.value.toUpperCase() })}
+                      onBlur={() => markTouched("placa")}
+                      maxLength={10}
+                      required
                       style={{
                         ...inputStyle,
                         border: "none",
@@ -2285,8 +2493,8 @@ export function Conductores() {
                         fontSize: 16,
                         fontWeight: 700,
                         color: COLORS.text,
+                        letterSpacing: 1,
                       }}
-                      required
                     />
                   </div>
                 </Field>
@@ -2320,57 +2528,21 @@ export function Conductores() {
                 <Field label="Marca">
                   <input
                     type="text"
-                    placeholder="ej. Chevrolet"
+                    placeholder="ej. Chevrolet Spark"
                     value={formData.marca}
                     onChange={(e) => setFormData({ ...formData, marca: e.target.value })}
                     style={inputStyle}
                   />
                 </Field>
 
-                <Field label="Modelo">
-                  <input
-                    type="text"
-                    placeholder="ej. Spark"
-                    value={formData.modelo}
-                    onChange={(e) => setFormData({ ...formData, modelo: e.target.value })}
-                    style={inputStyle}
-                  />
-                </Field>
-
-                <Field label="Año">
-                  <input
-                    type="number"
-                    value={formData.año}
-                    onChange={(e) => setFormData({ ...formData, año: Number(e.target.value) })}
-                    style={inputStyle}
-                    min={1900}
-                    max={new Date().getFullYear() + 1}
-                  />
-                </Field>
-
-                <Field label="Color">
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <input
-                      type="color"
-                      value={formData.color || "#000000"}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      style={{
-                        width: 50,
-                        height: 40,
-                        border: "none",
-                        background: "transparent",
-                        cursor: "pointer",
-                      }}
-                    />
-                    <span style={{ fontSize: 13, color: COLORS.text, fontWeight: 600 }}>
-                      {formData.color}
-                    </span>
-                  </div>
-                </Field>
-
-                <Field label="Descripción adicional" style={{ gridColumn: "1 / -1" }}>
+                <Field
+                  label="Descripción adicional"
+                  hint={`${formData.descripcionVehiculo.length}/200`}
+                  style={{ gridColumn: "1 / -1" }}
+                >
                   <textarea
                     rows={2}
+                    maxLength={200}
                     placeholder="Observaciones sobre el vehículo…"
                     value={formData.descripcionVehiculo}
                     onChange={(e) => setFormData({ ...formData, descripcionVehiculo: e.target.value })}
@@ -2388,8 +2560,24 @@ export function Conductores() {
               display: "flex",
               gap: 10,
               justifyContent: "flex-end",
+              alignItems: "center",
             }}
           >
+            {!isValid && Object.keys(touched).length > 0 && (
+              <span
+                style={{
+                  fontSize: 11,
+                  color: "#DC2626",
+                  fontWeight: 600,
+                  marginRight: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <AlertCircle size={13} /> Revisa los campos marcados
+              </span>
+            )}
             <button
               type="button"
               onClick={() => setDialogOpen(false)}
@@ -2409,17 +2597,20 @@ export function Conductores() {
             </button>
             <button
               type="submit"
+              disabled={!isValid}
               style={{
                 padding: "11px 24px",
                 borderRadius: 12,
                 border: "none",
-                background: COLORS.primary,
+                background: isValid ? COLORS.primary : COLORS.textMuted,
                 color: "#fff",
                 fontSize: 13,
                 fontWeight: 800,
-                cursor: "pointer",
+                cursor: isValid ? "pointer" : "not-allowed",
                 fontFamily: "inherit",
-                boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+                boxShadow: isValid ? "0 6px 18px rgba(57,169,0,.22)" : "none",
+                opacity: isValid ? 1 : 0.65,
+                transition: "opacity .15s ease",
               }}
             >
               {isEdit ? "Guardar cambios" : "Crear Conductor"}
