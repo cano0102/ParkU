@@ -146,33 +146,57 @@ Esto permite:
 
 # 🧱 Arquitectura del Proyecto
 
+Arquitectura **feature-based** (organizada por dominio de negocio, no por tipo de archivo). Cada módulo de negocio vive de forma aislada en `features/`, y todo lo transversal/reutilizable vive en `shared/`.
+
 ```bash
 src/
 │
-├── components/
-│   ├── ui/
-│   ├── layouts/
-│   └── shared/
+├── app/                      # Composition root: arranque de la app
+│   ├── App.tsx                #   providers + router
+│   └── routes.tsx             #   definición de rutas
 │
-├── pages/
-│   ├── dashboard/
-│   ├── parqueaderos/
-│   ├── celdas/
-│   ├── reservas/
-│   └── usuarios/
+├── features/                 # Un folder por dominio de negocio
+│   ├── auth/pages/             # Login, ForgotPassword, ResetPassword
+│   ├── landing/pages/
+│   ├── dashboard/pages/
+│   ├── roles/pages/
+│   ├── usuarios/pages/
+│   ├── conductores/pages/
+│   ├── vehiculos/pages/
+│   ├── parqueaderos/pages/
+│   ├── celdas/pages/
+│   ├── asignaciones/pages/
+│   ├── control-salida/pages/
+│   ├── reservas/pages/
+│   ├── incidentes/pages/
+│   └── perfil/pages/
 │
-├── context/
+├── shared/                   # Reutilizable / transversal a toda la app
+│   ├── components/ui/          # Componentes shadcn/ui (Button, Card, Dialog...)
+│   ├── components/figma/       # Helpers de assets de Figma
+│   ├── components/              # ProtectedRoute, etc.
+│   ├── layouts/                # MainLayout (sidebar + shell de /app)
+│   └── pages/                  # NotFound
 │
-├── hooks/
+├── context/                  # Estado global (candidato a dividirse por dominio)
+│   ├── AuthContext.tsx
+│   └── DataContext.tsx
 │
-├── routes/
-│
-├── services/
-│
-├── utils/
-│
-└── types/
+├── firebase/                 # Configuración de Firebase
+├── styles/                   # CSS global, tema, overrides
+└── main.tsx
 ```
+
+**Convenciones:**
+- Cada página en `features/<dominio>/pages/` solo debería orquestar UI + estado de ese dominio. La lógica de negocio pesada y los componentes reutilizables de un dominio deberían moverse a `features/<dominio>/components/` y `features/<dominio>/hooks/` a medida que se refactoricen (actualmente el código de cada página sigue siendo monolítico — ver "Próximos pasos" abajo).
+- Alias `@/*` disponible (ver `tsconfig.json` / `vite.config.ts`) apuntando a `src/*`, para evitar imports relativos largos (`../../../`) en código nuevo.
+- `DataContext.tsx` sigue siendo un god-context con todos los tipos y estado de todos los dominios. Es el siguiente candidato a dividirse en contexts/hooks por dominio (`useUsuarios`, `useCeldas`, etc.) sin romper los consumidores actuales.
+
+**Próximos pasos recomendados (no incluidos en este cambio para no romper nada de golpe):**
+1. Dividir `DataContext.tsx` en tipos (`features/<dominio>/types.ts`) y estado por dominio.
+2. Extraer los datos mock a `features/<dominio>/services/` (patrón repositorio) para poder cambiar a una API real sin tocar las páginas.
+3. Partir cada página grande en `components/` (UI) + `hooks/` (lógica) dentro de su feature.
+4. Lazy-load de rutas (`React.lazy`) para reducir el bundle de 1.3MB que reporta el build.
 
 ---
 

@@ -1,8 +1,8 @@
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
-import { AuthProvider } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
-import { Toaster } from './components/ui/sonner';
+import { AuthProvider } from '../context/AuthContext';
+import { DataProvider } from '../context/DataContext';
+import { Toaster } from '../shared/components/ui/sonner';
 
 export default function App() {
   return (

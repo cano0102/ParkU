@@ -1,22 +1,22 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { MainLayout } from './layouts/MainLayout';
-import Landing from './pages/Landing';
-import { Login } from './pages/Login';
-import { ForgotPassword } from './pages/ForgotPassword';
-import { ResetPassword } from './pages/ResetPassword';
-import  Dashboard  from './pages/Dashboard';
-import  {Roles}  from './pages/Roles';
-import  Usuarios  from './pages/Usuarios';
-import { Conductores } from './pages/Conductores';
-import { Vehiculos } from './pages/Vehiculos';
-import  Parqueaderos  from './pages/Parqueaderos';
-import { Celdas } from './pages/Celdas';
-import { Asignaciones } from './pages/Asignaciones';
-import { ControlSalidaPage } from './pages/ControlSalida';
-import { Reservas } from './pages/Reservas';
-import { Incidentes } from './pages/Incidentes';
-import { Perfil } from './pages/Perfil';
-import { NotFound } from './pages/NotFound';
+import { MainLayout } from '../shared/layouts/MainLayout';
+import Landing from '../features/landing/pages/Landing';
+import { Login } from '../features/auth/pages/Login';
+import { ForgotPassword } from '../features/auth/pages/ForgotPassword';
+import { ResetPassword } from '../features/auth/pages/ResetPassword';
+import  Dashboard  from '../features/dashboard/pages/Dashboard';
+import  {Roles}  from '../features/roles/pages/Roles';
+import  Usuarios  from '../features/usuarios/pages/Usuarios';
+import { Conductores } from '../features/conductores/pages/Conductores';
+import { Vehiculos } from '../features/vehiculos/pages/Vehiculos';
+import  Parqueaderos  from '../features/parqueaderos/pages/Parqueaderos';
+import { Celdas } from '../features/celdas/pages/Celdas';
+import { Asignaciones } from '../features/asignaciones/pages/Asignaciones';
+import { ControlSalidaPage } from '../features/control-salida/pages/ControlSalida';
+import { Reservas } from '../features/reservas/pages/Reservas';
+import { Incidentes } from '../features/incidentes/pages/Incidentes';
+import { Perfil } from '../features/perfil/pages/Perfil';
+import { NotFound } from '../shared/pages/NotFound';
 
 export const router = createBrowserRouter([
   {
