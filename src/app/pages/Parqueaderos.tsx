@@ -237,6 +237,37 @@ export const formatearDuracion=(iso:string)=>{
   const h=Math.floor(m/60); const min=m%60;
   return h>0?`${h}h ${min}m`:`${min}m`;
 };
+
+/* ============================================================
+   VALIDACIÓN DEL FORMULARIO DE PARQUEADERO (crear / editar)
+============================================================ */
+export const NOMBRE_PQ_MAX = 60;
+export const BLOQUE_PQ_MAX = 15;
+export const DIRECCION_PQ_MAX = 120;
+export const DESCRIPCION_PQ_MAX = 200;
+/* Letras (con tildes/ñ), números, espacios y guiones; debe empezar con letra o número. */
+export const BLOQUE_PQ_REGEX = /^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\s-]*$/;
+
+/** Valida el formulario de creación/edición de un parqueadero.
+ *  `excludeId` es el id del parqueadero que se está editando (para no chocar consigo mismo),
+ *  o null cuando se está creando uno nuevo. Devuelve el mensaje de error o null si es válido. */
+export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parqueadero[], excludeId: string | null): string | null {
+  const nombre = normalizarTexto(form.nombre, NOMBRE_PQ_MAX);
+  const bloque = form.bloque.trim();
+  if (!nombre) return "El nombre es obligatorio.";
+  if (nombre.length < 3) return "El nombre debe tener al menos 3 caracteres.";
+  if (!bloque) return "El bloque es obligatorio.";
+  if (bloque.length > BLOQUE_PQ_MAX || !BLOQUE_PQ_REGEX.test(bloque)) return "El bloque solo puede tener letras, números, espacios y guiones (máx. 15 caracteres).";
+  if (parqueaderos.some(p => p.id !== excludeId && p.nombre.trim().toLowerCase() === nombre.toLowerCase())) return `Ya existe un parqueadero llamado "${nombre}".`;
+  if (parqueaderos.some(p => p.id !== excludeId && p.bloque.trim().toLowerCase() === bloque.toLowerCase())) return `Ya existe el bloque "${bloque}".`;
+  if (!form.horaInicio || !form.horaFin) return "Debes definir la hora de apertura y de cierre.";
+  if (horaAMinutos(form.horaFin) <= horaAMinutos(form.horaInicio)) return "La hora de cierre debe ser posterior a la hora de apertura.";
+  const capacidad = form.celdasCarros + form.celdasMotos + form.celdasMovilidadReducida;
+  if (capacidad <= 0) return "Debe definir al menos una celda (carro, moto o movilidad reducida).";
+  if (form.direccion.trim().length > DIRECCION_PQ_MAX) return `La dirección no puede superar ${DIRECCION_PQ_MAX} caracteres.`;
+  if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
+  return null;
+}
 export function extraerDatosDocumento(texto:string){
   const limpio=texto.replace(/\r/g,"").replace(/\t/g," ");
   const lineas=limpio.split("\n").map(l=>l.trim()).filter(Boolean);
@@ -1274,7 +1305,7 @@ export default function Parqueaderos() {
     parqueaderos, addParqueadero, updateParqueadero, deleteParqueadero,
     celdas, addCelda, updateCelda, deleteCelda,
     conductores, addConductor,
-    vehiculos, addVehiculo,
+    vehiculos, addVehiculo, updateVehiculo,
     controlesSalida, addControlSalida, updateControlSalida, deleteControlSalida,
     reservas, addReserva, updateReserva, deleteReserva,
     addIncidente,
@@ -1549,16 +1580,12 @@ export default function Parqueaderos() {
   const capacidadForm = pqForm.celdasCarros + pqForm.celdasMotos + pqForm.celdasMovilidadReducida;
 
   const handleCreate = () => {
-    const nombre = normalizarTexto(pqForm.nombre);
+    const error = validarFormParqueadero(pqForm, parqueaderos, null);
+    if (error) return setFormError(error);
+    const nombre = normalizarTexto(pqForm.nombre, NOMBRE_PQ_MAX);
     const bloque = pqForm.bloque.trim();
-    if (!nombre) return setFormError("El nombre es obligatorio.");
-    if (!bloque) return setFormError("El bloque es obligatorio.");
-    if (parqueaderos.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) return setFormError(`Ya existe un parqueadero llamado "${nombre}".`);
-    if (parqueaderos.some(p => p.bloque.toLowerCase() === bloque.toLowerCase())) return setFormError(`Ya existe el bloque "${bloque}".`);
-    if (capacidadForm <= 0) return setFormError("Debe definir al menos una celda.");
-    if (horaAMinutos(pqForm.horaFin) <= horaAMinutos(pqForm.horaInicio)) return setFormError("La hora de cierre debe ser posterior a la hora de apertura.");
     addParqueadero({
-      nombre, bloque, tipo: pqForm.tipo, direccion: pqForm.direccion, descripcion: pqForm.descripcion,
+      nombre, bloque, tipo: pqForm.tipo, direccion: pqForm.direccion.trim(), descripcion: pqForm.descripcion.trim(),
       horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
       celdasCarros: pqForm.celdasCarros, celdasMotos: pqForm.celdasMotos, celdasMovilidadReducida: pqForm.celdasMovilidadReducida,
       capacidad: capacidadForm, estado: "activo",
@@ -1571,14 +1598,10 @@ export default function Parqueaderos() {
     if (!pqEditId) return;
     const actual = parqueaderos.find(p => p.id === pqEditId);
     if (!actual) return;
-    const nombre = normalizarTexto(pqForm.nombre);
+    const error = validarFormParqueadero(pqForm, parqueaderos, pqEditId);
+    if (error) return setFormError(error);
+    const nombre = normalizarTexto(pqForm.nombre, NOMBRE_PQ_MAX);
     const bloque = pqForm.bloque.trim();
-    if (!nombre) return setFormError("El nombre es obligatorio.");
-    if (!bloque) return setFormError("El bloque es obligatorio.");
-    if (parqueaderos.some(p => p.nombre.toLowerCase() === nombre.toLowerCase() && p.id !== pqEditId)) return setFormError(`Ya existe un parqueadero llamado "${nombre}".`);
-    if (parqueaderos.some(p => p.bloque.toLowerCase() === bloque.toLowerCase() && p.id !== pqEditId)) return setFormError(`Ya existe el bloque "${bloque}".`);
-    if (capacidadForm <= 0) return setFormError("Debe definir al menos una celda.");
-    if (horaAMinutos(pqForm.horaFin) <= horaAMinutos(pqForm.horaInicio)) return setFormError("La hora de cierre debe ser posterior a la hora de apertura.");
 
     const celdasPq = celdas.filter(c => c.parqueaderoId === pqEditId);
     const tiposMap: { tipo: Celda["tipo"]; prefix: string; anterior: number; nuevo: number }[] = [
@@ -1614,7 +1637,7 @@ export default function Parqueaderos() {
     }
 
     updateParqueadero(pqEditId, {
-      nombre, bloque, tipo: pqForm.tipo, direccion: pqForm.direccion, descripcion: pqForm.descripcion,
+      nombre, bloque, tipo: pqForm.tipo, direccion: pqForm.direccion.trim(), descripcion: pqForm.descripcion.trim(),
       horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
       celdasCarros: pqForm.celdasCarros, celdasMotos: pqForm.celdasMotos, celdasMovilidadReducida: pqForm.celdasMovilidadReducida,
       capacidad: capacidadForm,
@@ -1703,8 +1726,9 @@ export default function Parqueaderos() {
     }
     const vehiculoEnCelda = vehiculos.find(v => v.celdaId === celdaActiva.id);
     if (vehiculoEnCelda) {
-      // Si tu DataContext permite actualizar vehículos, actualiza la celdaId
-      // updateVehiculo(vehiculoEnCelda.id, { celdaId: null });
+      // Limpia la referencia para que la celda liberada no siga apareciendo
+      // como "ocupada" por este vehículo (getOcupante la usa como fallback).
+      updateVehiculo(vehiculoEnCelda.id, { celdaId: "" });
     }
     updateCelda(celdaActiva.id, { estado: "disponible", ocupada: false });
     toast.info(`Celda ${celdaActiva.numero} liberada.`);
@@ -2008,12 +2032,12 @@ export default function Parqueaderos() {
         <ModalHeader eyebrow={openModal === "edit" ? "Editar Zona" : "Registro de Zona"} title={openModal === "edit" ? "Editar Parqueadero" : "Nuevo Parqueadero"} icon={openModal === "edit" ? <Pencil size={18} color={C.primary} /> : <Sparkles size={18} color={C.primary} />} onClose={() => setOpenModal(null)} />
         <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
           {formError && <Banner tone="danger" message={formError} />}
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: PQ-8 Bloque D" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} maxLength={NOMBRE_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: PQ-8 Bloque D" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
           <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+            <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} maxLength={BLOQUE_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
             <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Categoría</label><select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }}>{TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{capitalizar(t)}</option>)}</select></div>
           </div>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Dirección</label><input value={pqForm.direccion} onChange={e => setPqForm(p => ({ ...p, direccion: e.target.value }))} placeholder="Ej: Calle 100 # 50-30" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Dirección</label><input value={pqForm.direccion} maxLength={DIRECCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, direccion: e.target.value }))} placeholder="Ej: Calle 100 # 50-30" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
           <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Hora apertura</label><input type="time" value={pqForm.horaInicio} onChange={e => setPqForm(p => ({ ...p, horaInicio: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
             <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Hora cierre</label><input type="time" value={pqForm.horaFin} onChange={e => setPqForm(p => ({ ...p, horaFin: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
@@ -2036,7 +2060,7 @@ export default function Parqueaderos() {
             </div>
             <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Capacidad total: <strong>{capacidadForm}</strong> celdas</p>
           </div>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Descripción</label><input value={pqForm.descripcion} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Descripción</label><input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           <button onClick={() => setOpenModal(null)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
