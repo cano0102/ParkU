@@ -73,7 +73,7 @@ interface PermisosState {
   incidentes: boolean;
   reconocimientoPlacas: boolean;
 }
-
+    
 const initialPermisos: PermisosState = {
   dashboard: false,
   roles: false,
