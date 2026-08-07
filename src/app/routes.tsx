@@ -8,10 +8,7 @@ import  Dashboard  from './pages/Dashboard';
 import  {Roles}  from './pages/Roles';
 import  Usuarios  from './pages/Usuarios';
 import { Conductores } from './pages/Conductores';
-import { Vehiculos } from './pages/Vehiculos';
 import  Parqueaderos  from './pages/Parqueaderos';
-import { Celdas } from './pages/Celdas';
-import { Asignaciones } from './pages/Asignaciones';
 import { ControlSalidaPage } from './pages/ControlSalida';
 import { Reservas } from './pages/Reservas';
 import { Incidentes } from './pages/Incidentes';
@@ -66,14 +63,6 @@ export const router = createBrowserRouter([
       {
         path: 'parqueaderos',
         element: <Parqueaderos />,
-      },
-      {
-        path: 'celdas',
-        element: <Celdas />,
-      },
-      {
-        path: 'asignaciones',
-        element: <Asignaciones />,
       },
       {
         path: 'entrada-salida',

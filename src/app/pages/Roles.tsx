@@ -16,15 +16,9 @@ import {
 } from "lucide-react";
 import { useData, Rol } from "../context/DataContext";
 import { toast } from "sonner";
+import { theme } from "../theme";
 
-const COLORS = {
-  primary: "#39A900",
-  primaryDark: "#2D7D00",
-  text: "#0F172A",
-  textLight: "#64748B",
-  border: "#E2E8F0",
-  bg: "#F5F7F8",
-} as const;
+const COLORS = theme;
 
 const ROLES_PROTEGIDOS = ["Administrador", "SuperAdmin"] as const;
 

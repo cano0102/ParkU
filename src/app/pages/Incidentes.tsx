@@ -19,20 +19,12 @@ import {
   ParkingCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { useData, type Celda, type Incidente } from '../context/DataContext';
+import { theme } from '../theme';
 
-/* ─── Paleta (misma que Roles) ─── */
-const C = {
-  primary:     "#39A900",
-  primaryDark: "#2D7D00",
-  text:        "#0F172A",
-  textLight:   "#64748B",
-  border:      "#E2E8F0",
-  bg:          "#F5F7F8",
-  danger:      "#EF4444",
-  warning:     "#F59E0B",
-  success:     "#22C55E",
-};
+/* ─── Paleta compartida (src/app/theme.ts) ─── */
+const C = theme;
 
 const MAX_EVIDENCIA_MB = 5;
 
@@ -148,6 +140,7 @@ function CeldaBadgeInline({ numero, estado }: { numero: string; estado?: Celda['
    MAIN COMPONENT - Incidentes (estilo Roles)
 ══════════════════════════════════════════════════════ */
 export function Incidentes() {
+  const navigate = useNavigate();
   const { parqueaderos, celdas, vehiculos, conductores, incidentes, updateIncidente, deleteIncidente } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -1018,26 +1011,31 @@ export function Incidentes() {
 
               <div style={{ padding: "1.4rem 1.8rem" }}>
                 {[
-                  { label: "Parqueadero", value: nombreParqueadero(selectedIncidente.parqueaderoId), icon: MapPin },
+                  { label: "Parqueadero", value: nombreParqueadero(selectedIncidente.parqueaderoId), icon: MapPin, onClick: () => navigate(`/app/parqueaderos?q=${encodeURIComponent(celdaObj?.numero || nombreParqueadero(selectedIncidente.parqueaderoId))}`) },
                   ...(celdaObj
-                    ? [{ label: "Celda", value: `${celdaObj.numero} · ${CELDA_ESTADO_CONFIG[celdaObj.estado].label} actualmente`, icon: ParkingCircle }]
+                    ? [{ label: "Celda", value: `${celdaObj.numero} · ${CELDA_ESTADO_CONFIG[celdaObj.estado].label} actualmente`, icon: ParkingCircle, onClick: () => navigate(`/app/parqueaderos?q=${encodeURIComponent(celdaObj.numero)}`) }]
                     : []),
-                  { label: "Fecha y hora", value: fecha.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }), icon: Clock },
-                  ...(selectedIncidente.vehiculo ? [{ label: "Vehículo", value: selectedIncidente.vehiculo, icon: Car }] : []),
-                  ...(selectedIncidente.asignadoA ? [{ label: "Asignado a", value: selectedIncidente.asignadoA, icon: User }] : []),
+                  { label: "Fecha y hora", value: fecha.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' }), icon: Clock, onClick: undefined },
+                  ...(selectedIncidente.vehiculo ? [{ label: "Vehículo", value: selectedIncidente.vehiculo, icon: Car, onClick: undefined }] : []),
+                  ...(selectedIncidente.asignadoA ? [{ label: "Asignado a", value: selectedIncidente.asignadoA, icon: User, onClick: undefined }] : []),
                 ].map((item) => (
-                  <div key={item.label} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 12px", borderRadius: 12,
-                    background: "#F8FAFC", border: `1px solid ${C.border}`,
-                    marginBottom: 8,
-                  }}>
+                  <div
+                    key={item.label}
+                    onClick={item.onClick}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderRadius: 12,
+                      background: "#F8FAFC", border: `1px solid ${C.border}`,
+                      marginBottom: 8,
+                      cursor: item.onClick ? "pointer" : "default",
+                    }}
+                  >
                     <item.icon size={14} color={C.textLight} />
                     <div>
                       <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
                         {item.label}
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: item.onClick ? C.primary : C.text }}>
                         {item.value}
                       </div>
                     </div>

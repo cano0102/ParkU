@@ -1,24 +1,30 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  Mail,
+  Lock,
+  Loader2,
+  AlertCircle,
+  AlertTriangle,
+} from "lucide-react";
 
 import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../../firebase/config";
 
-// Colores
-const COLORS = {
-  primary: "#39A900",
-  primaryDark: "#2D7D00",
-  background: "#F5F7F8",
-  surface: "#FFFFFF",
-  text: "#0F172A",
-  textLight: "#64748B",
-  border: "#E2E8F0",
-};
+import logoSena from "../../styles/images/logoSena.png";
+import { theme } from "../theme";
 
-// Hook de animación
+const COLORS = theme;
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const REMEMBER_KEY = "parku_remembered_email";
+
 function useAnimated() {
   const [visible, setVisible] = useState(false);
 
@@ -30,17 +36,17 @@ function useAnimated() {
   return visible;
 }
 
-// Tipos para errores de validación
 interface ValidationErrors {
   email?: string;
   password?: string;
 }
 
 export function Login() {
-  // Estados del formulario
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({
@@ -50,27 +56,35 @@ export function Login() {
 
   const navigate = useNavigate();
   const visible = useAnimated();
-  const { login } = useAuth(); // <-- Si tu contexto provee login, úsalo; si no, usa Firebase directamente
+  const { login } = useAuth();
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  // Precarga el correo recordado
+  useEffect(() => {
+    const saved = localStorage.getItem(REMEMBER_KEY);
+    if (saved) {
+      setEmail(saved);
+      setRememberMe(true);
+    }
+    emailInputRef.current?.focus();
+  }, []);
 
   // Validaciones en tiempo real
   useEffect(() => {
-    if (touched.email) {
-      validateEmail(email);
-    }
-    if (touched.password) {
-      validatePassword(password);
-    }
+    if (touched.email) validateEmail(email);
+    if (touched.password) validatePassword(password);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password, touched]);
 
-  // Validadores individuales
   const validateEmail = (value: string): boolean => {
-    if (!value.trim()) {
+    const trimmed = value.trim();
+
+    if (!trimmed) {
       setErrors((prev) => ({ ...prev, email: "El correo electrónico es obligatorio" }));
       return false;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value)) {
+    if (!EMAIL_REGEX.test(trimmed)) {
       setErrors((prev) => ({ ...prev, email: "Ingresa un correo electrónico válido" }));
       return false;
     }
@@ -113,8 +127,12 @@ export function Login() {
     }
   };
 
+  const handlePasswordKeyEvent = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setCapsLockOn(e.getModifierState && e.getModifierState("CapsLock"));
+  };
+
   // ============================================================
-  // 🚀 LOGIN REAL CON FIREBASE
+  // LOGIN CON FIREBASE
   // ============================================================
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,24 +142,28 @@ export function Login() {
       return;
     }
 
+    const trimmedEmail = email.trim();
     setLoading(true);
 
     try {
-      // Opción 1: Usar el contexto (recomendado)
       if (login) {
-        await login(email, password);
+        await login(trimmedEmail, password);
       } else {
-        // Opción 2: Llamar directamente a Firebase (si no tienes contexto)
-        await signInWithEmailAndPassword(auth, email, password);
+        await signInWithEmailAndPassword(auth, trimmedEmail, password);
+      }
+
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_KEY, trimmedEmail);
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
       }
 
       toast.success("¡Bienvenido! Redirigiendo...");
-      navigate("/app/dashboard"); 
+      navigate("/app/dashboard");
     } catch (error: any) {
       console.error("Error al iniciar sesión:", error);
 
-      // Manejo de errores comunes de Firebase
-      const errorCode = error.code;
+      const errorCode = error?.code;
       let mensaje = "Ocurrió un error inesperado. Intenta de nuevo.";
 
       switch (errorCode) {
@@ -151,14 +173,23 @@ export function Login() {
         case "auth/wrong-password":
           mensaje = "Contraseña incorrecta. Verifica tus credenciales.";
           break;
+        case "auth/invalid-credential":
+          mensaje = "Correo o contraseña incorrectos.";
+          break;
         case "auth/invalid-email":
           mensaje = "El formato del correo no es válido.";
+          break;
+        case "auth/user-disabled":
+          mensaje = "Esta cuenta ha sido deshabilitada. Contacta al administrador.";
           break;
         case "auth/too-many-requests":
           mensaje = "Demasiados intentos fallidos. Intenta más tarde.";
           break;
+        case "auth/network-request-failed":
+          mensaje = "Error de conexión. Verifica tu red e intenta de nuevo.";
+          break;
         default:
-          mensaje = error.message || mensaje;
+          mensaje = error?.message || mensaje;
       }
 
       toast.error(mensaje);
@@ -167,21 +198,9 @@ export function Login() {
     }
   };
 
-  // ============================================================
-  // LOGIN CON GOOGLE (opcional, ya lo tenías importado)
-  // ============================================================
-  // const handleGoogleLogin = async () => {
-  //   try {
-  //     await signInWithPopup(auth, provider);
-  //     toast.success("Inicio con Google exitoso");
-  //     navigate("/dashboard");
-  //   } catch (error) {
-  //     toast.error("Error al iniciar con Google");
-  //     console.error(error);
-  //   }
-  // };
-
-  const isFormValid = email.trim() && password.length >= 6 && !errors.email && !errors.password;
+  const isEmailFormatValid = EMAIL_REGEX.test(email.trim());
+  const isPasswordFormatValid = password.length >= 6;
+  const isFormValid = isEmailFormatValid && isPasswordFormatValid;
 
   return (
     <>
@@ -219,13 +238,46 @@ export function Login() {
           transition: 0.25s ease;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
           transform: translateY(-2px);
+        }
+
+        button:disabled {
+          cursor: not-allowed;
         }
 
         input:focus {
           border-color: ${COLORS.primary} !important;
           box-shadow: 0 0 0 4px rgba(57, 169, 0, 0.12);
+        }
+
+        input.input-error:focus {
+          border-color: ${COLORS.danger} !important;
+          box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.1);
+        }
+
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+          display: none;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .spin {
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes shake {
+          10%, 90% { transform: translateX(-1px); }
+          20%, 80% { transform: translateX(2px); }
+          30%, 50%, 70% { transform: translateX(-4px); }
+          40%, 60% { transform: translateX(4px); }
+        }
+
+        .shake {
+          animation: shake 0.5s;
         }
 
         @media (max-width: 900px) {
@@ -266,10 +318,22 @@ export function Login() {
             width: 350,
             height: 350,
             borderRadius: "50%",
-            background: "rgba(57, 169, 0, 0.07)",
+            background: "rgba(57, 169, 0, 0.1)",
             top: -100,
             right: -100,
-            filter: "blur(10px)",
+            filter: "blur(60px)",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            width: 280,
+            height: 280,
+            borderRadius: "50%",
+            background: "rgba(57, 169, 0, 0.08)",
+            bottom: -80,
+            left: -80,
+            filter: "blur(60px)",
           }}
         />
 
@@ -286,6 +350,8 @@ export function Login() {
             background: "#fff",
             border: `1px solid ${COLORS.border}`,
             boxShadow: "0 20px 55px rgba(15, 23, 42, 0.08)",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           {/* Columna izquierda - Presentación */}
@@ -331,6 +397,7 @@ export function Login() {
                 }}
               >
                 <button
+                  type="button"
                   onClick={() => navigate("/")}
                   style={{
                     display: "flex",
@@ -354,7 +421,7 @@ export function Login() {
 
               <div style={{ marginBottom: "1rem" }}>
                 <img
-                  src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
+                  src={logoSena}
                   alt="Logo SENA"
                   style={{
                     height: 46,
@@ -459,7 +526,7 @@ export function Login() {
               <div style={{ marginBottom: "1.5rem" }}>
                 <div style={{ marginBottom: "0.8rem" }}>
                   <img
-                    src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
+                    src={logoSena}
                     alt="Logo SENA"
                     style={{
                       height: 38,
@@ -517,6 +584,7 @@ export function Login() {
                 {/* Campo email */}
                 <div>
                   <label
+                    htmlFor="login-email"
                     style={{
                       display: "block",
                       marginBottom: 8,
@@ -528,35 +596,62 @@ export function Login() {
                     Correo Electrónico
                   </label>
 
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onBlur={() => handleBlur("email")}
-                    placeholder="correo@sena.edu.co"
-                    style={{
-                      width: "100%",
-                      padding: "14px 16px",
-                      borderRadius: 12,
-                      border: `1px solid ${
-                        errors.email && touched.email ? "#EF4444" : COLORS.border
-                      }`,
-                      background: "#fff",
-                      fontSize: 14,
-                      outline: "none",
-                      transition: "border-color .2s",
-                    }}
-                  />
+                  <div style={{ position: "relative" }}>
+                    <Mail
+                      size={16}
+                      color={COLORS.textLight}
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: 16,
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                      }}
+                    />
+
+                    <input
+                      id="login-email"
+                      ref={emailInputRef}
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onBlur={() => handleBlur("email")}
+                      placeholder="correo@sena.edu.co"
+                      className={errors.email && touched.email ? "input-error" : ""}
+                      aria-invalid={!!(errors.email && touched.email)}
+                      aria-describedby={errors.email && touched.email ? "login-email-error" : undefined}
+                      style={{
+                        width: "100%",
+                        padding: "14px 16px 14px 42px",
+                        borderRadius: 12,
+                        border: `1px solid ${
+                          errors.email && touched.email ? COLORS.danger : COLORS.border
+                        }`,
+                        background: "#fff",
+                        fontSize: 14,
+                        outline: "none",
+                        transition: "border-color .2s",
+                      }}
+                    />
+                  </div>
 
                   {errors.email && touched.email && (
                     <p
+                      id="login-email-error"
+                      role="alert"
                       style={{
                         marginTop: 6,
                         fontSize: 12,
-                        color: "#EF4444",
+                        color: COLORS.danger,
                         fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
                       }}
                     >
+                      <AlertCircle size={13} />
                       {errors.email}
                     </p>
                   )}
@@ -565,6 +660,7 @@ export function Login() {
                 {/* Campo password */}
                 <div>
                   <label
+                    htmlFor="login-password"
                     style={{
                       display: "block",
                       marginBottom: 8,
@@ -577,18 +673,37 @@ export function Login() {
                   </label>
 
                   <div style={{ position: "relative" }}>
+                    <Lock
+                      size={16}
+                      color={COLORS.textLight}
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: 16,
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                      }}
+                    />
+
                     <input
+                      id="login-password"
                       type={showPassword ? "text" : "password"}
+                      autoComplete="current-password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       onBlur={() => handleBlur("password")}
+                      onKeyUp={handlePasswordKeyEvent}
+                      onKeyDown={handlePasswordKeyEvent}
                       placeholder="••••••••"
+                      className={errors.password && touched.password ? "input-error" : ""}
+                      aria-invalid={!!(errors.password && touched.password)}
+                      aria-describedby={errors.password && touched.password ? "login-password-error" : undefined}
                       style={{
                         width: "100%",
-                        padding: "14px 48px 14px 16px",
+                        padding: "14px 48px 14px 42px",
                         borderRadius: 12,
                         border: `1px solid ${
-                          errors.password && touched.password ? "#EF4444" : COLORS.border
+                          errors.password && touched.password ? COLORS.danger : COLORS.border
                         }`,
                         background: "#fff",
                         fontSize: 14,
@@ -600,6 +715,7 @@ export function Login() {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
                       style={{
                         position: "absolute",
                         top: "50%",
@@ -616,27 +732,82 @@ export function Login() {
                     </button>
                   </div>
 
-                  {errors.password && touched.password && (
+                  {capsLockOn && (
                     <p
+                      role="status"
                       style={{
                         marginTop: 6,
                         fontSize: 12,
-                        color: "#EF4444",
+                        color: "#B45309",
                         fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
                       }}
                     >
+                      <AlertTriangle size={13} />
+                      Bloq Mayús está activado
+                    </p>
+                  )}
+
+                  {errors.password && touched.password && (
+                    <p
+                      id="login-password-error"
+                      role="alert"
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        color: COLORS.danger,
+                        fontWeight: 600,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 5,
+                      }}
+                    >
+                      <AlertCircle size={13} />
                       {errors.password}
                     </p>
                   )}
                 </div>
 
-                {/* Enlace olvidé contraseña */}
+                {/* Recordarme + Olvidé contraseña */}
                 <div
                   style={{
                     display: "flex",
-                    justifyContent: "flex-end",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: "0.6rem 1rem",
                   }}
                 >
+                  <label
+                    htmlFor="login-remember"
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      color: COLORS.textLight,
+                      fontWeight: 600,
+                      userSelect: "none",
+                    }}
+                  >
+                    <input
+                      id="login-remember"
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      style={{
+                        width: 15,
+                        height: 15,
+                        accentColor: COLORS.primary,
+                        cursor: "pointer",
+                      }}
+                    />
+                    Recordarme
+                  </label>
+
                   <Link
                     to="/forgot-password"
                     style={{
@@ -663,37 +834,18 @@ export function Login() {
                     fontWeight: 800,
                     cursor: loading || !isFormValid ? "not-allowed" : "pointer",
                     fontSize: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
                     boxShadow:
                       loading || !isFormValid ? "none" : "0 8px 22px rgba(57, 169, 0, 0.2)",
                     opacity: loading || !isFormValid ? 0.7 : 1,
                   }}
                 >
+                  {loading && <Loader2 size={16} className="spin" />}
                   {loading ? "Verificando..." : "Ingresar"}
                 </button>
-
-                {/* (Opcional) Botón para login con Google */}
-                {/* 
-                <button
-                  type="button"
-                  onClick={handleGoogleLogin}
-                  style={{
-                    border: "1px solid #ccc",
-                    background: "#fff",
-                    color: "#333",
-                    padding: "12px",
-                    borderRadius: 14,
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                  }}
-                >
-                  <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style={{ height: 20 }} />
-                  Continuar con Google
-                </button>
-                */}
               </form>
 
               {/* Footer */}
@@ -711,7 +863,7 @@ export function Login() {
                     fontSize: 12,
                   }}
                 >
-                  © 2026 · Plataforma Institucional ParkU
+                  © {new Date().getFullYear()} · Plataforma Institucional ParkU
                 </p>
               </div>
             </div>

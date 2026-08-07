@@ -22,16 +22,9 @@ import {
 import { auth } from "../../firebase/config";
 
 import { toast } from "sonner";
+import { theme } from "../theme";
 
-const COLORS = {
-  primary: "#39A900",
-  primaryDark: "#2D7D00",
-  background: "#F5F7F8",
-  surface: "#FFFFFF",
-  text: "#0F172A",
-  textLight: "#64748B",
-  border: "#E2E8F0",
-};
+const COLORS = theme;
 
 export function ResetPassword() {
   const navigate = useNavigate();

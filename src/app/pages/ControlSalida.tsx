@@ -18,27 +18,11 @@ import {
   ParkingCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import { useData, ControlSalida } from '../context/DataContext';
+import { theme } from '../theme';
 
-const COLORS = {
-  primary: "#39A900",
-  primaryDark: "#2D7D00",
-  primaryLight: "#E8F5E1",
-  text: "#0F172A",
-  textLight: "#64748B",
-  textMuted: "#94A3B8",
-  border: "#E2E8F0",
-  bg: "#F5F7F8",
-  white: "#FFFFFF",
-  danger: "#EF4444",
-  dangerBg: "#FEE2E2",
-  success: "#22C55E",
-  successBg: "#DCFCE7",
-  warning: "#F59E0B",
-  warningBg: "#FEF3C7",
-  info: "#3B82F6",
-  infoBg: "#DBEAFE",
-} as const;
+const COLORS = theme;
 
 const sanitizeText = (text: string): string => {
   if (!text) return '';

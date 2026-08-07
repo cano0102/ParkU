@@ -21,18 +21,12 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { useData, Reserva } from "../context/DataContext";
+import { theme } from "../theme";
 
-/* ─── Paleta (misma que Roles) ─── */
-const C = {
-  primary:     "#39A900",
-  primaryDark: "#2D7D00",
-  text:        "#0F172A",
-  textLight:   "#64748B",
-  border:      "#E2E8F0",
-  bg:          "#F5F7F8",
-  danger:      "#EF4444",
-};
+/* ─── Paleta compartida (src/app/theme.ts) ─── */
+const C = theme;
 
 /* ─── Estado config ─────────────────────────────────── */
 type EstadoReserva = "pendiente" | "activa" | "completada" | "cancelada";
@@ -132,6 +126,7 @@ function EstadoBadgeInline({ estado }: { estado: EstadoReserva }) {
    MAIN COMPONENT - Reservas (estilo Roles)
 ══════════════════════════════════════════════════════ */
 export function Reservas() {
+  const navigate = useNavigate();
   const {
     reservas, addReserva, updateReserva, deleteReserva,
     vehiculos, celdas, conductores, usuarios, parqueaderos,
@@ -1123,24 +1118,30 @@ export function Reservas() {
 
               <div style={{ padding: "1.4rem 1.8rem" }}>
                 {[
-                  { label: "Conductor", value: usuario ? `${usuario.nombre} · ${usuario.identificacion}` : "Sin conductor", icon: UserCircle2 },
-                  { label: "Celda", value: celda ? `Celda ${celda.numero}` : "—", icon: MapPin },
-                  { label: "Parqueadero", value: parqueadero?.nombre || "—", icon: MapPin },
-                  { label: "Fecha de reserva", value: viewingReserva.fechaReserva, icon: Calendar },
-                  { label: "Horario", value: `${viewingReserva.horaInicio} – ${viewingReserva.horaFin}`, icon: Clock },
+                  { label: "Conductor", value: usuario ? `${usuario.nombre} · ${usuario.identificacion}` : "Sin conductor", icon: UserCircle2, onClick: usuario ? () => navigate(`/app/conductores?q=${encodeURIComponent(usuario.nombre)}`) : undefined },
+                  { label: "Vehículo", value: vehiculo?.placa || "—", icon: Car, onClick: undefined },
+                  { label: "Celda", value: celda ? `Celda ${celda.numero}` : "—", icon: MapPin, onClick: celda ? () => navigate(`/app/parqueaderos?q=${encodeURIComponent(celda.numero)}`) : undefined },
+                  { label: "Parqueadero", value: parqueadero?.nombre || "—", icon: MapPin, onClick: parqueadero ? () => navigate(`/app/parqueaderos?q=${encodeURIComponent(celda?.numero || parqueadero.nombre)}`) : undefined },
+                  { label: "Fecha de reserva", value: viewingReserva.fechaReserva, icon: Calendar, onClick: undefined },
+                  { label: "Horario", value: `${viewingReserva.horaInicio} – ${viewingReserva.horaFin}`, icon: Clock, onClick: undefined },
                 ].map((item) => (
-                  <div key={item.label} style={{
-                    display: "flex", alignItems: "center", gap: 10,
-                    padding: "10px 12px", borderRadius: 12,
-                    background: "#F8FAFC", border: `1px solid ${C.border}`,
-                    marginBottom: 8,
-                  }}>
+                  <div
+                    key={item.label}
+                    onClick={item.onClick}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px", borderRadius: 12,
+                      background: "#F8FAFC", border: `1px solid ${C.border}`,
+                      marginBottom: 8,
+                      cursor: item.onClick ? "pointer" : "default",
+                    }}
+                  >
                     <item.icon size={14} color={C.textLight} />
                     <div>
                       <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
                         {item.label}
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: item.onClick ? C.primary : C.text }}>
                         {item.value}
                       </div>
                     </div>

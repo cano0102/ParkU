@@ -1,7 +1,10 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { forwardRef, useEffect, useMemo, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
+import { theme } from "../theme";
 import {
+  Accessibility,
   Activity,
   AlertTriangle,
   Bike,
@@ -9,46 +12,29 @@ import {
   CalendarDays,
   Car,
   CheckCircle2,
+  ChevronRight,
+  ClipboardList,
   Clock3,
   DoorClosed,
   DoorOpen,
+  FileWarning,
   Gauge,
+  GraduationCap,
   LayoutDashboard,
   ParkingCircle,
   RefreshCw,
-  ShieldCheck,
   Users,
-  Wrench,
   Zap,
 } from "lucide-react";
 
 // ------------------------------------------------------------
 // PALETA DE COLORES (inspirada en la landing page)
 // ------------------------------------------------------------
-const COLORS = {
-  primary: "#39A900",
-  primaryDark: "#2D7D00",
-  primaryLight: "#B3E6A1",
-  primaryPale: "#EAF7E6",
-  background: "#F5F7F8",
-  surface: "#FFFFFF",
-  text: "#000000",
-  textLight: "#64748B",
-  border: "#E2E8F0",
-  dark: "#000000",
-  white: "#FFFFFF",
-  // complementarios para gráficos
-  amber: "#F59E0B",
-  red: "#EF4444",
-  blue: "#3B82F6",
-  purple: "#8B5CF6",
-  teal: "#14B8A6",
-};
+const COLORS = theme;
 
 // ------------------------------------------------------------
-// TIPOS Y DATOS INICIALES
+// TIPOS DERIVADOS PARA LA VISTA DEL DASHBOARD
 // ------------------------------------------------------------
-type CellStatus = "occupied" | "available" | "reserved" | "maintenance";
 type VehicleType = "car" | "moto" | "mixed";
 type LotStatus = "activo" | "mantenimiento";
 
@@ -71,93 +57,8 @@ type Movement = {
   lotId: string;
   kind: "entrada" | "salida";
   vehicle: "Automovil" | "Moto";
-  minutesAgo: number;
+  fecha: string;
 };
-
-const INITIAL_LOTS: ParkingLot[] = [
-  { id: "pq-norte", name: "PQ Norte", block: "Bloque A", type: "mixed", status: "activo", capacity: 72, occupied: 54, reserved: 5, maintenance: 2 },
-  { id: "pq-bienestar", name: "PQ Bienestar", block: "Bloque C", type: "car", status: "activo", capacity: 48, occupied: 28, reserved: 4, maintenance: 1 },
-  { id: "pq-motos", name: "PQ Motos", block: "Ingreso Sur", type: "moto", status: "activo", capacity: 64, occupied: 37, reserved: 8, maintenance: 0 },
-  { id: "pq-talleres", name: "PQ Talleres", block: "Bloque E", type: "mixed", status: "activo", capacity: 36, occupied: 31, reserved: 1, maintenance: 3 },
-  { id: "pq-visitantes", name: "PQ Visitantes", block: "Porteria", type: "car", status: "activo", capacity: 30, occupied: 15, reserved: 7, maintenance: 0 },
-  { id: "pq-admin", name: "PQ Administrativo", block: "Bloque B", type: "car", status: "mantenimiento", capacity: 28, occupied: 12, reserved: 2, maintenance: 8 },
-];
-
-const INITIAL_MOVEMENTS: Movement[] = [
-  { id: "m1", plate: "KLM 842", driver: "Diana Rojas", lotId: "pq-norte", kind: "entrada", vehicle: "Automovil", minutesAgo: 3 },
-  { id: "m2", plate: "NQZ 19F", driver: "Carlos Pena", lotId: "pq-motos", kind: "salida", vehicle: "Moto", minutesAgo: 7 },
-  { id: "m3", plate: "HTR 221", driver: "Laura Mora", lotId: "pq-bienestar", kind: "entrada", vehicle: "Automovil", minutesAgo: 12 },
-  { id: "m4", plate: "MXC 04D", driver: "Juan Torres", lotId: "pq-talleres", kind: "entrada", vehicle: "Moto", minutesAgo: 18 },
-  { id: "m5", plate: "BVA 908", driver: "Sofia Arias", lotId: "pq-visitantes", kind: "salida", vehicle: "Automovil", minutesAgo: 24 },
-  { id: "m6", plate: "UFP 331", driver: "Nelson Diaz", lotId: "pq-norte", kind: "entrada", vehicle: "Automovil", minutesAgo: 31 },
-];
-
-// ------------------------------------------------------------
-// HELPERS Y SIMULACIÓN
-// ------------------------------------------------------------
-function randomInt(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
-}
-
-function randomItem<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-const PLATES = ["ABC 123", "DEF 456", "GHI 789", "JKL 012", "MNO 345", "PQR 678", "STU 901", "VWX 234", "YZ 567", "KLM 890"];
-const DRIVERS = ["Ana Gómez", "Luis Pérez", "María Rodríguez", "Carlos Sánchez", "Laura Martínez", "Jorge Fernández", "Sofía López", "Miguel Torres", "Elena Díaz", "David Ruiz"];
-const VEHICLES: ("Automovil" | "Moto")[] = ["Automovil", "Moto"];
-
-function generateMovement(lots: ParkingLot[]): Movement {
-  const lot = randomItem(lots);
-  const isEntry = Math.random() > 0.4;
-  const vehicle = randomItem(VEHICLES);
-  return {
-    id: `m${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
-    plate: randomItem(PLATES),
-    driver: randomItem(DRIVERS),
-    lotId: lot.id,
-    kind: isEntry ? "entrada" : "salida",
-    vehicle,
-    minutesAgo: randomInt(1, 5),
-  };
-}
-
-function simulateLotUpdate(lots: ParkingLot[]): ParkingLot[] {
-  return lots.map((lot) => {
-    if (lot.status === "mantenimiento") return lot;
-
-    let newOccupied = lot.occupied + randomInt(-2, 3);
-    let newReserved = lot.reserved + randomInt(-1, 2);
-    let newMaintenance = lot.maintenance + randomInt(-1, 1);
-
-    const total = lot.capacity;
-    newOccupied = Math.max(0, Math.min(total, newOccupied));
-    newReserved = Math.max(0, Math.min(total - newOccupied, newReserved));
-    newMaintenance = Math.max(0, Math.min(total - newOccupied - newReserved, newMaintenance));
-
-    let newStatus: LotStatus = lot.status;
-    if (Math.random() < 0.05) {
-      newStatus = lot.status === "activo" ? "mantenimiento" : "activo";
-      if (newStatus === "mantenimiento") {
-        newOccupied = Math.max(0, Math.floor(lot.capacity * 0.3));
-        newReserved = 0;
-        newMaintenance = lot.capacity - newOccupied;
-      } else {
-        newMaintenance = randomInt(0, 3);
-        newOccupied = Math.min(lot.capacity - newMaintenance, randomInt(10, lot.capacity - newMaintenance - 5));
-        newReserved = randomInt(0, Math.min(8, lot.capacity - newOccupied - newMaintenance));
-      }
-    }
-
-    return {
-      ...lot,
-      occupied: newOccupied,
-      reserved: newReserved,
-      maintenance: newMaintenance,
-      status: newStatus,
-    };
-  });
-}
 
 function availableOf(lot: ParkingLot) {
   return Math.max(lot.capacity - lot.occupied - lot.reserved - lot.maintenance, 0);
@@ -174,29 +75,8 @@ function statusColor(pct: number) {
   return COLORS.primary;
 }
 
-function makeCells(lot: ParkingLot) {
-  // Asegurar que los valores no sean negativos y que la suma no exceda la capacidad
-  const occupied = Math.max(0, lot.occupied);
-  const reserved = Math.max(0, lot.reserved);
-  const maintenance = Math.max(0, lot.maintenance);
-  const available = Math.max(0, lot.capacity - occupied - reserved - maintenance);
-  
-  const statuses: CellStatus[] = [
-    ...Array(occupied).fill("occupied"),
-    ...Array(available).fill("available"),
-    ...Array(reserved).fill("reserved"),
-    ...Array(maintenance).fill("maintenance"),
-  ];
-  
-  return statuses.map((status, index) => ({
-    id: `${lot.id}-${index}`,
-    status,
-    delay: ((index * 5) % 30) / 100,
-  }));
-}
-
 // ------------------------------------------------------------
-// HOOKS PERSONALIZADOS
+// HOOKS Y FORMATO
 // ------------------------------------------------------------
 function useClock() {
   const [now, setNow] = useState(new Date());
@@ -215,8 +95,22 @@ function formatDate(now: Date) {
   return now.toLocaleDateString("es-CO", { weekday: "long", day: "numeric", month: "long" });
 }
 
+function formatMovementTime(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("es-CO", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+function daysAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+  if (days === 0) return "Hoy";
+  if (days === 1) return "Hace 1 día";
+  return `Hace ${days} días`;
+}
+
 // ------------------------------------------------------------
-// COMPONENTES DE UI REDISEÑADOS
+// COMPONENTES DE UI
 // ------------------------------------------------------------
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -235,35 +129,42 @@ const Card = ({ children, className = "" }: { children: React.ReactNode; classNa
   </motion.div>
 );
 
-const SectionTitle = ({ icon: Icon, title, subtitle, color = COLORS.primary }: { icon: React.ElementType; title: string; subtitle?: string; color?: string }) => (
-  <div className="mb-5 flex items-center justify-between">
-    <div className="flex items-center gap-3">
-      <div className="flex h-9 w-9 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
+const SectionTitle = ({ icon: Icon, title, subtitle, color = COLORS.primary, actionLabel, onAction }: { icon: React.ElementType; title: string; subtitle?: string; color?: string; actionLabel?: string; onAction?: () => void }) => (
+  <div className="mb-5 flex items-center justify-between gap-3">
+    <div className="flex items-center gap-3 min-w-0">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
         <Icon size={18} color={color} strokeWidth={2} />
       </div>
-      <div>
+      <div className="min-w-0">
         <h3 className="text-sm font-semibold text-[#1a1a2e]">{title}</h3>
-        {subtitle && <p className="text-xs text-[#64748B]">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-[#64748B] truncate">{subtitle}</p>}
       </div>
     </div>
+    {actionLabel && onAction && (
+      <button
+        onClick={onAction}
+        className="shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#2D7D00] hover:bg-[#EAF7E6] transition-colors"
+      >
+        {actionLabel}
+        <ChevronRight size={13} />
+      </button>
+    )}
   </div>
 );
 
-// ------------------------------------------------------------
-// KPI (rediseñado)
-// ------------------------------------------------------------
-const Kpi = ({ label, value, detail, icon: Icon, color }: { label: string; value: string | number; detail: string; icon: React.ElementType; color: string }) => (
+const Kpi = ({ label, value, detail, icon: Icon, color, onClick }: { label: string; value: string | number; detail: string; icon: React.ElementType; color: string; onClick?: () => void }) => (
   <motion.div
     variants={fadeUp}
     initial="hidden"
     whileInView="show"
     viewport={{ once: true }}
     whileHover={{ y: -2, transition: { duration: 0.2 } }}
-    className="cursor-default"
+    className={onClick ? "cursor-pointer" : "cursor-default"}
+    onClick={onClick}
   >
-    <div className="rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+    <div className="group rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
           <Icon size={24} color={color} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
@@ -271,14 +172,12 @@ const Kpi = ({ label, value, detail, icon: Icon, color }: { label: string; value
           <p className="mt-1 text-2xl font-bold text-[#1a1a2e] tracking-tight">{value}</p>
           <p className="text-xs text-[#64748B] truncate">{detail}</p>
         </div>
+        {onClick && <ChevronRight size={16} className="shrink-0 text-[#CBD5E1] transition-transform group-hover:translate-x-0.5 group-hover:text-[#94A3B8]" />}
       </div>
     </div>
   </motion.div>
 );
 
-// ------------------------------------------------------------
-// DONUT (rediseñado)
-// ------------------------------------------------------------
 const Donut = ({ value, size = 170 }: { value: number; size?: number }) => {
   const stroke = 12;
   const radius = (size - stroke) / 2;
@@ -309,55 +208,14 @@ const Donut = ({ value, size = 170 }: { value: number; size?: number }) => {
   );
 };
 
-// ------------------------------------------------------------
-// MAPA DE CELDAS (con leyenda)
-// ------------------------------------------------------------
-const CellGrid = ({ lot }: { lot: ParkingLot }) => {
-  const cells = useMemo(() => makeCells(lot), [lot]);
-  const colors: Record<CellStatus, string> = {
-    occupied: COLORS.primary,
-    available: "#E2E8F0",
-    reserved: COLORS.amber,
-    maintenance: COLORS.red,
-  };
-
-  return (
-    <div>
-      <div className="rounded-xl bg-[#F8FAF9] p-4 border border-[#E2E8F0]">
-        <div className="grid grid-cols-10 gap-1.5 sm:grid-cols-12 md:grid-cols-14">
-          {cells.map((cell) => (
-            <motion.div
-              key={cell.id}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.2, delay: cell.delay }}
-              className="aspect-square rounded-sm"
-              style={{ backgroundColor: colors[cell.status] }}
-              title={cell.status}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="mt-3 flex flex-wrap gap-4 text-xs text-[#64748B]">
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COLORS.primary }} /> Ocupadas</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: "#E2E8F0" }} /> Libres</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COLORS.amber }} /> Reservadas</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: COLORS.red }} /> Mantenimiento</span>
-      </div>
-    </div>
-  );
-};
-
-// ------------------------------------------------------------
-// LISTA DE PARQUEADEROS (con barra de progreso)
-// ------------------------------------------------------------
-const LotRow = ({ lot, selected, onClick }: { lot: ParkingLot; selected: boolean; onClick: () => void }) => {
+const LotRow = forwardRef<HTMLButtonElement, { lot: ParkingLot; selected: boolean; onClick: () => void }>(({ lot, selected, onClick }, ref) => {
   const pct = occupancyOf(lot);
   const color = statusColor(pct);
   const Icon = lot.type === "moto" ? Bike : lot.type === "car" ? Car : ParkingCircle;
 
   return (
     <button
+      ref={ref}
       onClick={onClick}
       className={`w-full rounded-xl border p-3 text-left transition-all duration-200 ${
         selected
@@ -388,17 +246,14 @@ const LotRow = ({ lot, selected, onClick }: { lot: ParkingLot; selected: boolean
       </div>
     </button>
   );
-};
+});
 
-// ------------------------------------------------------------
-// BARRAS HORIZONTALES (apiladas)
-// ------------------------------------------------------------
 const HorizontalBars = ({ lots }: { lots: ParkingLot[] }) => (
   <div className="space-y-3">
     {lots.map((lot) => {
-      const occupiedPct = (lot.occupied / lot.capacity) * 100;
-      const reservedPct = (lot.reserved / lot.capacity) * 100;
-      const maintenancePct = (lot.maintenance / lot.capacity) * 100;
+      const occupiedPct = lot.capacity > 0 ? (lot.occupied / lot.capacity) * 100 : 0;
+      const reservedPct = lot.capacity > 0 ? (lot.reserved / lot.capacity) * 100 : 0;
+      const maintenancePct = lot.capacity > 0 ? (lot.maintenance / lot.capacity) * 100 : 0;
       const color = statusColor(occupancyOf(lot));
 
       return (
@@ -418,52 +273,17 @@ const HorizontalBars = ({ lots }: { lots: ParkingLot[] }) => (
   </div>
 );
 
-// ------------------------------------------------------------
-// GRÁFICO DE ÁREA
-// ------------------------------------------------------------
-const AreaChart = ({ data }: { data: number[] }) => {
-  const w = 340, h = 90;
-  const max = Math.max(...data, 1);
-  const min = Math.min(...data, 0);
-  const range = max - min || 1;
-  const coords = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 14) - 7;
-    return [x, y] as const;
-  });
-  const line = coords.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
-  const area = `${line} L${w},${h} L0,${h} Z`;
-
-  return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="h-24 w-full">
-      <defs>
-        <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor={COLORS.primary} stopOpacity="0.2" />
-          <stop offset="100%" stopColor={COLORS.primary} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} d={area} fill="url(#areaGrad)" />
-      <motion.path
-        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-        transition={{ duration: 1.2, ease: "easeOut" }}
-        d={line} fill="none" stroke={COLORS.primary} strokeLinecap="round" strokeLinejoin="round" strokeWidth="3"
-      />
-    </svg>
-  );
-};
-
-// ------------------------------------------------------------
-// GRÁFICO DE DISTRIBUCIÓN (anillo)
-// ------------------------------------------------------------
 const DistributionChart = ({ items }: { items: { label: string; value: number; color: string }[] }) => {
   const total = items.reduce((a, i) => a + i.value, 0);
   let cursor = 0;
-  const gradient = items.map((item) => {
-    const s = cursor;
-    const e = cursor + (item.value / total) * 100;
-    cursor = e;
-    return `${item.color} ${s}% ${e}%`;
-  }).join(", ");
+  const gradient = total === 0
+    ? "#E2E8F0 0% 100%"
+    : items.map((item) => {
+        const s = cursor;
+        const e = cursor + (item.value / total) * 100;
+        cursor = e;
+        return `${item.color} ${s}% ${e}%`;
+      }).join(", ");
 
   return (
     <div className="flex items-center gap-5">
@@ -489,63 +309,63 @@ const DistributionChart = ({ items }: { items: { label: string; value: number; c
 // DASHBOARD PRINCIPAL
 // ------------------------------------------------------------
 export default function Dashboard() {
+  const navigate = useNavigate();
   const now = useClock();
   const [filter, setFilter] = useState<"all" | "car" | "moto">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Obtener datos reales del contexto
-  const { parqueaderos, celdas, movimientos, vehiculos, conductores } = useData();
+  const { parqueaderos, celdas, movimientos, vehiculos, conductores, incidentes, reservas } = useData();
 
-  // Mapear datos del contexto a formato ParkingLot
-  const lots = useMemo(() => {
-    if (!parqueaderos || parqueaderos.length === 0) return INITIAL_LOTS;
-    
-    return parqueaderos.map(pq => {
-      const celdasDelPQ = celdas.filter(c => c.parqueaderoId === pq.id);
-      const ocupadas = celdasDelPQ.filter(c => c.estado === 'no_disponible').length;
-      const reservadas = celdasDelPQ.filter(c => c.estado === 'reservada').length;
-      const mantenimiento = celdasDelPQ.filter(c => c.estado === 'mantenimiento').length;
-      
-      let tipo: VehicleType = 'mixed';
-      if (pq.celdasMotos === 0) tipo = 'car';
-      else if (pq.celdasCarros === 0) tipo = 'moto';
+  // Parqueaderos + celdas reales del contexto
+  const lots = useMemo<ParkingLot[]>(() => {
+    return parqueaderos.map((pq) => {
+      const celdasDelPQ = celdas.filter((c) => c.parqueaderoId === pq.id);
+      const ocupadas = celdasDelPQ.filter((c) => c.estado === "no_disponible").length;
+      const reservadas = celdasDelPQ.filter((c) => c.estado === "reservada").length;
+      const mantenimiento = celdasDelPQ.filter((c) => c.estado === "mantenimiento").length;
+
+      let tipo: VehicleType = "mixed";
+      if (pq.celdasMotos === 0) tipo = "car";
+      else if (pq.celdasCarros === 0) tipo = "moto";
 
       return {
         id: pq.id,
         name: pq.nombre,
         block: pq.bloque,
         type: tipo,
-        status: pq.estado === 'activo' ? 'activo' : 'mantenimiento' as LotStatus,
-        capacity: pq.capacity || pq.celdasCarros + pq.celdasMotos + pq.celdasMovilidadReducida || 10,
+        status: pq.estado === "activo" ? "activo" : "mantenimiento",
+        capacity: pq.capacidad || celdasDelPQ.length || 1,
         occupied: ocupadas,
         reserved: reservadas,
         maintenance: mantenimiento,
-      } as ParkingLot;
+      };
     });
   }, [parqueaderos, celdas]);
 
-  // Mapear movimientos del contexto
-  const movements = useMemo(() => {
-    if (!movimientos || movimientos.length === 0) return INITIAL_MOVEMENTS;
-    
-    return movimientos.slice(0, 12).map((m, idx) => ({
-      id: m.id,
-      plate: m.placa || `VEH-${idx + 1}`,
-      driver: m.conductorNombre || `Conductor ${idx + 1}`,
-      lotId: m.parqueaderoId || lots[0]?.id || "pq-norte",
-      kind: m.tipo as 'entrada' | 'salida' || (idx % 2 === 0 ? 'entrada' : 'salida'),
-      vehicle: m.placa?.includes('M') ? 'Moto' : 'Automovil' as 'Automovil' | 'Moto',
-      minutesAgo: idx + 1,
-    } as Movement));
-  }, [movimientos, lots]);
+  // Movimientos reales (derivados de controles de salida en el contexto)
+  const movements = useMemo<Movement[]>(() => {
+    return movimientos.slice(0, 10).map((m) => {
+      const vehiculo = vehiculos.find((v) => v.placa === m.placa);
+      return {
+        id: m.id,
+        plate: m.placa,
+        driver: m.conductorNombre,
+        lotId: m.parqueaderoId,
+        kind: m.tipo,
+        vehicle: vehiculo?.tipo === "moto" ? "Moto" : "Automovil",
+        fecha: m.fecha,
+      };
+    });
+  }, [movimientos, vehiculos]);
 
-  const lastUpdate = new Date();
-  const isUpdating = false;
-
-  // Función refresh que simplemente refresca los datos (que ya están del contexto)
   const refresh = useCallback(() => {
-    // Los datos se actualizan automáticamente desde el contexto
-    // Esta función es para mantener compatibilidad UI
+    setRefreshing(true);
+    window.setTimeout(() => {
+      setLastUpdate(new Date());
+      setRefreshing(false);
+    }, 450);
   }, []);
 
   useEffect(() => {
@@ -559,7 +379,7 @@ export default function Dashboard() {
     return lots.filter((l) => l.type === filter || l.type === "mixed");
   }, [filter, lots]);
 
-  const selectedLot = visibleLots.find((l) => l.id === selectedId) ?? visibleLots[0] ?? lots[0] ?? INITIAL_LOTS[0];
+  const selectedLot = visibleLots.find((l) => l.id === selectedId) ?? visibleLots[0] ?? lots[0];
 
   const totals = useMemo(() => {
     const capacity = lots.reduce((a, l) => a + l.capacity, 0);
@@ -574,66 +394,87 @@ export default function Dashboard() {
     };
   }, [lots]);
 
+  const incidentesPendientes = useMemo(
+    () => incidentes.filter((i) => i.estado === "pendiente"),
+    [incidentes]
+  );
+
+  const reservaCounts = useMemo(() => ({
+    pendiente: reservas.filter((r) => r.estado === "pendiente").length,
+    activa: reservas.filter((r) => r.estado === "activa").length,
+    completada: reservas.filter((r) => r.estado === "completada").length,
+    cancelada: reservas.filter((r) => r.estado === "cancelada").length,
+  }), [reservas]);
+
   const alerts = useMemo(() => {
     const high = lots.filter((l) => occupancyOf(l) >= 82);
-    const result = [];
+    const result: { label: string; tone: "red" | "amber" | "green" }[] = [];
+
     if (high.length > 0) {
       result.push({
         label: `${high.length} parqueadero(s) al ${Math.max(...high.map(occupancyOf))}% — casi lleno`,
-        tone: "red" as const,
+        tone: "red",
+      });
+    }
+    if (incidentesPendientes.length > 0) {
+      result.push({
+        label: `${incidentesPendientes.length} incidente(s) pendiente(s) por resolver`,
+        tone: "red",
       });
     }
     if (totals.maintenance > 0) {
       result.push({
-        label: `${totals.maintenance} celdas en mantenimiento`,
-        tone: "amber" as const,
+        label: `${totals.maintenance} celda(s) en mantenimiento`,
+        tone: "amber",
       });
     }
     if (result.length === 0) {
-      result.push({
-        label: "Todos los sistemas operan con normalidad",
-        tone: "green" as const,
-      });
+      result.push({ label: "Todos los sistemas operan con normalidad", tone: "green" });
     }
     return result;
-  }, [lots, totals.maintenance]);
+  }, [lots, totals.maintenance, incidentesPendientes]);
 
-  const selectedStats = useMemo(() => [
-    { label: "Ocupadas", value: selectedLot.occupied, color: COLORS.primary },
-    { label: "Libres", value: availableOf(selectedLot), color: COLORS.blue },
-    { label: "Reservadas", value: selectedLot.reserved, color: COLORS.amber },
-    { label: "Mant.", value: selectedLot.maintenance, color: COLORS.red },
-  ], [selectedLot]);
-
-  const areaData = useMemo(() => {
-    const currentPct = totals.pct;
-    return Array.from({ length: 12 }, (_, i) => {
-      const variation = Math.sin(i / 2) * 8 + (Math.random() * 6 - 3);
-      return Math.max(5, Math.min(95, currentPct + variation));
-    });
-  }, [totals.pct]);
+  const selectedStats = useMemo(() => {
+    if (!selectedLot) return [];
+    return [
+      { label: "Ocupadas", value: selectedLot.occupied, color: COLORS.primary },
+      { label: "Libres", value: availableOf(selectedLot), color: COLORS.blue },
+      { label: "Reservadas", value: selectedLot.reserved, color: COLORS.amber },
+      { label: "Mant.", value: selectedLot.maintenance, color: COLORS.red },
+    ];
+  }, [selectedLot]);
 
   const vehicleDistribution = useMemo(() => {
-    const cars = vehiculos.filter(v => v.tipo === 'carro').length;
-    const motos = vehiculos.filter(v => v.tipo === 'moto').length;
-    const reservedCount = lots.reduce((acc, l) => acc + l.reserved, 0);
+    const carros = vehiculos.filter((v) => v.tipo === "carro").length;
+    const motos = vehiculos.filter((v) => v.tipo === "moto").length;
     return [
-      { label: "Automoviles", value: cars || 10, color: COLORS.blue },
-      { label: "Motos", value: motos || 5, color: COLORS.amber },
-      { label: "Reservas", value: reservedCount || 3, color: COLORS.primary },
+      { label: "Carros", value: carros, color: COLORS.blue },
+      { label: "Motos", value: motos, color: COLORS.amber },
     ];
-  }, [lots, vehiculos]);
+  }, [vehiculos]);
 
-  const userDistribution = useMemo(() => {
-    const docentes = conductores.filter(c => c.tipo === 'docente').length;
-    const admin = conductores.filter(c => c.tipo === 'administrativo').length;
-    const visit = conductores.filter(c => c.tipo === 'visitante').length;
+  const conductorDistribution = useMemo(() => {
+    const aprendices = conductores.filter((c) => c.tipoConductor === "aprendiz").length;
+    const instructores = conductores.filter((c) => c.tipoConductor === "instructor").length;
     return [
-      { label: "Docentes", value: docentes || 8, color: COLORS.primary },
-      { label: "Administrativos", value: admin || 4, color: COLORS.blue },
-      { label: "Visitantes", value: visit || 2, color: COLORS.purple },
+      { label: "Aprendices", value: aprendices, color: COLORS.primary },
+      { label: "Instructores", value: instructores, color: COLORS.blue },
     ];
   }, [conductores]);
+
+  const accessibility = useMemo(() => {
+    const celdasMR = celdas.filter((c) => c.tipo === "movilidad reducida");
+    const disponiblesMR = celdasMR.filter((c) => c.estado === "disponible").length;
+    const conductoresDiscapacidad = conductores.filter((c) => c.discapacidad).length;
+    return { totalMR: celdasMR.length, disponiblesMR, conductoresDiscapacidad };
+  }, [celdas, conductores]);
+
+  const entradas = movements.filter((m) => m.kind === "entrada").length;
+  const salidas = movements.filter((m) => m.kind === "salida").length;
+
+  if (!selectedLot) {
+    return null;
+  }
 
   return (
     <>
@@ -660,7 +501,7 @@ export default function Dashboard() {
           variants={{ show: { transition: { staggerChildren: 0.04 } } }}
           className="relative mx-auto max-w-[1440px] px-5 py-5"
         >
-          {/* ========== HEADER REDISEÑADO ========== */}
+          {/* ========== HEADER ========== */}
           <motion.header
             variants={fadeUp}
             initial="hidden"
@@ -673,8 +514,8 @@ export default function Dashboard() {
                   <ParkingCircle size={24} strokeWidth={2} />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">SENA Parqueaderos</h1>
-                  <p className="text-sm text-[#64748B]">Centro de control en tiempo real</p>
+                  <h1 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">ParkU · SENA</h1>
+                  <p className="text-sm text-[#64748B]">Panel general de parqueaderos</p>
                 </div>
               </div>
 
@@ -696,41 +537,33 @@ export default function Dashboard() {
                 </div>
                 <button
                   onClick={refresh}
-                  disabled={isUpdating}
+                  disabled={refreshing}
                   className="flex items-center gap-1.5 rounded-xl bg-[#39A900] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2D7D00] disabled:opacity-60 shadow-sm"
                 >
-                  <RefreshCw size={16} className={isUpdating ? "animate-spin" : ""} />
+                  <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
                   Actualizar
                 </button>
               </div>
             </div>
             <div className="flex items-center gap-3 text-xs text-[#64748B]">
               <span>Última actualización: {lastUpdate.toLocaleTimeString("es-CO")}</span>
-              {isUpdating && <span className="inline-block h-2 w-2 rounded-full bg-[#39A900] animate-pulse" />}
-              <span className="inline-flex items-center gap-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#39A900] opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#39A900]" />
-                </span>
-                Datos en vivo
-              </span>
             </div>
           </motion.header>
 
           {/* ========== KPIS ========== */}
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} />
-            <Kpi label="Disponibles" value={totals.available} detail={`${totals.reserved} reservas vigentes`} icon={DoorOpen} color={COLORS.blue} />
-            <Kpi label="Vehiculos dentro" value={totals.occupied} detail="Automoviles y motos" icon={Car} color={COLORS.amber} />
-            <Kpi label="Conductores" value={conductores.length} detail="Usuarios registrados" icon={Users} color={COLORS.purple} />
+            <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} onClick={() => navigate("/app/parqueaderos")} />
+            <Kpi label="Celdas disponibles" value={totals.available} detail={`${totals.reserved} reservadas · ${totals.maintenance} en mant.`} icon={DoorOpen} color={COLORS.blue} onClick={() => navigate("/app/parqueaderos")} />
+            <Kpi label="Vehículos registrados" value={vehiculos.length} detail={`${vehicleDistribution[0].value} carros · ${vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
+            <Kpi label="Conductores registrados" value={conductores.length} detail={`${conductorDistribution[0].value} aprendices · ${conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
           </div>
 
           {/* ========== FILA PRINCIPAL ========== */}
           <div className="grid gap-6 xl:grid-cols-12">
-            {/* Mapa de celdas (8 columnas) */}
+            {/* Estado por parqueadero */}
             <Card className="xl:col-span-8">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <SectionTitle icon={LayoutDashboard} title="Mapa inteligente de celdas" subtitle="Selecciona un parqueadero" color={COLORS.primary} />
+                <SectionTitle icon={LayoutDashboard} title="Estado por parqueadero" subtitle="Selecciona un parqueadero" color={COLORS.primary} actionLabel="Gestionar" onAction={() => navigate("/app/parqueaderos")} />
                 <div className="inline-flex items-center gap-1 rounded-lg bg-[#F5F7F8] p-1">
                   {[
                     { id: "all", label: "Todos" },
@@ -751,7 +584,7 @@ export default function Dashboard() {
               </div>
 
               <div className="grid gap-5 lg:grid-cols-[15rem_1fr]">
-                <div className="max-h-[32rem] space-y-1.5 overflow-auto pr-1">
+                <div className="max-h-[26rem] space-y-1.5 overflow-auto pr-1">
                   <AnimatePresence mode="popLayout">
                     {visibleLots.map((lot) => (
                       <LotRow key={lot.id} lot={lot} selected={selectedLot.id === lot.id} onClick={() => setSelectedId(lot.id)} />
@@ -772,8 +605,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <CellGrid lot={selectedLot} />
-
                   <div className="grid grid-cols-4 gap-2">
                     {selectedStats.map((stat) => (
                       <div key={stat.label} className="rounded-xl bg-[#F8FAF9] p-3 text-center border border-[#E2E8F0]">
@@ -786,7 +617,7 @@ export default function Dashboard() {
               </div>
             </Card>
 
-            {/* Panorama + alertas (4 columnas) */}
+            {/* Panorama + alertas */}
             <Card className="xl:col-span-4 flex flex-col">
               <SectionTitle icon={Gauge} title="Panorama general" subtitle="Estado consolidado" color={statusColor(totals.pct)} />
               <Donut value={totals.pct} />
@@ -827,31 +658,33 @@ export default function Dashboard() {
 
           {/* ========== FILA INTERMEDIA ========== */}
           <div className="mt-6 grid gap-6 xl:grid-cols-12">
-            {/* Flujo del día */}
+            {/* Entradas y salidas */}
             <Card className="xl:col-span-5">
-              <SectionTitle icon={Activity} title="Flujo del día" subtitle="Entradas y salidas por franja" color={COLORS.primary} />
-              <AreaChart data={areaData} />
-              <div className="mt-4 grid grid-cols-2 gap-4">
+              <SectionTitle icon={Activity} title="Entradas y salidas" subtitle="Últimos registros de movimiento" color={COLORS.primary} actionLabel="Control de acceso" onAction={() => navigate("/app/entrada-salida")} />
+              <div className="grid grid-cols-2 gap-4">
                 <div className="rounded-2xl bg-[#EAF7E6] p-4 border border-[#B3E6A1]">
                   <div className="flex items-center gap-2 text-[#2D7D00]">
                     <DoorOpen size={18} />
                     <p className="text-xs font-semibold uppercase tracking-wider">Entradas</p>
                   </div>
-                  <p className="mt-2 text-3xl font-bold text-[#2D7D00]">{movements.filter(m => m.kind === "entrada").length}</p>
+                  <p className="mt-2 text-3xl font-bold text-[#2D7D00]">{entradas}</p>
                 </div>
                 <div className="rounded-2xl bg-[#F1F5F9] p-4 border border-[#E2E8F0]">
                   <div className="flex items-center gap-2 text-[#64748B]">
                     <DoorClosed size={18} />
                     <p className="text-xs font-semibold uppercase tracking-wider">Salidas</p>
                   </div>
-                  <p className="mt-2 text-3xl font-bold text-[#1a1a2e]">{movements.filter(m => m.kind === "salida").length}</p>
+                  <p className="mt-2 text-3xl font-bold text-[#1a1a2e]">{salidas}</p>
                 </div>
               </div>
+              <p className="mt-4 text-xs text-[#64748B]">
+                Basado en los últimos {movements.length} movimientos registrados en el sistema.
+              </p>
             </Card>
 
             {/* Ocupación por parqueadero */}
             <Card className="xl:col-span-4">
-              <SectionTitle icon={Building2} title="Ocupación por parqueadero" subtitle="Ocupadas, reservas y mantenimiento" color={COLORS.blue} />
+              <SectionTitle icon={Building2} title="Ocupación por parqueadero" subtitle="Ocupadas, reservas y mantenimiento" color={COLORS.blue} actionLabel="Gestionar" onAction={() => navigate("/app/parqueaderos")} />
               <HorizontalBars lots={lots} />
               <div className="mt-4 flex flex-wrap gap-4 text-xs font-medium text-[#64748B]">
                 <span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ backgroundColor: COLORS.primary }} />Ocupadas</span>
@@ -862,11 +695,19 @@ export default function Dashboard() {
 
             {/* Distribución */}
             <Card className="xl:col-span-3">
-              <SectionTitle icon={ShieldCheck} title="Distribución" subtitle="Vehículos y usuarios" color={COLORS.purple} />
-              <div className="space-y-5">
+              <SectionTitle icon={GraduationCap} title="Distribución" subtitle="Vehículos y conductores" color={COLORS.purple} actionLabel="Conductores" onAction={() => navigate("/app/conductores")} />
+              <div className="space-y-4">
                 <DistributionChart items={vehicleDistribution} />
                 <div className="h-px bg-[#E2E8F0]" />
-                <DistributionChart items={userDistribution} />
+                <DistributionChart items={conductorDistribution} />
+                <div className="h-px bg-[#E2E8F0]" />
+                <div className="flex items-center gap-3 rounded-xl bg-[#F8FAF9] p-3 border border-[#E2E8F0]">
+                  <Accessibility size={18} color={COLORS.primary} className="shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-[#1a1a2e]">Movilidad reducida</p>
+                    <p className="text-[11px] text-[#64748B]">{accessibility.disponiblesMR} de {accessibility.totalMR} celdas disponibles</p>
+                  </div>
+                </div>
               </div>
             </Card>
           </div>
@@ -875,7 +716,7 @@ export default function Dashboard() {
           <div className="mt-6 grid gap-6 xl:grid-cols-12">
             {/* Movimientos recientes */}
             <Card className="xl:col-span-8">
-              <SectionTitle icon={Zap} title="Movimientos recientes" subtitle="Últimos registros de acceso" color={COLORS.teal} />
+              <SectionTitle icon={Zap} title="Movimientos recientes" subtitle="Últimos registros de acceso" color={COLORS.teal} actionLabel="Ver todos" onAction={() => navigate("/app/entrada-salida")} />
               <div className="grid gap-3 md:grid-cols-2">
                 {movements.map((move, index) => {
                   const lot = lots.find((item) => item.id === move.lotId);
@@ -887,7 +728,8 @@ export default function Dashboard() {
                       whileInView={{ opacity: 1, y: 0 }}
                       viewport={{ once: true }}
                       transition={{ duration: 0.3, delay: index * 0.04 }}
-                      className="flex items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAF9] p-3 hover:bg-white hover:shadow-sm transition-all duration-200"
+                      onClick={() => navigate("/app/entrada-salida")}
+                      className="flex cursor-pointer items-center gap-3 rounded-xl border border-[#E2E8F0] bg-[#F8FAF9] p-3 hover:bg-white hover:shadow-sm transition-all duration-200"
                     >
                       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: isEntry ? "#EAF7E6" : "#F1F5F9" }}>
                         {isEntry ? <DoorOpen size={18} color={COLORS.primary} /> : <DoorClosed size={18} color="#64748B" />}
@@ -899,36 +741,64 @@ export default function Dashboard() {
                             {move.kind}
                           </span>
                         </div>
-                        <p className="truncate text-xs text-[#64748B]">{move.driver} · {move.vehicle} · {lot?.name || move.lotId}</p>
+                        <p className="truncate text-xs text-[#64748B]">{move.driver} · {move.vehicle} · {lot?.name || "—"}</p>
                       </div>
-                      <p className="shrink-0 text-xs font-semibold text-[#64748B]">{move.minutesAgo} min</p>
+                      <p className="shrink-0 text-xs font-semibold text-[#64748B]">{formatMovementTime(move.fecha)}</p>
                     </motion.div>
                   );
                 })}
               </div>
             </Card>
 
-            {/* Estado operativo */}
+            {/* Reservas e incidentes */}
             <Card className="xl:col-span-4">
-              <SectionTitle icon={Wrench} title="Estado operativo" subtitle="Equipos de acceso y seguridad" color={COLORS.amber} />
-              <div className="space-y-2.5">
+              <SectionTitle icon={ClipboardList} title="Reservas e incidentes" subtitle="Actividad reportada en el sistema" color={COLORS.amber} actionLabel="Ver incidentes" onAction={() => navigate("/app/incidentes")} />
+
+              <div className="mb-5 grid grid-cols-4 gap-2">
                 {[
-                  { label: "Barreras automáticas", value: "100%", icon: CheckCircle2, color: COLORS.primary },
-                  { label: "Cámaras LPR", value: "12/12", icon: ShieldCheck, color: COLORS.primary },
-                  { label: "Celdas bloqueadas", value: totals.maintenance, icon: Wrench, color: COLORS.amber },
-                  { label: "Tiempo medio ingreso", value: "18s", icon: Clock3, color: COLORS.blue },
+                  { label: "Pendientes", value: reservaCounts.pendiente, color: COLORS.amber },
+                  { label: "Activas", value: reservaCounts.activa, color: COLORS.primary },
+                  { label: "Completas", value: reservaCounts.completada, color: COLORS.blue },
+                  { label: "Canceladas", value: reservaCounts.cancelada, color: COLORS.textLight },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl bg-[#F8FAF9] p-3 border border-[#E2E8F0]">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white border border-[#E2E8F0]">
-                        <item.icon size={16} color={item.color} />
-                      </div>
-                      <p className="text-sm font-medium text-[#1a1a2e]">{item.label}</p>
-                    </div>
-                    <p className="text-sm font-bold" style={{ color: item.color }}>{item.value}</p>
-                  </div>
+                  <button
+                    key={item.label}
+                    onClick={() => navigate("/app/reservas")}
+                    className="rounded-xl bg-[#F8FAF9] p-2.5 text-center border border-[#E2E8F0] hover:bg-white hover:border-[#CBD5E1] transition-colors"
+                  >
+                    <p className="text-[9px] font-semibold uppercase tracking-wider text-[#64748B]">{item.label}</p>
+                    <p className="mt-1 text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
+                  </button>
                 ))}
               </div>
+
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Incidentes pendientes</p>
+
+              {incidentesPendientes.length === 0 ? (
+                <div className="flex items-center gap-3 rounded-xl bg-[#EAF7E6] p-3 border border-[#B3E6A1]">
+                  <CheckCircle2 size={18} color={COLORS.primary} />
+                  <p className="text-sm font-medium text-[#2D7D00]">Sin incidentes pendientes</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {incidentesPendientes.slice(0, 3).map((inc) => {
+                    const lot = lots.find((l) => l.id === inc.parqueaderoId);
+                    return (
+                      <button
+                        key={inc.id}
+                        onClick={() => navigate("/app/incidentes")}
+                        className="flex w-full items-start gap-3 rounded-xl bg-[#FEF3C7] p-3 border border-[#F59E0B]/30 text-left hover:brightness-[0.98] transition"
+                      >
+                        <FileWarning size={16} color={COLORS.amber} className="mt-0.5 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-[#1a1a2e] truncate">{inc.descripcion}</p>
+                          <p className="text-xs text-[#64748B]">{lot?.name || "—"} · {daysAgo(inc.fecha)}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </Card>
           </div>
         </motion.div>

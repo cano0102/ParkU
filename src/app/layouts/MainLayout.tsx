@@ -9,7 +9,6 @@ import {
 import {
   LayoutDashboard,
   Users,
-  Car,
   ParkingCircle,
   UserCog,
   LogOut,
@@ -18,36 +17,16 @@ import {
   Calendar,
   AlertTriangle,
   User,
-  Clock3,
   Menu,
   X,
   ChevronRight,
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
+import { theme } from '../theme';
 
-/* ─── Design tokens ─────────────────────────── */
-const C = {
-  primary:       '#2F8F00',
-  primaryDark:   '#1E6000',
-  primaryLight:  '#E8F5E1',
-  primaryBorder: '#C5E0AD',
-
-  bg:            '#F4F7F2',
-  surface:       '#FFFFFF',
-  surfaceHover:  '#F8FBF6',
-
-  text:          '#0D1F05',
-  textSoft:      '#4B6642',
-  textMuted:     '#8FA884',
-
-  border:        '#E2EBD9',
-  borderStrong:  '#C9DAC0',
-
-  danger:        '#C92020',
-  dangerBg:      '#FFF0F0',
-  dangerBorder:  '#FAC5C5',
-};
+/* ─── Design tokens (tema compartido, ver src/app/theme.ts) ─── */
+const C = theme;
 
 /* ─── Nav items ──────────────────────────────── */
 const menuItems = [
@@ -206,10 +185,10 @@ export function MainLayout() {
               border: `1px solid ${C.border}`,
               background: C.surface,
               cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: collapsed ? 'none' : 'flex',
+              alignItems: 'center', justifyContent: 'center',
               color: C.textMuted,
               flexShrink: 0,
-              display: collapsed ? 'none' : 'flex',
             }}
           >
             <Menu size={14} />
@@ -411,8 +390,6 @@ export function MainLayout() {
           zIndex: 80,
           transition: 'width .22s cubic-bezier(.4,0,.2,1)',
           overflow: 'hidden',
-          /* Hide on mobile */
-          '@media (max-width: 767px)': { display: 'none' },
         }}
         className="hidden-mobile-sidebar"
         >

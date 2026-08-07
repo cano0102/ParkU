@@ -9,15 +9,9 @@ import {
 import { useData, Usuario } from "../context/DataContext";
 import { toast } from "sonner";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import { theme } from "../theme";
 
-const COLORS = {
-  primary: "#39A900",
-  primaryDark: "#2D7D00",
-  text: "#0F172A",
-  textLight: "#64748B",
-  border: "#E2E8F0",
-  bg: "#F8FAFC",
-} as const;
+const COLORS = theme;
 
 const USUARIOS_PROTEGIDOS = ["admin@sena.edu.co", "superadmin@sena.edu.co"];
 

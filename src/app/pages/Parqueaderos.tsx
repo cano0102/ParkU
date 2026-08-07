@@ -39,35 +39,18 @@ import {
   Image as ImageIcon,
   Bike,
   Accessibility,
+  ChevronRight,
 } from "lucide-react";
 import { createWorker } from "tesseract.js";
 import { toast } from "sonner";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useData, Celda, Parqueadero, Vehiculo, Conductor } from "../context/DataContext";
+import { theme } from "../theme";
 
 /* ============================================================
-   PALETA
+   PALETA (compartida, ver src/app/theme.ts)
 ============================================================ */
-const C = {
-  primary:     "#39A900",
-  primaryDark: "#2D7D00",
-  primaryLight:"#B3E6A1",
-  primaryPale: "#EAF7E6",
-  text:        "#0F172A",
-  textLight:   "#64748B",
-  border:      "#E2E8F0",
-  bg:          "#F5F7F8",
-  danger:      "#EF4444",
-  dangerBg:    "#FEE2E2",
-  dangerBorder:"#FECACA",
-  success:     "#16A34A",
-  successBg:   "#DCFCE7",
-  info:        "#3B82F6",
-  infoBg:      "#EFF6FF",
-  amber:       "#F59E0B",
-  amberBg:     "#FEF3C7",
-  slate:       "#94A3B8",
-  slateBg:     "#F1F5F9",
-};
+const C = theme;
 
 /* ============================================================
    TIPOS LOCALES DE UI
@@ -172,29 +155,65 @@ const SPACE_W=46,SPACE_H=28,GAP_X=4,ROW_GAP=6,LANE_H=40,PADDING=50,
 /* ============================================================
    UTILS
 ============================================================ */
-export const PLACA_REGEX = /^[A-Z]{3}\d{2,3}[A-Z0-9]?$/;
+/* Placas colombianas — formatos vigentes (Resolución RUNT):
+   · Automóviles / camperos / camionetas / servicio público: 3 letras + 3 números  → ABC123
+   · Motocicletas: 3 letras + 2 números + 1 letra final                            → ABC12D
+   Ambos formatos tienen siempre 6 caracteres; se validan por separado para poder
+   detectar el tipo de vehículo a partir de la placa y para poder exigir que la
+   placa capturada coincida con el tipo de celda (carro/moto) donde se registra. */
+export const PLACA_CARRO_REGEX = /^[A-Z]{3}[0-9]{3}$/;
+export const PLACA_MOTO_REGEX  = /^[A-Z]{3}[0-9]{2}[A-Z]$/;
+export const PLACA_REGEX = /^([A-Z]{3}[0-9]{3}|[A-Z]{3}[0-9]{2}[A-Z])$/;
+
 export const validarPlacaColombiana = (p:string) => PLACA_REGEX.test(p.trim().toUpperCase());
+export const validarPlacaCarro = (p:string) => PLACA_CARRO_REGEX.test(p.trim().toUpperCase());
+export const validarPlacaMoto  = (p:string) => PLACA_MOTO_REGEX.test(p.trim().toUpperCase());
+
+/** Determina si una placa válida corresponde a carro o a moto según su formato. */
+export const tipoVehiculoDesdePlaca = (p:string): "carro" | "moto" | null => {
+  const v = p.trim().toUpperCase();
+  if (PLACA_CARRO_REGEX.test(v)) return "carro";
+  if (PLACA_MOTO_REGEX.test(v))  return "moto";
+  return null;
+};
+
+/** Valida una placa exigiendo que su formato coincida con el tipo de celda/vehículo.
+ *  Las celdas de movilidad reducida aceptan tanto formato de carro como de moto. */
+export const validarPlacaPorTipo = (p:string, tipo:"carro"|"moto"|"movilidad reducida"): boolean => {
+  const v = p.trim().toUpperCase();
+  if (tipo === "carro") return PLACA_CARRO_REGEX.test(v);
+  if (tipo === "moto")  return PLACA_MOTO_REGEX.test(v);
+  return PLACA_CARRO_REGEX.test(v) || PLACA_MOTO_REGEX.test(v);
+};
+
 export const esPlacaOficial = (placa:string) => /^(SNA|OFI)/.test(placa.trim().toUpperCase());
 
+const l2d:Record<string,string>={O:"0",I:"1",S:"5",B:"8",Z:"2",G:"6",D:"0",Q:"0"};
+const d2l:Record<string,string>={"0":"O","1":"I","5":"S","8":"B","2":"Z","6":"G"};
+/* Corrige un carácter mal leído por el OCR según la posición esperada:
+   letra (primeras 3), dígito (posiciones 4-5) o letra final (moto, posición 6). */
 const corregirCaracter=(c:string,esperaLetra:boolean)=>{
-  const l2d:Record<string,string>={O:"0",I:"1",S:"5",B:"8",Z:"2",G:"6"};
-  const d2l:Record<string,string>={"0":"O","1":"I","5":"S","8":"B","2":"Z","6":"G"};
   if(esperaLetra&&/[0-9]/.test(c)) return d2l[c]||c;
   if(!esperaLetra&&/[A-Z]/.test(c)) return l2d[c]||c;
   return c;
 };
-const intentarCorregirPlaca=(s:string)=>{
-  if(s.length<5) return s;
+/* Intenta corregir un token de 6 caracteres probando AMBOS formatos posibles
+   (carro: LLLDDD, moto: LLLDDL), ya que el OCR no sabe de antemano cuál es. */
+const intentarCorregirPlaca=(s:string):string|null=>{
+  if(s.length!==6) return null;
+  if(PLACA_REGEX.test(s)) return s;
   const ch=s.split("");
-  for(let i=0;i<Math.min(ch.length,5);i++) ch[i]=corregirCaracter(ch[i],i<3);
-  return ch.join("");
+  const comoCarro=ch.map((c,i)=>corregirCaracter(c,i<3)).join("");
+  if(PLACA_CARRO_REGEX.test(comoCarro)) return comoCarro;
+  const comoMoto=ch.map((c,i)=>corregirCaracter(c,i<3||i===5)).join("");
+  if(PLACA_MOTO_REGEX.test(comoMoto)) return comoMoto;
+  return null;
 };
 const intentarTokenComoPlaca=(tok:string)=>{
   const l=tok.toUpperCase().replace(/[^A-Z0-9]/g,"");
-  if(l.length!==5&&l.length!==6) return null;
+  if(l.length!==6) return null;
   if(PLACA_REGEX.test(l)) return l;
-  const c=intentarCorregirPlaca(l);
-  return PLACA_REGEX.test(c)?c:null;
+  return intentarCorregirPlaca(l);
 };
 export const limpiarTextoOCR=(raw:string)=>{
   const tokens=raw.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
@@ -203,6 +222,12 @@ export const limpiarTextoOCR=(raw:string)=>{
   return "";
 };
 export const normalizarTexto=(t:string,max=60)=>t.trim().replace(/\s+/g," ").slice(0,max);
+/** Nombre de conductor válido: al menos nombre y apellido (2 palabras), solo letras. */
+export const validarNombreConductor=(n:string)=>{
+  const t=normalizarTexto(n,60);
+  return t.length>=3 && /^[A-ZÁÉÍÓÚÑÜ]+(\s[A-ZÁÉÍÓÚÑÜ]+)+$/i.test(t);
+};
+export const horaAMinutos=(hhmm:string)=>{ const [h,m]=hhmm.split(":").map(Number); return h*60+(m||0); };
 export const formatearFechaHora=(iso:string)=>{
   const d=new Date(iso);
   return { fecha:d.toLocaleDateString("es-CO"), hora:d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}) };
@@ -1115,8 +1140,16 @@ const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, 
   const [tipoVehiculo, setTipoVehiculo] = useState<"carro" | "moto">("carro");
   const [rol, setRol] = useState<"Estudiante" | "Docente" | "Administrativo" | "Visitante" | "Oficial">("Estudiante");
   const [recomendacion, setRecomendacion] = useState<{ celda: Celda; pq: Parqueadero; motivo: string } | null>(null);
+  const [tocado, setTocado] = useState(false);
 
-  useEffect(() => { if (scannedPlate) setPlaca(scannedPlate); }, [scannedPlate]);
+  useEffect(() => {
+    if (!scannedPlate) return;
+    setPlaca(scannedPlate);
+    const detectado = tipoVehiculoDesdePlaca(scannedPlate);
+    if (detectado) setTipoVehiculo(detectado);
+  }, [scannedPlate]);
+
+  useEffect(() => { if (open) setTocado(false); }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -1140,7 +1173,15 @@ const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, 
     setRecomendacion(found);
   }, [open, tipoVehiculo, rol, parqueaderos, celdas]);
 
-  const valid = validarPlacaColombiana(placa) && conductor.trim().length >= 3 && recomendacion !== null;
+  const placaOk = validarPlacaPorTipo(placa, tipoVehiculo);
+  const conductorOk = validarNombreConductor(conductor);
+  const valid = placaOk && conductorOk && recomendacion !== null;
+  const placaErrorMsg = tocado && placa.trim() && !placaOk
+    ? `Formato inválido para ${tipoVehiculo === "moto" ? "moto (ej. ABC12D)" : "carro (ej. ABC123)"}.`
+    : null;
+  const conductorErrorMsg = tocado && conductor.trim() && !conductorOk
+    ? "Ingresa nombre y apellido del conductor."
+    : null;
 
   return (
     <Modal open={open} onClose={onClose} maxWidth={560}>
@@ -1150,14 +1191,25 @@ const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, 
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Placa del Vehículo *</label>
           <div style={{ display: "flex", gap: 8 }}>
-            <input value={placa} onChange={e => setPlaca(e.target.value.toUpperCase())} placeholder="ABC123" style={{ flex: 1, padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "monospace", fontWeight: 700, outline: "none", background: "#F8FAFC" }} />
+            <input
+              value={placa}
+              onChange={e => setPlaca(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}
+              onBlur={() => setTocado(true)}
+              maxLength={6}
+              placeholder={tipoVehiculo === "moto" ? "ABC12D" : "ABC123"}
+              style={{ flex: 1, padding: "11px 14px", borderRadius: 11, border: `1px solid ${placaErrorMsg ? C.danger : C.border}`, fontSize: 13, fontFamily: "monospace", fontWeight: 700, outline: "none", background: "#F8FAFC" }}
+            />
             <button onClick={openScanner} style={{ display: "flex", alignItems: "center", gap: 6, padding: "11px 16px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}><Camera size={14} />Escanear</button>
           </div>
+          {placaErrorMsg
+            ? <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{placaErrorMsg}</p>
+            : <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Formato {tipoVehiculo === "moto" ? "moto: 3 letras + 2 números + 1 letra (ABC12D)" : "carro: 3 letras + 3 números (ABC123)"}</p>}
         </div>
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre Conductor *</label>
-          <input list="smart-drivers" value={conductor} onChange={e => setConductor(e.target.value)} placeholder="Nombre completo" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, outline: "none", fontFamily: "inherit", background: "#F8FAFC" }} />
+          <input list="smart-drivers" value={conductor} onChange={e => setConductor(e.target.value)} onBlur={() => setTocado(true)} placeholder="Nombre completo" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${conductorErrorMsg ? C.danger : C.border}`, fontSize: 13, outline: "none", fontFamily: "inherit", background: "#F8FAFC" }} />
           <datalist id="smart-drivers">{CONDUCTORES_SUGERIDOS.map(c => <option key={c} value={c} />)}</datalist>
+          {conductorErrorMsg && <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{conductorErrorMsg}</p>}
         </div>
         <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <div>
@@ -1203,7 +1255,7 @@ const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onAssign, 
           if (!recomendacion) return;
           const eo = rol === "Oficial" || esPlacaOficial(placa);
           onAssign(recomendacion.celda, placa.toUpperCase(), normalizarTexto(conductor), eo);
-          setPlaca(""); setConductor(""); onClose();
+          setPlaca(""); setConductor(""); setTocado(false); onClose();
         }} style={{ flex: 1, padding: "10px 16px", borderRadius: 12, border: "none", background: valid ? C.primary : "#E2E8F0", fontSize: 13, fontWeight: 800, color: valid ? "#fff" : C.textLight, cursor: valid ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: valid ? "0 6px 18px rgba(57,169,0,.22)" : undefined }}>
           Confirmar Asignación
         </button>
@@ -1217,6 +1269,7 @@ SmartAssignModal.displayName="SmartAssignModal";
    APP PRINCIPAL
 ============================================================ */
 export default function Parqueaderos() {
+  const navigate = useNavigate();
   const {
     parqueaderos, addParqueadero, updateParqueadero, deleteParqueadero,
     celdas, addCelda, updateCelda, deleteCelda,
@@ -1232,7 +1285,8 @@ export default function Parqueaderos() {
   const [pqEditId, setPqEditId]     = useState<string | null>(null);
   const [pqDeleteId, setPqDeleteId] = useState<string | null>(null);
   const [celdaSeleccionadaId, setCeldaSeleccionadaId] = useState<string | null>(null);
-  const [search, setSearch]         = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch]         = useState(() => searchParams.get("q") || "");
   const [filterTipo, setFilterTipo] = useState("Todos");
   const [pqForm, setPqForm]         = useState<FormParqueadero>({ nombre: "", bloque: "A", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" });
   const [formError, setFormError]   = useState<string | null>(null);
@@ -1499,8 +1553,10 @@ export default function Parqueaderos() {
     const bloque = pqForm.bloque.trim();
     if (!nombre) return setFormError("El nombre es obligatorio.");
     if (!bloque) return setFormError("El bloque es obligatorio.");
+    if (parqueaderos.some(p => p.nombre.toLowerCase() === nombre.toLowerCase())) return setFormError(`Ya existe un parqueadero llamado "${nombre}".`);
     if (parqueaderos.some(p => p.bloque.toLowerCase() === bloque.toLowerCase())) return setFormError(`Ya existe el bloque "${bloque}".`);
     if (capacidadForm <= 0) return setFormError("Debe definir al menos una celda.");
+    if (horaAMinutos(pqForm.horaFin) <= horaAMinutos(pqForm.horaInicio)) return setFormError("La hora de cierre debe ser posterior a la hora de apertura.");
     addParqueadero({
       nombre, bloque, tipo: pqForm.tipo, direccion: pqForm.direccion, descripcion: pqForm.descripcion,
       horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
@@ -1519,8 +1575,10 @@ export default function Parqueaderos() {
     const bloque = pqForm.bloque.trim();
     if (!nombre) return setFormError("El nombre es obligatorio.");
     if (!bloque) return setFormError("El bloque es obligatorio.");
+    if (parqueaderos.some(p => p.nombre.toLowerCase() === nombre.toLowerCase() && p.id !== pqEditId)) return setFormError(`Ya existe un parqueadero llamado "${nombre}".`);
     if (parqueaderos.some(p => p.bloque.toLowerCase() === bloque.toLowerCase() && p.id !== pqEditId)) return setFormError(`Ya existe el bloque "${bloque}".`);
     if (capacidadForm <= 0) return setFormError("Debe definir al menos una celda.");
+    if (horaAMinutos(pqForm.horaFin) <= horaAMinutos(pqForm.horaInicio)) return setFormError("La hora de cierre debe ser posterior a la hora de apertura.");
 
     const celdasPq = celdas.filter(c => c.parqueaderoId === pqEditId);
     const tiposMap: { tipo: Celda["tipo"]; prefix: string; anterior: number; nuevo: number }[] = [
@@ -1604,7 +1662,13 @@ export default function Parqueaderos() {
     const placa = placaRaw.trim().toUpperCase();
     const conductorNombre = normalizarTexto(conductorRaw, 60);
     if (!placa || !conductorNombre) { setPlacaError("Completa todos los campos."); return false; }
-    if (!validarPlacaColombiana(placa)) { setPlacaError("Formato de placa inválido."); return false; }
+    if (!validarPlacaColombiana(placa)) { setPlacaError("Formato de placa inválido. Usa ABC123 (carro) o ABC12D (moto)."); return false; }
+    if (!validarNombreConductor(conductorNombre)) { setPlacaError("Ingresa el nombre completo del conductor (nombre y apellido)."); return false; }
+
+    const tipoPlaca = tipoVehiculoDesdePlaca(placa);
+    if (celda.tipo === "carro" && tipoPlaca !== "carro") { setPlacaError("Esta celda es para automóviles. La placa ingresada tiene formato de moto (ABC12D)."); return false; }
+    if (celda.tipo === "moto" && tipoPlaca !== "moto") { setPlacaError("Esta celda es para motocicletas. La placa ingresada tiene formato de carro (ABC123)."); return false; }
+
     const yaActivo = controlesSalida.some(cs => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find(v => v.id === cs.vehiculoId)?.placa === placa);
     if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
 
@@ -1612,7 +1676,7 @@ export default function Parqueaderos() {
     const tipoConductor = tipoConductorDesdeParqueadero(pq?.tipo || "");
     const conductorId = resolverConductor(conductorNombre, tipoConductor);
     const fechaEntrada = new Date().toISOString().slice(0, 16);
-    const vehiculoTipo: "carro" | "moto" = celda.tipo === "moto" ? "moto" : "carro";
+    const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
     const vehiculoId = resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada);
 
     addControlSalida({ vehiculoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
@@ -1657,6 +1721,17 @@ export default function Parqueaderos() {
 
   const cerrarScanner = useCallback(() => setOpenModal(scannerOrigin === "smartAssign" ? "smartAssign" : "ingreso"), [scannerOrigin]);
 
+  /* Avisa si la placa detectada por OCR no coincide con el tipo de la celda que se
+     está registrando (p. ej. escanear una placa de carro para una celda de moto). */
+  const avisarSiTipoNoCoincide = useCallback((placaDetectada: string) => {
+    if (scannerOrigin !== "ingreso" || !celdaActiva) return;
+    if (celdaActiva.tipo !== "carro" && celdaActiva.tipo !== "moto") return;
+    const tipoDetectado = tipoVehiculoDesdePlaca(placaDetectada);
+    if (tipoDetectado && tipoDetectado !== celdaActiva.tipo) {
+      toast.warning(`La placa ${placaDetectada} tiene formato de ${tipoDetectado}, pero la celda ${celdaActiva.numero} es para ${celdaActiva.tipo}s.`);
+    }
+  }, [scannerOrigin, celdaActiva]);
+
   const handleCaptureOcr = async () => {
     if (!videoRef.current) return;
     setOcrLoading(true); setOcrError(null);
@@ -1665,6 +1740,7 @@ export default function Parqueaderos() {
       setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
       setVehiculoForm(prev => ({ ...prev, placa: d.placa, conductor: d.conductor || prev.conductor }));
       toast.success(`Placa detectada: ${d.placa}`);
+      avisarSiTipoNoCoincide(d.placa);
       if (scannerOrigin === "smartAssign") { setScannedPlate(d.placa); cerrarCamara(); setOpenModal("smartAssign"); }
       else { cerrarCamara(); setOpenModal("ingreso"); }
     } catch (e) { setOcrError(e instanceof Error ? e.message : "Error al escanear."); }
@@ -1683,6 +1759,7 @@ export default function Parqueaderos() {
           setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
           setVehiculoForm(prev => ({ ...prev, placa: d.placa, conductor: d.conductor || prev.conductor }));
           toast.success(`Placa detectada: ${d.placa}`);
+          avisarSiTipoNoCoincide(d.placa);
           if (scannerOrigin === "smartAssign") { setScannedPlate(d.placa); setOpenModal("smartAssign"); }
           else { setOpenModal("ingreso"); }
         } catch (err) { setOcrError(err instanceof Error ? err.message : "No se reconoció la placa."); }
@@ -1699,6 +1776,7 @@ export default function Parqueaderos() {
       setTimeout(() => {
         setOcrFlash(false);
         setVehiculoForm({ placa: p, conductor: con, esOficial: rol === "Oficial" });
+        avisarSiTipoNoCoincide(p);
         if (scannerOrigin === "smartAssign") { setScannedPlate(p); setOpenModal("smartAssign"); }
         else { setOpenModal("ingreso"); }
       }, 1000);
@@ -1741,6 +1819,17 @@ export default function Parqueaderos() {
   }, [celdaActiva, ocupanteActivo, incidenteForm, addIncidente]);
 
   const activeFilters = [search, filterTipo !== "Todos" ? filterTipo : ""].filter(Boolean).length;
+
+  /* Validación en vivo del formulario de registro de vehículo: la placa debe coincidir
+     con el tipo de la celda seleccionada (carro/moto) y el conductor debe tener nombre completo. */
+  const ingresoPlacaOk = celdaActiva ? validarPlacaPorTipo(vehiculoForm.placa, celdaActiva.tipo) : false;
+  const ingresoConductorOk = validarNombreConductor(vehiculoForm.conductor);
+  const ingresoValid = ingresoPlacaOk && ingresoConductorOk;
+  const ingresoPlacaHint = celdaActiva
+    ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + 1 letra (ABC12D)"
+      : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
+      : "Formato: ABC123 (carro) o ABC12D (moto)")
+    : "";
 
   return (
     <>
@@ -1962,15 +2051,28 @@ export default function Parqueaderos() {
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Placa *</label>
             <div style={{ display: "flex", gap: 8 }}>
-              <input value={vehiculoForm.placa} onChange={e => setVehiculoForm(p => ({ ...p, placa: e.target.value.toUpperCase() }))} placeholder="ABC123" maxLength={7} style={{ flex: 1, padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "monospace", fontWeight: 700, background: "#F8FAFC" }} />
+              <input
+                value={vehiculoForm.placa}
+                onChange={e => { setPlacaError(null); setVehiculoForm(p => ({ ...p, placa: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })); }}
+                placeholder={celdaActiva?.tipo === "moto" ? "ABC12D" : "ABC123"}
+                maxLength={6}
+                style={{ flex: 1, padding: "11px 14px", borderRadius: 11, border: `1px solid ${vehiculoForm.placa && !ingresoPlacaOk ? C.danger : C.border}`, fontSize: 13, fontFamily: "monospace", fontWeight: 700, background: "#F8FAFC" }}
+              />
               <button onClick={() => { setScannerOrigin("ingreso"); setOpenModal("scanner"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "11px 14px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}><Camera size={14} />OCR</button>
             </div>
-            {placaError && <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{placaError}</p>}
+            {placaError ? (
+              <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{placaError}</p>
+            ) : vehiculoForm.placa && !ingresoPlacaOk ? (
+              <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{ingresoPlacaHint}</p>
+            ) : (
+              <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>{ingresoPlacaHint}</p>
+            )}
           </div>
           <div>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Conductor *</label>
-            <input list="drivers" value={vehiculoForm.conductor} onChange={e => setVehiculoForm(p => ({ ...p, conductor: e.target.value }))} placeholder="Nombre completo" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
+            <input list="drivers" value={vehiculoForm.conductor} onChange={e => setVehiculoForm(p => ({ ...p, conductor: e.target.value }))} placeholder="Nombre y apellido" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${vehiculoForm.conductor && !ingresoConductorOk ? C.danger : C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
             <datalist id="drivers">{CONDUCTORES_SUGERIDOS.map(c => <option key={c} value={c} />)}</datalist>
+            {vehiculoForm.conductor && !ingresoConductorOk && <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>Ingresa nombre y apellido del conductor.</p>}
           </div>
           <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#F8FAFC", cursor: "pointer" }}>
             <input type="checkbox" checked={vehiculoForm.esOficial} onChange={e => setVehiculoForm(p => ({ ...p, esOficial: e.target.checked }))} style={{ width: 16, height: 16, accentColor: C.primary }} />
@@ -1982,8 +2084,8 @@ export default function Parqueaderos() {
         </div>
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
           <button onClick={() => setOpenModal(null)} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-          <button disabled={!vehiculoForm.placa.trim() || !vehiculoForm.conductor.trim()} onClick={registrarVehiculo}
-            style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: vehiculoForm.placa.trim() && vehiculoForm.conductor.trim() ? C.primary : "#E2E8F0", color: vehiculoForm.placa.trim() && vehiculoForm.conductor.trim() ? "#fff" : C.textLight, fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: vehiculoForm.placa.trim() && vehiculoForm.conductor.trim() ? "0 6px 18px rgba(57,169,0,.22)" : undefined }}>
+          <button disabled={!ingresoValid} onClick={registrarVehiculo}
+            style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: ingresoValid ? C.primary : "#E2E8F0", color: ingresoValid ? "#fff" : C.textLight, fontSize: 13, fontWeight: 800, cursor: ingresoValid ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: ingresoValid ? "0 6px 18px rgba(57,169,0,.22)" : undefined }}>
             Registrar Vehículo
           </button>
         </div>
@@ -2017,13 +2119,21 @@ export default function Parqueaderos() {
             <>
               {[
                 { icon: Car,    label: "Placa",        value: <span style={{ fontFamily: "monospace", fontWeight: 900 }}>{ocupanteActivo.vehiculo.placa}{ocupanteActivo.esOficial && <span style={{ marginLeft: 6, fontSize: 9, background: C.primaryPale, color: C.primaryDark, padding: "1px 6px", borderRadius: 4 }}>OFICIAL</span>}</span> },
+                ...(ocupanteActivo.conductor ? [{ icon: UserCircle2, label: "Conductor", value: ocupanteActivo.conductor.nombre, onClick: () => navigate(`/app/conductores?q=${encodeURIComponent(ocupanteActivo.conductor!.nombre)}`) }] : []),
                 { icon: MapPin, label: "Parqueadero",  value: parqueaderoActivo?.nombre },
                 { icon: Clock,  label: "Ingreso",      value: `${formatearFechaHora(ocupanteActivo.fechaEntrada).fecha} ${formatearFechaHora(ocupanteActivo.fechaEntrada).hora}` },
                 { icon: Clock,  label: "Estadía",      value: formatearDuracion(ocupanteActivo.fechaEntrada) },
               ].map((r, i) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 11, background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+                <div
+                  key={i}
+                  onClick={r.onClick}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 11, background: "#F8FAFC", border: `1px solid ${C.border}`, cursor: r.onClick ? "pointer" : "default" }}
+                  onMouseEnter={r.onClick ? (e => (e.currentTarget.style.background = "#F1F5F9")) : undefined}
+                  onMouseLeave={r.onClick ? (e => (e.currentTarget.style.background = "#F8FAFC")) : undefined}
+                >
                   <r.icon size={14} color={C.textLight} />
-                  <div><div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>{r.label}</div><div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.value}</div></div>
+                  <div><div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>{r.label}</div><div style={{ fontSize: 13, fontWeight: 600, color: r.onClick ? C.primary : C.text }}>{r.value}</div></div>
+                  {r.onClick && <ChevronRight size={14} color={C.textLight} style={{ marginLeft: "auto" }} />}
                 </div>
               ))}
               <div style={{ display: "flex", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>

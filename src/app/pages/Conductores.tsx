@@ -25,18 +25,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSearchParams } from "react-router-dom";
 import { useData, Conductor, Vehiculo } from "../context/DataContext";
+import { theme } from "../theme";
 
-const COLORS = {
-  primary: "#39A900",
-  primaryDark: "#2D7D00",
-  text: "#0F172A",
-  textLight: "#64748B",
-  textMuted: "#94A3B8",
-  border: "#E2E8F0",
-  bg: "#F5F7F8",
-  white: "#FFFFFF",
-} as const;
+const COLORS = theme;
 
 const AVATAR_GRADIENTS = [
   ["#39A900", "#2D7D00"],
@@ -539,7 +532,7 @@ const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewProps) => 
           }}
         >
           <Pencil size={14} />
-          Editar vehículo
+          Editar Conductor
         </button>
       </div>
     </div>
@@ -567,7 +560,8 @@ export function Conductores() {
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
   const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
   const [deletingConductor, setDeletingConductor] = useState<Conductor | null>(null);
-  const [search, setSearch] = useState("");
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [filterTipo, setFilterTipo] = useState("todos");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [filterVehiculoTipo, setFilterVehiculoTipo] = useState("todos");

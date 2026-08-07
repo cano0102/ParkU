@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(node shot.mjs)",
+      "Bash(cp \"C:\\\\Users\\\\Anderson\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Anderson-Downloads-parku-web\\\\4a40e607-821d-4e3a-b225-d825213ace7f\\\\scratchpad\\\\shot.mjs\" \"c:\\\\Users\\\\Anderson\\\\Downloads\\\\parku-web\\\\shot.mjs\")"
+    ]
+  }
+}
