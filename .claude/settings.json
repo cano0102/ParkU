@@ -3,7 +3,24 @@
     "allow": [
       "Bash(npx tsc *)",
       "Bash(node shot.mjs)",
-      "Bash(cp \"C:\\\\Users\\\\Anderson\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Anderson-Downloads-parku-web\\\\4a40e607-821d-4e3a-b225-d825213ace7f\\\\scratchpad\\\\shot.mjs\" \"c:\\\\Users\\\\Anderson\\\\Downloads\\\\parku-web\\\\shot.mjs\")"
+      "Bash(cp \"C:\\\\Users\\\\Anderson\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Anderson-Downloads-parku-web\\\\4a40e607-821d-4e3a-b225-d825213ace7f\\\\scratchpad\\\\shot.mjs\" \"c:\\\\Users\\\\Anderson\\\\Downloads\\\\parku-web\\\\shot.mjs\")",
+      "Bash(node usuarios-check.mjs)",
+      "Bash(awk '{print $5}')",
+      "Bash(xargs -r -I{} taskkill //F //PID {})",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(git checkout *)",
+      "Bash(git clean *)",
+      "Bash(node conductores-check.mjs)",
+      "Bash(node parqueaderos-check.mjs)",
+      "Bash(taskkill //F //PID 7656)",
+      "Bash(rm -rf node_modules/.vite)",
+      "Bash(node parqueaderos-check2.mjs)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node ocr-real-check.mjs)",
+      "Bash(node \"C:\\\\Users\\\\Anderson\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Anderson-Downloads-parku-web\\\\c97c8843-b277-4ba2-8168-b9915335b3cd\\\\scratchpad\\\\ocr-diagnose.mjs\")",
+      "Bash(node ocr-diagnose4.mjs)"
     ]
   }
 }
