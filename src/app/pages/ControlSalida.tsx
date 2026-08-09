@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   Plus,
   ArrowLeftRight,
@@ -21,6 +21,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useData, ControlSalida } from '../context/DataContext';
 import { theme } from '../theme';
+import { Modal, ConfirmDialog } from '../components/shared';
 
 const COLORS = theme;
 
@@ -30,189 +31,6 @@ const sanitizeText = (text: string): string => {
   element.textContent = text;
   return element.innerHTML;
 };
-
-interface ModalProps {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  maxWidth?: number;
-}
-
-const Modal = memo(({ open, onClose, children, maxWidth = 580 }: ModalProps) => {
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [open, onClose]);
-
-  useEffect(() => {
-    if (open) {
-      document.body.style.overflow = 'hidden';
-      const focusable = document.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      );
-      if (focusable.length > 0) focusable[0]?.focus();
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        background: 'rgba(15,23,42,.45)',
-        backdropFilter: 'blur(4px)',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth,
-          maxHeight: '92vh',
-          overflowY: 'auto',
-          borderRadius: 24,
-          background: '#fff',
-          border: `1px solid ${COLORS.border}`,
-          boxShadow: '0 20px 55px rgba(15,23,42,.12)',
-          animation: 'modalIn .18s ease',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-      <style>{`
-        @keyframes modalIn{
-          from{opacity:0;transform:translateY(16px) scale(.97)}
-          to{opacity:1;transform:translateY(0) scale(1)}
-        }
-      `}</style>
-    </div>
-  );
-});
-
-Modal.displayName = 'Modal';
-
-interface ConfirmDialogProps {
-  open: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-  title: string;
-  message: string;
-}
-
-const ConfirmDialog = memo(({ open, onConfirm, onCancel, title, message }: ConfirmDialogProps) => {
-  if (!open) return null;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-title"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 2000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        background: 'rgba(15,23,42,.45)',
-        backdropFilter: 'blur(4px)',
-      }}
-      onClick={onCancel}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 420,
-          borderRadius: 20,
-          background: '#fff',
-          border: `1px solid ${COLORS.border}`,
-          boxShadow: '0 20px 55px rgba(15,23,42,.12)',
-          padding: '1.8rem',
-          animation: 'modalIn .18s ease',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3
-          id="confirm-title"
-          style={{
-            fontSize: 18,
-            fontWeight: 900,
-            color: COLORS.text,
-            marginBottom: 8,
-          }}
-        >
-          {title}
-        </h3>
-        <p
-          style={{
-            fontSize: 13,
-            color: COLORS.textLight,
-            lineHeight: 1.6,
-            marginBottom: 20,
-          }}
-        >
-          {message}
-        </p>
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button
-            onClick={onCancel}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 10,
-              border: `1px solid ${COLORS.border}`,
-              background: '#fff',
-              color: COLORS.text,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={onConfirm}
-            style={{
-              padding: '10px 20px',
-              borderRadius: 10,
-              border: 'none',
-              background: COLORS.danger,
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 800,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >
-            Confirmar
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-ConfirmDialog.displayName = 'ConfirmDialog';
 
 interface FormState {
   vehiculoId: string;
@@ -1419,6 +1237,8 @@ export function ControlSalidaPage() {
         }}
         title="Registrar Salida"
         message="¿Estás seguro de registrar la salida de este vehículo? Esta acción actualizará el estado de la celda a disponible."
+        confirmLabel="Confirmar"
+        tone="info"
       />
     </>
   );

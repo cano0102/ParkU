@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Plus,
   Search,
@@ -22,6 +22,7 @@ import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { useData, type Celda, type Incidente } from '../context/DataContext';
 import { theme } from '../theme';
+import { Modal } from '../components/shared';
 
 /* ─── Paleta compartida (src/app/theme.ts) ─── */
 const C = theme;
@@ -46,65 +47,6 @@ const ESTADO_CONFIG: Record<EstadoIncidente, {
   pendiente: { bg: "#FEF3C7", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "Pendiente", icon: <AlertTriangle size={10} /> },
   resuelto:  { bg: "#DCFCE7", text: "#166534", border: "#BBF7D0", dot: "#22C55E", label: "Resuelto", icon: <CheckCircle size={10} /> },
 };
-
-/* ─── Modal reutilizable ─── */
-function Modal({
-  open,
-  onClose,
-  children,
-  maxWidth = 640,
-}: {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  maxWidth?: number;
-}) {
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "1rem",
-        background: "rgba(15,23,42,.45)",
-        backdropFilter: "blur(4px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        style={{
-          width: "100%", maxWidth,
-          maxHeight: "92vh",
-          overflowY: "auto",
-          borderRadius: 24,
-          background: "#fff",
-          border: `1px solid ${C.border}`,
-          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
-          animation: "modalIn .18s ease",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-      <style>{`
-        @keyframes modalIn{
-          from{opacity:0;transform:translateY(16px) scale(.97)}
-          to{opacity:1;transform:translateY(0) scale(1)}
-        }
-      `}</style>
-    </div>
-  );
-}
 
 /* ─── Badge de estado inline ─── */
 function EstadoBadgeInline({ estado }: { estado: EstadoIncidente }) {

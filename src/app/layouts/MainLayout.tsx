@@ -119,16 +119,10 @@ function NavItem({
 export function MainLayout() {
   const location  = useLocation();
   const navigate  = useNavigate();
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed,  setCollapsed]  = useState(false);
-
-  React.useEffect(() => {
-    if (!isAuthenticated) navigate('/login');
-  }, [isAuthenticated, navigate]);
-
-  if (!isAuthenticated) return null;
 
   const handleLogout = () => { logout(); navigate('/login'); };
 

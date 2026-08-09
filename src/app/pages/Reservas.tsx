@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 
 import {
   Plus,
@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useData, Reserva } from "../context/DataContext";
 import { theme } from "../theme";
+import { Modal } from "../components/shared";
 
 /* ─── Paleta compartida (src/app/theme.ts) ─── */
 const C = theme;
@@ -47,65 +48,6 @@ const toMinutes = (hhmm: string) => {
 };
 
 const todayStr = () => new Date().toISOString().split("T")[0];
-
-/* ─── Modal reutilizable (mismo que Roles) ─── */
-function Modal({
-  open,
-  onClose,
-  children,
-  maxWidth = 680,
-}: {
-  open: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  maxWidth?: number;
-}) {
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [open, onClose]);
-
-  if (!open) return null;
-
-  return (
-    <div
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        padding: "1rem",
-        background: "rgba(15,23,42,.45)",
-        backdropFilter: "blur(4px)",
-      }}
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        style={{
-          width: "100%", maxWidth,
-          maxHeight: "92vh",
-          overflowY: "auto",
-          borderRadius: 24,
-          background: "#fff",
-          border: `1px solid ${C.border}`,
-          boxShadow: "0 20px 55px rgba(15,23,42,.12)",
-          animation: "modalIn .18s ease",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </div>
-      <style>{`
-        @keyframes modalIn{
-          from{opacity:0;transform:translateY(16px) scale(.97)}
-          to{opacity:1;transform:translateY(0) scale(1)}
-        }
-      `}</style>
-    </div>
-  );
-}
 
 /* ─── Badge de estado inline ─── */
 function EstadoBadgeInline({ estado }: { estado: EstadoReserva }) {

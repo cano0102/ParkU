@@ -274,6 +274,12 @@ const initialParqueaderos: Parqueadero[] = [
   { id: '7', nombre: 'PQ-7 Bloque C', direccion: 'Torre C', capacidad: 12, horaInicio: '07:00', horaFin: '20:00', celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 2, descripcion: 'En mantenimiento', estado: 'inactivo', tipo: 'docentes', bloque: 'Torre C' },
 ];
 
+/* PRNG determinista (seed -> [0,1)) para que los datos de demo no cambien en cada recarga */
+const seededRatio = (seed: number): number => {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
+
 const initialCeldas: Celda[] = [];
 (function generateCeldas() {
   let idx = 0;
@@ -285,7 +291,7 @@ const initialCeldas: Celda[] = [];
       if (pq.estado === 'inactivo') {
         estado = 'mantenimiento';
       } else {
-        const r = Math.random();
+        const r = seededRatio(idx);
         if (r < 0.65) estado = 'no_disponible';
         else if (r < 0.75) estado = 'reservada';
       }

@@ -1,8 +1,7 @@
 import React, {
   createContext,
   useContext,
-  useState,
-  useEffect
+  useState
 } from 'react';
 
 interface User {
@@ -39,19 +38,18 @@ export function AuthProvider({
   children: React.ReactNode;
 }) {
 
-  const [user, setUser] =
-    useState<User | null>(null);
-
-  useEffect(() => {
-
-    const savedUser =
-      localStorage.getItem('parkUUser');
-
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+  // Inicializador perezoso: lee localStorage de forma síncrona en el primer
+  // render, para que isAuthenticated ya sea correcto antes de que
+  // ProtectedRoute decida si redirige a /login (evita el "flash" a login
+  // en cada recarga de página con una sesión válida).
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const savedUser = localStorage.getItem('parkUUser');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
     }
-
-  }, []);
+  });
 
   // LOGIN NORMAL
   const login = async (
