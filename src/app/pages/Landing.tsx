@@ -667,7 +667,6 @@ export default function SenaLanding() {
                   }}
                 >
                   Acceder al Sistema
-                  <ArrowRight size={18} />
                 </button>
 
                 <button

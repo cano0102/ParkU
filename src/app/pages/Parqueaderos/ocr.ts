@@ -1,5 +1,5 @@
 import { useCallback, useRef } from "react";
-import { createWorker } from "tesseract.js";
+import { createWorker, PSM } from "tesseract.js";
 import { extraerDatosDocumento, validarPlacaColombiana } from "./helpers";
 
 function calcularUmbralOtsu(hist:number[],total:number):number{
@@ -58,7 +58,18 @@ export function useOcrPlaca(){
   const workerRef=useRef<any>(null); const initRef=useRef<Promise<any>|null>(null);
   const getWorker=useCallback(async()=>{
     if(workerRef.current) return workerRef.current;
-    if(!initRef.current){ initRef.current=createWorker("spa").then(async(w:any)=>{ try{ await w.setParameters({tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 .:-/"}); }catch{} workerRef.current=w; return w; }); }
+    if(!initRef.current){ initRef.current=createWorker("spa").then(async(w:any)=>{
+      try{
+        await w.setParameters({
+          tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 .:-/",
+          // Placas colombianas (carro ABC123 / moto ABC12D) son una sola línea de texto.
+          // Sin esto, Tesseract asume una página completa y no encuentra ningún bloque
+          // de texto que analizar, devolviendo siempre una cadena vacía.
+          tessedit_pageseg_mode: PSM.SINGLE_LINE,
+        });
+      }catch{}
+      workerRef.current=w; return w;
+    }); }
     return initRef.current;
   },[]);
   const procesarImagen=useCallback(async(url:string)=>{ const w=await getWorker(); const {data}=await w.recognize(url); const r=extraerDatosDocumento(data.text||""); if(!r.placa||!validarPlacaColombiana(r.placa)) throw new Error("No se detectó una placa válida."); return r; },[getWorker]);
