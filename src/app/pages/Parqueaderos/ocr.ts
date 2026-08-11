@@ -54,6 +54,14 @@ export function preprocesarImagenArchivo(dataUrl:string):Promise<string>{
     img.onerror=()=>rej(new Error("No se pudo cargar la imagen.")); img.src=dataUrl;
   });
 }
+/* No hay un único modo de segmentación que sirva siempre: una placa de carro fotografiada
+   de cerca es una sola línea, pero una placa de moto colombiana real está troquelada en DOS
+   líneas físicas (3 letras arriba, 2 números + 1 letra abajo), y un documento (tarjeta de
+   propiedad/SOAT) trae varias líneas con etiquetas ("PLACA", "PROPIETARIO"). Sin ningún modo
+   fijo, Tesseract no encuentra ningún bloque de texto y devuelve "" siempre. Se intenta de
+   más específico a más general y se usa el primer resultado que produzca una placa válida.*/
+const PSM_INTENTOS = [PSM.SINGLE_LINE, PSM.AUTO, PSM.SPARSE_TEXT] as const;
+
 export function useOcrPlaca(){
   const workerRef=useRef<any>(null); const initRef=useRef<Promise<any>|null>(null);
   const getWorker=useCallback(async()=>{
@@ -62,17 +70,24 @@ export function useOcrPlaca(){
       try{
         await w.setParameters({
           tessedit_char_whitelist:"ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 .:-/",
-          // Placas colombianas (carro ABC123 / moto ABC12D) son una sola línea de texto.
-          // Sin esto, Tesseract asume una página completa y no encuentra ningún bloque
-          // de texto que analizar, devolviendo siempre una cadena vacía.
-          tessedit_pageseg_mode: PSM.SINGLE_LINE,
         });
       }catch{}
       workerRef.current=w; return w;
     }); }
     return initRef.current;
   },[]);
-  const procesarImagen=useCallback(async(url:string)=>{ const w=await getWorker(); const {data}=await w.recognize(url); const r=extraerDatosDocumento(data.text||""); if(!r.placa||!validarPlacaColombiana(r.placa)) throw new Error("No se detectó una placa válida."); return r; },[getWorker]);
+  const procesarImagen=useCallback(async(url:string)=>{
+    const w=await getWorker();
+    for(const psm of PSM_INTENTOS){
+      try{
+        await w.setParameters({ tessedit_pageseg_mode: psm });
+        const {data}=await w.recognize(url);
+        const r=extraerDatosDocumento(data.text||"");
+        if(r.placa&&validarPlacaColombiana(r.placa)) return r;
+      }catch{ /* modo no soportado o fallo puntual: intenta el siguiente */ }
+    }
+    throw new Error("No se detectó una placa válida.");
+  },[getWorker]);
   const reconocer=useCallback(async(video:HTMLVideoElement)=>procesarImagen(preprocesarDocumento(video)),[procesarImagen]);
   const reconocerLicencia=useCallback(async(url:string)=>procesarImagen(url),[procesarImagen]);
   const liberarWorker=useCallback(async()=>{ try{ if(workerRef.current) await workerRef.current.terminate(); }catch{}finally{ workerRef.current=null; initRef.current=null; } },[]);

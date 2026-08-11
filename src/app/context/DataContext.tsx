@@ -231,36 +231,39 @@ const initialRoles: Rol[] = [
   },
 ];
 
+/* Corrección: el campo `rol` debe contener el NOMBRE del rol (p. ej. "Administrador"),
+   no el id numérico de `initialRoles` — así es como lo guarda UsuarioFormModal (el <select>
+   usa `r.nombre` como value) y como lo muestran/filtran las pantallas de Usuarios y el login. */
 const initialUsuarios: Usuario[] = [
   {
-    id: '1', correo: 'carlos.lopez@sena.edu.co', password: 'Pass1234', nombre: 'Carlos López M.', numero: '3101234567', rol: '1', tipoDocumento: 'CC', identificacion: '1234567890', estado: 'activo'
+    id: '1', correo: 'carlos.lopez@sena.edu.co', password: 'Pass1234', nombre: 'Carlos López M.', numero: '3101234567', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '1234567890', estado: 'activo'
   },
   {
-    id: '2', correo: 'ana.martinez@sena.edu.co', password: 'Pass1234', nombre: 'Ana Martínez R.', numero: '3102345678', rol: '2', tipoDocumento: 'CC', identificacion: '2345678901', estado: 'activo'
+    id: '2', correo: 'ana.martinez@sena.edu.co', password: 'Pass1234', nombre: 'Ana Martínez R.', numero: '3102345678', rol: 'Operador', tipoDocumento: 'CC', identificacion: '2345678901', estado: 'activo'
   },
   {
-    id: '3', correo: 'pedro.ruiz@sena.edu.co', password: 'Pass1234', nombre: 'Pedro Ruiz G.', numero: '3103456789', rol: '2', tipoDocumento: 'CC', identificacion: '3456789012', estado: 'activo'
+    id: '3', correo: 'pedro.ruiz@sena.edu.co', password: 'Pass1234', nombre: 'Pedro Ruiz G.', numero: '3103456789', rol: 'Operador', tipoDocumento: 'CC', identificacion: '3456789012', estado: 'activo'
   },
   {
-    id: '4', correo: 'maria.diaz@ext.com', password: 'Pass1234', nombre: 'María Díaz P.', numero: '3104567890', rol: '3', tipoDocumento: 'CC', identificacion: '4567890123', estado: 'activo'
+    id: '4', correo: 'maria.diaz@ext.com', password: 'Pass1234', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '4567890123', estado: 'activo'
   },
   {
-    id: '5', correo: 'jorge.silva@sena.edu.co', password: 'Pass1234', nombre: 'Jorge Silva T.', numero: '3105678901', rol: '1', tipoDocumento: 'CC', identificacion: '5678901234', estado: 'activo'
+    id: '5', correo: 'jorge.silva@sena.edu.co', password: 'Pass1234', nombre: 'Jorge Silva T.', numero: '3105678901', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '5678901234', estado: 'activo'
   },
   {
-    id: '6', correo: 'laura.gomez@sena.edu.co', password: 'Pass1234', nombre: 'Laura Gómez H.', numero: '3106789012', rol: '2', tipoDocumento: 'CC', identificacion: '6789012345', estado: 'activo'
+    id: '6', correo: 'laura.gomez@sena.edu.co', password: 'Pass1234', nombre: 'Laura Gómez H.', numero: '3106789012', rol: 'Operador', tipoDocumento: 'CC', identificacion: '6789012345', estado: 'activo'
   },
   {
-    id: '7', correo: 'diego.herrera@sena.edu.co', password: 'Pass1234', nombre: 'Diego Herrera F.', numero: '3107890123', rol: '2', tipoDocumento: 'CC', identificacion: '7890123456', estado: 'activo'
+    id: '7', correo: 'diego.herrera@sena.edu.co', password: 'Pass1234', nombre: 'Diego Herrera F.', numero: '3107890123', rol: 'Operador', tipoDocumento: 'CC', identificacion: '7890123456', estado: 'activo'
   },
   {
-    id: '8', correo: 'sofia.castillo@ext.com', password: 'Pass1234', nombre: 'Sofía Castillo', numero: '3108901234', rol: '3', tipoDocumento: 'CC', identificacion: '8901234567', estado: 'activo'
+    id: '8', correo: 'sofia.castillo@ext.com', password: 'Pass1234', nombre: 'Sofía Castillo', numero: '3108901234', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '8901234567', estado: 'activo'
   },
   {
-    id: '9', correo: 'andres.morales@sena.edu.co', password: 'Pass1234', nombre: 'Andrés Morales', numero: '3109012345', rol: '1', tipoDocumento: 'CC', identificacion: '9012345678', estado: 'activo'
+    id: '9', correo: 'andres.morales@sena.edu.co', password: 'Pass1234', nombre: 'Andrés Morales', numero: '3109012345', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '9012345678', estado: 'activo'
   },
   {
-    id: '10', correo: 'camila.rodriguez@sena.edu.co', password: 'Pass1234', nombre: 'Camila Rodríguez', numero: '3100123456', rol: '3', tipoDocumento: 'CC', identificacion: '0123456789', estado: 'activo'
+    id: '10', correo: 'camila.rodriguez@sena.edu.co', password: 'Pass1234', nombre: 'Camila Rodríguez', numero: '3100123456', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '0123456789', estado: 'activo'
   }
 ];
 
@@ -350,6 +353,48 @@ const initialControlesSalida: ControlSalida[] = [
   { id: 'cs11', vehiculoId: 'v11', celdaId: 'c80', fechaEntrada: '2025-06-20T08:00', estado: 'en_parqueadero' },
   { id: 'cs12', vehiculoId: 'v12', celdaId: 'c115', fechaEntrada: '2025-06-20T08:25', estado: 'en_parqueadero' },
 ];
+
+/* Corrección: la generación aleatoria de `initialCeldas` marca ~65% de las celdas como
+   "no_disponible" (para simular un parqueadero concurrido), pero solo 12 de ellas tenían un
+   vehículo real asociado (arriba). El resto quedaba "ocupada" sin ningún vehículo que dibujar,
+   y el plano mostraba un aviso de "⚠️ ERROR" en su lugar. Aquí se completa cada celda ocupada
+   restante con un vehículo y un control de salida sintéticos (placa válida y determinista según
+   el tipo de celda), para que el plano siempre pueda dibujar el vehículo correspondiente. */
+const LETRAS_PLACA = 'ABCDEFGHJKLMNPRSTUVXYZ';
+const MARCAS_CARRO_DEMO = ['Chevrolet', 'Renault', 'Mazda', 'Kia', 'Toyota', 'Hyundai', 'Nissan', 'Ford'];
+const MARCAS_MOTO_DEMO = ['Yamaha', 'Honda', 'Suzuki', 'Bajaj', 'AKT', 'TVS', 'KTM'];
+const placasUsadas = new Set(initialVehiculos.map((v) => v.placa));
+function generarPlacaSintetica(seed: number, esMoto: boolean): string {
+  for (let intento = 0; intento < 50; intento++) {
+    const s = seed + intento * 97;
+    const letra = (n: number) => LETRAS_PLACA[Math.floor(seededRatio(s + n) * LETRAS_PLACA.length)];
+    const digito = (n: number) => Math.floor(seededRatio(s + n + 50) * 10);
+    const placa = esMoto
+      ? `${letra(1)}${letra(2)}${letra(3)}${digito(4)}${digito(5)}${letra(6)}`
+      : `${letra(1)}${letra(2)}${letra(3)}${digito(4)}${digito(5)}${digito(6)}`;
+    if (!placasUsadas.has(placa)) { placasUsadas.add(placa); return placa; }
+  }
+  return `GEN${Math.floor(seededRatio(seed) * 900 + 100)}`;
+}
+initialCeldas
+  .filter((c) => c.estado === 'no_disponible' && !initialVehiculos.some((v) => v.celdaId === c.id))
+  .forEach((celda, i) => {
+    const esMoto = celda.tipo === 'moto';
+    const placa = generarPlacaSintetica(i * 131 + 17, esMoto);
+    const marcas = esMoto ? MARCAS_MOTO_DEMO : MARCAS_CARRO_DEMO;
+    const vehiculoId = `vg-${celda.id}`;
+    const horasAtras = 1 + Math.floor(seededRatio(i * 53 + 3) * 8);
+    const fechaEntrada = new Date(Date.now() - horasAtras * 3600000).toISOString().slice(0, 16);
+    initialVehiculos.push({
+      id: vehiculoId, conductorId: '', placa, tipo: esMoto ? 'moto' : 'carro',
+      marca: marcas[i % marcas.length], modelo: '', año: 2018 + Math.floor(seededRatio(i * 71) * 7),
+      color: '', descripcion: '', estado: 'activo',
+      parqueaderoId: celda.parqueaderoId, celdaId: celda.id, fechaEntrada,
+    });
+    initialControlesSalida.push({
+      id: `csg-${celda.id}`, vehiculoId, celdaId: celda.id, fechaEntrada, estado: 'en_parqueadero',
+    });
+  });
 
 const initialMovimientos: Movimiento[] = [
   { id: 'm1', placa: 'ABC123', tipo: 'entrada', fecha: '2025-06-20T07:15', parqueaderoId: '1', conductorNombre: 'Carlos López M.' },

@@ -125,46 +125,61 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
       {/* ── LEYENDA GLOBAL: tipo de celda + estado ── */}
       <div style={{
         position: "absolute", top: 12, left: 12, zIndex: 10,
-        display: "flex", flexWrap: "wrap", gap: 6, maxWidth: "calc(100% - 120px)",
+        display: "flex", flexDirection: "column", gap: 6, maxWidth: "calc(100% - 120px)",
       }}>
         <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          background: "rgba(20,22,25,.8)", border: "1px solid rgba(255,255,255,.14)",
-          borderRadius: 11, padding: "6px 10px", backdropFilter: "blur(3px)",
+          display: "flex", alignItems: "center", flexWrap: "wrap", gap: 3,
+          background: "rgba(20,22,25,.85)", border: "1px solid rgba(255,255,255,.14)",
+          borderRadius: 12, padding: "7px 11px", backdropFilter: "blur(4px)",
+          boxShadow: "0 4px 14px rgba(0,0,0,.25)",
         }}>
           {Object.entries(TIPO_CELDA_CONFIG).map(([key, cfg]) => {
             const Icon = cfg.icon;
             return (
-              <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, background: cfg.accent, display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }} />
-                <Icon size={11} color={cfg.accent} strokeWidth={2.5} />
-                <span style={{ fontSize: 9.5, fontWeight: 800, color: "#fff", whiteSpace: "nowrap" }}>{cfg.shortLabel}</span>
+              <div key={key} style={{
+                display: "flex", alignItems: "center", gap: 5,
+                background: `${cfg.accent}26`, border: `1px solid ${cfg.accent}55`,
+                borderRadius: 8, padding: "3px 8px 3px 6px", marginRight: 2,
+              }}>
+                <span style={{
+                  width: 16, height: 16, borderRadius: 5, background: cfg.accent,
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                }}>
+                  <Icon size={10} color="#fff" strokeWidth={2.75} />
+                </span>
+                <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", whiteSpace: "nowrap" }}>{cfg.shortLabel}</span>
               </div>
             );
           })}
         </div>
         <div style={{
-          display: "flex", alignItems: "center", gap: 10,
-          background: "rgba(20,22,25,.8)", border: "1px solid rgba(255,255,255,.14)",
-          borderRadius: 11, padding: "6px 10px", backdropFilter: "blur(3px)",
+          display: "flex", alignItems: "center", flexWrap: "wrap", gap: 10,
+          background: "rgba(20,22,25,.85)", border: "1px solid rgba(255,255,255,.14)",
+          borderRadius: 12, padding: "6px 11px", backdropFilter: "blur(4px)",
+          boxShadow: "0 4px 14px rgba(0,0,0,.25)",
         }}>
           {Object.entries(CELDA_CONFIG).map(([key, cfg]) => (
-            <div key={key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 7, height: 7, borderRadius: "50%", background: cfg.dotColor, flexShrink: 0 }} />
-              <span style={{ fontSize: 9.5, fontWeight: 700, color: "rgba(255,255,255,.85)", whiteSpace: "nowrap" }}>{cfg.label}</span>
+            <div key={key} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: "50%", background: cfg.dotColor, flexShrink: 0, boxShadow: `0 0 6px ${cfg.dotColor}99` }} />
+              <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.9)", whiteSpace: "nowrap" }}>{cfg.label}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div style={{ position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+      {/* Fila horizontal (no columna) para no tapar verticalmente el carril "SALIDA" del plano */}
+      <div style={{
+        position: "absolute", top: 12, right: 12, zIndex: 10, display: "flex", gap: 6,
+        background: "rgba(20,22,25,.85)", border: "1px solid rgba(255,255,255,.14)",
+        borderRadius: 12, padding: 4, backdropFilter: "blur(4px)", boxShadow: "0 4px 14px rgba(0,0,0,.25)",
+      }}>
         {[
-          { icon: <ZoomIn size={16} />,   act: () => setZoom(z => Math.min(2.5, z + .15)) },
-          { icon: <ZoomOut size={16} />,  act: () => setZoom(z => Math.max(.4,  z - .15)) },
-          { icon: <Maximize2 size={15}/>, act: () => { setZoom(1); setPan({ x: 0, y: 0 }); } },
+          { icon: <ZoomIn size={15} />,   act: () => setZoom(z => Math.min(2.5, z + .15)), label: "Acercar" },
+          { icon: <ZoomOut size={15} />,  act: () => setZoom(z => Math.max(.4,  z - .15)), label: "Alejar" },
+          { icon: <Maximize2 size={14}/>, act: () => { setZoom(1); setPan({ x: 0, y: 0 }); }, label: "Restablecer vista" },
         ].map((b, i) => (
-          <button key={i} onClick={e => { e.stopPropagation(); b.act(); }}
-            style={{ width:36, height:36, borderRadius:10, border:"1px solid rgba(255,255,255,.18)", background:"rgba(20,22,25,.75)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff" }}>
+          <button key={i} onClick={e => { e.stopPropagation(); b.act(); }} title={b.label} aria-label={b.label}
+            style={{ width:30, height:30, borderRadius:8, border:"1px solid rgba(255,255,255,.14)", background:"rgba(255,255,255,.06)", cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", color:"#fff" }}>
             {b.icon}
           </button>
         ))}
@@ -227,12 +242,38 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
 
           {lots.map(({ pq, celdasPorFila, libres, ocupados, reservadas, mantenimiento, pct, filas, lotTop, lotHeight, ancho }) => {
             const hc = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
+            // Composición de la zona por tipo de vehículo, para distinguir de un vistazo
+            // qué parqueaderos son de carro, de moto o mixtos (celdas de movilidad reducida incluidas).
+            const composicion = (
+              [
+                { t: "carro" as const, n: pq.celdasCarros },
+                { t: "moto" as const, n: pq.celdasMotos },
+                { t: "movilidad reducida" as const, n: pq.celdasMovilidadReducida },
+              ]
+            ).filter(x => x.n > 0);
+            const chipW = 32, chipGap = 5;
+            const chipsW = composicion.length * chipW + Math.max(0, composicion.length - 1) * chipGap;
+            let chipX = ancho - chipsW;
             return (
               <g key={pq.id}>
                 <rect x={PADDING - 20} y={lotTop - 12} width={ancho - PADDING + 40} height={lotHeight + 12} rx="14" fill={MAP_THEME.asphaltPanel} stroke={MAP_THEME.panelBorder} strokeWidth="1.5" />
                 <rect x={PADDING - 10} y={lotTop - 6} width={ancho - PADDING + 10} height={34} rx="8" fill={hc} />
                 <text x={PADDING + 2} y={lotTop + 10} fill="#fff" fontSize="10.5" fontWeight="900">{pq.nombre.toUpperCase()}</text>
                 <text x={PADDING + 2} y={lotTop + 22} fill="rgba(255,255,255,.8)" fontSize="7.5" fontWeight="bold">BLOQUE {pq.bloque}</text>
+                {/* Chips de composición: cuántas celdas de cada tipo tiene esta zona */}
+                {composicion.map(({ t, n }) => {
+                  const cfg = getTipoCeldaConfig(t);
+                  const Icon = cfg.icon;
+                  const x = chipX;
+                  chipX += chipW + chipGap;
+                  return (
+                    <g key={t} transform={`translate(${x},${lotTop + 3})`}>
+                      <rect width={chipW} height={18} rx="6" fill="rgba(255,255,255,.24)" />
+                      <Icon x={4} y={4} width={10} height={10} color="#fff" strokeWidth={2.75} />
+                      <text x={chipW - 5} y={13} textAnchor="end" fontSize="9" fontWeight="900" fill="#fff">{n}</text>
+                    </g>
+                  );
+                })}
                 <g transform={`translate(${PADDING - 10},${lotTop + 47})`}>
                   <circle cx="5" cy="-2.5" r="3.5" fill={CELDA_CONFIG.disponible.dotColor} />
                   <text x="13" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{libres} libres</text>
@@ -276,31 +317,31 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
                           onMouseLeave={() => setHover(null)}
                           style={{ cursor: "pointer" }}
                         >
-                          {m && <rect x={celda.x - 3} y={celda.y - 3} width={SPACE_W + 6} height={SPACE_H + 6} rx="6" fill="none" stroke="#FBBF24" strokeWidth="4.5" filter="url(#glow)" />}
+                          {m && <rect x={celda.x - 3} y={celda.y - 3} width={SPACE_W + 6} height={SPACE_H + 6} rx="7" fill="none" stroke="#FBBF24" strokeWidth="4.5" filter="url(#glow)" />}
                           <rect
-                            x={celda.x} y={celda.y} width={SPACE_W} height={SPACE_H} rx="3.5"
+                            x={celda.x} y={celda.y} width={SPACE_W} height={SPACE_H} rx="5"
                             fill={celda.estado === "reservada" ? "url(#resH)" : cfg.mapFill}
                             stroke={m ? "#F59E0B" : cfg.mapStroke}
-                            strokeWidth={m ? 2.2 : celda.estado === "disponible" ? 1.2 : 1.6}
+                            strokeWidth={m ? 2.2 : celda.estado === "disponible" ? 1.3 : 1.7}
                             strokeDasharray={celda.estado === "disponible" ? "3,2" : undefined}
                           />
                           {/* Franja lateral de color según TIPO de celda (carro/moto/m.reducida) — visible en cualquier estado */}
-                          <rect x={celda.x} y={celda.y} width={3.4} height={SPACE_H} rx="1.6" fill={tipoCfg.accent} opacity={.95} />
+                          <rect x={celda.x} y={celda.y} width={4.2} height={SPACE_H} rx="2" fill={tipoCfg.accent} opacity={.95} />
                           {/* Insignia con icono del tipo, esquina superior derecha */}
-                          <g transform={`translate(${celda.x + SPACE_W - 10.5},${celda.y + 1.5})`}>
-                            <rect width="9.5" height="9.5" rx="2.5" fill={tipoCfg.accent} opacity=".92"/>
-                            <TipoIcon x={1.4} y={1.4} width={6.7} height={6.7} color="#fff" strokeWidth={3}/>
+                          <g transform={`translate(${celda.x + SPACE_W - 13},${celda.y + 2})`}>
+                            <rect width="12" height="12" rx="3.5" fill={tipoCfg.accent} stroke="#fff" strokeWidth=".6" opacity=".96"/>
+                            <TipoIcon x={2} y={2} width={8} height={8} color="#fff" strokeWidth={3}/>
                           </g>
-                          <text x={celda.x + 6.5} y={celda.y + 8} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="6.8" fontWeight="900">{celda.numero}</text>
+                          <text x={celda.x + 7} y={celda.y + 10} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="7.4" fontWeight="900">{celda.numero}</text>
                           {celda.estado === "disponible" && !estaOcupada && (
                             <TipoIcon
-                              x={celda.x + SPACE_W / 2 - 6.5}
-                              y={celda.y + SPACE_H / 2 - 5}
-                              width={13}
-                              height={13}
+                              x={celda.x + SPACE_W / 2 - 8}
+                              y={celda.y + SPACE_H / 2 - 4}
+                              width={16}
+                              height={16}
                               color={tipoCfg.accent}
-                              opacity={.32}
-                              strokeWidth={2}
+                              opacity={.4}
+                              strokeWidth={2.2}
                             />
                           )}
                           {estaOcupada && ocupante && (
@@ -309,10 +350,10 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
                               : <HighFiCarSVG  x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
                           )}
                           {celda.estado === "no_disponible" && !ocupante && (
-                            <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#EF4444">⚠️ ERROR</text>
+                            <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="800" fill="#FBBF24">Sin datos</text>
                           )}
-                          {celda.estado === "reservada"      && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7" fontWeight="950" fill="#FCD34D">RESERVA</text>}
-                          {celda.estado === "mantenimiento"  && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="900" fill="#CBD5E1">MANT.</text>}
+                          {celda.estado === "reservada"      && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7.5" fontWeight="950" fill="#FCD34D">RESERVA</text>}
+                          {celda.estado === "mantenimiento"  && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7" fontWeight="900" fill="#CBD5E1">MANT.</text>}
                         </g>
                       );
                     })}
@@ -365,7 +406,7 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
             <div style={{ fontSize:11, fontWeight:700, color:"rgba(255,255,255,.7)" }}>
               {hover.celda.estado === "reservada" ? "Celda reservada" :
                hover.celda.estado === "mantenimiento" ? "En mantenimiento" :
-               hover.celda.estado === "no_disponible" ? "⚠️ Error: celda marcada ocupada sin vehículo" :
+               hover.celda.estado === "no_disponible" ? "Ocupada, sin datos de vehículo" :
                "Celda libre"}
             </div>
           )}

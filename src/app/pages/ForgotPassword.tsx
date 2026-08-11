@@ -11,8 +11,14 @@ import {
 
 import { toast } from "sonner";
 import { theme } from "../theme";
+import { useData } from "../context/DataContext";
 
 const COLORS = theme;
+
+// Corrección: antes solo se aceptaban correos "@sena.edu.co", pero el sistema
+// también registra usuarios externos válidos (p. ej. "@ext.com") que quedaban
+// sin forma de recuperar su contraseña. Se usa el mismo formato general que Login.
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -20,24 +26,25 @@ export function ForgotPassword() {
   const [emailSent, setEmailSent] = useState(false);
   const [errors, setErrors] = useState<{ email?: string }>({});
   const navigate = useNavigate();
-
-  // Función de validación
-  const validateEmail = (email: string): boolean => {
-    // Expresión regular para validar email institucional SENA
-    const emailRegex = /^[a-zA-Z0-9._-]+@sena\.edu\.co$/;
-    return emailRegex.test(email);
-  };
+  const { usuarios } = useData();
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string } = {};
+    const trimmed = email.trim().toLowerCase();
 
     // Validar que el email no esté vacío
-    if (!email.trim()) {
+    if (!trimmed) {
       newErrors.email = "El correo electrónico es obligatorio";
-    } 
+    }
     // Validar formato de email
-    else if (!validateEmail(email)) {
-      newErrors.email = "Debes usar un correo institucional (@sena.edu.co)";
+    else if (!EMAIL_REGEX.test(trimmed)) {
+      newErrors.email = "Ingresa un correo electrónico válido";
+    }
+    // Corrección: valida que el correo pertenezca a un usuario registrado en
+    // el sistema, igual que lo hace el login (antes se simulaba éxito con
+    // cualquier correo, aunque no existiera ninguna cuenta con ese valor).
+    else if (!usuarios.some((u) => u.correo.trim().toLowerCase() === trimmed)) {
+      newErrors.email = "No existe una cuenta registrada con este correo";
     }
 
     setErrors(newErrors);
@@ -46,7 +53,7 @@ export function ForgotPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validar el formulario antes de enviar
     if (!validateForm()) {
       // Mostrar toast de error
@@ -55,7 +62,7 @@ export function ForgotPassword() {
     }
 
     setLoading(true);
-    
+
     // Simulación de envío
     setTimeout(() => {
       setLoading(false);

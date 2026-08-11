@@ -30,8 +30,8 @@ export const HighFiCarSVG=memo(({x,y,w,h,placa}:{x:number;y:number;w:number;h:nu
       <rect x={bx+bw-5} y={by-.2} width={2.5} height={1.2} rx=".5" fill="#FDE047"/>
       <rect x={bx+2.2} y={by+bh-1} width={3} height={1.2} rx=".4" fill="#EF4444"/>
       <rect x={bx+bw-5.2} y={by+bh-1} width={3} height={1.2} rx=".4" fill="#EF4444"/>
-      <rect x={bx+bw*.25} y={by+bh-4.5} width={bw*.5} height={3.2} rx=".5" fill="#FDE047" stroke="#0F172A" strokeWidth=".4"/>
-      <text x={bx+bw/2} y={by+bh-2} textAnchor="middle" fontSize="2.4" fontWeight="bold" fill="#000" fontFamily="monospace">{placa.slice(0,6)}</text>
+      <rect x={bx+bw*.25} y={by+bh-4.8} width={bw*.5} height={3.6} rx=".5" fill="#FDE047" stroke="#0F172A" strokeWidth=".4"/>
+      <text x={bx+bw/2} y={by+bh-2.2} textAnchor="middle" fontSize="2.7" fontWeight="bold" fill="#000" fontFamily="monospace">{placa.slice(0,6)}</text>
     </g>
   );
 });
@@ -58,7 +58,7 @@ export const HighFiMotoSVG=memo(({x,y,w,h,placa}:{x:number;y:number;w:number;h:n
       {/* espejo/faros */}
       <rect x={bx+bw*.3} y={by-.3} width={bw*.4} height={1.1} rx=".5" fill="#FDE047"/>
       <rect x={bx+bw*.32} y={by+bh-1.4} width={bw*.36} height={1} rx=".4" fill="#EF4444"/>
-      <text x={bx+bw/2} y={by+bh/2+1.6} textAnchor="middle" fontSize="2" fontWeight="bold" fill="#000" fontFamily="monospace">{placa.slice(0,5)}</text>
+      <text x={bx+bw/2} y={by+bh/2+1.6} textAnchor="middle" fontSize="2.3" fontWeight="bold" fill="#000" fontFamily="monospace">{placa.slice(0,5)}</text>
     </g>
   );
 });

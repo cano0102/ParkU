@@ -98,8 +98,8 @@ export const PLACAS_DEMO = [
 ];
 
 /* SVG medidas */
-export const SPACE_W=46,SPACE_H=28,GAP_X=4,ROW_GAP=6,LANE_H=40,PADDING=50,
-      SECTION_GAP=45,ROAD_Y=16,ROAD_H=38,HEADER_BLOCK=58;
+export const SPACE_W=52,SPACE_H=34,GAP_X=6,ROW_GAP=9,LANE_H=44,PADDING=50,
+      SECTION_GAP=48,ROAD_Y=74,ROAD_H=38,HEADER_BLOCK=58;
 
 /* ============================================================
    UTILS

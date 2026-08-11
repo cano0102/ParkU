@@ -10,14 +10,14 @@ import { RouteFallback } from './components/RouteFallback';
 export default function App() {
   return (
     <ErrorBoundary>
-      <AuthProvider>
-        <DataProvider>
+      <DataProvider>
+        <AuthProvider>
           <Suspense fallback={<RouteFallback />}>
             <RouterProvider router={router} />
           </Suspense>
           <Toaster />
-        </DataProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </DataProvider>
     </ErrorBoundary>
   );
 }
