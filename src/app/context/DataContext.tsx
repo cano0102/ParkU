@@ -236,6 +236,17 @@ const initialRoles: Rol[] = [
    usa `r.nombre` como value) y como lo muestran/filtran las pantallas de Usuarios y el login. */
 const initialUsuarios: Usuario[] = [
   {
+    id: '1',
+    correo: 'admin@sena.edu.co',
+    password: 'Pass1234',
+    nombre: 'Administrador ParkU',
+    numero: '3101234567',
+    rol: 'Administrador',
+    tipoDocumento: 'CC',
+    identificacion: '1234567890',
+    estado: 'activo'
+  },
+  {
     id: '1', correo: 'carlos.lopez@sena.edu.co', password: 'Pass1234', nombre: 'Carlos López M.', numero: '3101234567', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '1234567890', estado: 'activo'
   },
   {
