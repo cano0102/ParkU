@@ -23,21 +23,28 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
+import type { Rol } from '../context/DataContext';
 import { theme } from '../theme';
 
 /* ─── Design tokens (tema compartido, ver src/app/theme.ts) ─── */
 const C = theme;
 
 /* ─── Nav items ──────────────────────────────── */
-const menuItems = [
-  { path: '/app/dashboard',    label: 'Dashboard',      icon: LayoutDashboard, group: 'principal' },
-  { path: '/app/roles',        label: 'Roles',          icon: ShieldCheck,     group: 'admin' },
-  { path: '/app/usuarios',     label: 'Usuarios',       icon: Users,           group: 'admin' },
-  { path: '/app/conductores',  label: 'Conductores',    icon: UserCog,         group: 'admin' },
-  { path: '/app/parqueaderos', label: 'Parqueaderos',   icon: ParkingCircle,   group: 'operacion' },
-  { path: '/app/entrada-salida', label: 'Entrada / Salida', icon: ArrowLeftRight, group: 'operacion' },
-  { path: '/app/reservas',     label: 'Reservas',       icon: Calendar,        group: 'operacion' },
-  { path: '/app/incidentes',   label: 'Incidentes',     icon: AlertTriangle,   group: 'operacion' },
+const menuItems: {
+  path: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  group: string;
+  permission: keyof Rol['permisos'];
+}[] = [
+  { path: '/app/dashboard',    label: 'Dashboard',      icon: LayoutDashboard, group: 'principal', permission: 'dashboard' },
+  { path: '/app/roles',        label: 'Roles',          icon: ShieldCheck,     group: 'admin',     permission: 'roles' },
+  { path: '/app/usuarios',     label: 'Usuarios',       icon: Users,           group: 'admin',     permission: 'usuarios' },
+  { path: '/app/conductores',  label: 'Conductores',    icon: UserCog,         group: 'admin',     permission: 'conductores' },
+  { path: '/app/parqueaderos', label: 'Parqueaderos',   icon: ParkingCircle,   group: 'operacion', permission: 'parqueaderos' },
+  { path: '/app/entrada-salida', label: 'Entrada / Salida', icon: ArrowLeftRight, group: 'operacion', permission: 'entradaSalida' },
+  { path: '/app/reservas',     label: 'Reservas',       icon: Calendar,        group: 'operacion', permission: 'reservas' },
+  { path: '/app/incidentes',   label: 'Incidentes',     icon: AlertTriangle,   group: 'operacion', permission: 'incidentes' },
 ];
 
 const groups: Record<string, string> = {
@@ -119,7 +126,7 @@ function NavItem({
 export function MainLayout() {
   const location  = useLocation();
   const navigate  = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed,  setCollapsed]  = useState(false);
@@ -131,12 +138,17 @@ export function MainLayout() {
 
   const sidebarWidth = collapsed ? 68 : SIDEBAR_W;
 
+  /* solo se muestran las secciones que el rol del usuario tiene permitidas */
+  const visibleMenuItems = menuItems.filter(item => hasPermission(item.permission));
+
   /* group items */
-  const grouped = Object.entries(groups).map(([key, label]) => ({
-    key,
-    label,
-    items: menuItems.filter(m => m.group === key),
-  }));
+  const grouped = Object.entries(groups)
+    .map(([key, label]) => ({
+      key,
+      label,
+      items: visibleMenuItems.filter(m => m.group === key),
+    }))
+    .filter(g => g.items.length > 0);
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -515,7 +527,7 @@ export function MainLayout() {
             zIndex: 70,
           }}
         >
-          {menuItems.slice(0, 5).map(item => {
+          {visibleMenuItems.slice(0, 5).map(item => {
             const Icon = item.icon;
             const active = location.pathname === item.path;
             return (

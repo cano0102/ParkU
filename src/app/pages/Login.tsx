@@ -854,8 +854,18 @@ export function Login() {
                   marginTop: "1.2rem",
                   paddingTop: "1.2rem",
                   borderTop: `1px solid ${COLORS.border}`,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 8,
                 }}
               >
+                <p style={{ fontSize: 13, color: COLORS.textLight, fontWeight: 600 }}>
+                  ¿No tienes una cuenta?{" "}
+                  <Link to="/register" style={{ color: COLORS.primary, textDecoration: "none", fontWeight: 800 }}>
+                    Regístrate
+                  </Link>
+                </p>
                 <p
                   style={{
                     textAlign: "center",

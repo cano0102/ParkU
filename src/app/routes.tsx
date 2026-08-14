@@ -4,6 +4,7 @@ import { MainLayout } from './layouts/MainLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import Landing from './pages/Landing';
 import { Login } from './pages/Login';
+import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { ResetPassword } from './pages/ResetPassword';
 import { NotFound } from './pages/NotFound';
@@ -29,6 +30,10 @@ export const router = createBrowserRouter([
     element: <Login />,
   },
   {
+    path: '/register',
+    element: <Register />,
+  },
+  {
     path: '/forgot-password',
     element: <ForgotPassword />,
   },
@@ -50,7 +55,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'dashboard',
-        element: <Dashboard />,
+        element: (
+          <ProtectedRoute permission="dashboard">
+            <Dashboard />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'perfil',
@@ -58,31 +67,59 @@ export const router = createBrowserRouter([
       },
       {
         path: 'roles',
-        element: <Roles />,
+        element: (
+          <ProtectedRoute permission="roles">
+            <Roles />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'usuarios',
-        element: <Usuarios />,
+        element: (
+          <ProtectedRoute permission="usuarios">
+            <Usuarios />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'conductores',
-        element: <Conductores />,
+        element: (
+          <ProtectedRoute permission="conductores">
+            <Conductores />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'parqueaderos',
-        element: <Parqueaderos />,
+        element: (
+          <ProtectedRoute permission="parqueaderos">
+            <Parqueaderos />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'entrada-salida',
-        element: <ControlSalidaPage />,
+        element: (
+          <ProtectedRoute permission="entradaSalida">
+            <ControlSalidaPage />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'reservas',
-        element: <Reservas />,
+        element: (
+          <ProtectedRoute permission="reservas">
+            <Reservas />
+          </ProtectedRoute>
+        ),
       },
       {
         path: 'incidentes',
-        element: <Incidentes />,
+        element: (
+          <ProtectedRoute permission="incidentes">
+            <Incidentes />
+          </ProtectedRoute>
+        ),
       },
       {
         path: '*',

@@ -3,7 +3,7 @@ import React, {
   useContext,
   useState
 } from 'react';
-import { useData } from './DataContext';
+import { useData, Rol } from './DataContext';
 
 interface User {
   id: string;
@@ -21,6 +21,15 @@ interface AuthContextType {
     password: string
   ) => Promise<boolean>;
 
+  register: (data: {
+    correo: string;
+    password: string;
+    nombre: string;
+    numero: string;
+    tipoDocumento: string;
+    identificacion: string;
+  }) => Promise<boolean>;
+
   googleLogin: (userData: any) => void;
 
   logout: () => void;
@@ -30,6 +39,12 @@ interface AuthContextType {
   changePassword: (currentPassword: string, newPassword: string) => boolean;
 
   isAuthenticated: boolean;
+
+  // Permisos del rol asignado al usuario autenticado (null si no hay sesión
+  // o si su rol fue eliminado/desactivado desde la pantalla de Roles).
+  permisos: Rol['permisos'] | null;
+
+  hasPermission: (key: keyof Rol['permisos']) => boolean;
 }
 
 const AuthContext =
@@ -42,7 +57,7 @@ export function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const { usuarios, updateUsuario } = useData();
+  const { usuarios, roles, addUsuario, updateUsuario } = useData();
 
   // Inicializador perezoso: lee localStorage de forma síncrona en el primer
   // render, para que isAuthenticated ya sea correcto antes de que
@@ -87,6 +102,64 @@ export function AuthProvider({
       nombre: usuario.nombre,
       numero: usuario.numero,
       rol: usuario.rol,
+    };
+
+    setUser(loggedUser);
+
+    localStorage.setItem(
+      'parkUUser',
+      JSON.stringify(loggedUser)
+    );
+
+    return true;
+  };
+
+  // REGISTRO
+  // Crea el usuario en la misma colección que gestiona la pantalla "Usuarios"
+  // (mismos datos), con el rol "Usuario" (acceso básico), y lo deja logueado.
+  const register = async (data: {
+    correo: string;
+    password: string;
+    nombre: string;
+    numero: string;
+    tipoDocumento: string;
+    identificacion: string;
+  }): Promise<boolean> => {
+    const correoNormalizado = data.correo.trim().toLowerCase();
+    const identificacionNormalizada = data.identificacion.trim();
+
+    const duplicado = usuarios.find(
+      (u) =>
+        u.correo.trim().toLowerCase() === correoNormalizado ||
+        (identificacionNormalizada && u.identificacion.trim() === identificacionNormalizada)
+    );
+    if (duplicado) {
+      if (duplicado.correo.trim().toLowerCase() === correoNormalizado) {
+        throw new Error('Ya existe una cuenta registrada con este correo.');
+      }
+      throw new Error('Ya existe una cuenta registrada con ese número de identificación.');
+    }
+
+    const nombre = data.nombre.trim();
+    const numero = data.numero.trim();
+
+    const id = addUsuario({
+      correo: correoNormalizado,
+      password: data.password,
+      nombre,
+      numero,
+      rol: 'Usuario',
+      tipoDocumento: data.tipoDocumento,
+      identificacion: identificacionNormalizada,
+      estado: 'activo',
+    });
+
+    const loggedUser: User = {
+      id,
+      correo: correoNormalizado,
+      nombre,
+      numero,
+      rol: 'Usuario',
     };
 
     setUser(loggedUser);
@@ -144,16 +217,27 @@ export function AuthProvider({
     return true;
   };
 
+  // PERMISOS (une el rol del usuario logueado con la definición de permisos
+  // gestionada en la pantalla de Roles). Si el rol fue borrado o desactivado
+  // después de que el usuario inició sesión, se deniega todo por defecto.
+  const rolActual = user ? roles.find((r) => r.nombre === user.rol) : undefined;
+  const permisos = rolActual && rolActual.estado === 'activo' ? rolActual.permisos : null;
+
+  const hasPermission = (key: keyof Rol['permisos']): boolean => !!permisos?.[key];
+
   return (
     <AuthContext.Provider
       value={{
         user,
         login,
+        register,
         googleLogin,
         logout,
         updateUser,
         changePassword,
-        isAuthenticated: !!user
+        isAuthenticated: !!user,
+        permisos,
+        hasPermission
       }}
     >
       {children}
