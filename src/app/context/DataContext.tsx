@@ -220,7 +220,7 @@ const initialRoles: Rol[] = [
     estado: 'activo'
   },
   {
-    id: '2', nombre: 'Operador', descripcion: 'Gestión de entradas y salidas',
+    id: '2', nombre: 'Vigilante', descripcion: 'Gestión de entradas y salidas',
     permisos: { dashboard: true, roles: false, usuarios: false, conductores: true, vehiculos: true, parqueaderos: false, celdas: true, asignaciones: true, entradaSalida: true, reservas: true, incidentes: true, reconocimientoPlacas: true },
     estado: 'activo'
   },
@@ -250,10 +250,10 @@ const initialUsuarios: Usuario[] = [
     id: '1', correo: 'carlos.lopez@sena.edu.co', password: 'Pass1234', nombre: 'Carlos López M.', numero: '3101234567', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '1234567890', estado: 'activo'
   },
   {
-    id: '2', correo: 'ana.martinez@sena.edu.co', password: 'Pass1234', nombre: 'Ana Martínez R.', numero: '3102345678', rol: 'Operador', tipoDocumento: 'CC', identificacion: '2345678901', estado: 'activo'
+    id: '2', correo: 'ana.martinez@sena.edu.co', password: 'Pass1234', nombre: 'Ana Martínez R.', numero: '3102345678', rol: 'Vigilante', tipoDocumento: 'CC', identificacion: '2345678901', estado: 'activo'
   },
   {
-    id: '3', correo: 'pedro.ruiz@sena.edu.co', password: 'Pass1234', nombre: 'Pedro Ruiz G.', numero: '3103456789', rol: 'Operador', tipoDocumento: 'CC', identificacion: '3456789012', estado: 'activo'
+    id: '3', correo: 'pedro.ruiz@sena.edu.co', password: 'Pass1234', nombre: 'Pedro Ruiz G.', numero: '3103456789', rol: 'Vigilante', tipoDocumento: 'CC', identificacion: '3456789012', estado: 'activo'
   },
   {
     id: '4', correo: 'maria.diaz@ext.com', password: 'Pass1234', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '4567890123', estado: 'activo'
@@ -262,10 +262,10 @@ const initialUsuarios: Usuario[] = [
     id: '5', correo: 'jorge.silva@sena.edu.co', password: 'Pass1234', nombre: 'Jorge Silva T.', numero: '3105678901', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '5678901234', estado: 'activo'
   },
   {
-    id: '6', correo: 'laura.gomez@sena.edu.co', password: 'Pass1234', nombre: 'Laura Gómez H.', numero: '3106789012', rol: 'Operador', tipoDocumento: 'CC', identificacion: '6789012345', estado: 'activo'
+    id: '6', correo: 'laura.gomez@sena.edu.co', password: 'Pass1234', nombre: 'Laura Gómez H.', numero: '3106789012', rol: 'Vigilante', tipoDocumento: 'CC', identificacion: '6789012345', estado: 'activo'
   },
   {
-    id: '7', correo: 'diego.herrera@sena.edu.co', password: 'Pass1234', nombre: 'Diego Herrera F.', numero: '3107890123', rol: 'Operador', tipoDocumento: 'CC', identificacion: '7890123456', estado: 'activo'
+    id: '7', correo: 'diego.herrera@sena.edu.co', password: 'Pass1234', nombre: 'Diego Herrera F.', numero: '3107890123', rol: 'Vigilante', tipoDocumento: 'CC', identificacion: '7890123456', estado: 'activo'
   },
   {
     id: '8', correo: 'sofia.castillo@ext.com', password: 'Pass1234', nombre: 'Sofía Castillo', numero: '3108901234', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '8901234567', estado: 'activo'
@@ -325,14 +325,14 @@ const initialCeldas: Celda[] = [];
 const initialConductores: Conductor[] = [
   { id: '1', usuarioId: '1', nombre: 'Carlos López M.', tipoConductor: 'instructor', centroFormacion: 'Ingeniería', discapacidad: false, estado: 'activo', tipo: 'docente', email: 'carlos.lopez@sena.edu.co' },
   { id: '2', usuarioId: '2', nombre: 'Ana Martínez R.', tipoConductor: 'aprendiz', centroFormacion: 'Administración', discapacidad: false, estado: 'activo', tipo: 'administrativo', email: 'ana.martinez@sena.edu.co' },
-  { id: '3', usuarioId: '1', nombre: 'Pedro Ruiz G.', tipoConductor: 'instructor', centroFormacion: 'Diseño', discapacidad: false, estado: 'activo', tipo: 'docente', email: 'pedro.ruiz@sena.edu.co' },
-  { id: '4', usuarioId: '2', nombre: 'María Díaz P.', tipoConductor: 'aprendiz', centroFormacion: 'Gestión Empresarial', discapacidad: false, estado: 'activo', tipo: 'visitante', email: 'maria.diaz@ext.com' },
-  { id: '5', usuarioId: '1', nombre: 'Jorge Silva T.', tipoConductor: 'instructor', centroFormacion: 'Informática', discapacidad: false, estado: 'activo', tipo: 'administrativo', email: 'jorge.silva@sena.edu.co' },
-  { id: '6', usuarioId: '2', nombre: 'Laura Gómez H.', tipoConductor: 'aprendiz', centroFormacion: 'Ingeniería', discapacidad: false, estado: 'activo', tipo: 'docente', email: 'laura.gomez@sena.edu.co' },
-  { id: '7', usuarioId: '1', nombre: 'Diego Herrera F.', tipoConductor: 'instructor', centroFormacion: 'Electricidad', discapacidad: false, estado: 'activo', tipo: 'administrativo', email: 'diego.herrera@sena.edu.co' },
-  { id: '8', usuarioId: '2', nombre: 'Sofía Castillo', tipoConductor: 'aprendiz', centroFormacion: 'Diseño Gráfico', discapacidad: true, tipoDiscapacidad: 'Visual', estado: 'activo', tipo: 'visitante', email: 'sofia.cast@ext.com' },
-  { id: '9', usuarioId: '1', nombre: 'Andrés Morales', tipoConductor: 'instructor', centroFormacion: 'Mecánica', discapacidad: false, estado: 'activo', tipo: 'docente', email: 'andres.morales@sena.edu.co' },
-  { id: '10', usuarioId: '2', nombre: 'Camila Rodríguez', tipoConductor: 'aprendiz', centroFormacion: 'Contabilidad', discapacidad: false, estado: 'activo', tipo: 'administrativo', email: 'camila.rodriguez@sena.edu.co' },
+  { id: '3', usuarioId: '3', nombre: 'Pedro Ruiz G.', tipoConductor: 'instructor', centroFormacion: 'Diseño', discapacidad: false, estado: 'activo', tipo: 'docente', email: 'pedro.ruiz@sena.edu.co' },
+  { id: '4', usuarioId: '4', nombre: 'María Díaz P.', tipoConductor: 'aprendiz', centroFormacion: 'Gestión Empresarial', discapacidad: false, estado: 'activo', tipo: 'visitante', email: 'maria.diaz@ext.com' },
+  { id: '5', usuarioId: '5', nombre: 'Jorge Silva T.', tipoConductor: 'instructor', centroFormacion: 'Informática', discapacidad: false, estado: 'activo', tipo: 'administrativo', email: 'jorge.silva@sena.edu.co' },
+  { id: '6', usuarioId: '6', nombre: 'Laura Gómez H.', tipoConductor: 'aprendiz', centroFormacion: 'Ingeniería', discapacidad: false, estado: 'activo', tipo: 'docente', email: 'laura.gomez@sena.edu.co' },
+  { id: '7', usuarioId: '7', nombre: 'Diego Herrera F.', tipoConductor: 'instructor', centroFormacion: 'Electricidad', discapacidad: false, estado: 'activo', tipo: 'administrativo', email: 'diego.herrera@sena.edu.co' },
+  { id: '8', usuarioId: '8', nombre: 'Sofía Castillo', tipoConductor: 'aprendiz', centroFormacion: 'Diseño Gráfico', discapacidad: true, tipoDiscapacidad: 'Visual', estado: 'activo', tipo: 'visitante', email: 'sofia.cast@ext.com' },
+  { id: '9', usuarioId: '9', nombre: 'Andrés Morales', tipoConductor: 'instructor', centroFormacion: 'Mecánica', discapacidad: false, estado: 'activo', tipo: 'docente', email: 'andres.morales@sena.edu.co' },
+  { id: '10', usuarioId: '10', nombre: 'Camila Rodríguez', tipoConductor: 'aprendiz', centroFormacion: 'Contabilidad', discapacidad: false, estado: 'activo', tipo: 'administrativo', email: 'camila.rodriguez@sena.edu.co' },
 ];
 
 const initialVehiculos: Vehiculo[] = [
@@ -349,6 +349,19 @@ const initialVehiculos: Vehiculo[] = [
   { id: 'v11', conductorId: '1', placa: 'EFG123', tipo: 'moto', marca: 'KTM', modelo: 'Duke 200', año: 2023, color: 'Naranja', descripcion: 'Moto naked', estado: 'activo', parqueaderoId: '5', celdaId: 'c80', fechaEntrada: '2025-06-20T08:00' },
   { id: 'v12', conductorId: '3', placa: 'HIJ456', tipo: 'moto', marca: 'TVS', modelo: 'Apache RTR 200', año: 2022, color: 'Negro', descripcion: 'Moto deportiva', estado: 'activo', parqueaderoId: '6', celdaId: 'c115', fechaEntrada: '2025-06-20T08:25' },
 ];
+
+/* El generador aleatorio de initialCeldas (arriba) no sabe qué celdas ya tienen asignado uno
+   de los vehículos anteriores, así que puede marcarlas "disponible" o "reservada" aunque ya
+   estén ocupadas. Eso deja un vehículo "fantasma" en controlesSalida que, en cuanto alguien
+   estaciona ahí un vehículo nuevo, sigue ganándole al recién ingresado (getOcupante usa el
+   primer control "en_parqueadero" que encuentra) y el vehículo real queda oculto en la UI. */
+initialVehiculos.forEach((v) => {
+  const celda = initialCeldas.find((c) => c.id === v.celdaId);
+  if (celda && celda.estado !== 'no_disponible') {
+    celda.estado = 'no_disponible';
+    celda.ocupada = true;
+  }
+});
 
 const initialControlesSalida: ControlSalida[] = [
   { id: 'cs1', vehiculoId: 'v1', celdaId: 'c0', fechaEntrada: '2025-06-20T07:15', estado: 'en_parqueadero' },
@@ -471,7 +484,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Roles ── */
   const addRol = (rol: Omit<Rol, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('rol');
     setRoles(prev => [...prev, { ...rol, id }]);
     return id;
   };
@@ -480,7 +493,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Usuarios ── */
   const addUsuario = (usuario: Omit<Usuario, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('usr');
     setUsuarios(prev => [...prev, { ...usuario, id }]);
     return id;
   };
@@ -489,14 +502,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Parqueaderos ── */
   const addParqueadero = (parqueadero: Omit<Parqueadero, 'id'>) => {
-    const newPq = { ...parqueadero, id: Date.now().toString() };
+    const newPq = { ...parqueadero, id: createEntityId('pq') };
     setParqueaderos(prev => [...prev, newPq]);
     const newCeldas: Omit<Celda, 'id'>[] = [];
-    let cnt = 1;
-    for (let i = 0; i < parqueadero.celdasCarros; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `C-${String(cnt).padStart(3, '0')}`, tipo: 'carro', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-C${cnt}` });
-    for (let i = 0; i < parqueadero.celdasMotos; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `M-${String(cnt).padStart(3, '0')}`, tipo: 'moto', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-M${cnt}` });
-    for (let i = 0; i < parqueadero.celdasMovilidadReducida; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `MR-${String(cnt).padStart(3, '0')}`, tipo: 'movilidad reducida', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-MR${cnt}` });
-    setCeldas(prev => [...prev, ...newCeldas.map(c => ({ ...c, id: `${Date.now()}-${cnt++}` }))]);
+    for (let i = 0; i < parqueadero.celdasCarros; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `C-${String(i + 1).padStart(3, '0')}`, tipo: 'carro', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-C${i + 1}` });
+    for (let i = 0; i < parqueadero.celdasMotos; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `M-${String(i + 1).padStart(3, '0')}`, tipo: 'moto', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-M${i + 1}` });
+    for (let i = 0; i < parqueadero.celdasMovilidadReducida; i++) newCeldas.push({ parqueaderoId: newPq.id, numero: `MR-${String(i + 1).padStart(3, '0')}`, tipo: 'movilidad reducida', estado: 'disponible', ocupada: false, nombre: `${newPq.nombre}-MR${i + 1}` });
+    setCeldas(prev => [...prev, ...newCeldas.map(c => ({ ...c, id: createEntityId('c') }))]);
     return newPq.id;
   };
   const updateParqueadero = (id: string, parqueadero: Partial<Parqueadero>) => setParqueaderos(prev => prev.map(p => p.id === id ? { ...p, ...parqueadero } : p));
@@ -504,7 +516,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Celdas ── */
   const addCelda = (celda: Omit<Celda, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('c');
     setCeldas(prev => [...prev, { ...celda, id }]);
     return id;
   };
@@ -513,7 +525,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Conductores ── */
   const addConductor = (conductor: Omit<Conductor, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('cond');
     setConductores(prev => [...prev, { ...conductor, id }]);
     return id;
   };
@@ -522,7 +534,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Vehículos ── */
   const addVehiculo = (vehiculo: Omit<Vehiculo, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('veh');
     setVehiculos(prev => [...prev, { ...vehiculo, id }]);
     return id;
   };
@@ -531,7 +543,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Asignaciones ── */
   const addAsignacion = (asignacion: Omit<AsignacionCelda, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('asig');
     setAsignaciones(prev => [...prev, { ...asignacion, id }]);
     return id;
   };
@@ -540,7 +552,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Control Salida ── */
   const addControlSalida = (control: Omit<ControlSalida, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('cs');
     setControlesSalida(prev => [...prev, { ...control, id }]);
     return id;
   };
@@ -549,7 +561,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Reservas ── */
   const addReserva = (reserva: Omit<Reserva, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('res');
     setReservas(prev => [...prev, { ...reserva, id }]);
     return id;
   };
@@ -558,7 +570,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   /* ── CRUD Incidentes ── */
   const addIncidente = (incidente: Omit<Incidente, 'id'>) => {
-    const id = Date.now().toString();
+    const id = createEntityId('inc');
     setIncidentes(prev => [...prev, { ...incidente, id }]);
     return id;
   };
@@ -575,7 +587,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       movs.push({
         id: `mv-${cs.id}`,
         placa: veh.placa,
-        tipo: cs.estado === 'en_parqueadero' ? 'entrada' : 'salida',
+        tipo: 'entrada',
         fecha: cs.fechaEntrada,
         parqueaderoId: veh.parqueaderoId,
         conductorNombre: cond.nombre,
@@ -591,7 +603,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         });
       }
     }
-    return movs;
+    /* Más recientes primero: si no se ordena, los movimientos derivados de accesos en
+       vivo quedan siempre después de los 16 movimientos de demo (fijos en 2025-06-20) y
+       nunca se ven en los widgets de "últimos movimientos", sin importar la actividad real. */
+    return movs.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
   }, [movimientos, controlesSalida, vehiculos, conductores]);
 
   return (
