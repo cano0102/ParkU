@@ -1,5 +1,5 @@
-import { AlertTriangle, Car, ChevronRight, Clock, MapPin, UserCircle2, X } from "lucide-react";
-import type { Celda, Parqueadero } from "../../context/DataContext";
+import { AlertTriangle, Car, Calendar, Clock as ClockIcon, ChevronRight, Clock, MapPin, UserCircle2, X } from "lucide-react";
+import type { Celda, Parqueadero, Reserva, Vehiculo } from "../../context/DataContext";
 import { theme } from "../../theme";
 import { Modal } from "../../components/shared";
 import { EstadoBadge, TipoBadge } from "./UiBits";
@@ -11,9 +11,11 @@ interface CeldaInfoModalProps {
   open: boolean;
   celdaActiva: Celda | null;
   ocupanteActivo: Ocupante | null;
+  reservaActiva: Reserva | null;
+  vehiculoReservado: Vehiculo | null;
   parqueaderoActivo: Parqueadero | null;
   onClose: () => void;
-  onToggleReserva: () => void;
+  onCancelarReserva: () => void;
   onEstacionarOficial: () => void;
   onNavigateConductor: (nombre: string) => void;
   onLiberar: () => void;
@@ -23,8 +25,8 @@ interface CeldaInfoModalProps {
 }
 
 export function CeldaInfoModal({
-  open, celdaActiva, ocupanteActivo, parqueaderoActivo, onClose,
-  onToggleReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
+  open, celdaActiva, ocupanteActivo, reservaActiva, vehiculoReservado, parqueaderoActivo, onClose,
+  onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
   onReportarIncidente, onEstacionarVehiculo, onReservarCelda,
 }: CeldaInfoModalProps) {
   return (
@@ -37,7 +39,7 @@ export function CeldaInfoModal({
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,.7)", textTransform: "uppercase" }}>Celda {celdaActiva?.numero}</div>
-          <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" && ocupanteActivo ? ocupanteActivo.vehiculo.placa : celdaActiva?.estado === "reservada" ? "Reservada" : "Celda Libre"}</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" && ocupanteActivo ? ocupanteActivo.vehiculo.placa : celdaActiva?.estado === "reservada" ? (vehiculoReservado?.placa || "Reservada") : "Celda Libre"}</h2>
           {celdaActiva?.estado === "no_disponible" && ocupanteActivo && <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>{ocupanteActivo.conductor?.nombre || "—"}</p>}
           <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>{celdaActiva && <EstadoBadge estado={celdaActiva.estado} />}{celdaActiva && <TipoBadge tipo={celdaActiva.tipo} />}</div>
         </div>
@@ -45,9 +47,19 @@ export function CeldaInfoModal({
       <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 10 }}>
         {celdaActiva?.estado === "reservada" ? (
           <>
-            <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada para uso institucional.</div>
+            <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada.</div>
+            {reservaActiva && [
+              { icon: Car, label: "Vehículo", value: vehiculoReservado ? `${vehiculoReservado.placa} — ${vehiculoReservado.marca} ${vehiculoReservado.modelo}` : "—" },
+              { icon: Calendar, label: "Fecha", value: reservaActiva.fechaReserva },
+              { icon: ClockIcon, label: "Horario", value: `${reservaActiva.horaInicio} – ${reservaActiva.horaFin}` },
+            ].map((r, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 11, background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+                <r.icon size={14} color={C.textLight} />
+                <div><div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>{r.label}</div><div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.value}</div></div>
+              </div>
+            ))}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={onToggleReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Liberar Reserva</button>
+              <button onClick={onCancelarReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Cancelar Reserva</button>
               <button onClick={onEstacionarOficial} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
             </div>
           </>

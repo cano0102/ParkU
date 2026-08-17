@@ -78,7 +78,7 @@ export function ReservaModal({
           </button>
         </div>
 
-        <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
+        <div style={{ padding: "1.4rem 1.8rem" }}>
           {reservaError && <Banner tone="danger" message={reservaError} />}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

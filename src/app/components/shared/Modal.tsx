@@ -39,34 +39,44 @@ export function Modal({ open, onClose, children, maxWidth = 640, title = 'Diálo
             animation: 'shared-modal-fade .15s ease',
           }}
         />
-        <DialogPrimitive.Content
-          aria-describedby={undefined}
+        {/* Contenedor de centrado: solo si el diálogo no cabe en la pantalla (caso
+            excepcional) se desplaza la página completa, en vez de forzar una
+            barra de scroll interna y recortada dentro de la tarjeta. */}
+        <div
           style={{
             position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 'calc(100% - 2rem)',
-            maxWidth,
-            maxHeight: '92vh',
-            overflowY: 'auto',
-            borderRadius: 24,
-            background: '#fff',
-            border: `1px solid ${C.border}`,
-            boxShadow: '0 20px 55px rgba(15,23,42,.12)',
+            inset: 0,
             zIndex: 1001,
-            outline: 'none',
-            animation: 'shared-modal-in .18s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            overflowY: 'auto',
+            padding: '2rem 1rem',
           }}
         >
-          <DialogPrimitive.Title style={srOnly}>{title}</DialogPrimitive.Title>
-          {children}
-        </DialogPrimitive.Content>
+          <DialogPrimitive.Content
+            aria-describedby={undefined}
+            style={{
+              width: '100%',
+              maxWidth,
+              margin: 'auto',
+              borderRadius: 24,
+              background: '#fff',
+              border: `1px solid ${C.border}`,
+              boxShadow: '0 20px 55px rgba(15,23,42,.12)',
+              outline: 'none',
+              animation: 'shared-modal-in .18s ease',
+            }}
+          >
+            <DialogPrimitive.Title style={srOnly}>{title}</DialogPrimitive.Title>
+            {children}
+          </DialogPrimitive.Content>
+        </div>
         <style>{`
           @keyframes shared-modal-fade { from { opacity: 0 } to { opacity: 1 } }
           @keyframes shared-modal-in {
-            from { opacity: 0; transform: translate(-50%, -46%) scale(.97); }
-            to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            from { opacity: 0; transform: scale(.97); }
+            to   { opacity: 1; transform: scale(1); }
           }
         `}</style>
       </DialogPrimitive.Portal>

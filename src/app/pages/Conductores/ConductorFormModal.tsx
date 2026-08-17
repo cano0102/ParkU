@@ -135,8 +135,6 @@ export function ConductorFormModal({
               <div
                 style={{
                   marginTop: 6,
-                  maxHeight: 170,
-                  overflowY: "auto",
                   borderRadius: 11,
                   border: `1px solid ${COLORS.border}`,
                   padding: 4,

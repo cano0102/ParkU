@@ -646,7 +646,7 @@ export function Incidentes() {
             </button>
           </div>
 
-          <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
+          <div style={{ padding: "1.4rem 1.8rem" }}>
             <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
                 <label htmlFor="descripcion" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>

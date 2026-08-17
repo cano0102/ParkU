@@ -36,7 +36,7 @@ export default function Parqueaderos() {
     conductores, addConductor,
     vehiculos, addVehiculo, updateVehiculo,
     controlesSalida, addControlSalida, updateControlSalida, deleteControlSalida,
-    reservas, addReserva,
+    reservas, addReserva, updateReserva,
     addIncidente,
   } = useData();
 
@@ -161,6 +161,14 @@ export default function Parqueaderos() {
   const celdaActiva      = useMemo(() => celdas.find(c => c.id === celdaSeleccionadaId) ?? null, [celdas, celdaSeleccionadaId]);
   const parqueaderoActivo = useMemo(() => celdaActiva ? parqueaderos.find(p => p.id === celdaActiva.parqueaderoId) ?? null : null, [celdaActiva, parqueaderos]);
   const ocupanteActivo   = useMemo(() => celdaActiva ? getOcupante(celdaActiva.id) : null, [celdaActiva, getOcupante]);
+  const reservaActiva    = useMemo(
+    () => celdaActiva ? reservas.find(r => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa")) ?? null : null,
+    [celdaActiva, reservas]
+  );
+  const vehiculoReservado = useMemo(
+    () => reservaActiva ? vehiculos.find(v => v.id === reservaActiva.vehiculoId) ?? null : null,
+    [reservaActiva, vehiculos]
+  );
 
   const cellMatchesSearch = useCallback((celda: Celda) => {
     if (!search.trim()) return false;
@@ -204,7 +212,7 @@ export default function Parqueaderos() {
       toast.info("Esta celda está en mantenimiento y no puede usarse.");
     } else {
       setVehiculoForm({ placa: "", conductor: "", esOficial: false });
-      setOpenModal("ingreso");
+      setOpenModal("info");
     }
   }, [getOcupante]);
 
@@ -254,26 +262,20 @@ export default function Parqueaderos() {
     }
 
     try {
-      // Verificar que no haya conflicto de horario en la misma celda
-      const conflicto = reservas.find(r => {
-        if (r.celdaId !== reservaForm.celdaId) return false;
-        if (r.fechaReserva !== reservaForm.fechaReserva) return false;
-        if (r.estado === "cancelada") return false;
-        const rInicio = toMinutes(r.horaInicio);
-        const rFin = toMinutes(r.horaFin);
-        const inicio = toMinutes(reservaForm.horaInicio);
-        const fin = toMinutes(reservaForm.horaFin);
-        return inicio < rFin && fin > rInicio;
-      });
+      // Solo se permite una reserva activa por celda a la vez
+      const conflicto = reservas.find(r =>
+        r.celdaId === reservaForm.celdaId && (r.estado === "pendiente" || r.estado === "activa")
+      );
 
       if (conflicto) {
         const vehiculo = vehiculos.find(v => v.id === conflicto.vehiculoId);
-        setReservaError(`La celda ya está reservada de ${conflicto.horaInicio} a ${conflicto.horaFin} (vehículo ${vehiculo?.placa || "—"})`);
+        setReservaError(`La celda ya tiene una reserva activa (vehículo ${vehiculo?.placa || "—"})`);
         return;
       }
 
       const { parqueaderoId, ...payload } = reservaForm;
-      addReserva(payload);
+      addReserva({ ...payload, estado: "activa" });
+      updateCelda(reservaForm.celdaId, { estado: "reservada" });
       toast.success(`Reserva creada para la celda ${celdaActiva?.numero}`);
       setOpenModal(null);
       setReservaError(null);
@@ -282,7 +284,7 @@ export default function Parqueaderos() {
       setReservaError("Error al crear la reserva");
       console.error(error);
     }
-  }, [reservaForm, addReserva, celdaActiva, reservas, vehiculos]);
+  }, [reservaForm, addReserva, updateCelda, celdaActiva, reservas, vehiculos]);
 
   const capacidadForm = pqForm.celdasCarros + pqForm.celdasMotos + pqForm.celdasMovilidadReducida;
 
@@ -409,6 +411,9 @@ export default function Parqueaderos() {
     const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
     const vehiculoId = resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada);
 
+    const reservaPendiente = reservas.find(r => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
+    if (reservaPendiente) updateReserva(reservaPendiente.id, { estado: "completada" });
+
     addControlSalida({ vehiculoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
     updateCelda(celda.id, { estado: "no_disponible", ocupada: true });
     toast.success(`Vehículo ${placa} registrado.`);
@@ -442,11 +447,12 @@ export default function Parqueaderos() {
     setOpenModal(null);
   };
 
-  const handleToggleReserva = () => {
+  const handleCancelarReserva = () => {
     if (!celdaActiva) return;
-    const nuevoEstado: Celda["estado"] = celdaActiva.estado === "reservada" ? "disponible" : "reservada";
-    updateCelda(celdaActiva.id, { estado: nuevoEstado });
-    toast.info(nuevoEstado === "reservada" ? "Celda reservada." : "Reserva liberada.");
+    const reserva = reservas.find(r => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa"));
+    if (reserva) updateReserva(reserva.id, { estado: "cancelada" });
+    updateCelda(celdaActiva.id, { estado: "disponible" });
+    toast.info("Reserva cancelada.");
     setOpenModal(null);
   };
 
@@ -683,7 +689,6 @@ export default function Parqueaderos() {
         ingresoPlacaHint={ingresoPlacaHint}
         onClose={() => setOpenModal(null)}
         onOpenScanner={() => { setScannerOrigin("ingreso"); setOpenModal("scanner"); }}
-        onToggleReserva={handleToggleReserva}
         onSubmit={registrarVehiculo}
       />
 
@@ -691,19 +696,18 @@ export default function Parqueaderos() {
         open={openModal === "info"}
         celdaActiva={celdaActiva}
         ocupanteActivo={ocupanteActivo}
+        reservaActiva={reservaActiva}
+        vehiculoReservado={vehiculoReservado}
         parqueaderoActivo={parqueaderoActivo}
         onClose={() => setOpenModal(null)}
-        onToggleReserva={handleToggleReserva}
+        onCancelarReserva={handleCancelarReserva}
         onEstacionarOficial={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: true }); setOpenModal("ingreso"); }}
         onNavigateConductor={(nombre) => navigate(`/app/conductores?q=${encodeURIComponent(nombre)}`)}
         onLiberar={handleRequestLiberar}
         onReportarIncidente={() => setOpenModal("incidente")}
         onEstacionarVehiculo={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: false }); setOpenModal("ingreso"); }}
         onReservarCelda={() => {
-          if (celdaActiva) {
-            openReservaFromCelda(celdaActiva);
-            setOpenModal(null);
-          }
+          if (celdaActiva) openReservaFromCelda(celdaActiva);
         }}
       />
 

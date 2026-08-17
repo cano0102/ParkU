@@ -74,7 +74,7 @@ export const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onA
   return (
     <Modal open={open} onClose={onClose} maxWidth={560}>
       <ModalHeader eyebrow="Asistente Virtual" title="Asignación Inteligente" icon={<Sparkles size={18} color={C.primary} />} onClose={onClose} />
-      <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
         <Banner tone="info" message="El sistema buscará la celda óptima libre según el perfil y tipo de vehículo." />
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Placa del Vehículo *</label>

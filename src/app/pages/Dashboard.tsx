@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import { theme } from "../theme";
+import logoSena from "../../styles/images/logoSena.png";
 import {
   Accessibility,
   Activity,
@@ -480,7 +481,7 @@ export default function Dashboard() {
     <>
       <style>{`
         :root { color-scheme: light; }
-        body { margin: 0; background: ${COLORS.background}; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+        body { margin: 0; background: ${COLORS.background}; font-family: 'Montserrat', sans-serif; }
         * { box-sizing: border-box; }
         ::selection { background: ${COLORS.primary}; color: white; }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -510,8 +511,8 @@ export default function Dashboard() {
           >
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#39A900] text-white shadow-md">
-                  <ParkingCircle size={24} strokeWidth={2} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-[#E2E8F0] p-2 shadow-md">
+                  <img src={logoSena} alt="SENA" className="h-full w-full object-contain" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">ParkU · SENA</h1>
@@ -584,7 +585,7 @@ export default function Dashboard() {
               </div>
 
               <div className="grid gap-5 lg:grid-cols-[15rem_1fr]">
-                <div className="max-h-[26rem] space-y-1.5 overflow-auto pr-1">
+                <div className="space-y-1.5 pr-1">
                   <AnimatePresence mode="popLayout">
                     {visibleLots.map((lot) => (
                       <LotRow key={lot.id} lot={lot} selected={selectedLot.id === lot.id} onClick={() => setSelectedId(lot.id)} />

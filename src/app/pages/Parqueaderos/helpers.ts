@@ -97,8 +97,12 @@ export const PLACAS_DEMO = [
   { placa:"VIP789", conductor:"Héctor Fabio Jurado",     tipo:"carro", rol:"Visitante" },
 ];
 
-/* SVG medidas */
-export const SPACE_W=52,SPACE_H=34,GAP_X=6,ROW_GAP=9,LANE_H=44,PADDING=50,
+/* SVG medidas
+   Celdas un poco más grandes que antes (52x34 -> 60x42) para poder mostrar
+   la placa siempre visible sobre el vehículo (no solo al pasar el mouse),
+   clave para que un vigilante identifique carros de un vistazo o al tacto
+   en una tablet, sin depender de hover. */
+export const SPACE_W=60,SPACE_H=42,GAP_X=7,ROW_GAP=10,LANE_H=46,PADDING=50,
       SECTION_GAP=48,ROAD_Y=74,ROAD_H=38,HEADER_BLOCK=58;
 
 /* ============================================================

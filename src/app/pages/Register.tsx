@@ -292,7 +292,7 @@ export function Register() {
           justifyContent: "center",
           padding: "1.2rem",
           position: "relative",
-          overflow: "hidden",
+          overflowX: "hidden",
         }}
       >
         {/* Fondo decorativo */}
@@ -326,7 +326,6 @@ export function Register() {
           style={{
             width: "100%",
             maxWidth: 900,
-            maxHeight: "94vh",
             display: "grid",
             gridTemplateColumns: "0.85fr 1.15fr",
             overflow: "hidden",
@@ -475,7 +474,6 @@ export function Register() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              overflowY: "auto",
             }}
           >
             <div

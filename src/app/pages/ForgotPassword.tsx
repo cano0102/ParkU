@@ -160,7 +160,7 @@ export function ForgotPassword() {
           justifyContent: "center",
           padding: "1.2rem",
           position: "relative",
-          overflow: "hidden",
+          overflowX: "hidden",
         }}
       >
         {/* BG */}
@@ -182,7 +182,6 @@ export function ForgotPassword() {
           style={{
             width: "100%",
             maxWidth: 820,
-            maxHeight: "92vh",
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             overflow: "hidden",
@@ -352,7 +351,6 @@ export function ForgotPassword() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              overflowY: "auto",
             }}
           >
             <div style={{ width: "100%", maxWidth: 360 }}>

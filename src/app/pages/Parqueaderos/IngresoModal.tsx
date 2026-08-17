@@ -20,14 +20,13 @@ interface IngresoModalProps {
   ingresoPlacaHint: string;
   onClose: () => void;
   onOpenScanner: () => void;
-  onToggleReserva: () => void;
   onSubmit: () => void;
 }
 
 export function IngresoModal({
   open, celdaActiva, vehiculoForm, setVehiculoForm, placaError, onPlacaChange,
   ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint,
-  onClose, onOpenScanner, onToggleReserva, onSubmit,
+  onClose, onOpenScanner, onSubmit,
 }: IngresoModalProps) {
   return (
     <Modal open={open} onClose={onClose}>
@@ -63,9 +62,6 @@ export function IngresoModal({
           <input type="checkbox" checked={vehiculoForm.esOficial} onChange={e => setVehiculoForm(p => ({ ...p, esOficial: e.target.checked }))} style={{ width: 16, height: 16, accentColor: C.primary }} />
           <div><div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>Oficial SENA</div><div style={{ fontSize: 10, color: C.textLight }}>Vehículo institucional</div></div>
         </label>
-        <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
-          <button onClick={onToggleReserva} style={{ width: "100%", padding: "10px", borderRadius: 11, border: `1px dashed ${C.amberBg}`, background: C.amberBg, color: "#92400E", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>🔒 Reservar esta celda</button>
-        </div>
       </div>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
         <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>

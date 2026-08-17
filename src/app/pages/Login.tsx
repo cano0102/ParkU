@@ -308,7 +308,7 @@ export function Login() {
           justifyContent: "center",
           padding: "1.2rem",
           position: "relative",
-          overflow: "hidden",
+          overflowX: "hidden",
         }}
       >
         {/* Fondo decorativo */}
@@ -342,7 +342,6 @@ export function Login() {
           style={{
             width: "100%",
             maxWidth: 820,
-            maxHeight: "92vh",
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             overflow: "hidden",
@@ -491,7 +490,6 @@ export function Login() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              overflowY: "auto",
             }}
           >
             <div

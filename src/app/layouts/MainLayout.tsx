@@ -25,9 +25,24 @@ import {
 import { useAuth } from '../context/AuthContext';
 import type { Rol } from '../context/DataContext';
 import { theme } from '../theme';
+import logoSena from '../../styles/images/logoSena.png';
 
 /* ─── Design tokens (tema compartido, ver src/app/theme.ts) ─── */
 const C = theme;
+
+/* Superficie verde institucional del sidebar/topbar (en vez del blanco genérico
+   de antes). El degradado + la marca de agua del pictograma le dan identidad
+   SENA real en lugar del look "dashboard genérico" plano. */
+const SIDEBAR_GRADIENT = 'linear-gradient(170deg, #2D7D00 0%, #1B4D00 100%)';
+const onDark = {
+  text: '#FFFFFF',
+  textMuted: 'rgba(255,255,255,.68)',
+  textFaint: 'rgba(255,255,255,.46)',
+  border: 'rgba(255,255,255,.16)',
+  borderStrong: 'rgba(255,255,255,.28)',
+  hoverBg: 'rgba(255,255,255,.1)',
+  chipBg: 'rgba(255,255,255,.12)',
+};
 
 /* ─── Nav items ──────────────────────────────── */
 const menuItems: {
@@ -81,42 +96,32 @@ function NavItem({
         borderRadius: 12,
         textDecoration: 'none',
         justifyContent: collapsed ? 'center' : 'flex-start',
-        background: active ? C.primaryLight : 'transparent',
-        border: active ? `1px solid ${C.primaryBorder}` : '1px solid transparent',
-        color: active ? C.primary : C.textSoft,
-        fontWeight: active ? 600 : 500,
+        background: active ? '#FFFFFF' : 'transparent',
+        border: active ? '1px solid #FFFFFF' : '1px solid transparent',
+        color: active ? C.primaryDark : onDark.textMuted,
+        fontWeight: active ? 700 : 500,
         fontSize: 14,
+        boxShadow: active ? '0 4px 12px rgba(0,0,0,.18)' : 'none',
         transition: 'all .18s ease',
         position: 'relative',
       }}
       onMouseEnter={e => {
         if (!active) {
-          (e.currentTarget as HTMLElement).style.background = C.surfaceHover;
-          (e.currentTarget as HTMLElement).style.color = C.text;
+          (e.currentTarget as HTMLElement).style.background = onDark.hoverBg;
+          (e.currentTarget as HTMLElement).style.color = onDark.text;
         }
       }}
       onMouseLeave={e => {
         if (!active) {
           (e.currentTarget as HTMLElement).style.background = 'transparent';
-          (e.currentTarget as HTMLElement).style.color = C.textSoft;
+          (e.currentTarget as HTMLElement).style.color = onDark.textMuted;
         }
       }}
     >
-      {/* Active indicator bar */}
-      {active && !collapsed && (
-        <span style={{
-          position: 'absolute',
-          left: 0, top: '50%',
-          transform: 'translateY(-50%)',
-          width: 3, height: 20,
-          borderRadius: 99,
-          background: C.primary,
-        }} />
-      )}
       <Icon size={17} style={{ flexShrink: 0 }} />
       {!collapsed && <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.label}</span>}
       {!collapsed && active && (
-        <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: .5 }} />
+        <ChevronRight size={14} style={{ marginLeft: 'auto', opacity: .6 }} />
       )}
     </Link>
   );
@@ -158,25 +163,29 @@ export function MainLayout() {
         alignItems: 'center',
         gap: 10,
         padding: '20px 16px 16px',
-        borderBottom: `1px solid ${C.border}`,
+        borderBottom: `1px solid ${onDark.border}`,
         justifyContent: collapsed && !isMobile ? 'center' : 'flex-start',
+        position: 'relative',
+        zIndex: 1,
       }}>
         <div style={{
           width: 38, height: 38,
           borderRadius: 12,
-          background: C.primaryLight,
-          border: `1px solid ${C.primaryBorder}`,
+          background: '#FFFFFF',
+          border: '1px solid rgba(255,255,255,.6)',
+          boxShadow: '0 3px 10px rgba(0,0,0,.22)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           flexShrink: 0,
+          padding: 6,
         }}>
-          <ParkingCircle size={20} color={C.primary} />
+          <img src={logoSena} alt="SENA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         {(!collapsed || isMobile) && (
           <div>
-            <div style={{ fontWeight: 800, fontSize: 17, color: C.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
+            <div style={{ fontWeight: 800, fontSize: 17, color: onDark.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>
               ParkU
             </div>
-            <div style={{ fontSize: 10, color: C.textMuted, fontWeight: 500, letterSpacing: '.02em', textTransform: 'uppercase' }}>
+            <div style={{ fontSize: 10, color: onDark.textMuted, fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }}>
               SENA · Institucional
             </div>
           </div>
@@ -188,12 +197,12 @@ export function MainLayout() {
               marginLeft: 'auto',
               width: 28, height: 28,
               borderRadius: 8,
-              border: `1px solid ${C.border}`,
-              background: C.surface,
+              border: `1px solid ${onDark.border}`,
+              background: onDark.chipBg,
               cursor: 'pointer',
               display: collapsed ? 'none' : 'flex',
               alignItems: 'center', justifyContent: 'center',
-              color: C.textMuted,
+              color: onDark.text,
               flexShrink: 0,
             }}
           >
@@ -207,11 +216,11 @@ export function MainLayout() {
               marginLeft: 'auto',
               width: 32, height: 32,
               borderRadius: 10,
-              border: `1px solid ${C.border}`,
-              background: C.surface,
+              border: `1px solid ${onDark.border}`,
+              background: onDark.chipBg,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: C.textMuted,
+              color: onDark.text,
             }}
           >
             <X size={16} />
@@ -227,11 +236,13 @@ export function MainLayout() {
             margin: '12px auto 0',
             width: 36, height: 36,
             borderRadius: 10,
-            border: `1px solid ${C.border}`,
-            background: C.surface,
+            border: `1px solid ${onDark.border}`,
+            background: onDark.chipBg,
             cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: C.textMuted,
+            color: onDark.text,
+            position: 'relative',
+            zIndex: 1,
           }}
         >
           <Menu size={15} />
@@ -239,7 +250,7 @@ export function MainLayout() {
       )}
 
       {/* Nav */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '12px 10px' }}>
+      <nav style={{ flex: 1, padding: '12px 10px', position: 'relative', zIndex: 1 }}>
         {grouped.map(({ key, label, items }) => (
           <div key={key} style={{ marginBottom: 20 }}>
             {(!collapsed || isMobile) && (
@@ -248,7 +259,7 @@ export function MainLayout() {
                 fontWeight: 700,
                 letterSpacing: '.1em',
                 textTransform: 'uppercase',
-                color: C.textMuted,
+                color: onDark.textFaint,
                 padding: '0 12px',
                 marginBottom: 4,
               }}>
@@ -258,7 +269,7 @@ export function MainLayout() {
             {collapsed && !isMobile && (
               <div style={{
                 height: 1,
-                background: C.border,
+                background: onDark.border,
                 margin: '6px 8px 8px',
               }} />
             )}
@@ -281,9 +292,11 @@ export function MainLayout() {
       <div style={{
         margin: '0 10px 12px',
         borderRadius: 14,
-        border: `1px solid ${C.border}`,
-        background: C.bg,
+        border: `1px solid ${onDark.border}`,
+        background: onDark.chipBg,
         overflow: 'hidden',
+        position: 'relative',
+        zIndex: 1,
       }}>
         {(!collapsed || isMobile) ? (
           <div style={{ padding: '12px 14px' }}>
@@ -291,18 +304,18 @@ export function MainLayout() {
               <div style={{
                 width: 36, height: 36,
                 borderRadius: 10,
-                background: C.primaryLight,
-                border: `1px solid ${C.primaryBorder}`,
+                background: 'rgba(255,255,255,.16)',
+                border: `1px solid ${onDark.borderStrong}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>
-                <User size={16} color={C.primary} />
+                <User size={16} color={onDark.text} />
               </div>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: onDark.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {user?.nombre}
                 </div>
-                <div style={{ fontSize: 11, color: C.textMuted, fontWeight: 500 }}>
+                <div style={{ fontSize: 11, color: onDark.textMuted, fontWeight: 500 }}>
                   {user?.rol}
                 </div>
               </div>
@@ -314,11 +327,11 @@ export function MainLayout() {
                   flex: 1,
                   height: 32,
                   borderRadius: 8,
-                  border: `1px solid ${C.borderStrong}`,
-                  background: C.surface,
+                  border: `1px solid ${onDark.borderStrong}`,
+                  background: 'rgba(255,255,255,.1)',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  fontSize: 12, fontWeight: 600, color: C.textSoft,
+                  fontSize: 12, fontWeight: 600, color: onDark.text,
                 }}
               >
                 <User size={13} />
@@ -330,11 +343,11 @@ export function MainLayout() {
                   flex: 1,
                   height: 32,
                   borderRadius: 8,
-                  border: `1px solid ${C.dangerBorder}`,
-                  background: C.dangerBg,
+                  border: '1px solid rgba(252,165,165,.35)',
+                  background: 'rgba(239,68,68,.22)',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  fontSize: 12, fontWeight: 600, color: C.danger,
+                  fontSize: 12, fontWeight: 600, color: '#FECACA',
                 }}
               >
                 <LogOut size={13} />
@@ -350,11 +363,11 @@ export function MainLayout() {
               style={{
                 width: 36, height: 36,
                 borderRadius: 10,
-                border: `1px solid ${C.border}`,
-                background: C.surface,
+                border: `1px solid ${onDark.border}`,
+                background: 'rgba(255,255,255,.1)',
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: C.textSoft,
+                color: onDark.text,
               }}
             >
               <User size={15} />
@@ -365,11 +378,11 @@ export function MainLayout() {
               style={{
                 width: 36, height: 36,
                 borderRadius: 10,
-                border: `1px solid ${C.dangerBorder}`,
-                background: C.dangerBg,
+                border: '1px solid rgba(252,165,165,.35)',
+                background: 'rgba(239,68,68,.22)',
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: C.danger,
+                color: '#FECACA',
               }}
             >
               <LogOut size={15} />
@@ -389,16 +402,29 @@ export function MainLayout() {
           position: 'fixed',
           top: 0, left: 0, bottom: 0,
           width: sidebarWidth,
-          background: C.surface,
-          borderRight: `1px solid ${C.border}`,
+          background: SIDEBAR_GRADIENT,
           display: 'flex',
           flexDirection: 'column',
           zIndex: 80,
           transition: 'width .22s cubic-bezier(.4,0,.2,1)',
           overflow: 'hidden',
+          boxShadow: '2px 0 24px rgba(0,0,0,.1)',
         }}
         className="hidden-mobile-sidebar"
         >
+          {/* Marca de agua institucional + resplandores decorativos */}
+          <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+            <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,.05)', top: -80, right: -90 }} />
+            <img
+              src={logoSena}
+              alt=""
+              style={{
+                position: 'absolute', left: '50%', bottom: -46,
+                width: 240, transform: 'translateX(-50%)',
+                filter: 'brightness(0) invert(1)', opacity: .05,
+              }}
+            />
+          </div>
           <SidebarContent />
         </aside>
       )}
@@ -419,13 +445,25 @@ export function MainLayout() {
             position: 'fixed',
             top: 0, left: 0, bottom: 0,
             width: SIDEBAR_W,
-            background: C.surface,
-            borderRight: `1px solid ${C.border}`,
+            background: SIDEBAR_GRADIENT,
             zIndex: 120,
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '4px 0 32px rgba(0,0,0,.12)',
+            boxShadow: '4px 0 32px rgba(0,0,0,.25)',
+            overflow: 'hidden',
           }}>
+            <div aria-hidden style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,.05)', top: -80, right: -90 }} />
+              <img
+                src={logoSena}
+                alt=""
+                style={{
+                  position: 'absolute', left: '50%', bottom: -46,
+                  width: 240, transform: 'translateX(-50%)',
+                  filter: 'brightness(0) invert(1)', opacity: .05,
+                }}
+              />
+            </div>
             <SidebarContent isMobile />
           </aside>
         </>
@@ -437,14 +475,13 @@ export function MainLayout() {
           position: 'fixed',
           top: 0, left: 0, right: 0,
           height: 60,
-          background: 'rgba(255,255,255,.92)',
-          backdropFilter: 'blur(12px)',
-          borderBottom: `1px solid ${C.border}`,
+          background: SIDEBAR_GRADIENT,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 16px',
           zIndex: 70,
+          boxShadow: '0 2px 16px rgba(0,0,0,.12)',
           /* Only visible on mobile */
         }}
         className="mobile-header"
@@ -454,11 +491,11 @@ export function MainLayout() {
             style={{
               width: 38, height: 38,
               borderRadius: 10,
-              border: `1px solid ${C.border}`,
-              background: C.surface,
+              border: `1px solid ${onDark.border}`,
+              background: onDark.chipBg,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: C.textSoft,
+              color: onDark.text,
             }}
           >
             <Menu size={18} />
@@ -468,13 +505,15 @@ export function MainLayout() {
             <div style={{
               width: 30, height: 30,
               borderRadius: 9,
-              background: C.primaryLight,
-              border: `1px solid ${C.primaryBorder}`,
+              background: '#FFFFFF',
+              border: '1px solid rgba(255,255,255,.6)',
+              boxShadow: '0 2px 8px rgba(0,0,0,.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 4,
             }}>
-              <ParkingCircle size={16} color={C.primary} />
+              <img src={logoSena} alt="SENA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
-            <span style={{ fontWeight: 800, fontSize: 16, color: C.text, letterSpacing: '-0.03em' }}>
+            <span style={{ fontWeight: 800, fontSize: 16, color: onDark.text, letterSpacing: '-0.03em' }}>
               ParkU
             </span>
           </div>
@@ -484,11 +523,11 @@ export function MainLayout() {
             style={{
               width: 38, height: 38,
               borderRadius: 10,
-              border: `1px solid ${C.border}`,
-              background: C.primaryLight,
+              border: `1px solid ${onDark.border}`,
+              background: onDark.chipBg,
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: C.primary,
+              color: onDark.text,
             }}
           >
             <User size={17} />
@@ -542,8 +581,9 @@ export function MainLayout() {
                   padding: '6px 10px',
                   borderRadius: 12,
                   textDecoration: 'none',
-                  color: active ? C.primary : C.textMuted,
-                  background: active ? C.primaryLight : 'transparent',
+                  color: active ? '#FFFFFF' : C.textMuted,
+                  background: active ? C.primary : 'transparent',
+                  boxShadow: active ? '0 4px 12px rgba(57,169,0,.35)' : 'none',
                   transition: 'all .15s ease',
                   minWidth: 52,
                 }}
@@ -611,7 +651,7 @@ export function MainLayout() {
         /* Scrollbar for sidebar */
         nav::-webkit-scrollbar { width: 3px; }
         nav::-webkit-scrollbar-track { background: transparent; }
-        nav::-webkit-scrollbar-thumb { background: ${C.borderStrong}; border-radius: 99px; }
+        nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.25); border-radius: 99px; }
 
         /* Status indicator pulse */
         @keyframes pulse-dot {

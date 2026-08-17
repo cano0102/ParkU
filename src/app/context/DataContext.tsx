@@ -221,7 +221,7 @@ const initialRoles: Rol[] = [
   },
   {
     id: '2', nombre: 'Vigilante', descripcion: 'Gestión de entradas y salidas',
-    permisos: { dashboard: true, roles: false, usuarios: false, conductores: true, vehiculos: true, parqueaderos: false, celdas: true, asignaciones: true, entradaSalida: true, reservas: true, incidentes: true, reconocimientoPlacas: true },
+    permisos: { dashboard: true, roles: false, usuarios: false, conductores: true, vehiculos: true, parqueaderos: true, celdas: true, asignaciones: true, entradaSalida: true, reservas: true, incidentes: true, reconocimientoPlacas: true },
     estado: 'activo'
   },
   {

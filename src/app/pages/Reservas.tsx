@@ -1,8 +1,6 @@
 import React, { useMemo, useState } from "react";
 
 import {
-  Plus,
-  Pencil,
   Trash2,
   Eye,
   Calendar,
@@ -16,7 +14,6 @@ import {
   X,
   Shield,
   Clock,
-  Sparkles,
   AlertCircle,
 } from "lucide-react";
 
@@ -70,28 +67,15 @@ function EstadoBadgeInline({ estado }: { estado: EstadoReserva }) {
 export function Reservas() {
   const navigate = useNavigate();
   const {
-    reservas, addReserva, updateReserva, deleteReserva,
+    reservas, deleteReserva, updateCelda,
     vehiculos, celdas, conductores, usuarios, parqueaderos,
   } = useData();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
-  const [editingReserva, setEditingReserva] = useState<Reserva | null>(null);
   const [viewingReserva, setViewingReserva] = useState<Reserva | null>(null);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoReserva>("todos");
   const [confirmDelete, setConfirmDelete] = useState<Reserva | null>(null);
-  const [formErrors, setFormErrors] = useState<string[]>([]);
-
-  const [formData, setFormData] = useState({
-    vehiculoId: "",
-    parqueaderoId: "",
-    celdaId: "",
-    fechaReserva: todayStr(),
-    horaInicio: "08:00",
-    horaFin: "18:00",
-    estado: "pendiente" as EstadoReserva,
-  });
 
   /* ── Helpers ────────────────────────────────────────── */
   const getVehiculo = (id: string) => vehiculos.find(v => v.id === id);
@@ -107,13 +91,6 @@ export function Reservas() {
     const c = getConductorVehiculo(vehiculoId);
     return c ? usuarios.find(u => u.id === c.usuarioId) : null;
   };
-
-  const celdasDisponibles = celdas.filter(c => c.estado === "disponible" || c.estado === "reservada");
-
-  const celdasDelParqueadero = useMemo(
-    () => celdasDisponibles.filter(c => c.parqueaderoId === formData.parqueaderoId),
-    [celdasDisponibles, formData.parqueaderoId]
-  );
 
   /* ── Stats ──────────────────────────────────────────── */
   const counts = {
@@ -149,139 +126,17 @@ export function Reservas() {
       });
   }, [reservas, search, filterEstado]);
 
-  /* ── Validación de solapamiento de horario en la misma celda ── */
-  const findOverlap = (
-    celdaId: string,
-    fecha: string,
-    horaInicio: string,
-    horaFin: string,
-    excludeId?: string
-  ): Reserva | null => {
-    const inicio = toMinutes(horaInicio);
-    const fin = toMinutes(horaFin);
-
-    const conflicto = reservas.find(r => {
-      if (r.id === excludeId) return false;
-      if (r.celdaId !== celdaId) return false;
-      if (r.fechaReserva !== fecha) return false;
-      if (r.estado === "cancelada") return false;
-
-      const rInicio = toMinutes(r.horaInicio);
-      const rFin = toMinutes(r.horaFin);
-      // Hay solapamiento si los rangos se cruzan
-      return inicio < rFin && fin > rInicio;
-    });
-
-    return conflicto || null;
-  };
-
   /* ── Handlers ───────────────────────────────────────── */
-  const openCreate = () => {
-    setEditingReserva(null);
-    setFormErrors([]);
-    setFormData({
-      vehiculoId: "",
-      parqueaderoId: "",
-      celdaId: "",
-      fechaReserva: todayStr(),
-      horaInicio: "08:00",
-      horaFin: "18:00",
-      estado: "pendiente",
-    });
-    setDialogOpen(true);
-  };
-
-  const openEdit = (reserva: Reserva) => {
-    setEditingReserva(reserva);
-    setFormErrors([]);
-    const celdaActual = getCelda(reserva.celdaId);
-    setFormData({
-      vehiculoId: reserva.vehiculoId,
-      parqueaderoId: celdaActual?.parqueaderoId || "",
-      celdaId: reserva.celdaId,
-      fechaReserva: reserva.fechaReserva,
-      horaInicio: reserva.horaInicio,
-      horaFin: reserva.horaFin,
-      estado: reserva.estado,
-    });
-    setViewOpen(false);
-    setDialogOpen(true);
-  };
-
-  const validate = (): string[] => {
-    const errors: string[] = [];
-
-    if (!formData.vehiculoId) errors.push("Selecciona un vehículo");
-    if (!formData.parqueaderoId) errors.push("Selecciona un parqueadero");
-    if (!formData.celdaId) errors.push("Selecciona una celda");
-    if (!formData.fechaReserva) errors.push("La fecha es requerida");
-    if (!formData.horaInicio || !formData.horaFin) errors.push("El horario es requerido");
-
-    // La celda debe pertenecer al parqueadero seleccionado
-    if (formData.celdaId && formData.parqueaderoId) {
-      const celdaSel = getCelda(formData.celdaId);
-      if (celdaSel && celdaSel.parqueaderoId !== formData.parqueaderoId) {
-        errors.push("La celda seleccionada no pertenece al parqueadero elegido");
-      }
-    }
-
-    if (formData.horaInicio && formData.horaFin) {
-      if (toMinutes(formData.horaFin) <= toMinutes(formData.horaInicio)) {
-        errors.push("La hora de fin debe ser posterior a la hora de inicio");
-      }
-    }
-
-    // No permitir reservas en fechas pasadas al crear una nueva
-    if (!editingReserva && formData.fechaReserva && formData.fechaReserva < todayStr()) {
-      errors.push("No puedes crear una reserva en una fecha pasada");
-    }
-
-    // Validar que no haya cruce de horario en la misma celda y fecha
-    if (formData.celdaId && formData.fechaReserva && formData.horaInicio && formData.horaFin) {
-      const conflicto = findOverlap(
-        formData.celdaId,
-        formData.fechaReserva,
-        formData.horaInicio,
-        formData.horaFin,
-        editingReserva?.id
-      );
-      if (conflicto) {
-        const vConflicto = getVehiculo(conflicto.vehiculoId);
-        errors.push(
-          `La celda ya está reservada de ${conflicto.horaInicio} a ${conflicto.horaFin} (vehículo ${vConflicto?.placa || "—"})`
-        );
-      }
-    }
-
-    return errors;
-  };
-
-  const handleSave = () => {
-    const errors = validate();
-    setFormErrors(errors);
-    if (errors.length > 0) {
-      toast.error(errors[0]);
-      return;
-    }
-
-    const { parqueaderoId, ...payload } = formData;
-
-    if (editingReserva) {
-      updateReserva(editingReserva.id, payload);
-      toast.success("Reserva actualizada correctamente");
-    } else {
-      addReserva(payload);
-      toast.success("Reserva registrada correctamente");
-    }
-    setDialogOpen(false);
-  };
-
   const handleDelete = (reserva: Reserva) => {
     setConfirmDelete(reserva);
   };
 
   const confirmDeleteAction = () => {
     if (!confirmDelete) return;
+    // Si la reserva seguía activa, libera la celda al eliminar el registro
+    if (confirmDelete.estado === "pendiente" || confirmDelete.estado === "activa") {
+      updateCelda(confirmDelete.celdaId, { estado: "disponible" });
+    }
     deleteReserva(confirmDelete.id);
     toast.success("Reserva eliminada correctamente");
     setConfirmDelete(null);
@@ -289,22 +144,6 @@ export function Reservas() {
 
   const activeFiltersCount = [search, filterEstado !== "todos" ? filterEstado : ""].filter(Boolean).length;
   const clearFilters = () => { setSearch(""); setFilterEstado("todos"); };
-
-  // Calcular duración
-  const getDuracion = () => {
-    if (!formData.horaInicio || !formData.horaFin) return null;
-    const mins = toMinutes(formData.horaFin) - toMinutes(formData.horaInicio);
-    if (mins <= 0) return null;
-    const h = Math.floor(mins / 60), m = mins % 60;
-    return h > 0 ? `${h}h ${m > 0 ? m + "min" : ""}`.trim() : `${m}min`;
-  };
-
-  // Conflicto en vivo, mientras se llena el formulario (antes de guardar)
-  const liveConflict = useMemo(() => {
-    if (!formData.celdaId || !formData.fechaReserva || !formData.horaInicio || !formData.horaFin) return null;
-    if (toMinutes(formData.horaFin) <= toMinutes(formData.horaInicio)) return null;
-    return findOverlap(formData.celdaId, formData.fechaReserva, formData.horaInicio, formData.horaFin, editingReserva?.id);
-  }, [formData.celdaId, formData.fechaReserva, formData.horaInicio, formData.horaFin, reservas, editingReserva]);
 
   return (
     <>
@@ -355,7 +194,7 @@ export function Reservas() {
                 Gestión de Reservas
               </h1>
               <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
-                Administra reservas de vehículos, horarios, disponibilidad y control operativo de parqueaderos.
+                Historial de reservas de celdas. Para crear o cancelar una reserva, hazlo desde la celda en el módulo de Parqueaderos.
               </p>
             </div>
 
@@ -455,19 +294,6 @@ export function Reservas() {
               <X size={14} /> Limpiar
             </button>
           )}
-
-          <button
-            onClick={openCreate}
-            style={{
-              padding: "10px 18px", borderRadius: 11, border: "none",
-              background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800,
-              cursor: "pointer", fontFamily: "inherit",
-              display: "flex", alignItems: "center", gap: 7,
-              boxShadow: "0 4px 14px rgba(57,169,0,.25)",
-            }}
-          >
-            <Plus size={15} /> Nueva Reserva
-          </button>
         </div>
 
         {/* ── RESULT HINT ── */}
@@ -502,7 +328,7 @@ export function Reservas() {
           </div>
 
           {/* Tabla body */}
-          <div style={{ maxHeight: "calc(100vh - 400px)", overflowY: "auto" }}>
+          <div>
             {filteredReservas.length === 0 ? (
               <div style={{
                 display: "flex", flexDirection: "column", alignItems: "center",
@@ -510,7 +336,7 @@ export function Reservas() {
               }}>
                 <Calendar size={36} color={C.border} style={{ marginBottom: 12 }} />
                 <p style={{ fontWeight: 600, fontSize: 13 }}>No se encontraron reservas</p>
-                <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o crea una nueva reserva</p>
+                <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros. Las reservas se crean desde el módulo de Parqueaderos.</p>
               </div>
             ) : (
               filteredReservas.map((reserva) => {
@@ -629,20 +455,6 @@ export function Reservas() {
                       </button>
                       <button
                         className="action-btn"
-                        title="Editar"
-                        aria-label="Editar reserva"
-                        onClick={() => openEdit(reserva)}
-                        style={{
-                          width: 28, height: 28, borderRadius: 7,
-                          border: "none", background: "transparent",
-                          color: C.textLight, cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        className="action-btn"
                         title="Eliminar"
                         aria-label="Eliminar reserva"
                         onClick={() => handleDelete(reserva)}
@@ -673,322 +485,6 @@ export function Reservas() {
           )}
         </div>
       </div>
-
-      {/* ── MODAL CREAR / EDITAR ── */}
-      <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={680}>
-        <div>
-          {/* Header */}
-          <div
-            style={{
-              padding: "1.4rem 1.8rem",
-              borderBottom: `1px solid ${C.border}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div
-                style={{
-                  width: 38, height: 38, borderRadius: 10,
-                  background: "rgba(57,169,0,.1)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >
-                <Sparkles size={18} color={C.primary} />
-              </div>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
-                  Registro de reserva
-                </div>
-                <h2 style={{ fontSize: 20, fontWeight: 900, color: C.text, lineHeight: 1 }}>
-                  {editingReserva ? "Editar Reserva" : "Nueva Reserva"}
-                </h2>
-              </div>
-            </div>
-            <button
-              onClick={() => setDialogOpen(false)}
-              aria-label="Cerrar"
-              style={{
-                width: 34, height: 34, borderRadius: 9,
-                border: `1px solid ${C.border}`,
-                background: "#fff", cursor: "pointer", color: C.textLight,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          {/* Body */}
-          <div style={{ padding: "1.4rem 1.8rem", maxHeight: "65vh", overflowY: "auto" }}>
-
-            {/* Errores de validación */}
-            {formErrors.length > 0 && (
-              <div style={{
-                marginBottom: 14, padding: "10px 12px", borderRadius: 11,
-                background: "#FEF2F2", border: "1px solid #FECACA",
-                display: "flex", flexDirection: "column", gap: 4,
-              }}>
-                {formErrors.map((err, i) => (
-                  <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 6, fontSize: 12, color: "#991B1B" }}>
-                    <AlertCircle size={13} style={{ marginTop: 1, flexShrink: 0 }} />
-                    <span>{err}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {/* Vehículo */}
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label htmlFor="vehiculoId" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Vehículo *
-                </label>
-                <select
-                  id="vehiculoId"
-                  value={formData.vehiculoId}
-                  onChange={(e) => setFormData({ ...formData, vehiculoId: e.target.value })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: "#F8FAFC",
-                  }}
-                >
-                  <option value="">Seleccionar vehículo...</option>
-                  {vehiculos.map(v => (
-                    <option key={v.id} value={v.id}>
-                      {v.placa} — {v.marca} {v.modelo}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Dueño / conductor del vehículo seleccionado */}
-                {formData.vehiculoId && (() => {
-                  const usuarioVehiculo = getUsuarioConductor(formData.vehiculoId);
-                  return (
-                    <div style={{
-                      marginTop: 8, padding: "10px 12px", borderRadius: 11,
-                      background: usuarioVehiculo ? "#F0FDF4" : "#FEF3C7",
-                      border: `1px solid ${usuarioVehiculo ? "#BBF7D0" : "#FDE68A"}`,
-                      display: "flex", alignItems: "center", gap: 8,
-                    }}>
-                      <UserCircle2 size={14} color={usuarioVehiculo ? C.primary : "#92400E"} />
-                      {usuarioVehiculo ? (
-                        <span style={{ fontSize: 12, color: C.text }}>
-                          Dueño: <strong>{usuarioVehiculo.nombre}</strong>
-                          {usuarioVehiculo.identificacion ? ` · ${usuarioVehiculo.identificacion}` : ""}
-                        </span>
-                      ) : (
-                        <span style={{ fontSize: 12, color: "#92400E" }}>
-                          Este vehículo no tiene un conductor/dueño asignado
-                        </span>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Parqueadero */}
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label htmlFor="parqueaderoId" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Parqueadero *
-                </label>
-                <select
-                  id="parqueaderoId"
-                  value={formData.parqueaderoId}
-                  onChange={(e) => setFormData({ ...formData, parqueaderoId: e.target.value, celdaId: "" })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: "#F8FAFC",
-                  }}
-                >
-                  <option value="">Seleccionar parqueadero...</option>
-                  {parqueaderos.map(p => (
-                    <option key={p.id} value={p.id}>{p.nombre}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Celda */}
-              <div style={{ gridColumn: "1 / -1" }}>
-                <label htmlFor="celdaId" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Celda *
-                </label>
-                <select
-                  id="celdaId"
-                  value={formData.celdaId}
-                  disabled={!formData.parqueaderoId}
-                  onChange={(e) => setFormData({ ...formData, celdaId: e.target.value })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: formData.parqueaderoId ? "#F8FAFC" : "#F1F5F9",
-                    cursor: formData.parqueaderoId ? "pointer" : "not-allowed",
-                  }}
-                >
-                  <option value="">
-                    {formData.parqueaderoId ? "Seleccionar celda..." : "Primero selecciona un parqueadero"}
-                  </option>
-                  {celdasDelParqueadero.map(c => (
-                    <option key={c.id} value={c.id}>
-                      Celda {c.numero}
-                    </option>
-                  ))}
-                </select>
-                {formData.parqueaderoId && celdasDelParqueadero.length === 0 && (
-                  <p style={{ fontSize: 11, color: C.danger, marginTop: 6 }}>
-                    Este parqueadero no tiene celdas disponibles
-                  </p>
-                )}
-              </div>
-
-              {/* Fecha */}
-              <div>
-                <label htmlFor="fechaReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Fecha de reserva *
-                </label>
-                <input
-                  id="fechaReserva"
-                  type="date"
-                  min={editingReserva ? undefined : todayStr()}
-                  value={formData.fechaReserva}
-                  onChange={(e) => setFormData({ ...formData, fechaReserva: e.target.value })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: "#F8FAFC",
-                  }}
-                />
-              </div>
-
-              {/* Estado */}
-              <div>
-                <label htmlFor="estado" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Estado
-                </label>
-                <select
-                  id="estado"
-                  value={formData.estado}
-                  onChange={(e) => setFormData({ ...formData, estado: e.target.value as EstadoReserva })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: "#F8FAFC",
-                  }}
-                >
-                  <option value="pendiente">Pendiente</option>
-                  <option value="activa">Activa</option>
-                  <option value="completada">Completada</option>
-                  <option value="cancelada">Cancelada</option>
-                </select>
-              </div>
-
-              {/* Hora inicio */}
-              <div>
-                <label htmlFor="horaInicio" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Hora de inicio *
-                </label>
-                <input
-                  id="horaInicio"
-                  type="time"
-                  value={formData.horaInicio}
-                  onChange={(e) => setFormData({ ...formData, horaInicio: e.target.value })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: "#F8FAFC",
-                  }}
-                />
-              </div>
-
-              {/* Hora fin */}
-              <div>
-                <label htmlFor="horaFin" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                  Hora de fin *
-                </label>
-                <input
-                  id="horaFin"
-                  type="time"
-                  value={formData.horaFin}
-                  onChange={(e) => setFormData({ ...formData, horaFin: e.target.value })}
-                  style={{
-                    width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                    fontFamily: "inherit", background: "#F8FAFC",
-                  }}
-                />
-              </div>
-
-              {/* Duration hint */}
-              {getDuracion() && (
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "10px 12px", borderRadius: 11,
-                    background: "#F8FAFC", border: `1px solid ${C.border}`,
-                  }}>
-                    <Clock size={14} color={C.primary} />
-                    <span style={{ fontSize: 12, color: C.text }}>
-                      Duración: <strong>{getDuracion()}</strong>
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Aviso de conflicto en vivo */}
-              {liveConflict && (
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{
-                    display: "flex", alignItems: "flex-start", gap: 8,
-                    padding: "10px 12px", borderRadius: 11,
-                    background: "#FEF2F2", border: "1px solid #FECACA",
-                  }}>
-                    <AlertCircle size={14} color={C.danger} style={{ marginTop: 1, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: "#991B1B" }}>
-                      Esta celda ya tiene una reserva de <strong>{liveConflict.horaInicio} a {liveConflict.horaFin}</strong> ese día
-                      (vehículo {getVehiculo(liveConflict.vehiculoId)?.placa || "—"}).
-                    </span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Footer */}
-          <div
-            style={{
-              padding: "1rem 1.8rem",
-              borderTop: `1px solid ${C.border}`,
-              display: "flex", gap: 10, justifyContent: "flex-end",
-            }}
-          >
-            <button
-              onClick={() => setDialogOpen(false)}
-              style={{
-                padding: "10px 20px", borderRadius: 12,
-                border: `1px solid ${C.border}`,
-                background: "#fff", color: C.text,
-                fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              style={{
-                padding: "10px 24px", borderRadius: 12,
-                border: "none", background: C.primary, color: "#fff",
-                fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                boxShadow: "0 6px 18px rgba(57,169,0,.22)",
-              }}
-            >
-              {editingReserva ? "Actualizar Reserva" : "Registrar Reserva"}
-            </button>
-          </div>
-        </div>
-      </Modal>
 
       {/* ── MODAL VER DETALLE ── */}
       <Modal open={viewOpen} onClose={() => setViewOpen(false)} maxWidth={450}>
@@ -1089,20 +585,6 @@ export function Reservas() {
                     </div>
                   </div>
                 ))}
-
-                <button
-                  onClick={() => openEdit(viewingReserva)}
-                  style={{
-                    marginTop: 12, width: "100%", padding: "12px 20px", borderRadius: 12,
-                    border: "none", background: C.primary, color: "#fff",
-                    fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                    boxShadow: `0 6px 18px ${C.primary}33`,
-                  }}
-                >
-                  <Pencil size={14} />
-                  Editar reserva
-                </button>
               </div>
             </div>
           );

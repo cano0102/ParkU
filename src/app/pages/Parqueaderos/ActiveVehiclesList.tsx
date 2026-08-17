@@ -1,10 +1,14 @@
-import { memo, useMemo } from "react";
-import { Car, Clock, Info } from "lucide-react";
+import { memo, useMemo, useState } from "react";
+import { Car, ChevronDown, ChevronUp, Clock, Info } from "lucide-react";
 import type { Celda, Parqueadero } from "../../context/DataContext";
 import { theme } from "../../theme";
 import { Ocupante, getTipoCeldaConfig, formatearDuracion } from "./helpers";
 
 const C = theme;
+
+/* Cantidad de vehículos que se muestran antes de necesitar "Ver más".
+   Evita tanto el scroll interno como una lista que se estire sin fin. */
+const PAGE_SIZE = 6;
 
 /* ============================================================
    LISTA VEHÍCULOS ACTIVOS
@@ -16,6 +20,8 @@ export const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onS
   onSelectCell: (c: Celda) => void;
   searchQuery: string;
 }) => {
+  const [showAll, setShowAll] = useState(false);
+
   const activos = useMemo(() => {
     const list: { celda: Celda; pqNombre: string; ocupante: Ocupante }[] = [];
     celdas.forEach(c => {
@@ -34,6 +40,9 @@ export const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onS
     return activos.filter(v => v.ocupante.vehiculo.placa.toLowerCase().includes(q) || v.ocupante.conductor?.nombre.toLowerCase().includes(q) || v.celda.numero.toLowerCase().includes(q));
   }, [activos, searchQuery]);
 
+  const visible = showAll ? filtered : filtered.slice(0, PAGE_SIZE);
+  const hasMore = filtered.length > PAGE_SIZE;
+
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
       <div style={{ padding: "12px 16px", borderBottom: `1px solid ${C.border}`, background: "#F8FAF8", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -43,8 +52,8 @@ export const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onS
         </div>
         <span style={{ padding: "2px 8px", borderRadius: 999, background: C.primaryPale, color: C.primaryDark, fontSize: 10, fontWeight: 800 }}>{activos.length}</span>
       </div>
-      <div style={{ maxHeight: 400, overflowY: "auto" }}>
-        {filtered.length > 0 ? filtered.map(({ celda, pqNombre, ocupante }) => {
+      <div>
+        {visible.length > 0 ? visible.map(({ celda, pqNombre, ocupante }) => {
           const tipoCfg = getTipoCeldaConfig(celda.tipo);
           const TipoIcon = tipoCfg.icon;
           return (
@@ -74,6 +83,21 @@ export const ActiveVehiclesList = memo(({ celdas, parqueaderos, getOcupante, onS
           </div>
         )}
       </div>
+      {hasMore && (
+        <button
+          onClick={() => setShowAll(v => !v)}
+          style={{
+            width: "100%", padding: "10px 16px",
+            background: "#F8FAF8", border: "none", borderTop: `1px solid ${C.border}`,
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+            fontSize: 11, fontWeight: 700, color: C.primaryDark, cursor: "pointer", fontFamily: "inherit",
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = C.primaryPale)}
+          onMouseLeave={e => (e.currentTarget.style.background = "#F8FAF8")}
+        >
+          {showAll ? <>Mostrar menos <ChevronUp size={13} /></> : <>Ver todos ({filtered.length}) <ChevronDown size={13} /></>}
+        </button>
+      )}
     </div>
   );
 });

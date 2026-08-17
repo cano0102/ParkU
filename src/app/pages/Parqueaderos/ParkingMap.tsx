@@ -8,7 +8,7 @@ import {
   SPACE_W, SPACE_H, GAP_X, ROW_GAP, LANE_H, PADDING, SECTION_GAP, ROAD_Y, ROAD_H,
   formatearDuracion,
 } from "./helpers";
-import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG } from "./mapVisuals";
+import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG, CAR_PALETTE, CAR_PALETTE_LIGHT } from "./mapVisuals";
 
 const C = theme;
 
@@ -165,6 +165,18 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
             </div>
           ))}
         </div>
+        {/* Pista de uso: la placa ya se ve directamente sobre cada carro, pero
+            tocar la celda abre el detalle completo (conductor, hora de ingreso, etc). */}
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: 6, alignSelf: "flex-start",
+          background: "rgba(20,22,25,.85)", border: "1px solid rgba(255,255,255,.14)",
+          borderRadius: 12, padding: "5px 10px", backdropFilter: "blur(4px)",
+          boxShadow: "0 4px 14px rgba(0,0,0,.25)",
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 600, color: "rgba(255,255,255,.75)", whiteSpace: "nowrap" }}>
+            👆 Toca una celda para ver conductor, hora de ingreso y más detalles
+          </span>
+        </div>
       </div>
 
       {/* Fila horizontal (no columna) para no tapar verticalmente el carril "SALIDA" del plano */}
@@ -210,9 +222,9 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
             <pattern id="asp" width="30" height="30" patternUnits="userSpaceOnUse">
               <rect width="30" height="30" fill={MAP_THEME.asphalt} />
             </pattern>
-            <pattern id="resH" width="8" height="8" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-              <rect width="8" height="8" fill={CELDA_CONFIG.reservada.mapFill} />
-              <line x1="0" y1="0" x2="0" y2="8" stroke={CELDA_CONFIG.reservada.mapStroke} strokeWidth="2.5" opacity=".6" />
+            <pattern id="resH" width="10" height="10" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+              <rect width="10" height="10" fill={CELDA_CONFIG.reservada.mapFill} />
+              <line x1="0" y1="0" x2="0" y2="10" stroke={CELDA_CONFIG.reservada.mapStroke} strokeWidth="1.4" opacity=".4" />
             </pattern>
             <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -224,6 +236,14 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
             <linearGradient id="grassG" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#065F46" /><stop offset="100%" stopColor="#064E3B" />
             </linearGradient>
+            {/* Degradado por color de carrocería, para que carros y motos se vean con
+                un poco de volumen/brillo en vez de un relleno plano. */}
+            {CAR_PALETTE.map((base, i) => (
+              <linearGradient key={i} id={`carG${i}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor={CAR_PALETTE_LIGHT[i]} />
+                <stop offset="100%" stopColor={base} />
+              </linearGradient>
+            ))}
           </defs>
 
           <rect width={totalW} height={totalH} fill="url(#asp)" />
@@ -322,23 +342,29 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
                             x={celda.x} y={celda.y} width={SPACE_W} height={SPACE_H} rx="5"
                             fill={celda.estado === "reservada" ? "url(#resH)" : cfg.mapFill}
                             stroke={m ? "#F59E0B" : cfg.mapStroke}
-                            strokeWidth={m ? 2.2 : celda.estado === "disponible" ? 1.3 : 1.7}
+                            strokeWidth={m ? 2.2 : celda.estado === "disponible" ? 1.1 : .9}
+                            strokeOpacity={m ? 1 : celda.estado === "disponible" ? .85 : .55}
                             strokeDasharray={celda.estado === "disponible" ? "3,2" : undefined}
                           />
                           {/* Franja lateral de color según TIPO de celda (carro/moto/m.reducida) — visible en cualquier estado */}
-                          <rect x={celda.x} y={celda.y} width={4.2} height={SPACE_H} rx="2" fill={tipoCfg.accent} opacity={.95} />
-                          {/* Insignia con icono del tipo, esquina superior derecha */}
-                          <g transform={`translate(${celda.x + SPACE_W - 13},${celda.y + 2})`}>
-                            <rect width="12" height="12" rx="3.5" fill={tipoCfg.accent} stroke="#fff" strokeWidth=".6" opacity=".96"/>
-                            <TipoIcon x={2} y={2} width={8} height={8} color="#fff" strokeWidth={3}/>
-                          </g>
-                          <text x={celda.x + 7} y={celda.y + 10} fill={m ? "#FFF" : MAP_THEME.textDim} fontSize="7.4" fontWeight="900">{celda.numero}</text>
+                          <rect x={celda.x} y={celda.y} width={4} height={SPACE_H} rx="2" fill={tipoCfg.accent} opacity={.9} />
+                          {/* Insignia con icono del tipo (esquina superior derecha): solo cuando no hay
+                              silueta de vehículo dibujada, que ya comunica el tipo por su forma. */}
+                          {!estaOcupada && (
+                            <g transform={`translate(${celda.x + SPACE_W - 15},${celda.y + 2.5})`}>
+                              <rect width="14" height="14" rx="4" fill={tipoCfg.accent} stroke="#fff" strokeWidth=".6" opacity=".9"/>
+                              <TipoIcon x={2.5} y={2.5} width={9} height={9} color="#fff" strokeWidth={3}/>
+                            </g>
+                          )}
+                          {/* Número de celda: bien grande y siempre legible, es la primera referencia
+                              que necesita el vigilante para orientar al conductor. */}
+                          <text x={celda.x + 8} y={celda.y + 13} fill={m ? "#FFF" : MAP_THEME.textBright} fontSize="9.5" fontWeight="900">{celda.numero}</text>
                           {celda.estado === "disponible" && !estaOcupada && (
                             <TipoIcon
-                              x={celda.x + SPACE_W / 2 - 8}
-                              y={celda.y + SPACE_H / 2 - 4}
-                              width={16}
-                              height={16}
+                              x={celda.x + SPACE_W / 2 - 10}
+                              y={celda.y + SPACE_H / 2 - 10}
+                              width={20}
+                              height={20}
                               color={tipoCfg.accent}
                               opacity={.4}
                               strokeWidth={2.2}
@@ -350,10 +376,10 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
                               : <HighFiCarSVG  x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
                           )}
                           {celda.estado === "no_disponible" && !ocupante && (
-                            <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="6.5" fontWeight="800" fill="#FBBF24">Sin datos</text>
+                            <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#FBBF24">Sin datos</text>
                           )}
-                          {celda.estado === "reservada"      && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7.5" fontWeight="950" fill="#FCD34D">RESERVA</text>}
-                          {celda.estado === "mantenimiento"  && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 3} textAnchor="middle" fontSize="7" fontWeight="900" fill="#CBD5E1">MANT.</text>}
+                          {celda.estado === "reservada"      && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="850" fill="#FCD34D" opacity={.95}>RESERVA</text>}
+                          {celda.estado === "mantenimiento"  && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#CBD5E1" opacity={.9}>MANT.</text>}
                         </g>
                       );
                     })}
