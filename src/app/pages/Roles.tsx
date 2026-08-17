@@ -94,7 +94,7 @@ const getRolAccent = (nombre: string): string => {
     case "Administrador": return "#EF4444";
     case "SuperAdmin": return "#8B5CF6";
     case "Supervisor": return "#2563EB";
-    case "Operador": return "#F59E0B";
+    case "Vigilante": return "#F59E0B";
     default: return COLORS.primary;
   }
 };

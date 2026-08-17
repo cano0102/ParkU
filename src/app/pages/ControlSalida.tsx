@@ -56,6 +56,7 @@ export function ControlSalidaPage() {
     vehiculos,
     celdas,
     updateCelda,
+    updateVehiculo,
     conductores,
     usuarios,
     parqueaderos,
@@ -203,13 +204,14 @@ export function ControlSalidaPage() {
     try {
       addControlSalida(formData);
       updateCelda(formData.celdaId, { estado: 'no_disponible', ocupada: true });
+      updateVehiculo(formData.vehiculoId, { celdaId: formData.celdaId });
       toast.success('Entrada registrada exitosamente');
       setDialogOpen(false);
     } catch (error) {
       toast.error('Error al registrar la entrada');
       console.error('Error saving entry:', error);
     }
-  }, [formData, addControlSalida, updateCelda, vehiculosEnParqueadero, getVehiculo, getCelda]);
+  }, [formData, addControlSalida, updateCelda, updateVehiculo, vehiculosEnParqueadero, getVehiculo, getCelda]);
 
   const handleRegistrarSalida = useCallback(() => {
     if (!salidaPendiente) return;
@@ -224,6 +226,7 @@ export function ControlSalidaPage() {
 
       if (control) {
         updateCelda(control.celdaId, { estado: 'disponible', ocupada: false });
+        updateVehiculo(control.vehiculoId, { celdaId: '' });
       }
 
       toast.success('Salida registrada exitosamente');
@@ -233,7 +236,7 @@ export function ControlSalidaPage() {
       toast.error('Error al registrar la salida');
       console.error('Error registering exit:', error);
     }
-  }, [salidaPendiente, updateControlSalida, updateCelda, controlesSalida]);
+  }, [salidaPendiente, updateControlSalida, updateCelda, updateVehiculo, controlesSalida]);
 
   const formatDateTime = useCallback((dateStr: string) => {
     if (!dateStr) return '—';

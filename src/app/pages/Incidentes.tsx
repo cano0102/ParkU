@@ -83,7 +83,7 @@ function CeldaBadgeInline({ numero, estado }: { numero: string; estado?: Celda['
 ══════════════════════════════════════════════════════ */
 export function Incidentes() {
   const navigate = useNavigate();
-  const { parqueaderos, celdas, vehiculos, conductores, incidentes, updateIncidente, deleteIncidente } = useData();
+  const { parqueaderos, celdas, vehiculos, conductores, incidentes, addIncidente, updateIncidente, deleteIncidente } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -185,6 +185,14 @@ export function Incidentes() {
       });
       toast.success('Incidente actualizado correctamente');
     } else {
+      addIncidente({
+        ...formData,
+        celdaId: formData.celdaId || undefined,
+        vehiculo: formData.vehiculo || undefined,
+        notasResolucion: formData.notasResolucion || undefined,
+        fecha: new Date().toISOString(),
+        estado: 'pendiente',
+      });
       toast.success('Incidente registrado correctamente');
     }
     setDialogOpen(false);

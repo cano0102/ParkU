@@ -82,7 +82,10 @@ export default function Usuarios() {
       setEditingUsuario(u);
       setFormInitial({
         correo: u.correo,
-        password: u.password,
+        // Se deja vacío a propósito: el hint del formulario dice
+        // "vacío = sin cambios", así que no debe pre-cargarse la
+        // contraseña real (ver handleSave, que omite este campo si llega vacío).
+        password: "",
         nombre: u.nombre,
         numero: u.numero,
         rol: u.rol,
@@ -133,7 +136,11 @@ export default function Usuarios() {
         }
 
         if (editingUsuario) {
-          updateUsuario(editingUsuario.id, data);
+          // Corrección: si el campo de contraseña se deja vacío al editar,
+          // no debe sobreescribir la contraseña existente (así lo indica
+          // el hint "vacío = sin cambios" del formulario).
+          const { password, ...rest } = data;
+          updateUsuario(editingUsuario.id, password ? data : rest);
           toast.success("Usuario actualizado correctamente");
         } else {
           addUsuario(data);

@@ -18,7 +18,9 @@ export function RouteFallback() {
           width: 36,
           height: 36,
           borderRadius: '50%',
-          border: `3px solid ${C.primaryBorder}`,
+          borderWidth: 3,
+          borderStyle: 'solid',
+          borderColor: C.primaryBorder,
           borderTopColor: C.primary,
           animation: 'route-fallback-spin .7s linear infinite',
         }}

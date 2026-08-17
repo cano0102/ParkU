@@ -31,6 +31,7 @@ export function Conductores() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [viewVehiculoOpen, setViewVehiculoOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
+  const [editingVehiculoId, setEditingVehiculoId] = useState<string | null>(null);
   const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
   const [deletingConductor, setDeletingConductor] = useState<Conductor | null>(null);
   const [searchParams] = useSearchParams();
@@ -124,6 +125,7 @@ export function Conductores() {
 
   const openCreate = useCallback(() => {
     setEditingConductor(null);
+    setEditingVehiculoId(null);
     setFormData(emptyForm());
     setFormErrors({});
     setTouched({});
@@ -132,9 +134,10 @@ export function Conductores() {
   }, []);
 
   const openEdit = useCallback(
-    (conductor: Conductor) => {
+    (conductor: Conductor, vehiculo?: Vehiculo) => {
       setEditingConductor(conductor);
-      const v = vehiculos.find((veh) => veh.conductorId === conductor.id);
+      const v = vehiculo ?? vehiculos.find((veh) => veh.conductorId === conductor.id);
+      setEditingVehiculoId(v?.id ?? null);
       setFormData({
         usuarioId: conductor.usuarioId,
         tipoConductor: conductor.tipoConductor,
@@ -165,15 +168,15 @@ export function Conductores() {
     setConfirmOpen(true);
   }, []);
 
-  // Placas ya registradas en otros vehículos (para evitar duplicados), excluyendo el vehículo del conductor en edición
+  // Placas ya registradas en otros vehículos (para evitar duplicados), excluyendo el vehículo puntual en edición
+  // (no todos los vehículos del conductor, ya que un conductor puede tener varios)
   const placasOcupadas = useMemo(() => {
-    const conductorId = editingConductor?.id;
     return new Set(
       vehiculos
-        .filter((v) => v.conductorId !== conductorId)
+        .filter((v) => v.id !== editingVehiculoId)
         .map((v) => v.placa.toUpperCase().trim())
     );
-  }, [vehiculos, editingConductor]);
+  }, [vehiculos, editingVehiculoId]);
 
   // Validación en vivo del formulario
   const validate = useCallback((data: FormState): FormErrors => {
@@ -256,7 +259,9 @@ export function Conductores() {
           estado: "activo" as const,
         };
 
-        const existingVehiculo = vehiculos.find((v) => v.conductorId === editingConductor.id);
+        const existingVehiculo = editingVehiculoId
+          ? vehiculos.find((v) => v.id === editingVehiculoId)
+          : undefined;
         if (existingVehiculo) {
           updateVehiculo(existingVehiculo.id, vehiculoData);
         } else {
@@ -294,7 +299,7 @@ export function Conductores() {
       toast.error("Error al guardar el conductor");
       console.error("Error saving conductor:", error);
     }
-  }, [formData, editingConductor, usuarios, vehiculos, validate, addConductor, updateConductor, addVehiculo, updateVehiculo, deleteVehiculo]);
+  }, [formData, editingConductor, editingVehiculoId, usuarios, vehiculos, validate, addConductor, updateConductor, addVehiculo, updateVehiculo, deleteVehiculo]);
 
   const handleDelete = useCallback(() => {
     if (deletingConductor) {
@@ -463,7 +468,7 @@ export function Conductores() {
               const conductor = conductores.find((c) => c.id === viewingVehiculo.conductorId);
               if (conductor) {
                 setViewVehiculoOpen(false);
-                openEdit(conductor);
+                openEdit(conductor, viewingVehiculo);
               }
             }}
             onClose={() => setViewVehiculoOpen(false)}

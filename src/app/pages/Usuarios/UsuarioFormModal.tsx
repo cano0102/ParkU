@@ -54,7 +54,15 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
   const handleScanSuccess = useCallback((data: any) => {
     // Mapeo robusto de campos según la estructura típica de la cédula colombiana
     const identificacion = data.numeroDocumento ?? data.identificacion ?? data.documento ?? "";
-    const nombreCompleto = data.nombreCompleto ?? data.nombres + " " + data.apellidos ?? data.nombre ?? "";
+    // Corrección: `??` tiene menor precedencia que `+`, así que
+    // `data.nombres + " " + data.apellidos` se evaluaba primero, produciendo
+    // el string "undefined undefined" (no null/undefined) cuando faltaba
+    // alguno de los dos campos, y ese texto terminaba en el input de nombre.
+    const nombreCompleto =
+      data.nombreCompleto ??
+      (data.nombres && data.apellidos ? `${data.nombres} ${data.apellidos}` : undefined) ??
+      data.nombre ??
+      "";
     const correo = data.correo ?? data.email ?? "";
     const telefonoCrudo = (data.telefono ?? data.celular ?? data.numero ?? "").toString();
     const tipoDoc = data.tipoDocumento ?? "CC";
