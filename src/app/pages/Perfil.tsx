@@ -1,13 +1,41 @@
 import React, { useState } from "react";
-import { User, Mail, Phone, IdCard, Shield, Key, Save, CheckCircle2, Sparkles, Lock, Eye, EyeOff, Pencil, X, BadgeCheck } from "lucide-react";
-import { Card, CardContent } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
-import { Badge } from "../components/ui/badge";
+import {
+  User,
+  Mail,
+  Phone,
+  IdCard,
+  Shield,
+  Key,
+  Save,
+  CheckCircle2,
+  Sparkles,
+  Lock,
+  Eye,
+  EyeOff,
+  Pencil,
+  X,
+  BadgeCheck,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
+import { theme } from "../theme";
+import { Modal } from "../components/shared";
+
+const C = theme;
+
+const fieldInputStyle: React.CSSProperties = {
+  width: "100%",
+  marginTop: 6,
+  padding: "8px 10px",
+  borderRadius: 9,
+  border: `1px solid ${C.border}`,
+  fontSize: 13,
+  fontWeight: 700,
+  fontFamily: "inherit",
+  color: C.text,
+  background: "#fff",
+  outline: "none",
+};
 
 export function Perfil() {
   const { user, updateUser, changePassword } = useAuth();
@@ -26,6 +54,11 @@ export function Perfil() {
   const currentFilled = passwordData.currentPassword.length > 0;
   const canSubmitPassword = passwordLengthOk && passwordsMatch && currentFilled;
 
+  const closePasswordDialog = () => {
+    setDialogOpen(false);
+    setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+  };
+
   const handleSaveProfile = () => {
     if (!profileForm.nombre.trim()) return toast.error("El nombre no puede estar vacío");
     updateUser({ nombre: profileForm.nombre.trim(), numero: profileForm.numero.trim() });
@@ -38,250 +71,671 @@ export function Perfil() {
     if (!currentFilled) return toast.error("Ingresa tu contraseña actual");
     if (!passwordLengthOk) return toast.error("Mínimo 8 caracteres");
     if (!passwordsMatch) return toast.error("Las contraseñas no coinciden");
-    
+
     setSubmitting(true);
     try {
       const ok = changePassword(passwordData.currentPassword, passwordData.newPassword);
       if (!ok) return toast.error("Contraseña actual incorrecta");
       toast.success("Contraseña actualizada");
-      setDialogOpen(false);
-      setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+      closePasswordDialog();
     } finally {
       setSubmitting(false);
     }
   };
 
+  const infoItems = [
+    {
+      key: "nombre",
+      icon: User,
+      label: "Nombre",
+      editable: true,
+      value: user.nombre,
+      placeholder: "Tu nombre completo",
+    },
+    {
+      key: "correo",
+      icon: Mail,
+      label: "Correo",
+      editable: false,
+      value: user.correo,
+    },
+    {
+      key: "numero",
+      icon: Phone,
+      label: "Teléfono",
+      editable: true,
+      value: user.numero || "—",
+      placeholder: "Ej: 3001234567",
+    },
+    {
+      key: "id",
+      icon: IdCard,
+      label: "ID de usuario",
+      editable: false,
+      value: user.id,
+    },
+  ];
+
   return (
-    <div className="space-y-3 sm:space-y-4">
-      {/* Hero */}
-      <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-[#39A900] via-[#2F8F00] to-[#1F5F00] p-3 sm:p-4 md:p-5 text-white shadow">
-        <div className="flex flex-col xs:flex-row items-start xs:items-center gap-3 sm:gap-4">
-          <div className="flex items-center gap-3 sm:gap-4 w-full xs:w-auto">
-            <div className="flex h-10 w-10 sm:h-12 sm:w-12 md:h-14 md:w-14 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-white/15 text-lg sm:text-xl md:text-2xl font-black backdrop-blur">
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+        .perfil-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
+        .perfil-root input:focus{
+          outline:none;
+          border-color:${C.primary} !important;
+          box-shadow:0 0 0 3px rgba(57,169,0,.12);
+        }
+        .perfil-info-item{ transition: border-color .15s, background .15s; }
+        .perfil-info-item:hover{ border-color: ${C.primaryBorder}; background: #F8FAF8; }
+        .perfil-btn{ transition: all .15s ease; cursor:pointer; font-family:inherit; }
+        .perfil-btn:hover{ transform: translateY(-1px); }
+        .perfil-btn:active{ transform: translateY(0); }
+        .perfil-eye-btn{ cursor:pointer; background:none; border:none; padding:0; display:flex; align-items:center; color:${C.textLight}; }
+      `}</style>
+
+      <div className="perfil-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {/* HERO */}
+        <div
+          style={{
+            position: "relative",
+            overflow: "hidden",
+            borderRadius: 20,
+            background: "linear-gradient(135deg,#39A900,#2D7D00)",
+            padding: "1.4rem 1.6rem",
+            color: "#fff",
+          }}
+        >
+          <div
+            style={{
+              position: "absolute",
+              width: 250,
+              height: 250,
+              borderRadius: "50%",
+              background: "rgba(255,255,255,.07)",
+              top: -80,
+              right: -60,
+            }}
+          />
+          <div
+            style={{
+              position: "relative",
+              zIndex: 2,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 16,
+            }}
+          >
+            <div
+              style={{
+                width: 62,
+                height: 62,
+                flexShrink: 0,
+                borderRadius: 18,
+                background: "rgba(255,255,255,.16)",
+                border: "1px solid rgba(255,255,255,.25)",
+                backdropFilter: "blur(6px)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 24,
+                fontWeight: 900,
+              }}
+            >
               {user.nombre.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0 xs:flex-none">
-              <div className="flex items-center gap-1.5">
-                <Sparkles className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                <span className="text-[10px] sm:text-xs font-semibold">Perfil</span>
+
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "rgba(255,255,255,.15)",
+                  border: "1px solid rgba(255,255,255,.2)",
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: 1,
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                <Sparkles size={11} /> Mi perfil
               </div>
-              <p className="text-sm sm:text-base md:text-lg font-bold leading-tight truncate text-white">{user.nombre}</p>
-              <p className="text-xs sm:text-sm text-white/90 truncate">{user.correo}</p>
+              <h1 style={{ fontSize: "clamp(1.3rem,2.4vw,1.7rem)", fontWeight: 900, lineHeight: 1.1, marginBottom: 2 }}>
+                {user.nombre}
+              </h1>
+              <p style={{ fontSize: 12.5, color: "rgba(255,255,255,.85)" }}>{user.correo}</p>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "rgba(255,255,255,.15)",
+                  border: "1px solid rgba(255,255,255,.2)",
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 800,
+                }}
+              >
+                <Shield size={12} /> {user.rol}
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "rgba(34,197,94,.22)",
+                  border: "1px solid rgba(255,255,255,.2)",
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 800,
+                }}
+              >
+                <BadgeCheck size={12} /> Activo
+              </span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-1.5 sm:gap-2 w-full xs:w-auto mt-1 xs:mt-0">
-            <Badge className="border-white/20 bg-white/15 text-white text-[9px] sm:text-[10px] md:text-xs py-0 h-4 sm:h-5 px-1.5 sm:px-2">
-              <Shield className="mr-0.5 h-2 w-2 sm:h-2.5 sm:w-2.5" />
-              {user.rol}
-            </Badge>
-            <Badge className="border-emerald-200/20 bg-emerald-500/20 text-white text-[9px] sm:text-[10px] md:text-xs py-0 h-4 sm:h-5 px-1.5 sm:px-2">
-              <BadgeCheck className="mr-0.5 h-2 w-2 sm:h-2.5 sm:w-2.5" />
-              Activo
-            </Badge>
+        </div>
+
+        {/* INFORMACIÓN PERSONAL */}
+        <div
+          style={{
+            borderRadius: 16,
+            border: `1px solid ${C.border}`,
+            background: "#fff",
+            overflow: "hidden",
+            boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              padding: "12px 16px",
+              background: "#F8FAF8",
+              borderBottom: `1px solid ${C.border}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <User size={15} color={C.primary} />
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>Información personal</span>
+            </div>
+
+            {!editMode ? (
+              <button
+                type="button"
+                className="perfil-btn"
+                onClick={() => {
+                  setProfileForm({ nombre: user.nombre, numero: user.numero });
+                  setEditMode(true);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  padding: "7px 12px",
+                  borderRadius: 9,
+                  border: `1px solid ${C.border}`,
+                  background: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: C.text,
+                }}
+              >
+                <Pencil size={12} /> Editar
+              </button>
+            ) : (
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  className="perfil-btn"
+                  onClick={() => {
+                    setEditMode(false);
+                    setProfileForm({ nombre: user.nombre, numero: user.numero });
+                  }}
+                  aria-label="Cancelar edición"
+                  style={{
+                    width: 30,
+                    height: 30,
+                    borderRadius: 9,
+                    border: `1px solid ${C.border}`,
+                    background: "#fff",
+                    color: C.textLight,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <X size={14} />
+                </button>
+                <button
+                  type="button"
+                  className="perfil-btn"
+                  onClick={handleSaveProfile}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "7px 14px",
+                    borderRadius: 9,
+                    border: "none",
+                    background: C.primary,
+                    color: "#fff",
+                    fontSize: 12,
+                    fontWeight: 800,
+                    boxShadow: "0 4px 12px rgba(57,169,0,.25)",
+                  }}
+                >
+                  <Save size={12} /> Guardar
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div
+            style={{
+              padding: 14,
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+              gap: 10,
+            }}
+          >
+            {infoItems.map((item) => (
+              <div
+                key={item.key}
+                className="perfil-info-item"
+                style={{
+                  borderRadius: 12,
+                  border: `1px solid ${C.border}`,
+                  background: "#F8FAFC",
+                  padding: "10px 12px",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    textTransform: "uppercase",
+                    color: C.textLight,
+                  }}
+                >
+                  <item.icon size={12} />
+                  {item.label}
+                </div>
+                {item.editable && editMode ? (
+                  <input
+                    value={item.key === "nombre" ? profileForm.nombre : profileForm.numero}
+                    onChange={(e) =>
+                      setProfileForm({
+                        ...profileForm,
+                        [item.key === "nombre" ? "nombre" : "numero"]: e.target.value,
+                      })
+                    }
+                    placeholder={item.placeholder}
+                    style={fieldInputStyle}
+                  />
+                ) : (
+                  <p
+                    style={{
+                      marginTop: 4,
+                      fontSize: 13.5,
+                      fontWeight: 800,
+                      color: C.text,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {item.value}
+                  </p>
+                )}
+              </div>
+            ))}
+
+            <div
+              className="perfil-info-item"
+              style={{
+                gridColumn: "1 / -1",
+                borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: "#F8FAFC",
+                padding: "10px 12px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                flexWrap: "wrap",
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 10.5,
+                    fontWeight: 800,
+                    letterSpacing: 0.4,
+                    textTransform: "uppercase",
+                    color: C.textLight,
+                  }}
+                >
+                  <Shield size={12} /> Rol
+                </div>
+                <p style={{ marginTop: 4, fontSize: 13.5, fontWeight: 800, color: C.text }}>{user.rol}</p>
+              </div>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  padding: "5px 12px",
+                  borderRadius: 999,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  background: "rgba(57,169,0,.1)",
+                  color: C.primaryDark,
+                }}
+              >
+                <CheckCircle2 size={12} /> Permisos activos
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* SEGURIDAD */}
+        <div
+          style={{
+            borderRadius: 16,
+            border: `1px solid ${C.border}`,
+            background: "#fff",
+            overflow: "hidden",
+            boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+          }}
+        >
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              padding: "12px 16px",
+              background: "#F8FAF8",
+              borderBottom: `1px solid ${C.border}`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <Lock size={15} color={C.primary} />
+              <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>Seguridad</span>
+            </div>
+            <button
+              type="button"
+              className="perfil-btn"
+              onClick={() => setDialogOpen(true)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "7px 14px",
+                borderRadius: 9,
+                border: "none",
+                background: C.primary,
+                color: "#fff",
+                fontSize: 12,
+                fontWeight: 800,
+                boxShadow: "0 4px 12px rgba(57,169,0,.25)",
+              }}
+            >
+              <Key size={12} /> Cambiar
+            </button>
+          </div>
+
+          <div style={{ padding: 14 }}>
+            <div
+              className="perfil-info-item"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                flexWrap: "wrap",
+                borderRadius: 12,
+                border: `1px solid ${C.border}`,
+                background: "#F8FAFC",
+                padding: "12px 14px",
+              }}
+            >
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: C.text }}>
+                  <Shield size={13} color={C.primary} /> Contraseña protegida
+                </div>
+                <p style={{ marginTop: 2, fontSize: 11, color: C.textLight }}>Cámbiala periódicamente para mantener tu cuenta segura.</p>
+              </div>
+              <div style={{ fontSize: 18, letterSpacing: 3, color: C.textMuted, fontWeight: 700 }}>••••••••</div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Información Personal */}
-      <Card className="overflow-hidden rounded-xl sm:rounded-2xl border border-zinc-200/80 bg-white shadow-sm">
-        <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 border-b border-zinc-100 bg-zinc-50/50 px-3 sm:px-4 py-1.5 sm:py-2">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#39A900]" />
-            <span className="text-xs sm:text-sm font-bold text-zinc-900">Información personal</span>
-          </div>
-          {!editMode ? (
-            <Button variant="outline" size="sm" className="h-6 sm:h-7 rounded-lg border-zinc-200 px-2 sm:px-3 text-[10px] sm:text-xs text-zinc-700" onClick={() => { setProfileForm({ nombre: user.nombre, numero: user.numero }); setEditMode(true); }}>
-              <Pencil className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
-              Editar
-            </Button>
-          ) : (
-            <div className="flex gap-1">
-              <Button variant="outline" size="sm" className="h-6 sm:h-7 w-6 sm:w-7 rounded-lg border-zinc-200 p-0 text-zinc-700" onClick={() => { setEditMode(false); setProfileForm({ nombre: user.nombre, numero: user.numero }); }}>
-                <X className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              </Button>
-              <Button size="sm" className="h-6 sm:h-7 rounded-lg bg-[#39A900] px-2 sm:px-3 text-[10px] sm:text-xs text-white hover:bg-[#2D7D00]" onClick={handleSaveProfile}>
-                <Save className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                Guardar
-              </Button>
+      {/* MODAL: CAMBIAR CONTRASEÑA */}
+      <Modal open={dialogOpen} onClose={closePasswordDialog} maxWidth={420} title="Cambiar contraseña">
+        <form onSubmit={handlePasswordChange}>
+          <div
+            style={{
+              padding: "1.1rem 1.6rem 0.9rem",
+              borderBottom: `1px solid ${C.border}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: "rgba(57,169,0,.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Key size={18} color={C.primary} />
             </div>
-          )}
-        </div>
-        <CardContent className="grid grid-cols-1 xs:grid-cols-2 gap-1.5 sm:gap-2 p-2.5 sm:p-3">
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 sm:p-2.5">
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-zinc-700">
-              <User className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              Nombre
-            </div>
-            {editMode ? (
-              <Input 
-                value={profileForm.nombre} 
-                onChange={e => setProfileForm({ ...profileForm, nombre: e.target.value })} 
-                className="mt-0.5 h-6 sm:h-7 rounded-lg border-zinc-200 bg-white text-xs sm:text-sm px-2 text-zinc-900" 
-              />
-            ) : (
-              <p className="text-xs sm:text-sm font-bold text-zinc-900 truncate">{user.nombre}</p>
-            )}
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 sm:p-2.5">
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-zinc-700">
-              <Mail className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              Correo
-            </div>
-            <p className="text-xs sm:text-sm font-bold text-zinc-900 truncate">{user.correo}</p>
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 sm:p-2.5">
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-zinc-700">
-              <Phone className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              Teléfono
-            </div>
-            {editMode ? (
-              <Input 
-                value={profileForm.numero} 
-                onChange={e => setProfileForm({ ...profileForm, numero: e.target.value })} 
-                placeholder="Ej: 3001234567" 
-                className="mt-0.5 h-6 sm:h-7 rounded-lg border-zinc-200 bg-white text-xs sm:text-sm px-2 text-zinc-900" 
-              />
-            ) : (
-              <p className="text-xs sm:text-sm font-bold text-zinc-900">{user.numero || "—"}</p>
-            )}
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-2 sm:p-2.5">
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-zinc-700">
-              <IdCard className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-              ID
-            </div>
-            <p className="text-xs sm:text-sm font-bold text-zinc-900 truncate">{user.id}</p>
-          </div>
-          <div className="col-span-1 xs:col-span-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 sm:p-2.5">
-            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-1 xs:gap-0">
-              <div>
-                <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-zinc-700">
-                  <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                  Rol
-                </div>
-                <p className="text-xs sm:text-sm font-bold text-zinc-900">{user.rol}</p>
-              </div>
-              <Badge className="border-[#39A900]/20 bg-[#39A900]/10 text-[#39A900] text-[9px] sm:text-[10px] py-0 h-4 sm:h-5 px-1.5 sm:px-2">
-                Permisos ✓
-              </Badge>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Seguridad */}
-      <Card className="overflow-hidden rounded-xl sm:rounded-2xl border border-zinc-200/80 bg-white shadow-sm">
-        <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 border-b border-zinc-100 bg-zinc-50/50 px-3 sm:px-4 py-1.5 sm:py-2">
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <Lock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#39A900]" />
-            <span className="text-xs sm:text-sm font-bold text-zinc-900">Seguridad</span>
-          </div>
-          <Button className="h-6 sm:h-7 rounded-lg bg-[#39A900] px-2 sm:px-3 text-[10px] sm:text-xs font-bold text-white hover:bg-[#2D7D00]" onClick={() => setDialogOpen(true)}>
-            <Key className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
-            Cambiar
-          </Button>
-        </div>
-        <CardContent className="p-2.5 sm:p-3">
-          <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 sm:p-2.5">
             <div>
-              <div className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-zinc-900">
-                <Shield className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-[#39A900]" />
-                Contraseña protegida
+              <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>
+                Seguridad de la cuenta
               </div>
-              <p className="text-[10px] sm:text-xs text-zinc-700">Cámbiala periódicamente</p>
+              <h2 style={{ fontSize: 18, fontWeight: 900, color: C.text, lineHeight: 1 }}>Cambiar contraseña</h2>
             </div>
-            <div className="text-sm sm:text-base tracking-[2px] sm:tracking-[3px] text-zinc-600">••••••••</div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" }); }}>
-        <DialogContent className="w-[calc(100%-1rem)] sm:w-[calc(100%-2rem)] max-w-[95%] sm:max-w-sm md:max-w-md overflow-hidden rounded-xl sm:rounded-2xl border-none bg-white p-0 shadow-2xl">
-          <div className="bg-gradient-to-r from-[#39A900] via-[#2F8F00] to-[#1F5F00] px-3 sm:px-4 py-2 sm:py-2.5 md:py-3 text-white">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-1.5 sm:gap-2 text-sm sm:text-base md:text-lg font-black text-white">
-                <Key className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
-                Cambiar contraseña
-              </DialogTitle>
-            </DialogHeader>
-          </div>
-          <form onSubmit={handlePasswordChange}>
-            <div className="space-y-2 sm:space-y-2.5 md:space-y-3 p-3 sm:p-3.5 md:p-4">
+          <div style={{ padding: "1rem 1.6rem", display: "flex", flexDirection: "column", gap: 12 }}>
+            {[
+              {
+                label: "Contraseña actual",
+                icon: Lock,
+                show: showCurrent,
+                setShow: setShowCurrent,
+                value: passwordData.currentPassword,
+                setValue: (e: React.ChangeEvent<HTMLInputElement>) =>
+                  setPasswordData({ ...passwordData, currentPassword: e.target.value }),
+              },
+              {
+                label: "Nueva contraseña",
+                icon: Key,
+                show: showNew,
+                setShow: setShowNew,
+                value: passwordData.newPassword,
+                setValue: (e: React.ChangeEvent<HTMLInputElement>) =>
+                  setPasswordData({ ...passwordData, newPassword: e.target.value }),
+              },
+            ].map(({ label, icon: Icon, show, setShow, value, setValue }) => (
+              <div key={label}>
+                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>{label}</label>
+                <div style={{ position: "relative" }}>
+                  <Icon
+                    size={14}
+                    color={C.textLight}
+                    style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}
+                  />
+                  <input
+                    type={show ? "text" : "password"}
+                    placeholder={label}
+                    value={value}
+                    onChange={setValue}
+                    style={{
+                      width: "100%",
+                      padding: "10px 36px",
+                      borderRadius: 11,
+                      border: `1px solid ${C.border}`,
+                      fontSize: 13,
+                      fontFamily: "inherit",
+                      background: "#F8FAFC",
+                      color: C.text,
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="perfil-eye-btn"
+                    onClick={() => setShow(!show)}
+                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}
+                    aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {show ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            <div>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Confirmar nueva contraseña</label>
+              <div style={{ position: "relative" }}>
+                <CheckCircle2
+                  size={14}
+                  color={C.textLight}
+                  style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }}
+                />
+                <input
+                  type={showNew ? "text" : "password"}
+                  placeholder="Confirmar nueva contraseña"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: "10px 36px 10px 36px",
+                    borderRadius: 11,
+                    border: `1px solid ${C.border}`,
+                    fontSize: 13,
+                    fontFamily: "inherit",
+                    background: "#F8FAFC",
+                    color: C.text,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div
+              style={{
+                borderRadius: 11,
+                border: `1px solid ${C.border}`,
+                background: "#F8FAFC",
+                padding: "10px 12px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 6,
+              }}
+            >
               {[
-                { label: "Actual", icon: Lock, show: showCurrent, setShow: setShowCurrent, value: passwordData.currentPassword, setValue: e => setPasswordData({ ...passwordData, currentPassword: e.target.value }) },
-                { label: "Nueva", icon: Key, show: showNew, setShow: setShowNew, value: passwordData.newPassword, setValue: e => setPasswordData({ ...passwordData, newPassword: e.target.value }) }
-              ].map(({ label, icon: Icon, show, setShow, value, setValue }) => (
-                <div key={label} className="space-y-0.5 sm:space-y-1">
-                  <Label className="text-[10px] sm:text-xs font-semibold text-zinc-800">{label}</Label>
-                  <div className="relative">
-                    <Icon className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-zinc-600" />
-                    <Input 
-                      type={show ? "text" : "password"} 
-                      placeholder={`${label.toLowerCase()}`} 
-                      className="h-7 sm:h-8 rounded-lg border-zinc-200 bg-zinc-50/50 pl-7 sm:pl-8 pr-7 sm:pr-8 text-xs sm:text-sm text-zinc-900" 
-                      value={value} 
-                      onChange={setValue} 
-                    />
-                    <button 
-                      type="button" 
-                      onClick={() => setShow(!show)} 
-                      className="absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 text-zinc-600"
-                    >
-                      {show ? <EyeOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" /> : <Eye className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
-                    </button>
-                  </div>
+                { label: "Contraseña actual ingresada", check: currentFilled },
+                { label: "Mínimo 8 caracteres", check: passwordLengthOk },
+                { label: "Las contraseñas coinciden", check: passwordsMatch },
+              ].map(({ label, check }) => (
+                <div
+                  key={label}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: check ? C.primaryDark : C.textLight,
+                  }}
+                >
+                  <CheckCircle2 size={13} color={check ? C.primary : C.textMuted} />
+                  {label}
                 </div>
               ))}
-              <div className="space-y-0.5 sm:space-y-1">
-                <Label className="text-[10px] sm:text-xs font-semibold text-zinc-800">Confirmar</Label>
-                <div className="relative">
-                  <CheckCircle2 className="absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 sm:h-3.5 sm:w-3.5 text-zinc-600" />
-                  <Input 
-                    type={showNew ? "text" : "password"} 
-                    placeholder="confirmar" 
-                    className="h-7 sm:h-8 rounded-lg border-zinc-200 bg-zinc-50/50 pl-7 sm:pl-8 text-xs sm:text-sm text-zinc-900" 
-                    value={passwordData.confirmPassword} 
-                    onChange={e => setPasswordData({ ...passwordData, confirmPassword: e.target.value })} 
-                  />
-                </div>
-              </div>
-              <div className="rounded-lg border border-zinc-200 bg-zinc-50/50 p-2 sm:p-2.5">
-                <div className="space-y-1 text-[10px] sm:text-xs">
-                  {[
-                    { label: "Actual ingresada", check: currentFilled },
-                    { label: "Mínimo 8 caracteres", check: passwordLengthOk },
-                    { label: "Coinciden", check: passwordsMatch }
-                  ].map(({ label, check }) => (
-                    <div key={label} className={`flex items-center gap-1 font-medium ${check ? "text-[#39A900]" : "text-zinc-600"}`}>
-                      <CheckCircle2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0" />
-                      {label}
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
-            <DialogFooter className="border-t border-zinc-100 bg-zinc-50 px-3 sm:px-3.5 md:px-4 py-2 sm:py-2.5 flex-row gap-1.5 sm:gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                className="h-7 sm:h-8 flex-1 rounded-lg border-zinc-200 text-[10px] sm:text-xs text-zinc-700" 
-                onClick={() => setDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={!canSubmitPassword || submitting} 
-                className="h-7 sm:h-8 flex-1 rounded-lg bg-[#39A900] text-[10px] sm:text-xs font-bold text-white hover:bg-[#2D7D00] disabled:opacity-50"
-              >
-                <Save className="mr-1 h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                {submitting ? "..." : "Guardar"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </div>
+
+          <div
+            style={{
+              padding: "0.9rem 1.6rem",
+              borderTop: `1px solid ${C.border}`,
+              display: "flex",
+              gap: 10,
+              justifyContent: "flex-end",
+            }}
+          >
+            <button
+              type="button"
+              className="perfil-btn"
+              onClick={closePasswordDialog}
+              style={{
+                padding: "10px 18px",
+                borderRadius: 11,
+                border: `1px solid ${C.border}`,
+                background: "#fff",
+                color: C.text,
+                fontSize: 13,
+                fontWeight: 700,
+              }}
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="perfil-btn"
+              disabled={!canSubmitPassword || submitting}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "10px 20px",
+                borderRadius: 11,
+                border: "none",
+                background: canSubmitPassword ? C.primary : C.textMuted,
+                color: "#fff",
+                fontSize: 13,
+                fontWeight: 800,
+                cursor: canSubmitPassword && !submitting ? "pointer" : "not-allowed",
+                opacity: canSubmitPassword ? 1 : 0.65,
+                boxShadow: canSubmitPassword ? "0 6px 18px rgba(57,169,0,.22)" : "none",
+              }}
+            >
+              <Save size={13} />
+              {submitting ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </>
   );
 }

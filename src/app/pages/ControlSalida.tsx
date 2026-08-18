@@ -1,6 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Plus,
   ArrowLeftRight,
   Search,
   LogIn,
@@ -8,69 +7,47 @@ import {
   Car,
   MapPin,
   X,
-  Sparkles,
   Clock,
   CheckCircle2,
-  AlertCircle,
   User,
-  Calendar,
-  Truck,
   ParkingCircle,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useNavigate } from 'react-router-dom';
 import { useData, ControlSalida } from '../context/DataContext';
 import { theme } from '../theme';
-import { Modal, ConfirmDialog } from '../components/shared';
+import { ConfirmDialog } from '../components/shared';
 
 const COLORS = theme;
+const PAGE_SIZE = 8;
 
-const sanitizeText = (text: string): string => {
-  if (!text) return '';
-  const element = document.createElement('div');
-  element.textContent = text;
-  return element.innerHTML;
-};
-
-interface FormState {
-  vehiculoId: string;
-  celdaId: string;
-  fechaEntrada: string;
-  fechaSalida: string;
-  estado: 'en_parqueadero' | 'finalizado';
+function isSameDay(dateStr: string, ref: Date) {
+  const d = new Date(dateStr);
+  return (
+    d.getFullYear() === ref.getFullYear() &&
+    d.getMonth() === ref.getMonth() &&
+    d.getDate() === ref.getDate()
+  );
 }
-
-const emptyForm = (): FormState => ({
-  vehiculoId: '',
-  celdaId: '',
-  fechaEntrada: new Date().toISOString().slice(0, 16),
-  fechaSalida: '',
-  estado: 'en_parqueadero',
-});
 
 export function ControlSalidaPage() {
   const {
     controlesSalida,
-    addControlSalida,
-    updateControlSalida,
+    deleteControlSalida,
     vehiculos,
     celdas,
-    updateCelda,
-    updateVehiculo,
     conductores,
     usuarios,
     parqueaderos,
   } = useData();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [filterEstado, setFilterEstado] = useState<'todos' | 'en_parqueadero' | 'finalizado'>('todos');
-  const [formData, setFormData] = useState<FormState>(emptyForm());
-  const [salidaPendiente, setSalidaPendiente] = useState<string | null>(null);
-
-  // 🔍 Estado para la búsqueda de vehículos en el formulario
-  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [filterParqueadero, setFilterParqueadero] = useState<string>('todos');
+  const [page, setPage] = useState(1);
+  const [confirmDelete, setConfirmDelete] = useState<ControlSalida | null>(null);
 
   const getVehiculo = useCallback((vehiculoId: string) => vehiculos.find((v) => v.id === vehiculoId), [vehiculos]);
   const getCelda = useCallback((celdaId: string) => celdas.find((c) => c.id === celdaId), [celdas]);
@@ -100,38 +77,6 @@ export function ControlSalidaPage() {
     [celdas]
   );
 
-  // 🚗 Filtro de vehículos según búsqueda (placa, marca, modelo)
-  const filteredVehiculos = useMemo(() => {
-    const q = vehicleSearch.toLowerCase().trim();
-    if (!q) return vehiculos;
-    return vehiculos.filter(
-      (v) =>
-        v.placa.toLowerCase().includes(q) ||
-        v.marca.toLowerCase().includes(q) ||
-        v.modelo.toLowerCase().includes(q)
-    );
-  }, [vehiculos, vehicleSearch]);
-
-  // 🏷️ Seleccionar el vehículo actual para obtener su tipo
-  const selectedVehicle = useMemo(
-    () => (formData.vehiculoId ? getVehiculo(formData.vehiculoId) : null),
-    [formData.vehiculoId, getVehiculo]
-  );
-
-  // 🚧 Filtrar celdas disponibles según el tipo del vehículo seleccionado
-  const celdasDisponiblesFiltradas = useMemo(() => {
-    if (!selectedVehicle) {
-      // Si no hay vehículo seleccionado, mostramos todas las disponibles
-      return celdasDisponibles;
-    }
-    const tipoVehiculo = (selectedVehicle as any).tipo; // asumimos que existe 'tipo'
-    if (!tipoVehiculo) {
-      // Si el vehículo no tiene tipo, mostramos todas
-      return celdasDisponibles;
-    }
-    return celdasDisponibles.filter((c) => c.tipo === tipoVehiculo);
-  }, [selectedVehicle, celdasDisponibles]);
-
   const vehiculosEnParqueadero = useMemo(
     () => controlesSalida.filter((c) => c.estado === 'en_parqueadero'),
     [controlesSalida]
@@ -144,99 +89,51 @@ export function ControlSalidaPage() {
 
   const filteredControles = useMemo(
     () =>
-      controlesSalida.filter((control) => {
-        const vehiculo = getVehiculo(control.vehiculoId);
-        const celda = getCelda(control.celdaId);
-        const usuario = getUsuarioConductor(control.vehiculoId);
+      controlesSalida
+        .filter((control) => {
+          const vehiculo = getVehiculo(control.vehiculoId);
+          const celda = getCelda(control.celdaId);
+          const usuario = getUsuarioConductor(control.vehiculoId);
+          const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
 
-        const q = search.toLowerCase();
-        const matchesSearch =
-          vehiculo?.placa.toLowerCase().includes(q) ||
-          celda?.numero.toLowerCase().includes(q) ||
-          usuario?.nombre.toLowerCase().includes(q) ||
-          usuario?.identificacion.includes(q) ||
-          vehiculo?.marca.toLowerCase().includes(q) ||
-          vehiculo?.modelo.toLowerCase().includes(q);
-        const matchesEstado = filterEstado === 'todos' ? true : control.estado === filterEstado;
-        return matchesSearch && matchesEstado;
-      }),
-    [controlesSalida, search, filterEstado, getVehiculo, getCelda, getUsuarioConductor]
+          const q = search.toLowerCase();
+          const matchesSearch =
+            vehiculo?.placa.toLowerCase().includes(q) ||
+            celda?.numero.toLowerCase().includes(q) ||
+            usuario?.nombre.toLowerCase().includes(q) ||
+            usuario?.identificacion.includes(q) ||
+            vehiculo?.marca.toLowerCase().includes(q) ||
+            vehiculo?.modelo.toLowerCase().includes(q);
+          const matchesEstado = filterEstado === 'todos' ? true : control.estado === filterEstado;
+          const matchesParqueadero =
+            filterParqueadero === 'todos' ? true : parqueadero?.id === filterParqueadero;
+          return matchesSearch && matchesEstado && matchesParqueadero;
+        })
+        .sort((a, b) => new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime()),
+    [controlesSalida, search, filterEstado, filterParqueadero, getVehiculo, getCelda, getUsuarioConductor, getParqueadero]
   );
 
-  const openCreate = useCallback(() => {
-    setFormData(emptyForm());
-    setVehicleSearch(''); // Limpiar búsqueda al abrir
-    setDialogOpen(true);
+  useEffect(() => {
+    setPage(1);
+  }, [search, filterEstado, filterParqueadero]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredControles.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const paginatedControles = useMemo(
+    () => filteredControles.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [filteredControles, currentPage]
+  );
+
+  const handleDelete = useCallback((control: ControlSalida) => {
+    setConfirmDelete(control);
   }, []);
 
-  const openConfirmSalida = useCallback((id: string) => {
-    setSalidaPendiente(id);
-    setConfirmOpen(true);
-  }, []);
-
-  const handleSave = useCallback(() => {
-    if (!formData.vehiculoId) {
-      toast.error('Selecciona un vehículo');
-      return;
-    }
-    if (!formData.celdaId) {
-      toast.error('Selecciona una celda');
-      return;
-    }
-
-    // Verificar que el vehículo no esté ya en el parqueadero
-    const vehiculoEnParqueadero = vehiculosEnParqueadero.some(
-      (c) => c.vehiculoId === formData.vehiculoId
-    );
-    if (vehiculoEnParqueadero) {
-      toast.error('Este vehículo ya se encuentra en el parqueadero');
-      return;
-    }
-
-    // Validación extra por tipo (por si acaso)
-    const vehiculo = getVehiculo(formData.vehiculoId);
-    const celda = getCelda(formData.celdaId);
-    if (vehiculo && celda && (vehiculo as any).tipo && celda.tipo !== (vehiculo as any).tipo) {
-      toast.error(`El tipo de vehículo (${(vehiculo as any).tipo}) no coincide con el tipo de celda (${celda.tipo})`);
-      return;
-    }
-
-    try {
-      addControlSalida(formData);
-      updateCelda(formData.celdaId, { estado: 'no_disponible', ocupada: true });
-      updateVehiculo(formData.vehiculoId, { celdaId: formData.celdaId });
-      toast.success('Entrada registrada exitosamente');
-      setDialogOpen(false);
-    } catch (error) {
-      toast.error('Error al registrar la entrada');
-      console.error('Error saving entry:', error);
-    }
-  }, [formData, addControlSalida, updateCelda, updateVehiculo, vehiculosEnParqueadero, getVehiculo, getCelda]);
-
-  const handleRegistrarSalida = useCallback(() => {
-    if (!salidaPendiente) return;
-    try {
-      const now = new Date().toISOString().slice(0, 16);
-      const control = controlesSalida.find((c) => c.id === salidaPendiente);
-
-      updateControlSalida(salidaPendiente, {
-        fechaSalida: now,
-        estado: 'finalizado',
-      });
-
-      if (control) {
-        updateCelda(control.celdaId, { estado: 'disponible', ocupada: false });
-        updateVehiculo(control.vehiculoId, { celdaId: '' });
-      }
-
-      toast.success('Salida registrada exitosamente');
-      setConfirmOpen(false);
-      setSalidaPendiente(null);
-    } catch (error) {
-      toast.error('Error al registrar la salida');
-      console.error('Error registering exit:', error);
-    }
-  }, [salidaPendiente, updateControlSalida, updateCelda, updateVehiculo, controlesSalida]);
+  const confirmDeleteAction = useCallback(() => {
+    if (!confirmDelete) return;
+    deleteControlSalida(confirmDelete.id);
+    toast.success('Registro eliminado correctamente');
+    setConfirmDelete(null);
+  }, [confirmDelete, deleteControlSalida]);
 
   const formatDateTime = useCallback((dateStr: string) => {
     if (!dateStr) return '—';
@@ -510,7 +407,7 @@ export function ControlSalidaPage() {
                   lineHeight: 1.5,
                 }}
               >
-                Registra y gestiona el flujo de vehículos en el parqueadero institucional.
+                Historial de movimientos. Para registrar una entrada o una salida, hazlo desde la celda en el módulo de Parqueaderos.
               </p>
             </div>
 
@@ -608,44 +505,37 @@ export function ControlSalidaPage() {
             }}
             aria-label="Filtrar por estado"
           >
-            <option value="todos">Todos</option>
+            <option value="todos">Todos los estados</option>
             <option value="en_parqueadero">En parqueadero</option>
             <option value="finalizado">Finalizados</option>
           </select>
 
-          <button
-            onClick={openCreate}
-            style={{
-              padding: '10px 18px',
-              borderRadius: 11,
-              border: 'none',
-              background: COLORS.primary,
-              color: '#fff',
-              fontSize: 13,
-              fontWeight: 800,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              boxShadow: '0 4px 14px rgba(57,169,0,.25)',
-              transition: 'all 0.2s ease',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.02)';
-              e.currentTarget.style.boxShadow = '0 6px 20px rgba(57,169,0,.35)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = '0 4px 14px rgba(57,169,0,.25)';
-            }}
-          >
-            <Plus size={15} /> Registrar Entrada
-          </button>
+          {parqueaderos.length > 1 && (
+            <select
+              value={filterParqueadero}
+              onChange={(e) => setFilterParqueadero(e.target.value)}
+              style={{
+                padding: '10px 14px',
+                borderRadius: 11,
+                border: `1px solid ${COLORS.border}`,
+                fontSize: 13,
+                background: '#fff',
+                fontFamily: 'inherit',
+                cursor: 'pointer',
+              }}
+              aria-label="Filtrar por parqueadero"
+            >
+              <option value="todos">Todos los parqueaderos</option>
+              {parqueaderos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        {(search || filterEstado !== 'todos') && (
+        {(search || filterEstado !== 'todos' || filterParqueadero !== 'todos') && (
           <div
             style={{
               display: 'flex',
@@ -664,6 +554,7 @@ export function ControlSalidaPage() {
               onClick={() => {
                 setSearch('');
                 setFilterEstado('todos');
+                setFilterParqueadero('todos');
               }}
               style={{
                 fontSize: 11,
@@ -691,7 +582,7 @@ export function ControlSalidaPage() {
             boxShadow: '0 2px 8px rgba(15,23,42,.05)',
           }}
         >
-          <div className="table-header" style={{ gridTemplateColumns: 'minmax(180px,1fr) minmax(160px,1fr) 90px minmax(160px,1fr) 160px 160px 100px 120px' }}>
+          <div className="table-header" style={{ gridTemplateColumns: 'minmax(155px,1fr) minmax(135px,1fr) 85px minmax(135px,1fr) 150px 150px 90px 140px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Car size={12} /> Vehículo
             </div>
@@ -726,23 +617,25 @@ export function ControlSalidaPage() {
                 <ArrowLeftRight size={36} color={COLORS.border} style={{ marginBottom: 12 }} />
                 <p style={{ fontWeight: 600, fontSize: 13 }}>No se encontraron registros</p>
                 <p style={{ fontSize: 11, marginTop: 4 }}>
-                  Prueba con otros filtros o registra una entrada
+                  Prueba con otros filtros. Las entradas se registran desde el módulo de Parqueaderos.
                 </p>
               </div>
             ) : (
-              filteredControles.map((control) => {
+              paginatedControles.map((control) => {
                 const vehiculo = getVehiculo(control.vehiculoId);
                 const celda = getCelda(control.celdaId);
                 const usuario = getUsuarioConductor(control.vehiculoId);
                 const parqueadero = celda ? getParqueadero(celda.parqueaderoId) : null;
                 const esActivo = control.estado === 'en_parqueadero';
+                const esHoy = isSameDay(control.fechaEntrada, new Date());
 
                 return (
                   <div
                     key={control.id}
                     className="control-row table-row"
                     style={{
-                      gridTemplateColumns: 'minmax(180px,1fr) minmax(160px,1fr) 90px minmax(160px,1fr) 160px 160px 100px 120px',
+                      gridTemplateColumns: 'minmax(155px,1fr) minmax(135px,1fr) 85px minmax(135px,1fr) 150px 150px 90px 140px',
+                      borderLeft: `3px solid ${esActivo ? COLORS.info : 'transparent'}`,
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -806,8 +699,24 @@ export function ControlSalidaPage() {
 
                     <div>
                       <span className="cell-label">Entrada</span>
-                      <span style={{ fontSize: 11, color: COLORS.text }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: COLORS.text }}>
                         {formatDateTime(control.fechaEntrada)}
+                        {esHoy && (
+                          <span
+                            style={{
+                              fontSize: 8,
+                              fontWeight: 800,
+                              letterSpacing: 0.3,
+                              textTransform: 'uppercase',
+                              color: COLORS.primary,
+                              background: 'rgba(57,169,0,.1)',
+                              padding: '1px 6px',
+                              borderRadius: 999,
+                            }}
+                          >
+                            Hoy
+                          </span>
+                        )}
                       </span>
                     </div>
 
@@ -825,42 +734,59 @@ export function ControlSalidaPage() {
                       </span>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
-                      {esActivo && (
-                        <button
-                          className="action-btn"
-                          onClick={() => openConfirmSalida(control.id)}
-                          style={{
-                            background: COLORS.primary,
-                            color: '#fff',
-                            padding: '6px 14px',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = COLORS.primaryDark;
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = COLORS.primary;
-                          }}
-                        >
-                          <LogOutIcon size={13} />
-                          Salida
-                        </button>
-                      )}
-                      {!esActivo && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
+                      {esActivo ? (
                         <span
+                          title="En parqueadero"
                           style={{
-                            fontSize: 11,
-                            fontWeight: 700,
-                            color: COLORS.success,
-                            display: 'flex',
+                            display: 'inline-flex',
                             alignItems: 'center',
                             gap: 4,
+                            padding: '3px 9px',
+                            borderRadius: 999,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            background: COLORS.infoBg,
+                            color: COLORS.info,
                           }}
                         >
-                          <CheckCircle2 size={14} />
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.info, flexShrink: 0 }} />
+                          Activo
+                        </span>
+                      ) : (
+                        <span
+                          title="Completado"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            padding: '3px 9px',
+                            borderRadius: 999,
+                            fontSize: 10,
+                            fontWeight: 700,
+                            whiteSpace: 'nowrap',
+                            background: COLORS.successBg,
+                            color: COLORS.success,
+                          }}
+                        >
+                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: COLORS.success, flexShrink: 0 }} />
                           Completado
                         </span>
                       )}
+                      <button
+                        className="action-btn"
+                        title="Eliminar"
+                        aria-label="Eliminar registro"
+                        onClick={() => handleDelete(control)}
+                        style={{
+                          background: 'transparent',
+                          color: COLORS.danger,
+                          padding: 6,
+                        }}
+                      >
+                        <Trash2 size={13} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -880,368 +806,76 @@ export function ControlSalidaPage() {
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 flexWrap: 'wrap',
-                gap: 6,
+                gap: 10,
               }}
             >
               <span>
-                Mostrando <strong>{filteredControles.length}</strong> de{' '}
-                <strong>{controlesSalida.length}</strong> registros
+                Mostrando{' '}
+                <strong>
+                  {(currentPage - 1) * PAGE_SIZE + 1}–
+                  {Math.min(currentPage * PAGE_SIZE, filteredControles.length)}
+                </strong>{' '}
+                de <strong>{filteredControles.length}</strong> registros
               </span>
-              <span style={{ fontSize: 10, color: COLORS.textMuted }}>
-                Última actualización: {new Date().toLocaleTimeString('es-CO')}
-              </span>
+
+              {totalPages > 1 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    aria-label="Página anterior"
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 7,
+                      border: `1px solid ${COLORS.border}`,
+                      background: '#fff',
+                      color: currentPage === 1 ? COLORS.textMuted : COLORS.text,
+                      cursor: currentPage === 1 ? 'default' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ChevronLeft size={13} />
+                  </button>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.text, minWidth: 60, textAlign: 'center' }}>
+                    Pág. {currentPage} de {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    aria-label="Página siguiente"
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 7,
+                      border: `1px solid ${COLORS.border}`,
+                      background: '#fff',
+                      color: currentPage === totalPages ? COLORS.textMuted : COLORS.text,
+                      cursor: currentPage === totalPages ? 'default' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={580}>
-        <div>
-          <div
-            style={{
-              padding: '1.4rem 1.8rem',
-              borderBottom: `1px solid ${COLORS.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 10,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div
-                style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: 'rgba(57,169,0,.1)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <LogIn size={18} color={COLORS.primary} />
-              </div>
-              <div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    letterSpacing: 1,
-                    color: COLORS.primary,
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Movimiento de vehículos
-                </div>
-                <h2
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 900,
-                    color: COLORS.text,
-                    lineHeight: 1,
-                  }}
-                >
-                  Registrar Entrada
-                </h2>
-              </div>
-            </div>
-            <button
-              onClick={() => setDialogOpen(false)}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 9,
-                border: `1px solid ${COLORS.border}`,
-                background: '#fff',
-                cursor: 'pointer',
-                color: COLORS.textLight,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-              aria-label="Cerrar formulario"
-            >
-              <X size={16} />
-            </button>
-          </div>
-
-          <div style={{ padding: '1.4rem 1.8rem' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* 🚗 Vehículo con input de búsqueda */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: COLORS.text,
-                    marginBottom: 6,
-                  }}
-                >
-                  Vehículo *
-                </label>
-                {/* Input para filtrar la lista */}
-                <div style={{ position: 'relative', marginBottom: 6 }}>
-                  <Search
-                    size={14}
-                    style={{
-                      position: 'absolute',
-                      left: 12,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: COLORS.textLight,
-                    }}
-                  />
-                  <input
-                    type="text"
-                    placeholder="Buscar vehículo por placa, marca o modelo..."
-                    value={vehicleSearch}
-                    onChange={(e) => setVehicleSearch(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px 9px 36px',
-                      borderRadius: 11,
-                      border: `1px solid ${COLORS.border}`,
-                      fontSize: 13,
-                      background: '#F8FAFC',
-                      fontFamily: 'inherit',
-                      outline: 'none',
-                    }}
-                  />
-                </div>
-                <select
-                  value={formData.vehiculoId}
-                  onChange={(e) => {
-                    setFormData({ ...formData, vehiculoId: e.target.value });
-                    // Al cambiar vehículo, limpiar la celda seleccionada porque puede quedar inválida
-                    setFormData((prev) => ({ ...prev, celdaId: '' }));
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: 11,
-                    border: `1px solid ${COLORS.border}`,
-                    fontSize: 13,
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                    background: '#F8FAFC',
-                  }}
-                  required
-                >
-                  <option value="">Seleccionar vehículo...</option>
-                  {filteredVehiculos.map((v) => {
-                    const conductor = conductores.find((c) => c.id === v.conductorId);
-                    const usuario = conductor ? usuarios.find((u) => u.id === conductor.usuarioId) : null;
-                    const enParqueadero = vehiculosEnParqueadero.some((c) => c.vehiculoId === v.id);
-                    const tipo = (v as any).tipo ? ` [${(v as any).tipo}]` : '';
-                    return (
-                      <option key={v.id} value={v.id}>
-                        {v.placa} — {v.marca} {v.modelo}{tipo} ({usuario?.nombre || 'Sin conductor'})
-                        {enParqueadero ? ' ⚠️ Ya en parqueadero' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
-                {formData.vehiculoId &&
-                  vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) && (
-                    <p style={{ fontSize: 10, color: COLORS.danger, marginTop: 4 }}>
-                      ⚠️ Este vehículo ya se encuentra en el parqueadero
-                    </p>
-                  )}
-                {vehicleSearch && filteredVehiculos.length === 0 && (
-                  <p style={{ fontSize: 10, color: COLORS.warning, marginTop: 4 }}>
-                    No se encontraron vehículos con ese criterio.
-                  </p>
-                )}
-              </div>
-
-              {/* 🅿️ Celda con validación por tipo */}
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: COLORS.text,
-                    marginBottom: 6,
-                  }}
-                >
-                  Celda disponible *
-                </label>
-                <select
-                  value={formData.celdaId}
-                  onChange={(e) => setFormData({ ...formData, celdaId: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: 11,
-                    border: `1px solid ${COLORS.border}`,
-                    fontSize: 13,
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                    background: '#F8FAFC',
-                  }}
-                  required
-                >
-                  <option value="">Seleccionar celda...</option>
-                  {celdasDisponiblesFiltradas.map((c) => {
-                    const parq = parqueaderos.find((p) => p.id === c.parqueaderoId);
-                    const tipoLabel = c.tipo ? ` (${c.tipo})` : '';
-                    return (
-                      <option key={c.id} value={c.id}>
-                        {c.numero} — {parq?.nombre || 'Sin parqueadero'}{tipoLabel}
-                      </option>
-                    );
-                  })}
-                </select>
-                {selectedVehicle && (selectedVehicle as any).tipo && (
-                  <>
-                    {celdasDisponiblesFiltradas.length === 0 ? (
-                      <p style={{ fontSize: 10, color: COLORS.danger, marginTop: 4 }}>
-                        ⚠️ No hay celdas disponibles del tipo <strong>{(selectedVehicle as any).tipo}</strong>.
-                        Por favor libera una celda compatible o selecciona otro vehículo.
-                      </p>
-                    ) : (
-                      <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 4 }}>
-                        Mostrando solo celdas de tipo <strong>{(selectedVehicle as any).tipo}</strong>.
-                      </p>
-                    )}
-                  </>
-                )}
-                {!selectedVehicle && celdasDisponibles.length === 0 && (
-                  <p style={{ fontSize: 10, color: COLORS.danger, marginTop: 4 }}>
-                    ⚠️ No hay celdas disponibles en el sistema.
-                  </p>
-                )}
-              </div>
-
-              <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: COLORS.text,
-                    marginBottom: 6,
-                  }}
-                >
-                  Fecha y hora de entrada *
-                </label>
-                <input
-                  type="datetime-local"
-                  value={formData.fechaEntrada}
-                  onChange={(e) => setFormData({ ...formData, fechaEntrada: e.target.value })}
-                  style={{
-                    width: '100%',
-                    padding: '11px 14px',
-                    borderRadius: 11,
-                    border: `1px solid ${COLORS.border}`,
-                    fontSize: 13,
-                    outline: 'none',
-                    fontFamily: 'inherit',
-                    background: '#F8FAFC',
-                  }}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
-          <div
-            style={{
-              padding: '1rem 1.8rem',
-              borderTop: `1px solid ${COLORS.border}`,
-              display: 'flex',
-              gap: 10,
-              justifyContent: 'flex-end',
-              flexWrap: 'wrap',
-            }}
-          >
-            <button
-              onClick={() => setDialogOpen(false)}
-              style={{
-                padding: '10px 20px',
-                borderRadius: 12,
-                border: `1px solid ${COLORS.border}`,
-                background: '#fff',
-                color: COLORS.text,
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontFamily: 'inherit',
-                flex: '1 1 auto',
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={
-                !formData.vehiculoId ||
-                !formData.celdaId ||
-                vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) ||
-                (selectedVehicle &&
-                  (selectedVehicle as any).tipo &&
-                  !celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
-              }
-              style={{
-                padding: '10px 24px',
-                borderRadius: 12,
-                border: 'none',
-                background:
-                  formData.vehiculoId &&
-                  formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
-                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
-                    ? COLORS.primary
-                    : COLORS.border,
-                color:
-                  formData.vehiculoId &&
-                  formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
-                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
-                    ? '#fff'
-                    : COLORS.textLight,
-                fontSize: 13,
-                fontWeight: 800,
-                cursor:
-                  formData.vehiculoId &&
-                  formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
-                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
-                    ? 'pointer'
-                    : 'default',
-                fontFamily: 'inherit',
-                boxShadow:
-                  formData.vehiculoId &&
-                  formData.celdaId &&
-                  !vehiculosEnParqueadero.some((c) => c.vehiculoId === formData.vehiculoId) &&
-                  (!selectedVehicle || !(selectedVehicle as any).tipo || celdasDisponiblesFiltradas.some((c) => c.id === formData.celdaId))
-                    ? '0 6px 18px rgba(57,169,0,.22)'
-                    : 'none',
-                flex: '1 1 auto',
-              }}
-            >
-              Registrar Entrada
-            </button>
-          </div>
-        </div>
-      </Modal>
-
       <ConfirmDialog
-        open={confirmOpen}
-        onConfirm={handleRegistrarSalida}
-        onCancel={() => {
-          setConfirmOpen(false);
-          setSalidaPendiente(null);
-        }}
-        title="Registrar Salida"
-        message="¿Estás seguro de registrar la salida de este vehículo? Esta acción actualizará el estado de la celda a disponible."
-        confirmLabel="Confirmar"
-        tone="info"
+        open={!!confirmDelete}
+        onConfirm={confirmDeleteAction}
+        onCancel={() => setConfirmDelete(null)}
+        title="Eliminar registro"
+        message={`El registro del vehículo ${confirmDelete ? getVehiculo(confirmDelete.vehiculoId)?.placa || '—' : ''} se eliminará permanentemente. Esta acción no se puede revertir.`}
+        confirmLabel="Eliminar"
+        tone="danger"
       />
     </>
   );

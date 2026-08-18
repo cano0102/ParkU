@@ -16,7 +16,6 @@ import {
 import { useOcrPlaca, preprocesarImagenArchivo } from "./ocr";
 import { ParkingMap } from "./ParkingMap";
 import { ParqueaderosTable } from "./ParqueaderosTable";
-import { ActiveVehiclesList } from "./ActiveVehiclesList";
 import { SmartAssignModal } from "./SmartAssignModal";
 import { ParqueaderoFormModal } from "./ParqueaderoFormModal";
 import { IngresoModal } from "./IngresoModal";
@@ -638,29 +637,23 @@ export default function Parqueaderos() {
 
         {/* ── CONTENIDO POR TAB ── */}
         {activeTab === "table" && (
-          <div className="pq-content-grid">
-            <ParqueaderosTable
-              parqueaderos={filteredPqsConCeldas}
-              celdas={search.trim() ? filteredCeldas : celdas}
-              getOcupante={getOcupante}
-              onEdit={pq => {
-                setPqEditId(pq.id);
-                setPqForm({ nombre: pq.nombre, bloque: pq.bloque, tipo: pq.tipo, direccion: pq.direccion, horaInicio: pq.horaInicio, horaFin: pq.horaFin, celdasCarros: pq.celdasCarros, celdasMotos: pq.celdasMotos, celdasMovilidadReducida: pq.celdasMovilidadReducida, descripcion: pq.descripcion });
-                setFormError(null); setOpenModal("edit");
-              }}
-              onDelete={id => { setPqDeleteId(id); setOpenModal("confirmDelete"); }}
-              onCellClick={handleCellClick}
-              cellMatchesSearch={cellMatchesSearch}
-            />
-            <ActiveVehiclesList celdas={celdas} parqueaderos={parqueaderos} getOcupante={getOcupante} onSelectCell={handleCellClick} searchQuery={search} />
-          </div>
+          <ParqueaderosTable
+            parqueaderos={filteredPqsConCeldas}
+            celdas={search.trim() ? filteredCeldas : celdas}
+            getOcupante={getOcupante}
+            onEdit={pq => {
+              setPqEditId(pq.id);
+              setPqForm({ nombre: pq.nombre, bloque: pq.bloque, tipo: pq.tipo, direccion: pq.direccion, horaInicio: pq.horaInicio, horaFin: pq.horaFin, celdasCarros: pq.celdasCarros, celdasMotos: pq.celdasMotos, celdasMovilidadReducida: pq.celdasMovilidadReducida, descripcion: pq.descripcion });
+              setFormError(null); setOpenModal("edit");
+            }}
+            onDelete={id => { setPqDeleteId(id); setOpenModal("confirmDelete"); }}
+            onCellClick={handleCellClick}
+            cellMatchesSearch={cellMatchesSearch}
+          />
         )}
 
         {activeTab === "map" && (
-          <div className="pq-content-grid">
-            <ParkingMap parqueaderos={filteredPqsConCeldas} celdas={celdas} getOcupante={getOcupante} onCellClick={handleCellClick} cellMatchesSearch={cellMatchesSearch} />
-            <ActiveVehiclesList celdas={celdas} parqueaderos={parqueaderos} getOcupante={getOcupante} onSelectCell={handleCellClick} searchQuery={search} />
-          </div>
+          <ParkingMap parqueaderos={filteredPqsConCeldas} celdas={celdas} getOcupante={getOcupante} onCellClick={handleCellClick} cellMatchesSearch={cellMatchesSearch} />
         )}
       </div>
 

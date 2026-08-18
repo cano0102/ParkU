@@ -51,7 +51,7 @@ export function Modal({ open, onClose, children, maxWidth = 640, title = 'Diálo
             alignItems: 'center',
             justifyContent: 'center',
             overflowY: 'auto',
-            padding: '2rem 1rem',
+            padding: '1.25rem 1rem',
           }}
         >
           <DialogPrimitive.Content

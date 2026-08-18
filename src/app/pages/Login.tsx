@@ -418,67 +418,69 @@ export function Login() {
                 </button>
               </div>
 
-              <div style={{ marginBottom: "1rem" }}>
-                <img
-                  src={logoSena}
-                  alt="Logo SENA"
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div style={{ marginBottom: "1rem" }}>
+                  <img
+                    src={logoSena}
+                    alt="Logo SENA"
+                    style={{
+                      height: 46,
+                      width: "auto",
+                      filter: "brightness(0) invert(1)",
+                      objectFit: "contain",
+                    }}
+                  />
+                </div>
+
+                <h1
                   style={{
-                    height: 46,
-                    width: "auto",
-                    filter: "brightness(0) invert(1)",
-                    objectFit: "contain",
+                    fontSize: "clamp(2rem, 4vw, 3rem)",
+                    lineHeight: 0.95,
+                    fontWeight: 900,
+                    marginBottom: "1rem",
                   }}
-                />
-              </div>
+                >
+                  Bienvenido a ParkU
+                </h1>
 
-              <h1
-                style={{
-                  fontSize: "clamp(2rem, 4vw, 3rem)",
-                  lineHeight: 0.95,
-                  fontWeight: 900,
-                  marginBottom: "1rem",
-                }}
-              >
-                Bienvenido a ParkU
-              </h1>
+                <p
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: "rgba(255, 255, 255, 0.92)",
+                    maxWidth: 420,
+                  }}
+                >
+                  Sistema institucional para la gestión inteligente de parqueaderos,
+                  accesos y monitoreo vehicular del SENA.
+                </p>
 
-              <p
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: "rgba(255, 255, 255, 0.92)",
-                  maxWidth: 420,
-                }}
-              >
-                Sistema institucional para la gestión inteligente de parqueaderos,
-                accesos y monitoreo vehicular del SENA.
-              </p>
-
-              <div
-                style={{
-                  marginTop: "1.8rem",
-                  display: "grid",
-                  gap: "0.6rem",
-                }}
-              >
-                {["Control de acceso seguro", "Monitoreo en tiempo real", "Gestión automatizada"].map(
-                  (item) => (
-                    <div
-                      key={item}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        background: "rgba(255, 255, 255, 0.08)",
-                        padding: "10px 14px",
-                        borderRadius: 12,
-                      }}
-                    >
-                      <ShieldCheck size={17} />
-                      <span style={{ fontWeight: 700, fontSize: 13 }}>{item}</span>
-                    </div>
-                  )
-                )}
+                <div
+                  style={{
+                    marginTop: "1.8rem",
+                    display: "grid",
+                    gap: "0.6rem",
+                  }}
+                >
+                  {["Control de acceso seguro", "Monitoreo en tiempo real", "Gestión automatizada"].map(
+                    (item) => (
+                      <div
+                        key={item}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          background: "rgba(255, 255, 255, 0.08)",
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                        }}
+                      >
+                        <ShieldCheck size={17} />
+                        <span style={{ fontWeight: 700, fontSize: 13 }}>{item}</span>
+                      </div>
+                    )
+                  )}
+                </div>
               </div>
             </div>
           </div>

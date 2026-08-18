@@ -23,6 +23,7 @@ import { auth } from "../../firebase/config";
 
 import { toast } from "sonner";
 import { theme } from "../theme";
+import logoSena from "../../styles/images/logoSena.png";
 
 const COLORS = theme;
 
@@ -189,12 +190,12 @@ export function ResetPassword() {
           className="reset-grid"
           style={{
             width: "100%",
-            maxWidth: 1180,
+            maxWidth: 900,
             display: "grid",
             gridTemplateColumns:
-              "1fr .9fr",
+              "0.85fr 1.15fr",
             overflow: "hidden",
-            borderRadius: 36,
+            borderRadius: 24,
             background: "#fff",
             border: `1px solid ${COLORS.border}`,
             boxShadow:
@@ -206,7 +207,7 @@ export function ResetPassword() {
           <div
             className="reset-left"
             style={{
-              padding: "3rem 4rem",
+              padding: "2rem 2.2rem",
               background:
                 "linear-gradient(135deg,#39A900,#2D7D00)",
               color: "#fff",
@@ -250,7 +251,7 @@ export function ResetPassword() {
                   alignItems: "center",
                   justifyContent:
                     "space-between",
-                  marginBottom: "3rem",
+                  marginBottom: "1.5rem",
                 }}
               >
                 <button
@@ -261,21 +262,21 @@ export function ResetPassword() {
                     display: "flex",
                     alignItems: "center",
                     gap: 8,
-                    padding: "12px 18px",
+                    padding: "10px 14px",
                     background:
                       "rgba(255,255,255,.14)",
                     border:
                       "1px solid rgba(255,255,255,.12)",
                     color: "#fff",
-                    borderRadius: 14,
+                    borderRadius: 12,
                     cursor: "pointer",
                     fontWeight: 700,
-                    fontSize: 14,
+                    fontSize: 13,
                     backdropFilter:
                       "blur(10px)",
                   }}
                 >
-                  <ArrowLeft size={16} />
+                  <ArrowLeft size={15} />
                   Volver
                 </button>
 
@@ -283,90 +284,106 @@ export function ResetPassword() {
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
-                    gap: 8,
+                    gap: 6,
                     background:
                       "rgba(255,255,255,.12)",
-                    padding: "10px 18px",
+                    padding: "8px 14px",
                     borderRadius: 999,
                     fontWeight: 800,
-                    fontSize: 14,
+                    fontSize: 12,
                   }}
                 >
-                  <BadgeCheck size={18} />
-                  Plataforma Oficial SENA
+                  <BadgeCheck size={15} />
+                  Plataforma Oficial
                 </div>
               </div>
 
-              {/* TITLE */}
-
-              <h1
-                style={{
-                  fontSize:
-                    "clamp(3rem,5vw,5rem)",
-                  lineHeight: 0.95,
-                  fontWeight: 900,
-                  marginBottom: "2rem",
-                }}
-              >
-                Nueva
-                <br />
-                Contraseña
-              </h1>
-
-              <p
-                style={{
-                  fontSize: 18,
-                  lineHeight: 1.8,
-                  color:
-                    "rgba(255,255,255,.92)",
-                  maxWidth: 500,
-                }}
-              >
-                Protege tu cuenta
-                institucional actualizando
-                tu contraseña de acceso al
-                sistema ParkU.
-              </p>
-
-              {/* FEATURES */}
-
-              <div
-                style={{
-                  marginTop: "4rem",
-                  display: "grid",
-                  gap: "1rem",
-                }}
-              >
-                {[
-                  "Acceso institucional seguro",
-                  "Protección de credenciales",
-                  "Sistema protegido ParkU",
-                ].map((item) => (
-                  <div
-                    key={item}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                <div style={{ marginBottom: "1rem" }}>
+                  <img
+                    src={logoSena}
+                    alt="Logo SENA"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 12,
-                      background:
-                        "rgba(255,255,255,.08)",
-                      padding: "16px 18px",
-                      borderRadius: 18,
+                      height: 46,
+                      width: "auto",
+                      filter: "brightness(0) invert(1)",
+                      objectFit: "contain",
                     }}
-                  >
-                    <ShieldCheck
-                      size={20}
-                    />
+                  />
+                </div>
 
-                    <span
+                {/* TITLE */}
+
+                <h1
+                  style={{
+                    fontSize:
+                      "clamp(2rem,4vw,3rem)",
+                    lineHeight: 0.95,
+                    fontWeight: 900,
+                    marginBottom: "1rem",
+                  }}
+                >
+                  Nueva
+                  <br />
+                  Contraseña
+                </h1>
+
+                <p
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color:
+                      "rgba(255,255,255,.92)",
+                    maxWidth: 420,
+                  }}
+                >
+                  Protege tu cuenta
+                  institucional actualizando
+                  tu contraseña de acceso al
+                  sistema ParkU.
+                </p>
+
+                {/* FEATURES */}
+
+                <div
+                  style={{
+                    marginTop: "1.8rem",
+                    display: "grid",
+                    gap: "0.6rem",
+                  }}
+                >
+                  {[
+                    "Acceso institucional seguro",
+                    "Protección de credenciales",
+                    "Sistema protegido ParkU",
+                  ].map((item) => (
+                    <div
+                      key={item}
                       style={{
-                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        background:
+                          "rgba(255,255,255,.08)",
+                        padding: "10px 14px",
+                        borderRadius: 12,
                       }}
                     >
-                      {item}
-                    </span>
-                  </div>
-                ))}
+                      <ShieldCheck
+                        size={17}
+                      />
+
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          fontSize: 13,
+                        }}
+                      >
+                        {item}
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -376,7 +393,7 @@ export function ResetPassword() {
           <div
             style={{
               padding:
-                "4rem clamp(2rem,4vw,4rem)",
+                "2rem clamp(1.5rem, 3vw, 2.5rem)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -385,22 +402,23 @@ export function ResetPassword() {
             <div
               style={{
                 width: "100%",
-                maxWidth: 420,
+                maxWidth: 360,
               }}
             >
               {/* HEADER */}
 
               <div
                 style={{
-                  marginBottom: "2.5rem",
+                  marginBottom: "1.5rem",
                 }}
               >
                 <div
                   style={{
                     color: COLORS.primary,
                     fontWeight: 800,
-                    marginBottom: 14,
+                    marginBottom: 10,
                     letterSpacing: 1,
+                    fontSize: 12,
                   }}
                 >
                   SEGURIDAD DE ACCESO
@@ -409,11 +427,11 @@ export function ResetPassword() {
                 <h2
                   style={{
                     fontSize:
-                      "clamp(2.5rem,5vw,3.5rem)",
+                      "clamp(1.8rem, 4vw, 2.4rem)",
                     fontWeight: 900,
                     color: COLORS.text,
                     lineHeight: 1,
-                    marginBottom: "1rem",
+                    marginBottom: "0.6rem",
                   }}
                 >
                   Restablecer
@@ -425,7 +443,8 @@ export function ResetPassword() {
                   style={{
                     color:
                       COLORS.textLight,
-                    lineHeight: 1.8,
+                    lineHeight: 1.6,
+                    fontSize: 13,
                   }}
                 >
                   Ingresa y confirma tu nueva

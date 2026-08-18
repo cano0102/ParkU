@@ -34,7 +34,7 @@ export function ConductorFormModal({
     >
       <div
         style={{
-          padding: "1.4rem 1.8rem 1.2rem",
+          padding: "1.1rem 1.6rem 0.9rem",
           borderBottom: `1px solid ${COLORS.border}`,
           display: "flex",
           alignItems: "center",
@@ -93,7 +93,7 @@ export function ConductorFormModal({
         </button>
       </div>
 
-      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+      <div style={{ padding: "1rem 1.6rem", display: "flex", flexDirection: "column", gap: "0.65rem" }}>
         <section
           style={{
             borderRadius: 14,
@@ -120,7 +120,7 @@ export function ConductorFormModal({
               Datos del conductor
             </p>
           </div>
-          <div style={{ padding: "1rem 1.2rem", display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ padding: "0.85rem 1.1rem", display: "flex", flexDirection: "column", gap: 9 }}>
             <FormField
               label="Usuario vinculado *"
               error={touched.usuarioId ? formErrors.usuarioId : undefined}
@@ -139,6 +139,8 @@ export function ConductorFormModal({
                   border: `1px solid ${COLORS.border}`,
                   padding: 4,
                   background: "#fff",
+                  maxHeight: 132,
+                  overflowY: "auto",
                 }}
               >
                 {usuariosFiltrados.length === 0 && (
@@ -218,7 +220,7 @@ export function ConductorFormModal({
               )}
             </FormField>
 
-            <div style={{ display: "grid", gridTemplateColumns: isEdit ? "1fr 1fr" : "1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isEdit ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
               <FormField label="Tipo de conductor">
                 <div style={{ display: "flex", gap: 8 }}>
                   {(["aprendiz", "instructor"] as const).map((tipo) => {
@@ -249,10 +251,27 @@ export function ConductorFormModal({
                 </div>
               </FormField>
 
+              <FormField
+                label="Centro de formación *"
+                error={touched.centroFormacion ? formErrors.centroFormacion : undefined}
+              >
+                <input
+                  type="text"
+                  placeholder="ej. Centro de Tecnología"
+                  value={formData.centroFormacion}
+                  onChange={(e) => setFormData({ ...formData, centroFormacion: e.target.value })}
+                  onBlur={() => markTouched("centroFormacion")}
+                  style={{
+                    ...inputStyle,
+                    ...(touched.centroFormacion && formErrors.centroFormacion ? inputErrorStyle : {}),
+                  }}
+                  required
+                />
+              </FormField>
+
               {isEdit && (
                 <FormField label="Estado">
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.textLight }}>Inactivo</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, height: 42 }}>
                     <button
                       type="button"
                       onClick={() =>
@@ -270,6 +289,7 @@ export function ConductorFormModal({
                         cursor: "pointer",
                         position: "relative",
                         transition: "background .2s",
+                        flexShrink: 0,
                       }}
                       aria-label={formData.estado === "activo" ? "Desactivar" : "Activar"}
                     >
@@ -301,30 +321,12 @@ export function ConductorFormModal({
               )}
             </div>
 
-            <FormField
-              label="Centro de formación *"
-              error={touched.centroFormacion ? formErrors.centroFormacion : undefined}
-            >
-              <input
-                type="text"
-                placeholder="ej. Centro de Tecnología"
-                value={formData.centroFormacion}
-                onChange={(e) => setFormData({ ...formData, centroFormacion: e.target.value })}
-                onBlur={() => markTouched("centroFormacion")}
-                style={{
-                  ...inputStyle,
-                  ...(touched.centroFormacion && formErrors.centroFormacion ? inputErrorStyle : {}),
-                }}
-                required
-              />
-            </FormField>
-
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
-                padding: "12px",
+                padding: "9px 12px",
                 borderRadius: 11,
                 background: COLORS.bg,
                 border: `1px solid ${COLORS.border}`,
@@ -426,7 +428,7 @@ export function ConductorFormModal({
               </span>
             )}
           </div>
-          <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ padding: "0.85rem 1.1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
             <FormField
               label="Placa *"
               error={touched.placa ? formErrors.placa : undefined}
@@ -446,8 +448,8 @@ export function ConductorFormModal({
               >
                 <div
                   style={{
-                    width: 42,
-                    height: 42,
+                    width: 34,
+                    height: 34,
                     borderRadius: 8,
                     background: COLORS.primary,
                     display: "flex",
@@ -457,7 +459,7 @@ export function ConductorFormModal({
                     flexShrink: 0,
                   }}
                 >
-                  <Car size={18} />
+                  <Car size={16} />
                 </div>
                 <input
                   type="text"
@@ -471,8 +473,8 @@ export function ConductorFormModal({
                     ...inputStyle,
                     border: "none",
                     background: "transparent",
-                    padding: "11px 0",
-                    fontSize: 16,
+                    padding: "8px 0",
+                    fontSize: 15,
                     fontWeight: 700,
                     color: COLORS.text,
                     letterSpacing: 1,
@@ -523,7 +525,7 @@ export function ConductorFormModal({
               style={{ gridColumn: "1 / -1" }}
             >
               <textarea
-                rows={2}
+                rows={1}
                 maxLength={200}
                 placeholder="Observaciones sobre el vehículo…"
                 value={formData.descripcionVehiculo}
@@ -537,7 +539,7 @@ export function ConductorFormModal({
 
       <div
         style={{
-          padding: "1rem 1.8rem",
+          padding: "0.8rem 1.6rem",
           borderTop: `1px solid ${COLORS.border}`,
           display: "flex",
           gap: 10,

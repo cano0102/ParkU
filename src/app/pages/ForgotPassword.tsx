@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { theme } from "../theme";
 import { useData } from "../context/DataContext";
+import logoSena from "../../styles/images/logoSena.png";
 
 const COLORS = theme;
 
@@ -273,73 +274,75 @@ export function ForgotPassword() {
                 </div>
               </div>
 
-              {/* SENA LOGO */}
-              <div style={{ marginBottom: "1rem" }}>
-                <img
-                  src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
-                  alt="Logo SENA"
-                  style={{
-                    height: 46,
-                    width: "auto",
-                    filter: "brightness(0) invert(1)",
-                    objectFit: "contain",
-                  }}
-                />
-              </div>
-
-              <h1
-                style={{
-                  fontSize: "clamp(2rem,4vw,3rem)",
-                  lineHeight: 0.95,
-                  fontWeight: 900,
-                  marginBottom: "1rem",
-                }}
-              >
-                Recupera
-                <br />
-                tu acceso
-              </h1>
-
-              <p
-                style={{
-                  fontSize: 14,
-                  lineHeight: 1.7,
-                  color: "rgba(255,255,255,.92)",
-                  maxWidth: 420,
-                }}
-              >
-                Recupera el acceso a tu cuenta institucional de ParkU mediante
-                un enlace seguro enviado a tu correo electrónico.
-              </p>
-
-              {/* FEATURES */}
-              <div
-                style={{
-                  marginTop: "1.8rem",
-                  display: "grid",
-                  gap: "0.6rem",
-                }}
-              >
-                {[
-                  "Enlace seguro y privado",
-                  "Recuperación rápida",
-                  "Protección institucional",
-                ].map((item) => (
-                  <div
-                    key={item}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                {/* SENA LOGO */}
+                <div style={{ marginBottom: "1rem" }}>
+                  <img
+                    src={logoSena}
+                    alt="Logo SENA"
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 10,
-                      background: "rgba(255,255,255,.08)",
-                      padding: "10px 14px",
-                      borderRadius: 12,
+                      height: 46,
+                      width: "auto",
+                      filter: "brightness(0) invert(1)",
+                      objectFit: "contain",
                     }}
-                  >
-                    <ShieldCheck size={17} />
-                    <span style={{ fontWeight: 700, fontSize: 13 }}>{item}</span>
-                  </div>
-                ))}
+                  />
+                </div>
+
+                <h1
+                  style={{
+                    fontSize: "clamp(2rem,4vw,3rem)",
+                    lineHeight: 0.95,
+                    fontWeight: 900,
+                    marginBottom: "1rem",
+                  }}
+                >
+                  Recupera
+                  <br />
+                  tu acceso
+                </h1>
+
+                <p
+                  style={{
+                    fontSize: 14,
+                    lineHeight: 1.7,
+                    color: "rgba(255,255,255,.92)",
+                    maxWidth: 420,
+                  }}
+                >
+                  Recupera el acceso a tu cuenta institucional de ParkU mediante
+                  un enlace seguro enviado a tu correo electrónico.
+                </p>
+
+                {/* FEATURES */}
+                <div
+                  style={{
+                    marginTop: "1.8rem",
+                    display: "grid",
+                    gap: "0.6rem",
+                  }}
+                >
+                  {[
+                    "Enlace seguro y privado",
+                    "Recuperación rápida",
+                    "Protección institucional",
+                  ].map((item) => (
+                    <div
+                      key={item}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        background: "rgba(255,255,255,.08)",
+                        padding: "10px 14px",
+                        borderRadius: 12,
+                      }}
+                    >
+                      <ShieldCheck size={17} />
+                      <span style={{ fontWeight: 700, fontSize: 13 }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -385,7 +388,7 @@ export function ForgotPassword() {
                     {/* SENA LOGO */}
                     <div style={{ marginBottom: "0.8rem" }}>
                       <img
-                        src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
+                        src={logoSena}
                         alt="Logo SENA"
                         style={{
                           height: 38,
@@ -586,7 +589,7 @@ export function ForgotPassword() {
                   {/* SENA LOGO */}
                   <div style={{ marginBottom: "0.8rem" }}>
                     <img
-                      src="https://www.sena.edu.co/Style%20Library/alayout/images/logoSena.png"
+                      src={logoSena}
                       alt="Logo SENA"
                       style={{ height: 38, width: "auto", objectFit: "contain" }}
                     />

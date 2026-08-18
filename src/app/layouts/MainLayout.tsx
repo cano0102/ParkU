@@ -343,11 +343,11 @@ export function MainLayout() {
                   flex: 1,
                   height: 32,
                   borderRadius: 8,
-                  border: '1px solid rgba(252,165,165,.35)',
-                  background: 'rgba(239,68,68,.22)',
+                  border: '1px solid rgba(255,255,255,.28)',
+                  background: '#DC2626',
                   cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  fontSize: 12, fontWeight: 600, color: '#FECACA',
+                  fontSize: 12, fontWeight: 600, color: '#fff',
                 }}
               >
                 <LogOut size={13} />
@@ -378,11 +378,11 @@ export function MainLayout() {
               style={{
                 width: 36, height: 36,
                 borderRadius: 10,
-                border: '1px solid rgba(252,165,165,.35)',
-                background: 'rgba(239,68,68,.22)',
+                border: '1px solid rgba(255,255,255,.28)',
+                background: '#DC2626',
                 cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#FECACA',
+                color: '#fff',
               }}
             >
               <LogOut size={15} />

@@ -189,7 +189,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
     <form onSubmit={handleSubmit}>
       <div
         style={{
-          padding: "1.4rem 1.8rem 1.2rem",
+          padding: "1.1rem 1.6rem 0.9rem",
           borderBottom: `1px solid ${COLORS.border}`,
           display: "flex",
           alignItems: "center",
@@ -247,7 +247,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
         </button>
       </div>
 
-      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+      <div style={{ padding: "1rem 1.6rem", display: "flex", flexDirection: "column", gap: "0.6rem" }}>
         <section>
           <p
             style={{
@@ -256,7 +256,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
               letterSpacing: 1.5,
               color: COLORS.textLight,
               textTransform: "uppercase",
-              marginBottom: 10,
+              marginBottom: 6,
             }}
           >
             Información básica
@@ -277,7 +277,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
                 onChange={(e) => handleNombreChange(e.target.value)}
                 style={{
                   width: "100%",
-                  padding: "11px 14px",
+                  padding: "9px 14px",
                   borderRadius: 11,
                   border: `1px solid ${nombreError ? "#EF4444" : COLORS.border}`,
                   fontSize: 13,
@@ -316,7 +316,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
                   }
                   style={{
                     width: "100%",
-                    padding: "11px 14px",
+                    padding: "9px 14px",
                     borderRadius: 11,
                     border: `1px solid ${COLORS.border}`,
                     fontSize: 13,
@@ -333,7 +333,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
             )}
           </div>
 
-          <div style={{ marginTop: 10 }}>
+          <div style={{ marginTop: 8 }}>
             <label
               htmlFor="role-description"
               style={{ display: "block", fontSize: 12, fontWeight: 700, color: COLORS.text, marginBottom: 6 }}
@@ -345,10 +345,10 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
               placeholder="Describe las responsabilidades de este rol..."
               value={form.descripcion}
               onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-              rows={2}
+              rows={1}
               style={{
                 width: "100%",
-                padding: "11px 14px",
+                padding: "9px 14px",
                 borderRadius: 11,
                 border: `1px solid ${COLORS.border}`,
                 fontSize: 13,
@@ -391,7 +391,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
               height: 4,
               borderRadius: 999,
               background: "#E2E8F0",
-              marginBottom: 12,
+              marginBottom: 9,
               overflow: "hidden",
             }}
           >
@@ -410,7 +410,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
             {(Object.entries(PERMISOS) as [PermisosKeys, typeof PERMISOS[PermisosKeys]][]).map(
               ([grupo, permisos]) => {
                 const color = GRUPO_COLORS[grupo] ?? COLORS.primary;
@@ -434,7 +434,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        padding: "9px 12px",
+                        padding: "7px 10px",
                         borderBottom: `1px solid ${COLORS.border}`,
                         background: "#fff",
                       }}
@@ -459,10 +459,9 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
                             fontSize: 11,
                             fontWeight: 800,
                             color: COLORS.text,
-                            textTransform: "capitalize",
                           }}
                         >
-                          {grupo}
+                          {GRUPO_LABELS[grupo]}
                         </span>
                       </div>
                       <button
@@ -495,10 +494,10 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
 
                     <div
                       style={{
-                        padding: "8px 10px",
+                        padding: "7px 10px",
                         display: "flex",
                         flexDirection: "column",
-                        gap: 5,
+                        gap: 4,
                       }}
                     >
                       {Object.entries(permisos).map(([key, label]) => {
@@ -512,7 +511,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "space-between",
-                              padding: "8px 10px",
+                              padding: "6px 10px",
                               borderRadius: 9,
                               cursor: "pointer",
                               border: `1px solid ${checked ? `${color}30` : COLORS.border}`,
@@ -564,7 +563,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
 
       <div
         style={{
-          padding: "1rem 1.8rem",
+          padding: "0.8rem 1.6rem",
           borderTop: `1px solid ${COLORS.border}`,
           display: "flex",
           gap: 10,

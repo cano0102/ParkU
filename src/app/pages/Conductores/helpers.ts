@@ -64,7 +64,7 @@ export const PLACA_REGEX = /^[A-Z0-9]{5,8}$/;
 
 export const inputStyle: React.CSSProperties = {
   width: "100%",
-  padding: "11px 14px",
+  padding: "9px 14px",
   borderRadius: 11,
   border: `1px solid ${COLORS.border}`,
   fontSize: 13,

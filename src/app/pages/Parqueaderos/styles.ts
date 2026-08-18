@@ -17,15 +17,9 @@ export const parqueaderosStyles = `
   .pq-search-wrap{ flex:1; position:relative; min-width:200px; }
   .pq-view-toggle{ display:flex; border-radius:11px; border:1px solid ${C.border}; overflow:hidden; background:#fff; }
 
-  .pq-content-grid{ display:grid; grid-template-columns:1fr 280px; gap:16px; align-items:start; }
-
   .pq-table-header{ display:grid; grid-template-columns:minmax(200px,1fr) 120px 100px 80px 80px 80px 90px; background:#F8FAF8; border-bottom:1px solid ${C.border}; padding:12px 16px; font-size:11px; font-weight:800; color:${C.textLight}; text-transform:uppercase; letter-spacing:.5px; }
   .pq-table-row{ display:grid; grid-template-columns:minmax(200px,1fr) 120px 100px 80px 80px 80px 90px; padding:14px 16px; border-bottom:1px solid ${C.border}; align-items:center; font-size:12px; transition:background .15s; cursor:pointer; }
   .pq-cell-label{ display:none; }
-
-  @media (max-width: 1024px){
-    .pq-content-grid{ grid-template-columns:1fr; }
-  }
 
   @media (max-width: 860px){
     .pq-hero-stats{ grid-template-columns:repeat(2,1fr); min-width:0; width:100%; }
