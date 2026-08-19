@@ -13,7 +13,7 @@ import {
   validarPlacaColombiana, validarPlacaPorTipo, validarNombreConductor, tipoVehiculoDesdePlaca, esPlacaOficial,
   normalizarTexto, validarFormParqueadero, NOMBRE_PQ_MAX,
 } from "./helpers";
-import { useOcrPlaca, preprocesarImagenArchivo } from "./ocr";
+import { useOcrPlaca, preprocesarImagenArchivo, calcularRoiDesdeGuia } from "./ocr";
 import { ParkingMap } from "./ParkingMap";
 import { ParqueaderosTable } from "./ParqueaderosTable";
 import { SmartAssignModal } from "./SmartAssignModal";
@@ -74,6 +74,7 @@ export default function Parqueaderos() {
   const [reservaError, setReservaError] = useState<string | null>(null);
 
   const videoRef  = useRef<HTMLVideoElement>(null);
+  const guiaRef   = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const { reconocer, reconocerLicencia, liberarWorker } = useOcrPlaca();
 
@@ -472,7 +473,8 @@ export default function Parqueaderos() {
     if (!videoRef.current) return;
     setOcrLoading(true); setOcrError(null);
     try {
-      const d = await reconocer(videoRef.current);
+      const roi = guiaRef.current ? calcularRoiDesdeGuia(videoRef.current, guiaRef.current) ?? undefined : undefined;
+      const d = await reconocer(videoRef.current, roi);
       setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
       setVehiculoForm(prev => ({ ...prev, placa: d.placa, conductor: d.conductor || prev.conductor }));
       toast.success(`Placa detectada: ${d.placa}`);
@@ -733,6 +735,7 @@ export default function Parqueaderos() {
       <ScannerModal
         open={openModal === "scanner"}
         videoRef={videoRef}
+        guiaRef={guiaRef}
         camaraLista={camaraLista}
         onCamaraLista={() => setCamaraLista(true)}
         ocrLoading={ocrLoading}

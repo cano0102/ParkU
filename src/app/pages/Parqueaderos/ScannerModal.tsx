@@ -9,6 +9,7 @@ const C = theme;
 interface ScannerModalProps {
   open: boolean;
   videoRef: React.RefObject<HTMLVideoElement>;
+  guiaRef: React.RefObject<HTMLDivElement>;
   camaraLista: boolean;
   onCamaraLista: () => void;
   ocrLoading: boolean;
@@ -21,7 +22,7 @@ interface ScannerModalProps {
 }
 
 export function ScannerModal({
-  open, videoRef, camaraLista, onCamaraLista, ocrLoading, ocrError, ocrFlash,
+  open, videoRef, guiaRef, camaraLista, onCamaraLista, ocrLoading, ocrError, ocrFlash,
   onClose, onCapture, onFileOCR, onSimOCR,
 }: ScannerModalProps) {
   return (
@@ -39,7 +40,7 @@ export function ScannerModal({
       <div style={{ position: "relative", background: "#000", aspectRatio: "4/3", maxHeight: 320, overflow: "hidden" }}>
         <video ref={videoRef} autoPlay playsInline muted onLoadedMetadata={onCamaraLista} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-          <div style={{ width: "78%", maxWidth: 300, aspectRatio: "3/1", border: `3px solid ${C.primary}`, borderRadius: 10, boxShadow: `0 0 0 9999px rgba(15,23,42,.65)` }} />
+          <div ref={guiaRef} style={{ width: "78%", maxWidth: 300, aspectRatio: "3/1", border: `3px solid ${C.primary}`, borderRadius: 10, boxShadow: `0 0 0 9999px rgba(15,23,42,.65)` }} />
         </div>
         {!camaraLista && !ocrError && <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, background: "rgba(15,23,42,.9)", color: "#fff" }}><Loader2 size={28} color={C.primary} style={{ animation: "spin 1s linear infinite" }} /><span style={{ fontSize: 12, fontWeight: 700 }}>Iniciando cámara...</span></div>}
         {ocrLoading && <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "rgba(15,23,42,.85)", color: "#fff" }}><Loader2 size={28} color={C.primary} style={{ animation: "spin 1s linear infinite" }} /><span style={{ fontSize: 12, fontWeight: 700, marginTop: 8 }}>Analizando matrícula...</span></div>}
