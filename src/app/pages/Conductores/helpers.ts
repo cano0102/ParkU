@@ -1,6 +1,9 @@
 import type React from "react";
-import { Car, Bike, GraduationCap, BookOpen } from "lucide-react";
+import { Car, Bike, GraduationCap, BookOpen, Briefcase, UserCog, Contact } from "lucide-react";
 import { theme } from "../../theme";
+import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "../Parqueaderos/helpers";
+
+export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca };
 
 export const COLORS = theme;
 
@@ -27,11 +30,17 @@ export const getInitials = (nombre: string): string => {
     .toUpperCase();
 };
 
-export const getTipoStyle = (tipo: string) => {
-  return tipo === "instructor"
-    ? { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#2563EB", label: "Instructor", icon: GraduationCap }
-    : { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "Aprendiz", icon: BookOpen };
+const TIPO_CONDUCTOR_STYLES: Record<string, { bg: string; text: string; border: string; dot: string; label: string; icon: typeof GraduationCap }> = {
+  instructor:     { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#2563EB", label: "Instructor",     icon: GraduationCap },
+  aprendiz:       { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "Aprendiz",       icon: BookOpen },
+  administrativo: { bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE", dot: "#8B5CF6", label: "Administrativo", icon: Briefcase },
+  coordinador:    { bg: "#ECFEFF", text: "#0E7490", border: "#A5F3FC", dot: "#0891B2", label: "Coordinador",    icon: UserCog },
+  visitante:      { bg: "#F1F5F9", text: "#475569", border: "#CBD5E1", dot: "#64748B", label: "Visitante",      icon: Contact },
 };
+
+export const TIPOS_CONDUCTOR = ["aprendiz", "instructor", "administrativo", "coordinador", "visitante"] as const;
+
+export const getTipoStyle = (tipo: string) => TIPO_CONDUCTOR_STYLES[tipo] ?? TIPO_CONDUCTOR_STYLES.aprendiz;
 
 export const getTipoVehiculoStyle = (tipo: "carro" | "moto") => {
   if (tipo === "carro") {
@@ -60,8 +69,6 @@ export const sanitizeText = (text: string): string => {
   return element.innerHTML;
 };
 
-export const PLACA_REGEX = /^[A-Z0-9]{5,8}$/;
-
 export const inputStyle: React.CSSProperties = {
   width: "100%",
   padding: "9px 14px",
@@ -81,7 +88,7 @@ export const inputErrorStyle: React.CSSProperties = {
 
 export interface FormState {
   usuarioId: string;
-  tipoConductor: "aprendiz" | "instructor";
+  tipoConductor: "aprendiz" | "instructor" | "administrativo" | "coordinador" | "visitante";
   centroFormacion: string;
   discapacidad: boolean;
   tipoDiscapacidad: string;

@@ -1,4 +1,4 @@
-import { Pencil, Car, Building2, Accessibility } from "lucide-react";
+import { Pencil, Car, Building2, Accessibility, Eye } from "lucide-react";
 import type { Conductor, Usuario, Vehiculo } from "../../context/DataContext";
 import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "./helpers";
 
@@ -8,12 +8,13 @@ interface ConductoresGridProps {
   getVehiculosConductor: (id: string) => Vehiculo[];
   onToggleEstado: (id: string, estado: "activo" | "inactivo") => void;
   onViewVehiculo: (v: Vehiculo) => void;
+  onViewDetail: (c: Conductor) => void;
   onEdit: (c: Conductor) => void;
 }
 
 export function ConductoresGrid({
   conductores, getUsuario, getVehiculosConductor,
-  onToggleEstado, onViewVehiculo, onEdit,
+  onToggleEstado, onViewVehiculo, onViewDetail, onEdit,
 }: ConductoresGridProps) {
   return (
     <div className="conductores-grid">
@@ -133,6 +134,14 @@ export function ConductoresGrid({
                 {vehiculosCond.length} vehículo{vehiculosCond.length !== 1 ? "s" : ""}
               </span>
               <div style={{ display: "flex", gap: 2 }}>
+                <button
+                  className="action-btn"
+                  title="Ver detalles"
+                  onClick={() => onViewDetail(conductor)}
+                  aria-label={`Ver detalles de ${sanitizeText(conductor.nombre)}`}
+                >
+                  <Eye size={14} />
+                </button>
                 <button
                   className="action-btn"
                   title="Editar"

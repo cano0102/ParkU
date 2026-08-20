@@ -4,13 +4,14 @@ import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { useData, Conductor, Vehiculo } from "../../context/DataContext";
 import { Modal } from "../../components/shared";
-import { COLORS, PLACA_REGEX, sanitizeText, emptyForm, FormState, FormErrors } from "./helpers";
+import { COLORS, sanitizeText, emptyForm, FormState, FormErrors, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "./helpers";
 import { ConductoresStats } from "./ConductoresStats";
 import { ConductoresToolbar } from "./ConductoresToolbar";
 import { ConductoresGrid } from "./ConductoresGrid";
 import { ConductoresList } from "./ConductoresList";
 import { ConductoresPagination } from "./ConductoresPagination";
 import { ConductorFormModal } from "./ConductorFormModal";
+import { ConductorDetailModal } from "./ConductorDetailModal";
 import { VehiculoView } from "./VehiculoView";
 import { conductoresStyles } from "./styles";
 
@@ -27,9 +28,11 @@ export function Conductores() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewVehiculoOpen, setViewVehiculoOpen] = useState(false);
+  const [viewDetailOpen, setViewDetailOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
   const [editingVehiculoId, setEditingVehiculoId] = useState<string | null>(null);
   const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
+  const [viewingConductor, setViewingConductor] = useState<Conductor | null>(null);
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [filterTipo, setFilterTipo] = useState("todos");
@@ -159,6 +162,11 @@ export function Conductores() {
     setViewVehiculoOpen(true);
   }, []);
 
+  const openConductorDetail = useCallback((conductor: Conductor) => {
+    setViewingConductor(conductor);
+    setViewDetailOpen(true);
+  }, []);
+
   // Placas ya registradas en otros vehículos (para evitar duplicados), excluyendo el vehículo puntual en edición
   // (no todos los vehículos del conductor, ya que un conductor puede tener varios)
   const placasOcupadas = useMemo(() => {
@@ -183,8 +191,11 @@ export function Conductores() {
     const placa = data.placa.trim().toUpperCase();
     if (!placa) {
       errors.placa = "La placa es obligatoria";
-    } else if (!PLACA_REGEX.test(placa)) {
-      errors.placa = "Formato de placa inválido (ej: ABC123)";
+    } else if (!validarPlacaColombiana(placa)) {
+      errors.placa = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
+    } else if (!validarPlacaPorTipo(placa, data.tipoVehiculo)) {
+      const tipoDetectado = tipoVehiculoDesdePlaca(placa);
+      errors.placa = `Seleccionaste "${data.tipoVehiculo}", pero la placa tiene formato de ${tipoDetectado}.`;
     } else if (placasOcupadas.has(placa)) {
       errors.placa = "Esta placa ya está registrada en otro vehículo";
     }
@@ -383,6 +394,7 @@ export function Conductores() {
                 getVehiculosConductor={getVehiculosConductor}
                 onToggleEstado={handleToggleEstado}
                 onViewVehiculo={openVehiculoView}
+                onViewDetail={openConductorDetail}
                 onEdit={openEdit}
               />
             ) : (
@@ -392,6 +404,7 @@ export function Conductores() {
                 getVehiculosConductor={getVehiculosConductor}
                 onToggleEstado={handleToggleEstado}
                 onViewVehiculo={openVehiculoView}
+                onViewDetail={openConductorDetail}
                 onEdit={openEdit}
               />
             )}
@@ -445,6 +458,26 @@ export function Conductores() {
               }
             }}
             onClose={() => setViewVehiculoOpen(false)}
+          />
+        )}
+      </Modal>
+
+      {/* Modal de detalle de conductor */}
+      <Modal open={viewDetailOpen} onClose={() => setViewDetailOpen(false)} maxWidth={450}>
+        {viewingConductor && (
+          <ConductorDetailModal
+            conductor={viewingConductor}
+            usuario={getUsuario(viewingConductor.usuarioId)}
+            vehiculos={getVehiculosConductor(viewingConductor.id)}
+            onEdit={() => {
+              setViewDetailOpen(false);
+              openEdit(viewingConductor);
+            }}
+            onViewVehiculo={(v) => {
+              setViewDetailOpen(false);
+              openVehiculoView(v);
+            }}
+            onClose={() => setViewDetailOpen(false)}
           />
         )}
       </Modal>

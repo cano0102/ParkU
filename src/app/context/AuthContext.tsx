@@ -144,7 +144,7 @@ export function AuthProvider({
 
   // REGISTRO
   // Crea el usuario en la misma colección que gestiona la pantalla "Usuarios"
-  // (mismos datos), con el rol "Usuario" (acceso básico), y lo deja logueado.
+  // (mismos datos), con el rol "Usuario Normal" (acceso básico), y lo deja logueado.
   const register = async (data: {
     correo: string;
     password: string;
@@ -176,7 +176,7 @@ export function AuthProvider({
       password: data.password,
       nombre,
       numero,
-      rol: 'Usuario',
+      rol: 'Usuario Normal',
       tipoDocumento: data.tipoDocumento,
       identificacion: identificacionNormalizada,
       estado: 'activo',
@@ -187,7 +187,7 @@ export function AuthProvider({
       correo: correoNormalizado,
       nombre,
       numero,
-      rol: 'Usuario',
+      rol: 'Usuario Normal',
     };
 
     setUser(loggedUser);
@@ -208,7 +208,7 @@ export function AuthProvider({
       correo: userData.email,
       nombre: userData.displayName || 'Usuario',
       numero: userData.phoneNumber || '',
-      rol: 'Usuario'
+      rol: 'Usuario Normal'
     };
 
     setUser(googleUser);

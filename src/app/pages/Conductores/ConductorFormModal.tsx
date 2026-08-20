@@ -1,7 +1,7 @@
 import { AlertCircle, Car, Mail, ShieldCheck, Sparkles, X } from "lucide-react";
 import type { Usuario } from "../../context/DataContext";
 import { FormField } from "../../components/shared";
-import { COLORS, getAvatarGradient, getInitials, inputStyle, inputErrorStyle, FormState, FormErrors } from "./helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoStyle, TIPOS_CONDUCTOR, inputStyle, inputErrorStyle, FormState, FormErrors } from "./helpers";
 
 interface ConductorFormModalProps {
   isEdit: boolean;
@@ -222,33 +222,17 @@ export function ConductorFormModal({
 
             <div style={{ display: "grid", gridTemplateColumns: isEdit ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
               <FormField label="Tipo de conductor">
-                <div style={{ display: "flex", gap: 8 }}>
-                  {(["aprendiz", "instructor"] as const).map((tipo) => {
-                    const isSelected = formData.tipoConductor === tipo;
-                    return (
-                      <button
-                        key={tipo}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, tipoConductor: tipo })}
-                        style={{
-                          flex: 1,
-                          padding: "10px",
-                          borderRadius: 11,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
-                          border: isSelected ? "1px solid transparent" : `1px solid ${COLORS.border}`,
-                          background: isSelected ? "rgba(57,169,0,.1)" : COLORS.bg,
-                          color: isSelected ? COLORS.primaryDark : COLORS.textLight,
-                          textTransform: "capitalize",
-                        }}
-                      >
-                        {tipo}
-                      </button>
-                    );
-                  })}
-                </div>
+                <select
+                  value={formData.tipoConductor}
+                  onChange={(e) => setFormData({ ...formData, tipoConductor: e.target.value as FormState["tipoConductor"] })}
+                  style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+                >
+                  {TIPOS_CONDUCTOR.map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {getTipoStyle(tipo).label}
+                    </option>
+                  ))}
+                </select>
               </FormField>
 
               <FormField

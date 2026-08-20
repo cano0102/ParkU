@@ -112,14 +112,15 @@ export const SPACE_W=60,SPACE_H=42,GAP_X=7,ROW_GAP=10,LANE_H=46,PADDING=50,
    UTILS
 ============================================================ */
 /* Placas colombianas — formatos vigentes (Resolución RUNT):
-   · Automóviles / camperos / camionetas / servicio público: 3 letras + 3 números  → ABC123
-   · Motocicletas: 3 letras + 2 números + 1 letra final                            → ABC12D
-   Ambos formatos tienen siempre 6 caracteres; se validan por separado para poder
-   detectar el tipo de vehículo a partir de la placa y para poder exigir que la
-   placa capturada coincida con el tipo de celda (carro/moto) donde se registra. */
+   · Automóviles / camperos / camionetas / servicio público: 3 letras + 3 números  → ABC123 (6 caracteres)
+   · Motocicletas: 3 letras + 2 números + letra final opcional                     → ABC12D (6) o ABC12 (5, formato antiguo/gastado)
+   No todas las motos tienen la letra final vigente: muchas placas antiguas o desgastadas
+   solo muestran 3 letras + 2 números. Se admite ese formato de 5 caracteres para moto sin
+   perder la distinción con carro, ya que una placa de carro siempre tiene 6 caracteres y
+   termina en número, mientras que una placa de moto de 6 caracteres siempre termina en letra. */
 export const PLACA_CARRO_REGEX = /^[A-Z]{3}[0-9]{3}$/;
-export const PLACA_MOTO_REGEX  = /^[A-Z]{3}[0-9]{2}[A-Z]$/;
-export const PLACA_REGEX = /^([A-Z]{3}[0-9]{3}|[A-Z]{3}[0-9]{2}[A-Z])$/;
+export const PLACA_MOTO_REGEX  = /^[A-Z]{3}[0-9]{2}[A-Z]?$/;
+export const PLACA_REGEX = /^([A-Z]{3}[0-9]{3}|[A-Z]{3}[0-9]{2}[A-Z]?)$/;
 
 export const validarPlacaColombiana = (p:string) => PLACA_REGEX.test(p.trim().toUpperCase());
 export const validarPlacaCarro = (p:string) => PLACA_CARRO_REGEX.test(p.trim().toUpperCase());
@@ -167,9 +168,14 @@ const intentarCorregirPlaca=(s:string):string|null=>{
 };
 const intentarTokenComoPlaca=(tok:string)=>{
   const l=tok.toUpperCase().replace(/[^A-Z0-9]/g,"");
-  if(l.length!==6) return null;
-  if(PLACA_REGEX.test(l)) return l;
-  return intentarCorregirPlaca(l);
+  if(l.length===6){
+    if(PLACA_REGEX.test(l)) return l;
+    return intentarCorregirPlaca(l);
+  }
+  // Moto sin letra final (formato antiguo/desgastado): solo se valida tal cual,
+  // sin intentar corrección de caracteres ambiguos (serían 5 posiciones, no 6).
+  if(l.length===5 && PLACA_MOTO_REGEX.test(l)) return l;
+  return null;
 };
 export const limpiarTextoOCR=(raw:string)=>{
   const tokens=raw.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);

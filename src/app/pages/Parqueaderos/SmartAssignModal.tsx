@@ -65,7 +65,7 @@ export const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onA
   const conductorOk = validarNombreConductor(conductor);
   const valid = placaOk && conductorOk && recomendacion !== null;
   const placaErrorMsg = tocado && placa.trim() && !placaOk
-    ? `Formato inválido para ${tipoVehiculo === "moto" ? "moto (ej. ABC12D)" : "carro (ej. ABC123)"}.`
+    ? `Formato inválido para ${tipoVehiculo === "moto" ? "moto (ej. ABC12D o ABC12)" : "carro (ej. ABC123)"}.`
     : null;
   const conductorErrorMsg = tocado && conductor.trim() && !conductorOk
     ? "Ingresa nombre y apellido del conductor."
@@ -91,7 +91,7 @@ export const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onA
           </div>
           {placaErrorMsg
             ? <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{placaErrorMsg}</p>
-            : <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Formato {tipoVehiculo === "moto" ? "moto: 3 letras + 2 números + 1 letra (ABC12D)" : "carro: 3 letras + 3 números (ABC123)"}</p>}
+            : <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Formato {tipoVehiculo === "moto" ? "moto: 3 letras + 2 números + letra final opcional (ABC12D o ABC12)" : "carro: 3 letras + 3 números (ABC123)"}</p>}
         </div>
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre Conductor *</label>

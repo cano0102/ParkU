@@ -72,7 +72,7 @@ export interface Conductor {
   id: string;
   usuarioId: string;
   nombre: string;
-  tipoConductor: 'aprendiz' | 'instructor';
+  tipoConductor: 'aprendiz' | 'instructor' | 'administrativo' | 'coordinador' | 'visitante';
   centroFormacion: string;
   discapacidad: boolean;
   tipoDiscapacidad?: string;
@@ -228,7 +228,7 @@ const initialRoles: Rol[] = [
     estado: 'activo'
   },
   {
-    id: '3', nombre: 'Usuario', descripcion: 'Acceso básico',
+    id: '3', nombre: 'Usuario Normal', descripcion: 'Acceso básico (rol por defecto para quien se registra por su cuenta)',
     permisos: { dashboard: true, roles: false, usuarios: false, conductores: false, vehiculos: false, parqueaderos: false, celdas: false, asignaciones: false, entradaSalida: false, reservas: true, incidentes: false, reconocimientoPlacas: false },
     estado: 'activo'
   },
@@ -259,7 +259,7 @@ const initialUsuarios: Usuario[] = [
     id: '3', correo: 'pedro.ruiz@sena.edu.co', password: 'Pass1234', nombre: 'Pedro Ruiz G.', numero: '3103456789', rol: 'Vigilante', tipoDocumento: 'CC', identificacion: '3456789012', estado: 'activo'
   },
   {
-    id: '4', correo: 'maria.diaz@ext.com', password: 'Pass1234', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '4567890123', estado: 'activo'
+    id: '4', correo: 'maria.diaz@ext.com', password: 'Pass1234', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Usuario Normal', tipoDocumento: 'CC', identificacion: '4567890123', estado: 'activo'
   },
   {
     id: '5', correo: 'jorge.silva@sena.edu.co', password: 'Pass1234', nombre: 'Jorge Silva T.', numero: '3105678901', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '5678901234', estado: 'activo'
@@ -271,13 +271,13 @@ const initialUsuarios: Usuario[] = [
     id: '7', correo: 'diego.herrera@sena.edu.co', password: 'Pass1234', nombre: 'Diego Herrera F.', numero: '3107890123', rol: 'Vigilante', tipoDocumento: 'CC', identificacion: '7890123456', estado: 'activo'
   },
   {
-    id: '8', correo: 'sofia.castillo@ext.com', password: 'Pass1234', nombre: 'Sofía Castillo', numero: '3108901234', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '8901234567', estado: 'activo'
+    id: '8', correo: 'sofia.castillo@ext.com', password: 'Pass1234', nombre: 'Sofía Castillo', numero: '3108901234', rol: 'Usuario Normal', tipoDocumento: 'CC', identificacion: '8901234567', estado: 'activo'
   },
   {
     id: '9', correo: 'andres.morales@sena.edu.co', password: 'Pass1234', nombre: 'Andrés Morales', numero: '3109012345', rol: 'Administrador', tipoDocumento: 'CC', identificacion: '9012345678', estado: 'activo'
   },
   {
-    id: '10', correo: 'camila.rodriguez@sena.edu.co', password: 'Pass1234', nombre: 'Camila Rodríguez', numero: '3100123456', rol: 'Usuario', tipoDocumento: 'CC', identificacion: '0123456789', estado: 'activo'
+    id: '10', correo: 'camila.rodriguez@sena.edu.co', password: 'Pass1234', nombre: 'Camila Rodríguez', numero: '3100123456', rol: 'Usuario Normal', tipoDocumento: 'CC', identificacion: '0123456789', estado: 'activo'
   }
 ];
 

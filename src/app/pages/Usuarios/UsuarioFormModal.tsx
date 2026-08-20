@@ -25,11 +25,13 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
   const [showPass, setShowPass] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
+  const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
   const isEdit = title.startsWith("Editar");
 
   useEffect(() => {
     setForm(initial);
     setErrors({});
+    setTouched({});
   }, [initial]);
 
   // Solo se muestran roles activos en el selector (corrección: no mostrar roles desactivados)
@@ -38,16 +40,16 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
     [roles]
   );
 
+  // Los errores se recalculan en tiempo real vía el `useEffect` sobre `form` (ver más abajo),
+  // así que aquí solo hace falta actualizar el valor del campo.
   const set = useCallback((k: keyof FormState, v: string) => {
     setForm((f) => ({ ...f, [k]: v }));
-    setErrors((e) => ({ ...e, [k]: undefined }));
   }, []);
 
   // Teléfono: solo permite dígitos, espacios, paréntesis, guiones y "+"
   const setTelefono = useCallback((raw: string) => {
     const filtrado = raw.replace(/[^0-9()+\-\s]/g, "");
     setForm((f) => ({ ...f, numero: filtrado }));
-    setErrors((e) => ({ ...e, numero: undefined }));
   }, []);
 
   // Maneja los datos obtenidos del QR
@@ -83,6 +85,14 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
     const nombre = f.nombre.trim();
     const correo = f.correo.trim();
     const numero = f.numero.trim();
+    const identificacion = f.identificacion.trim();
+
+    // Número de identificación: obligatorio, solo dígitos (ya filtrados en el input), longitud mínima
+    if (!identificacion) {
+      nextErrors.identificacion = "El número de identificación es obligatorio";
+    } else if (identificacion.length < 6) {
+      nextErrors.identificacion = "Debe tener al menos 6 dígitos";
+    }
 
     // Nombre completo: longitud mínima y máxima
     if (!nombre) {
@@ -120,13 +130,26 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
     return nextErrors;
   }, [isEdit]);
 
+  // Validación en tiempo real: recalcula los errores en cada cambio del formulario;
+  // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
+  useEffect(() => {
+    setErrors(validate(form));
+  }, [form, validate]);
+
+  const markTouched = useCallback((k: keyof FormState) => {
+    setTouched((t) => ({ ...t, [k]: true }));
+  }, []);
+
+  const err = useCallback((k: keyof FormState) => (touched[k] ? errors[k] : undefined), [touched, errors]);
+
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
 
       const nextErrors = validate(form);
+      setErrors(nextErrors);
+      setTouched({ identificacion: true, nombre: true, correo: true, numero: true, rol: true, password: true });
       if (Object.keys(nextErrors).length > 0) {
-        setErrors(nextErrors);
         toast.error("Revisa los campos marcados en rojo");
         return;
       }
@@ -243,7 +266,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                   <option value="PPTE">Cédula de Extranjera (PPTE)</option>
                 </select>
               </FormField>
-              <FormField label="Número de identificación">
+              <FormField label="Número de identificación" error={err("identificacion")}>
                 <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
                   <IdCard
                     size={14}
@@ -259,8 +282,9 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                   <input
                     placeholder="ej. 1001234567"
                     value={form.identificacion}
-                    onChange={(e) => set("identificacion", e.target.value.replace(/[^0-9A-Za-z]/g, ""))}
-                    style={{ ...inputIconStyle, paddingRight: 40 }}
+                    onChange={(e) => set("identificacion", e.target.value.replace(/[^0-9]/g, ""))}
+                    onBlur={() => markTouched("identificacion")}
+                    style={{ ...(err("identificacion") ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle), paddingRight: 40 }}
                   />
                   <button
                     type="button"
@@ -318,17 +342,18 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
               </p>
             </div>
             <div style={{ padding: "1rem 1.2rem", display: "flex", flexDirection: "column", gap: 10 }}>
-              <FormField label="Nombre completo" hint={`${form.nombre.trim().length}/${NOMBRE_MAX}`} error={errors.nombre}>
+              <FormField label="Nombre completo" hint={`${form.nombre.trim().length}/${NOMBRE_MAX}`} error={err("nombre")}>
                 <input
                   placeholder="ej. María García López"
                   value={form.nombre}
                   maxLength={NOMBRE_MAX}
                   onChange={(e) => set("nombre", e.target.value)}
-                  style={errors.nombre ? { ...inputStyle, ...inputErrorStyle } : inputStyle}
+                  onBlur={() => markTouched("nombre")}
+                  style={err("nombre") ? { ...inputStyle, ...inputErrorStyle } : inputStyle}
                 />
               </FormField>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <FormField label="Correo electrónico" error={errors.correo}>
+                <FormField label="Correo electrónico" error={err("correo")}>
                   <div style={{ position: "relative" }}>
                     <Mail
                       size={14}
@@ -345,11 +370,12 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                       placeholder="correo@sena.edu.co"
                       value={form.correo}
                       onChange={(e) => set("correo", e.target.value)}
-                      style={errors.correo ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
+                      onBlur={() => markTouched("correo")}
+                      style={err("correo") ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
                     />
                   </div>
                 </FormField>
-                <FormField label="Teléfono" error={errors.numero}>
+                <FormField label="Teléfono" error={err("numero")}>
                   <div style={{ position: "relative" }}>
                     <Phone
                       size={14}
@@ -368,7 +394,8 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                       value={form.numero}
                       maxLength={15}
                       onChange={(e) => setTelefono(e.target.value)}
-                      style={errors.numero ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
+                      onBlur={() => markTouched("numero")}
+                      style={err("numero") ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
                     />
                   </div>
                 </FormField>
@@ -406,7 +433,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
               <FormField
                 label="Contraseña"
                 hint={isEdit ? "vacío = sin cambios" : `mín. ${PASSWORD_MIN} caracteres`}
-                error={errors.password}
+                error={err("password")}
               >
                 <div style={{ position: "relative" }}>
                   <KeyRound
@@ -425,8 +452,9 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                     value={form.password}
                     maxLength={PASSWORD_MAX}
                     onChange={(e) => set("password", e.target.value)}
+                    onBlur={() => markTouched("password")}
                     style={
-                      errors.password
+                      err("password")
                         ? { ...inputIconStyle, ...inputErrorStyle, paddingRight: 38 }
                         : { ...inputIconStyle, paddingRight: 38 }
                     }
@@ -453,12 +481,12 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                 </div>
               </FormField>
 
-              <FormField label="Rol del sistema" error={errors.rol}>
+              <FormField label="Rol del sistema" error={err("rol")}>
                 <select
                   value={form.rol}
-                  onChange={(e) => set("rol", e.target.value)}
+                  onChange={(e) => { set("rol", e.target.value); markTouched("rol"); }}
                   style={
-                    errors.rol
+                    err("rol")
                       ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" }
                       : { ...inputStyle, appearance: "none", cursor: "pointer" }
                   }

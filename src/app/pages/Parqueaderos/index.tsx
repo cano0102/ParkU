@@ -407,7 +407,7 @@ export default function Parqueaderos() {
     const placa = placaRaw.trim().toUpperCase();
     const conductorNombre = normalizarTexto(conductorRaw, 60);
     if (!placa || !conductorNombre) { setPlacaError("Completa todos los campos."); return false; }
-    if (!validarPlacaColombiana(placa)) { setPlacaError("Formato de placa inválido. Usa ABC123 (carro) o ABC12D (moto)."); return false; }
+    if (!validarPlacaColombiana(placa)) { setPlacaError("Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto)."); return false; }
     // Un conductor ya registrado en el módulo Conductores es válido de por sí, aunque su
     // nombre no cumpla el formato "nombre apellido" del validador genérico (p. ej. "Carlos
     // López M.", con inicial abreviada). El validador de formato solo aplica a nombres nuevos.
@@ -422,7 +422,7 @@ export default function Parqueaderos() {
     if (pq && pq.estado !== "activo") { setPlacaError("Este parqueadero está inactivo y no acepta nuevos registros."); return false; }
 
     const tipoPlaca = tipoVehiculoDesdePlaca(placa);
-    if (celda.tipo === "carro" && tipoPlaca !== "carro") { setPlacaError("Esta celda es para automóviles. La placa ingresada tiene formato de moto (ABC12D)."); return false; }
+    if (celda.tipo === "carro" && tipoPlaca !== "carro") { setPlacaError("Esta celda es para automóviles. La placa ingresada tiene formato de moto (ABC12D / ABC12)."); return false; }
     if (celda.tipo === "moto" && tipoPlaca !== "moto") { setPlacaError("Esta celda es para motocicletas. La placa ingresada tiene formato de carro (ABC123)."); return false; }
 
     const yaActivo = controlesSalida.some(cs => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find(v => v.id === cs.vehiculoId)?.placa === placa);
@@ -662,9 +662,9 @@ export default function Parqueaderos() {
   const parqueaderoIngresoActivo = parqueaderoActivo?.estado === "activo";
   const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo;
   const ingresoPlacaHint = celdaActiva
-    ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + 1 letra (ABC12D)"
+    ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + letra final opcional (ABC12D o ABC12)"
       : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
-      : "Formato: ABC123 (carro) o ABC12D (moto)")
+      : "Formato: ABC123 (carro) o ABC12D / ABC12 (moto)")
     : "";
 
   return (

@@ -1,4 +1,4 @@
-import { Pencil, Building2 } from "lucide-react";
+import { Pencil, Building2, Eye } from "lucide-react";
 import type { Conductor, Usuario, Vehiculo } from "../../context/DataContext";
 import { COLORS, getAvatarGradient, getInitials, getTipoStyle, sanitizeText } from "./helpers";
 
@@ -8,12 +8,13 @@ interface ConductoresListProps {
   getVehiculosConductor: (id: string) => Vehiculo[];
   onToggleEstado: (id: string, estado: "activo" | "inactivo") => void;
   onViewVehiculo: (v: Vehiculo) => void;
+  onViewDetail: (c: Conductor) => void;
   onEdit: (c: Conductor) => void;
 }
 
 export function ConductoresList({
   conductores, getUsuario, getVehiculosConductor,
-  onToggleEstado, onViewVehiculo, onEdit,
+  onToggleEstado, onViewVehiculo, onViewDetail, onEdit,
 }: ConductoresListProps) {
   return (
     <div className="conductores-list">
@@ -171,6 +172,20 @@ export function ConductoresList({
             </div>
 
             <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+              <button
+                title="Ver detalles"
+                onClick={() => onViewDetail(conductor)}
+                className="action-btn"
+                style={{
+                  width: 26,
+                  height: 26,
+                  border: `1px solid ${COLORS.border}`,
+                  background: COLORS.bg,
+                }}
+                aria-label="Ver detalles"
+              >
+                <Eye size={12} />
+              </button>
               <button
                 title="Editar"
                 onClick={() => onEdit(conductor)}

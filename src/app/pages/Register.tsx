@@ -85,10 +85,10 @@ export function Register() {
   const navigate = useNavigate();
   const visible = useAnimated();
   const { register } = useAuth();
-  const nombreInputRef = useRef<HTMLInputElement>(null);
+  const primerCampoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    nombreInputRef.current?.focus();
+    primerCampoRef.current?.focus();
   }, []);
 
   const set = (field: keyof FormState, value: string | boolean) => {
@@ -101,7 +101,7 @@ export function Register() {
   };
 
   const setIdentificacion = (raw: string) => {
-    set("identificacion", raw.replace(/[^0-9A-Za-z]/g, ""));
+    set("identificacion", raw.replace(/[^0-9]/g, ""));
   };
 
   const validate = (f: FormState): ValidationErrors => {
@@ -133,6 +133,8 @@ export function Register() {
 
     if (!identificacion) {
       nextErrors.identificacion = "El número de identificación es obligatorio";
+    } else if (identificacion.length < 6) {
+      nextErrors.identificacion = "El número de identificación debe tener al menos 6 dígitos";
     }
 
     if (!f.password) {
@@ -556,6 +558,72 @@ export function Register() {
               </div>
 
               <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
+                {/* Tipo y número de documento (primero: se usan para identificar al aprendiz/docente antes que sus datos de contacto) */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 10 }}>
+                  <div>
+                    <label htmlFor="register-tipo-doc" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
+                      Documento
+                    </label>
+                    <select
+                      id="register-tipo-doc"
+                      value={form.tipoDocumento}
+                      onChange={(e) => set("tipoDocumento", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "13px 12px",
+                        borderRadius: 12,
+                        border: `1px solid ${COLORS.border}`,
+                        background: "#fff",
+                        fontSize: 14,
+                        outline: "none",
+                        cursor: "pointer",
+                        appearance: "none",
+                      }}
+                    >
+                      <option value="CC">CC</option>
+                      <option value="TI">TI</option>
+                      <option value="CE">CE</option>
+                      <option value="PPTE">PPTE</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="register-identificacion" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
+                      N.º de identificación
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <IdCard size={16} color={COLORS.textLight} style={{ position: "absolute", top: "50%", left: 14, transform: "translateY(-50%)", pointerEvents: "none" }} />
+                      <input
+                        id="register-identificacion"
+                        ref={primerCampoRef}
+                        type="text"
+                        inputMode="numeric"
+                        value={form.identificacion}
+                        onChange={(e) => setIdentificacion(e.target.value)}
+                        onBlur={() => handleBlur("identificacion")}
+                        placeholder="1001234567"
+                        className={err("identificacion") ? "input-error" : ""}
+                        aria-invalid={!!err("identificacion")}
+                        style={{
+                          width: "100%",
+                          padding: "13px 14px 13px 38px",
+                          borderRadius: 12,
+                          border: `1px solid ${err("identificacion") ? COLORS.danger : COLORS.border}`,
+                          background: "#fff",
+                          fontSize: 14,
+                          outline: "none",
+                          transition: "border-color .2s",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+                {err("identificacion") && (
+                  <p role="alert" style={{ marginTop: -6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                    <AlertCircle size={13} />
+                    {errors.identificacion}
+                  </p>
+                )}
+
                 {/* Nombre completo */}
                 <div>
                   <label htmlFor="register-nombre" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
@@ -565,7 +633,6 @@ export function Register() {
                     <User size={16} color={COLORS.textLight} style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", pointerEvents: "none" }} />
                     <input
                       id="register-nombre"
-                      ref={nombreInputRef}
                       type="text"
                       autoComplete="name"
                       value={form.nombre}
@@ -668,71 +735,6 @@ export function Register() {
                     </p>
                   )}
                 </div>
-
-                {/* Tipo y número de documento */}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 10 }}>
-                  <div>
-                    <label htmlFor="register-tipo-doc" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
-                      Documento
-                    </label>
-                    <select
-                      id="register-tipo-doc"
-                      value={form.tipoDocumento}
-                      onChange={(e) => set("tipoDocumento", e.target.value)}
-                      style={{
-                        width: "100%",
-                        padding: "13px 12px",
-                        borderRadius: 12,
-                        border: `1px solid ${COLORS.border}`,
-                        background: "#fff",
-                        fontSize: 14,
-                        outline: "none",
-                        cursor: "pointer",
-                        appearance: "none",
-                      }}
-                    >
-                      <option value="CC">CC</option>
-                      <option value="TI">TI</option>
-                      <option value="CE">CE</option>
-                      <option value="PPTE">PPTE</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label htmlFor="register-identificacion" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
-                      N.º de identificación
-                    </label>
-                    <div style={{ position: "relative" }}>
-                      <IdCard size={16} color={COLORS.textLight} style={{ position: "absolute", top: "50%", left: 14, transform: "translateY(-50%)", pointerEvents: "none" }} />
-                      <input
-                        id="register-identificacion"
-                        type="text"
-                        inputMode="numeric"
-                        value={form.identificacion}
-                        onChange={(e) => setIdentificacion(e.target.value)}
-                        onBlur={() => handleBlur("identificacion")}
-                        placeholder="1001234567"
-                        className={err("identificacion") ? "input-error" : ""}
-                        aria-invalid={!!err("identificacion")}
-                        style={{
-                          width: "100%",
-                          padding: "13px 14px 13px 38px",
-                          borderRadius: 12,
-                          border: `1px solid ${err("identificacion") ? COLORS.danger : COLORS.border}`,
-                          background: "#fff",
-                          fontSize: 14,
-                          outline: "none",
-                          transition: "border-color .2s",
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-                {err("identificacion") && (
-                  <p role="alert" style={{ marginTop: -6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-                    <AlertCircle size={13} />
-                    {errors.identificacion}
-                  </p>
-                )}
 
                 {/* Contraseña */}
                 <div>
