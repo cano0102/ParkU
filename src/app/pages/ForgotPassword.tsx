@@ -7,11 +7,14 @@ import {
   ShieldCheck,
   BadgeCheck,
   AlertCircle,
+  Link2,
+  Copy,
 } from "lucide-react";
 
 import { toast } from "sonner";
 import { theme } from "../theme";
 import { useData } from "../context/DataContext";
+import { useAuth } from "../context/AuthContext";
 import logoSena from "../../styles/images/logoSena.png";
 
 const COLORS = theme;
@@ -25,9 +28,11 @@ export function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const [resetLink, setResetLink] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string }>({});
   const navigate = useNavigate();
   const { usuarios } = useData();
+  const { requestPasswordReset } = useAuth();
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string } = {};
@@ -64,12 +69,22 @@ export function ForgotPassword() {
 
     setLoading(true);
 
-    // Simulación de envío
+    // Sin servidor de correo propio, el "envío" se simula: se genera un
+    // enlace de recuperación real (token de un solo uso, 30 min de validez)
+    // y se muestra directamente en pantalla en vez de despacharlo a un correo.
     setTimeout(() => {
+      const token = requestPasswordReset(email);
       setLoading(false);
+
+      if (!token) {
+        toast.error("No se pudo generar el enlace. Intenta de nuevo.");
+        return;
+      }
+
+      setResetLink(`${window.location.origin}/reset-password?token=${token}`);
       setEmailSent(true);
-      toast.success("Enlace de recuperación enviado");
-    }, 1500);
+      toast.success("Enlace de recuperación generado");
+    }, 700);
   };
 
   // Manejar cambios en el email con validación en tiempo real
@@ -311,7 +326,7 @@ export function ForgotPassword() {
                   }}
                 >
                   Recupera el acceso a tu cuenta institucional de ParkU mediante
-                  un enlace seguro enviado a tu correo electrónico.
+                  un enlace de recuperación seguro y de un solo uso.
                 </p>
 
                 {/* FEATURES */}
@@ -431,7 +446,7 @@ export function ForgotPassword() {
                         fontSize: 13,
                       }}
                     >
-                      Ingresa tu correo institucional y te enviaremos un enlace
+                      Ingresa tu correo institucional y genera un enlace
                       para recuperar tu acceso.
                     </p>
                   </div>
@@ -533,8 +548,8 @@ export function ForgotPassword() {
                           fontWeight: 500,
                         }}
                       >
-                        Se enviará un enlace de recuperación a tu correo. El
-                        enlace será válido por 24 horas.
+                        Se generará un enlace de recuperación de un solo uso,
+                        válido por 30 minutos.
                       </p>
                     </div>
 
@@ -554,7 +569,7 @@ export function ForgotPassword() {
                         boxShadow: "0 8px 22px rgba(57,169,0,.2)",
                       }}
                     >
-                      {loading ? "Enviando..." : "Enviar Enlace"}
+                      {loading ? "Generando..." : "Generar Enlace"}
                     </button>
 
                     {/* BACK */}
@@ -619,9 +634,9 @@ export function ForgotPassword() {
                       lineHeight: 1,
                     }}
                   >
-                    Correo
+                    Enlace
                     <br />
-                    enviado
+                    generado
                   </h2>
 
                   <p
@@ -632,24 +647,57 @@ export function ForgotPassword() {
                       marginBottom: "1rem",
                     }}
                   >
-                    Hemos enviado un enlace de recuperación a:
+                    Cuenta: <strong style={{ color: COLORS.text }}>{email}</strong>. Como
+                    ParkU no tiene un servidor de correo propio, el enlace de recuperación
+                    se genera y se muestra aquí directamente.
                   </p>
 
-                  <div
-                    style={{
-                      background: "#F8FAFC",
-                      border: `1px solid ${COLORS.border}`,
-                      padding: "14px 16px",
-                      borderRadius: 12,
-                      fontWeight: 700,
-                      fontSize: 13,
-                      color: COLORS.text,
-                      marginBottom: "1rem",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {email}
-                  </div>
+                  {resetLink && (
+                    <div
+                      style={{
+                        background: "#F8FAFC",
+                        border: `1px solid ${COLORS.border}`,
+                        padding: "12px 14px",
+                        borderRadius: 12,
+                        marginBottom: "1rem",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <span
+                        style={{
+                          flex: 1,
+                          fontSize: 11,
+                          fontFamily: "monospace",
+                          color: COLORS.text,
+                          wordBreak: "break-all",
+                          textAlign: "left",
+                        }}
+                      >
+                        {resetLink}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(resetLink);
+                          toast.success("Enlace copiado");
+                        }}
+                        title="Copiar enlace"
+                        style={{
+                          flexShrink: 0,
+                          border: `1px solid ${COLORS.border}`,
+                          background: "#fff",
+                          borderRadius: 8,
+                          padding: 8,
+                          cursor: "pointer",
+                          display: "flex",
+                        }}
+                      >
+                        <Copy size={14} color={COLORS.textLight} />
+                      </button>
+                    </div>
+                  )}
 
                   <div
                     style={{
@@ -678,29 +726,58 @@ export function ForgotPassword() {
                         fontSize: 13,
                       }}
                     >
-                      <span>• Revisa tu bandeja de entrada</span>
-                      <span>• Verifica spam o promociones</span>
-                      <span>• El enlace expira en 24h</span>
+                      <span>• El enlace es válido por 30 minutos</span>
+                      <span>• Solo puede usarse una vez</span>
+                      <span>• No lo compartas con nadie más</span>
                     </div>
                   </div>
+
+                  {resetLink && (
+                    <Link
+                      to={resetLink.replace(window.location.origin, "")}
+                      style={{ textDecoration: "none" }}
+                    >
+                      <button
+                        style={{
+                          width: "100%",
+                          border: "none",
+                          background: COLORS.primary,
+                          color: "#fff",
+                          padding: "14px 20px",
+                          borderRadius: 14,
+                          fontWeight: 800,
+                          cursor: "pointer",
+                          fontSize: 14,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 8,
+                          boxShadow: "0 8px 22px rgba(57,169,0,.2)",
+                          marginBottom: 10,
+                        }}
+                      >
+                        <Link2 size={15} />
+                        Abrir Enlace de Recuperación
+                      </button>
+                    </Link>
+                  )}
 
                   <Link to="/login" style={{ textDecoration: "none" }}>
                     <button
                       style={{
                         width: "100%",
-                        border: "none",
-                        background: COLORS.primary,
-                        color: "#fff",
+                        border: `1px solid ${COLORS.border}`,
+                        background: "#fff",
+                        color: COLORS.text,
                         padding: "14px 20px",
                         borderRadius: 14,
-                        fontWeight: 800,
+                        fontWeight: 700,
                         cursor: "pointer",
                         fontSize: 14,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 8,
-                        boxShadow: "0 8px 22px rgba(57,169,0,.2)",
                       }}
                     >
                       <ArrowLeft size={15} />

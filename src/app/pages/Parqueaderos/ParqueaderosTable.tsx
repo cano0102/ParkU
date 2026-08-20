@@ -1,5 +1,5 @@
 import React, { memo, useState } from "react";
-import { Car, Eye, Pencil, Trash2, MapPin } from "lucide-react";
+import { Car, Eye, Pencil, MapPin } from "lucide-react";
 import type { Celda, Parqueadero } from "../../context/DataContext";
 import { theme } from "../../theme";
 import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar } from "./helpers";
@@ -9,12 +9,12 @@ const C = theme;
 /* ============================================================
    VISTA TABLA
 ============================================================ */
-export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onDelete, onCellClick, cellMatchesSearch }: {
+export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onToggleEstado, onCellClick, cellMatchesSearch }: {
   parqueaderos: Parqueadero[];
   celdas: Celda[];
   getOcupante: (celdaId: string) => Ocupante | null;
   onEdit: (p: Parqueadero) => void;
-  onDelete: (id: string) => void;
+  onToggleEstado: (p: Parqueadero) => void;
   onCellClick: (c: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
 }) => {
@@ -23,7 +23,7 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
       <div className="pq-table-header">
-        <div>Parqueadero</div><div>Tipo</div><div>Ocupación</div><div>Libres</div><div>Ocupadas</div><div>Reservadas</div><div style={{ textAlign: "right" }}>Acciones</div>
+        <div>Parqueadero</div><div>Tipo</div><div>Ocupación</div><div>Libres</div><div>Ocupadas</div><div>Reservadas</div><div>Estado</div><div style={{ textAlign: "right" }}>Acciones</div>
       </div>
       <div>
         {parqueaderos.length === 0 ? (
@@ -39,6 +39,7 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
           const pct       = celdasPq.length ? Math.round(ocupados / celdasPq.length * 100) : 0;
           const pctColor  = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
           const isExpanded = expandedId === pq.id;
+          const activo = pq.estado === "activo";
 
           // Desglose de celdas libres por tipo de vehículo, para distinguir carro vs moto de un vistazo
           const libresPorTipo = Object.keys(TIPO_CELDA_CONFIG).reduce<Record<string, number>>((acc, tipo) => {
@@ -90,6 +91,23 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                 <div><span className="pq-cell-label">Libres</span><span style={{ fontWeight: 700, color: C.primary }}>{libres}</span></div>
                 <div><span className="pq-cell-label">Ocupadas</span><span style={{ fontWeight: 700, color: C.danger }}>{ocupados}</span></div>
                 <div><span className="pq-cell-label">Reservadas</span><span style={{ fontWeight: 700, color: C.amber }}>{reservas}</span></div>
+                <div>
+                  <span className="pq-cell-label">Estado</span>
+                  <button
+                    onClick={e => { e.stopPropagation(); onToggleEstado(pq); }}
+                    title={activo ? "Desactivar" : "Activar"}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 999,
+                      border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                      letterSpacing: 0.3, background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
+                      color: activo ? "#166534" : "#B91C1C", fontFamily: "inherit",
+                    }}
+                    aria-label={activo ? "Desactivar parqueadero" : "Activar parqueadero"}
+                  >
+                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: activo ? C.primary : "#EF4444" }} />
+                    {pq.estado}
+                  </button>
+                </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                   <button title="Ver celdas" onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : pq.id); }}
                     style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -100,11 +118,6 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                     style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                     <Pencil size={13} />
-                  </button>
-                  <button title="Eliminar" onClick={e => { e.stopPropagation(); onDelete(pq.id); }}
-                    style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.danger, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#FEE2E2")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                    <Trash2 size={13} />
                   </button>
                 </div>
               </div>

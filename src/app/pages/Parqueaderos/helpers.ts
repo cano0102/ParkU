@@ -21,6 +21,9 @@ export interface VehiculoForm {
   placa: string;
   conductor: string;
   esOficial: boolean;
+  marca: string;
+  modelo: string;
+  color: string;
 }
 
 export interface IncidenteForm {
@@ -91,10 +94,10 @@ export const CONDUCTORES_SUGERIDOS = [
 ];
 
 export const PLACAS_DEMO = [
-  { placa:"KLO234", conductor:"Carlos Mario Ruiz",      tipo:"carro", rol:"Docente" },
-  { placa:"MHX75E", conductor:"Liliana Patricia Castro", tipo:"moto",  rol:"Estudiante" },
-  { placa:"SNA012", conductor:"Oficial CEET SENA",       tipo:"carro", rol:"Oficial" },
-  { placa:"VIP789", conductor:"Héctor Fabio Jurado",     tipo:"carro", rol:"Visitante" },
+  { placa:"KLO234", conductor:"Carlos Mario Ruiz",      tipo:"carro", rol:"Docente",    marca:"Chevrolet", modelo:"Spark GT", color:"Gris" },
+  { placa:"MHX75E", conductor:"Liliana Patricia Castro", tipo:"moto",  rol:"Estudiante", marca:"Yamaha",    modelo:"FZ 25",    color:"Negro" },
+  { placa:"SNA012", conductor:"Oficial CEET SENA",       tipo:"carro", rol:"Oficial",    marca:"Renault",   modelo:"Duster",   color:"Blanco" },
+  { placa:"VIP789", conductor:"Héctor Fabio Jurado",     tipo:"carro", rol:"Visitante",  marca:"Mazda",     modelo:"3",        color:"Azul" },
 ];
 
 /* SVG medidas
@@ -221,6 +224,17 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
   if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
   return null;
 }
+/* Busca una línea etiquetada (p.ej. "MARCA: TOYOTA") y devuelve su valor: lo que sigue
+   a la etiqueta en la misma línea o, si no hay nada ahí, el contenido de la línea siguiente
+   (algunos documentos traen la etiqueta y el valor en renglones separados). */
+const extraerCampoPorEtiqueta = (lineas: string[], etiquetaRegex: RegExp): string => {
+  const idx = lineas.findIndex(l => etiquetaRegex.test(l));
+  if (idx === -1) return "";
+  const mismaLinea = lineas[idx].replace(etiquetaRegex, "").replace(/^[\s:#-]+/, "").trim();
+  const candidato = (mismaLinea && /[A-ZÁÉÍÓÚÑ0-9]{2,}/i.test(mismaLinea)) ? mismaLinea : (lineas[idx + 1] || "");
+  return normalizarTexto(candidato.replace(/[^A-ZÁÉÍÓÚÑ0-9\s-]/gi, " "), 40);
+};
+
 export function extraerDatosDocumento(texto:string){
   const limpio=texto.replace(/\r/g,"").replace(/\t/g," ");
   const lineas=limpio.split("\n").map(l=>l.trim()).filter(Boolean);
@@ -232,7 +246,13 @@ export function extraerDatosDocumento(texto:string){
   let conductor="";
   const idxP=lineas.findIndex(l=>/PROPIETARIO|NOMBRE\s*Y\s*APELLIDOS|NOMBRE\s*DEL\s*PROPIETARIO/i.test(l));
   if(idxP!==-1){ const ml=lineas[idxP].split(/[:#-]/).slice(1).join(" ").trim(); const cand=ml&&/[A-ZÁÉÍÓÚÑ]{3,}/.test(ml)?ml:lineas[idxP+1]||""; conductor=cand.replace(/[^A-ZÁÉÍÓÚÑ\s]/gi," ").replace(/\s+/g," ").trim(); }
-  return { placa, conductor:normalizarTexto(conductor,60), textoCompleto:limpio };
+  /* MARCA y LÍNEA (nombre/versión del modelo, p.ej. "COROLLA") son campos estándar de la
+     tarjeta de propiedad colombiana; "MODELO" en ese documento es el año, así que si no
+     aparece LÍNEA se usa MODELO como respaldo en vez de dejar el campo vacío. */
+  const marca = extraerCampoPorEtiqueta(lineas, /^MARCA\b/i);
+  const modelo = extraerCampoPorEtiqueta(lineas, /^L[ÍI]NEA\b/i) || extraerCampoPorEtiqueta(lineas, /^MODELO\b/i);
+  const color = extraerCampoPorEtiqueta(lineas, /^COLOR\b/i);
+  return { placa, conductor:normalizarTexto(conductor,60), marca, modelo, color, textoCompleto:limpio };
 }
 
 /* ============================================================

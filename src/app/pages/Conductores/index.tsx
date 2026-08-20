@@ -3,7 +3,7 @@ import { User } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
 import { useData, Conductor, Vehiculo } from "../../context/DataContext";
-import { Modal, ConfirmDialog } from "../../components/shared";
+import { Modal } from "../../components/shared";
 import { COLORS, PLACA_REGEX, sanitizeText, emptyForm, FormState, FormErrors } from "./helpers";
 import { ConductoresStats } from "./ConductoresStats";
 import { ConductoresToolbar } from "./ConductoresToolbar";
@@ -19,21 +19,17 @@ export function Conductores() {
     conductores,
     addConductor,
     updateConductor,
-    deleteConductor,
     usuarios,
     vehiculos,
     addVehiculo,
     updateVehiculo,
-    deleteVehiculo,
   } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [viewVehiculoOpen, setViewVehiculoOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
   const [editingVehiculoId, setEditingVehiculoId] = useState<string | null>(null);
   const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
-  const [deletingConductor, setDeletingConductor] = useState<Conductor | null>(null);
   const [searchParams] = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [filterTipo, setFilterTipo] = useState("todos");
@@ -161,11 +157,6 @@ export function Conductores() {
   const openVehiculoView = useCallback((vehiculo: Vehiculo) => {
     setViewingVehiculo(vehiculo);
     setViewVehiculoOpen(true);
-  }, []);
-
-  const openConfirm = useCallback((conductor: Conductor) => {
-    setDeletingConductor(conductor);
-    setConfirmOpen(true);
   }, []);
 
   // Placas ya registradas en otros vehículos (para evitar duplicados), excluyendo el vehículo puntual en edición
@@ -299,23 +290,7 @@ export function Conductores() {
       toast.error("Error al guardar el conductor");
       console.error("Error saving conductor:", error);
     }
-  }, [formData, editingConductor, editingVehiculoId, usuarios, vehiculos, validate, addConductor, updateConductor, addVehiculo, updateVehiculo, deleteVehiculo]);
-
-  const handleDelete = useCallback(() => {
-    if (deletingConductor) {
-      try {
-        const vehiculosConductor = vehiculos.filter((v) => v.conductorId === deletingConductor.id);
-        vehiculosConductor.forEach((v) => deleteVehiculo(v.id));
-        deleteConductor(deletingConductor.id);
-        toast.success("Conductor eliminado correctamente");
-        setConfirmOpen(false);
-        setDeletingConductor(null);
-      } catch (error) {
-        toast.error("Error al eliminar el conductor");
-        console.error("Error deleting conductor:", error);
-      }
-    }
-  }, [deletingConductor, vehiculos, deleteConductor, deleteVehiculo]);
+  }, [formData, editingConductor, editingVehiculoId, usuarios, vehiculos, validate, addConductor, updateConductor, addVehiculo, updateVehiculo]);
 
   const handleToggleEstado = useCallback(
     (id: string, currentEstado: "activo" | "inactivo") => {
@@ -409,7 +384,6 @@ export function Conductores() {
                 onToggleEstado={handleToggleEstado}
                 onViewVehiculo={openVehiculoView}
                 onEdit={openEdit}
-                onDelete={openConfirm}
               />
             ) : (
               <ConductoresList
@@ -419,7 +393,6 @@ export function Conductores() {
                 onToggleEstado={handleToggleEstado}
                 onViewVehiculo={openVehiculoView}
                 onEdit={openEdit}
-                onDelete={openConfirm}
               />
             )}
 
@@ -475,17 +448,6 @@ export function Conductores() {
           />
         )}
       </Modal>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        onConfirm={handleDelete}
-        onCancel={() => {
-          setConfirmOpen(false);
-          setDeletingConductor(null);
-        }}
-        title="Eliminar Conductor"
-        message={`¿Estás seguro de eliminar al conductor "${deletingConductor ? sanitizeText(getUsuario(deletingConductor.usuarioId)?.nombre || '') : ''}"? Esta acción eliminará también todos sus vehículos asociados.`}
-      />
     </>
   );
 }

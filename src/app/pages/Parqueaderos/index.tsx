@@ -4,9 +4,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useData, Celda, Conductor } from "../../context/DataContext";
+import { useData, Celda, Conductor, Parqueadero } from "../../context/DataContext";
 import { theme } from "../../theme";
-import { ConfirmDialog } from "../../components/shared";
 import {
   FormParqueadero, VehiculoForm, IncidenteForm,
   CELDA_CONFIG, TIPOS_PARQUEADERO, capitalizar,
@@ -26,30 +25,30 @@ import { ScannerModal } from "./ScannerModal";
 import { parqueaderosStyles } from "./styles";
 
 const C = theme;
+const MAX_EVIDENCIA_MB = 5;
 
 export default function Parqueaderos() {
   const navigate = useNavigate();
   const {
-    parqueaderos, addParqueadero, updateParqueadero, deleteParqueadero,
+    parqueaderos, addParqueadero, updateParqueadero,
     celdas, addCelda, updateCelda, deleteCelda,
     conductores, addConductor,
     vehiculos, addVehiculo, updateVehiculo,
-    controlesSalida, addControlSalida, updateControlSalida, deleteControlSalida,
+    controlesSalida, addControlSalida, updateControlSalida,
     reservas, addReserva, updateReserva,
     addIncidente,
   } = useData();
 
   const [activeTab, setActiveTab]   = useState<"map" | "table">("table");
-  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"confirmDelete"|"incidente"|"reserva"|null>(null);
+  const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"incidente"|"reserva"|null>(null);
   const [pqEditId, setPqEditId]     = useState<string | null>(null);
-  const [pqDeleteId, setPqDeleteId] = useState<string | null>(null);
   const [celdaSeleccionadaId, setCeldaSeleccionadaId] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const [search, setSearch]         = useState(() => searchParams.get("q") || "");
   const [filterTipo, setFilterTipo] = useState("Todos");
   const [pqForm, setPqForm]         = useState<FormParqueadero>({ nombre: "", bloque: "A", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" });
   const [formError, setFormError]   = useState<string | null>(null);
-  const [vehiculoForm, setVehiculoForm] = useState<VehiculoForm>({ placa: "", conductor: "", esOficial: false });
+  const [vehiculoForm, setVehiculoForm] = useState<VehiculoForm>({ placa: "", conductor: "", esOficial: false, marca: "", modelo: "", color: "" });
   const [incidenteForm, setIncidenteForm] = useState<IncidenteForm>({ descripcion: "", asignadoA: "", notasResolucion: "", evidencia: "" });
   const [incidenteError, setIncidenteError] = useState<string | null>(null);
   const [placaError, setPlacaError] = useState<string | null>(null);
@@ -86,10 +85,15 @@ export default function Parqueaderos() {
       toast.error('El archivo debe ser una imagen');
       return;
     }
+    if (file.size > MAX_EVIDENCIA_MB * 1024 * 1024) {
+      toast.error(`La imagen no debe superar ${MAX_EVIDENCIA_MB}MB`);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (ev) => {
       setIncidenteForm(prev => ({ ...prev, evidencia: ev.target?.result as string || '' }));
     };
+    reader.onerror = () => toast.error('No se pudo cargar la imagen');
     reader.readAsDataURL(file);
   }, []);
 
@@ -202,16 +206,19 @@ export default function Parqueaderos() {
       setVehiculoForm({
         placa: ocupante?.vehiculo.placa || "",
         conductor: ocupante?.conductor?.nombre || "",
-        esOficial: ocupante?.esOficial || false
+        esOficial: ocupante?.esOficial || false,
+        marca: ocupante?.vehiculo.marca || "",
+        modelo: ocupante?.vehiculo.modelo || "",
+        color: ocupante?.vehiculo.color || "",
       });
       setOpenModal("info");
     } else if (celda.estado === "reservada") {
-      setVehiculoForm({ placa: "", conductor: "", esOficial: true });
+      setVehiculoForm({ placa: "", conductor: "", esOficial: true, marca: "", modelo: "", color: "" });
       setOpenModal("info");
     } else if (celda.estado === "mantenimiento") {
       toast.info("Esta celda está en mantenimiento y no puede usarse.");
     } else {
-      setVehiculoForm({ placa: "", conductor: "", esOficial: false });
+      setVehiculoForm({ placa: "", conductor: "", esOficial: false, marca: "", modelo: "", color: "" });
       setOpenModal("info");
     }
   }, [getOcupante]);
@@ -258,6 +265,15 @@ export default function Parqueaderos() {
     };
     if (toMinutes(reservaForm.horaFin) <= toMinutes(reservaForm.horaInicio)) {
       setReservaError("La hora de fin debe ser posterior a la hora de inicio");
+      return;
+    }
+
+    // El <input type="date" min=...> del formulario ya sugiere no elegir un día
+    // pasado, pero ese límite es solo de interfaz: se puede editar el campo
+    // directamente. Se revalida aquí, incluyendo la hora, para el día de hoy.
+    const inicioReserva = new Date(`${reservaForm.fechaReserva}T${reservaForm.horaInicio}`);
+    if (inicioReserva.getTime() < Date.now()) {
+      setReservaError("No puedes reservar en una fecha u hora que ya pasó");
       return;
     }
 
@@ -355,15 +371,10 @@ export default function Parqueaderos() {
     setOpenModal(null); setPqEditId(null);
   };
 
-  const handleDelete = () => {
-    if (!pqDeleteId) return;
-    const celdasPq = celdas.filter(c => c.parqueaderoId === pqDeleteId);
-    celdasPq.forEach(c => {
-      controlesSalida.filter(cs => cs.celdaId === c.id).forEach(cs => deleteControlSalida(cs.id));
-    });
-    deleteParqueadero(pqDeleteId);
-    toast.info("Parqueadero eliminado.");
-    setOpenModal(null); setPqDeleteId(null);
+  const handleToggleEstadoParqueadero = (p: Parqueadero) => {
+    const nuevoEstado = p.estado === "activo" ? "inactivo" : "activo";
+    updateParqueadero(p.id, { estado: nuevoEstado });
+    toast.success(nuevoEstado === "activo" ? "Parqueadero activado." : "Parqueadero desactivado.");
   };
 
   const resolverConductor = useCallback((nombre: string, tipo: Conductor["tipo"]): string => {
@@ -375,11 +386,13 @@ export default function Parqueaderos() {
     });
   }, [conductores, addConductor]);
 
-  const resolverVehiculo = useCallback((placa: string, conductorId: string, tipo: "carro" | "moto", parqueaderoId: string, celdaId: string, fechaEntrada: string): string => {
+  const resolverVehiculo = useCallback((placa: string, conductorId: string, tipo: "carro" | "moto", parqueaderoId: string, celdaId: string, fechaEntrada: string, datosVehiculo?: { marca?: string; modelo?: string; color?: string }): string => {
     const existente = vehiculos.find(v => v.placa === placa);
     if (existente) return existente.id;
     return addVehiculo({
-      conductorId, placa, tipo, marca: "", modelo: "", año: new Date().getFullYear(), color: "",
+      conductorId, placa, tipo,
+      marca: datosVehiculo?.marca?.trim() || "", modelo: datosVehiculo?.modelo?.trim() || "",
+      año: new Date().getFullYear(), color: datosVehiculo?.color?.trim() || "",
       descripcion: "", estado: "activo", parqueaderoId, celdaId, fechaEntrada,
     });
   }, [vehiculos, addVehiculo]);
@@ -390,12 +403,23 @@ export default function Parqueaderos() {
     return "visitante";
   };
 
-  const registrarEnCelda = (celda: Celda, placaRaw: string, conductorRaw: string, esOficial: boolean) => {
+  const registrarEnCelda = (celda: Celda, placaRaw: string, conductorRaw: string, esOficial: boolean, datosVehiculo?: { marca?: string; modelo?: string; color?: string }) => {
     const placa = placaRaw.trim().toUpperCase();
     const conductorNombre = normalizarTexto(conductorRaw, 60);
     if (!placa || !conductorNombre) { setPlacaError("Completa todos los campos."); return false; }
     if (!validarPlacaColombiana(placa)) { setPlacaError("Formato de placa inválido. Usa ABC123 (carro) o ABC12D (moto)."); return false; }
-    if (!validarNombreConductor(conductorNombre)) { setPlacaError("Ingresa el nombre completo del conductor (nombre y apellido)."); return false; }
+    // Un conductor ya registrado en el módulo Conductores es válido de por sí, aunque su
+    // nombre no cumpla el formato "nombre apellido" del validador genérico (p. ej. "Carlos
+    // López M.", con inicial abreviada). El validador de formato solo aplica a nombres nuevos.
+    const conductorExistente = conductores.find(c => c.nombre.trim().toLowerCase() === conductorNombre.toLowerCase());
+    if (!conductorExistente && !validarNombreConductor(conductorNombre)) { setPlacaError("Ingresa el nombre completo del conductor (nombre y apellido)."); return false; }
+    // Un conductor desactivado no puede seguir estacionando vehículos: "inactivo" debe
+    // bloquear de verdad, no solo dejar de aparecer en las sugerencias.
+    if (conductorExistente && conductorExistente.estado === "inactivo") { setPlacaError("Este conductor está inactivo y no puede registrar vehículos. Actívalo en el módulo Conductores."); return false; }
+
+    const pq = parqueaderos.find(p => p.id === celda.parqueaderoId);
+    // Un parqueadero desactivado no acepta nuevos registros de vehículos.
+    if (pq && pq.estado !== "activo") { setPlacaError("Este parqueadero está inactivo y no acepta nuevos registros."); return false; }
 
     const tipoPlaca = tipoVehiculoDesdePlaca(placa);
     if (celda.tipo === "carro" && tipoPlaca !== "carro") { setPlacaError("Esta celda es para automóviles. La placa ingresada tiene formato de moto (ABC12D)."); return false; }
@@ -404,12 +428,11 @@ export default function Parqueaderos() {
     const yaActivo = controlesSalida.some(cs => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find(v => v.id === cs.vehiculoId)?.placa === placa);
     if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
 
-    const pq = parqueaderos.find(p => p.id === celda.parqueaderoId);
     const tipoConductor = tipoConductorDesdeParqueadero(pq?.tipo || "");
     const conductorId = resolverConductor(conductorNombre, tipoConductor);
     const fechaEntrada = new Date().toISOString().slice(0, 16);
     const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
-    const vehiculoId = resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada);
+    const vehiculoId = resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada, datosVehiculo);
 
     const reservaPendiente = reservas.find(r => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
     if (reservaPendiente) updateReserva(reservaPendiente.id, { estado: "completada" });
@@ -422,7 +445,9 @@ export default function Parqueaderos() {
 
   const registrarVehiculo = () => {
     if (!celdaActiva) return;
-    if (registrarEnCelda(celdaActiva, vehiculoForm.placa, vehiculoForm.conductor, vehiculoForm.esOficial)) {
+    if (registrarEnCelda(celdaActiva, vehiculoForm.placa, vehiculoForm.conductor, vehiculoForm.esOficial, {
+      marca: vehiculoForm.marca, modelo: vehiculoForm.modelo, color: vehiculoForm.color,
+    })) {
       setOpenModal(null);
     }
   };
@@ -476,7 +501,14 @@ export default function Parqueaderos() {
       const roi = guiaRef.current ? calcularRoiDesdeGuia(videoRef.current, guiaRef.current) ?? undefined : undefined;
       const d = await reconocer(videoRef.current, roi);
       setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
-      setVehiculoForm(prev => ({ ...prev, placa: d.placa, conductor: d.conductor || prev.conductor }));
+      setVehiculoForm(prev => ({
+        ...prev,
+        placa: d.placa,
+        conductor: d.conductor || prev.conductor,
+        marca: d.marca || prev.marca,
+        modelo: d.modelo || prev.modelo,
+        color: d.color || prev.color,
+      }));
       toast.success(`Placa detectada: ${d.placa}`);
       avisarSiTipoNoCoincide(d.placa);
       if (scannerOrigin === "smartAssign") { setScannedPlate(d.placa); cerrarCamara(); setOpenModal("smartAssign"); }
@@ -495,7 +527,14 @@ export default function Parqueaderos() {
           const url = await preprocesarImagenArchivo(ev.target?.result as string);
           const d = await reconocerLicencia(url);
           setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
-          setVehiculoForm(prev => ({ ...prev, placa: d.placa, conductor: d.conductor || prev.conductor }));
+          setVehiculoForm(prev => ({
+            ...prev,
+            placa: d.placa,
+            conductor: d.conductor || prev.conductor,
+            marca: d.marca || prev.marca,
+            modelo: d.modelo || prev.modelo,
+            color: d.color || prev.color,
+          }));
           toast.success(`Placa detectada: ${d.placa}`);
           avisarSiTipoNoCoincide(d.placa);
           if (scannerOrigin === "smartAssign") { setScannedPlate(d.placa); setOpenModal("smartAssign"); }
@@ -507,13 +546,13 @@ export default function Parqueaderos() {
     } catch { setOcrError("No se pudo procesar la imagen."); setOcrLoading(false); }
   };
 
-  const handleSimOCR = (p: string, con: string, rol: string) => {
+  const handleSimOCR = (p: string, con: string, rol: string, marca: string, modelo: string, color: string) => {
     setOcrLoading(true);
     setTimeout(() => {
       setOcrLoading(false); setOcrFlash(true);
       setTimeout(() => {
         setOcrFlash(false);
-        setVehiculoForm({ placa: p, conductor: con, esOficial: rol === "Oficial" });
+        setVehiculoForm({ placa: p, conductor: con, esOficial: rol === "Oficial", marca, modelo, color });
         avisarSiTipoNoCoincide(p);
         if (scannerOrigin === "smartAssign") { setScannedPlate(p); setOpenModal("smartAssign"); }
         else { setOpenModal("ingreso"); }
@@ -558,11 +597,70 @@ export default function Parqueaderos() {
 
   const activeFilters = [search, filterTipo !== "Todos" ? filterTipo : ""].filter(Boolean).length;
 
+  /* Sugerencias del campo Conductor: nombres de conductores reales ya registrados en el
+     módulo Conductores (en vez de la lista genérica de ejemplo), para que el operador
+     elija uno existente en lugar de escribir uno cualquiera. Si el conductor buscado no
+     aparece, se puede seguir escribiendo su nombre para registrarlo como uno nuevo. */
+  const conductoresSugeridos = useMemo(
+    () => Array.from(new Set(conductores.filter(c => c.estado === "activo").map(c => c.nombre))).sort((a, b) => a.localeCompare(b, "es")),
+    [conductores]
+  );
+
+  /* Búsqueda en vivo del vehículo/conductor asociados a la placa escrita: si la placa ya
+     está registrada, se muestra (y bloquea) el nombre de su conductor real en lugar de dejar
+     que el operador reescriba uno cualquiera; si no se encuentra, el formulario queda libre
+     para registrar la placa como un vehículo nuevo. */
+  const vehiculoEncontrado = useMemo(() => {
+    const placa = vehiculoForm.placa.trim().toUpperCase();
+    if (!validarPlacaColombiana(placa)) return null;
+    return vehiculos.find(v => v.placa === placa) ?? null;
+  }, [vehiculoForm.placa, vehiculos]);
+
+  const conductorEncontrado = useMemo(() => {
+    if (!vehiculoEncontrado) return null;
+    return conductores.find(c => c.id === vehiculoEncontrado.conductorId) ?? null;
+  }, [vehiculoEncontrado, conductores]);
+
+  const conductorAutoRef = useRef(false);
+  useEffect(() => {
+    if (conductorEncontrado) {
+      conductorAutoRef.current = true;
+      setVehiculoForm(prev => prev.conductor === conductorEncontrado.nombre ? prev : { ...prev, conductor: conductorEncontrado.nombre });
+    } else if (conductorAutoRef.current) {
+      conductorAutoRef.current = false;
+      setVehiculoForm(prev => (prev.conductor ? { ...prev, conductor: "" } : prev));
+    }
+  }, [conductorEncontrado]);
+
+  /* Reconoce al conductor no solo por la placa (conductorEncontrado) sino también cuando el
+     operador escribe/elige el nombre exacto de alguien ya registrado en el módulo Conductores
+     (p. ej. trae un vehículo nuevo, distinto a los que ya tiene a su nombre). Con cualquiera de
+     las dos vías se le puede mostrar toda su flota ya registrada, no solo la placa actual. */
+  const conductorIdentificado = useMemo(() => {
+    if (conductorEncontrado) return conductorEncontrado;
+    const nombre = vehiculoForm.conductor.trim().toLowerCase();
+    if (!nombre) return null;
+    return conductores.find(c => c.nombre.trim().toLowerCase() === nombre) ?? null;
+  }, [conductorEncontrado, vehiculoForm.conductor, conductores]);
+
+  const vehiculosConductor = useMemo(() => {
+    if (!conductorIdentificado) return [];
+    return vehiculos.filter(v => v.conductorId === conductorIdentificado.id);
+  }, [conductorIdentificado, vehiculos]);
+
   /* Validación en vivo del formulario de registro de vehículo: la placa debe coincidir
-     con el tipo de la celda seleccionada (carro/moto) y el conductor debe tener nombre completo. */
+     con el tipo de la celda seleccionada (carro/moto) y el conductor debe tener nombre completo
+     (o, si ya es un conductor real identificado —por placa o por nombre exacto—, ese nombre ya
+     es válido de por sí, aunque no cumpla el formato "nombre apellido" del validador genérico:
+     el módulo Conductores permite nombres como "Carlos López M.", con inicial abreviada). */
   const ingresoPlacaOk = celdaActiva ? validarPlacaPorTipo(vehiculoForm.placa, celdaActiva.tipo) : false;
-  const ingresoConductorOk = validarNombreConductor(vehiculoForm.conductor);
-  const ingresoValid = ingresoPlacaOk && ingresoConductorOk;
+  // "Inactivo" debe bloquear de verdad: un conductor desactivado no es un nombre válido
+  // para registrar, aunque el resto de su ficha (placa, nombre) sea correcto.
+  const ingresoConductorOk = conductorIdentificado
+    ? conductorIdentificado.estado === "activo"
+    : validarNombreConductor(vehiculoForm.conductor);
+  const parqueaderoIngresoActivo = parqueaderoActivo?.estado === "activo";
+  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo;
   const ingresoPlacaHint = celdaActiva
     ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + 1 letra (ABC12D)"
       : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
@@ -648,7 +746,7 @@ export default function Parqueaderos() {
               setPqForm({ nombre: pq.nombre, bloque: pq.bloque, tipo: pq.tipo, direccion: pq.direccion, horaInicio: pq.horaInicio, horaFin: pq.horaFin, celdasCarros: pq.celdasCarros, celdasMotos: pq.celdasMotos, celdasMovilidadReducida: pq.celdasMovilidadReducida, descripcion: pq.descripcion });
               setFormError(null); setOpenModal("edit");
             }}
-            onDelete={id => { setPqDeleteId(id); setOpenModal("confirmDelete"); }}
+            onToggleEstado={handleToggleEstadoParqueadero}
             onCellClick={handleCellClick}
             cellMatchesSearch={cellMatchesSearch}
           />
@@ -682,6 +780,12 @@ export default function Parqueaderos() {
         ingresoConductorOk={ingresoConductorOk}
         ingresoValid={ingresoValid}
         ingresoPlacaHint={ingresoPlacaHint}
+        vehiculoEncontrado={vehiculoEncontrado}
+        conductorEncontrado={conductorEncontrado}
+        conductorIdentificado={conductorIdentificado}
+        conductoresSugeridos={conductoresSugeridos}
+        vehiculosConductor={vehiculosConductor}
+        parqueaderoInactivo={!parqueaderoIngresoActivo}
         onClose={() => setOpenModal(null)}
         onOpenScanner={() => { setScannerOrigin("ingreso"); setOpenModal("scanner"); }}
         onSubmit={registrarVehiculo}
@@ -696,11 +800,11 @@ export default function Parqueaderos() {
         parqueaderoActivo={parqueaderoActivo}
         onClose={() => setOpenModal(null)}
         onCancelarReserva={handleCancelarReserva}
-        onEstacionarOficial={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: true }); setOpenModal("ingreso"); }}
+        onEstacionarOficial={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: true, marca: "", modelo: "", color: "" }); setOpenModal("ingreso"); }}
         onNavigateConductor={(nombre) => navigate(`/app/conductores?q=${encodeURIComponent(nombre)}`)}
         onLiberar={handleRequestLiberar}
         onReportarIncidente={() => setOpenModal("incidente")}
-        onEstacionarVehiculo={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: false }); setOpenModal("ingreso"); }}
+        onEstacionarVehiculo={() => { setVehiculoForm({ placa: "", conductor: "", esOficial: false, marca: "", modelo: "", color: "" }); setOpenModal("ingreso"); }}
         onReservarCelda={() => {
           if (celdaActiva) openReservaFromCelda(celdaActiva);
         }}
@@ -749,9 +853,6 @@ export default function Parqueaderos() {
 
       {/* ── SMART ASSIGN MODAL ── */}
       <SmartAssignModal open={openModal === "smartAssign"} parqueaderos={parqueaderos} celdas={celdas} onClose={() => { setOpenModal(null); setScannedPlate(undefined); setScannerOrigin(null); }} onAssign={handleSmartAssign} openScanner={() => { setScannerOrigin("smartAssign"); setOpenModal("scanner"); }} scannedPlate={scannedPlate} />
-
-      {/* ── CONFIRM DIALOGS ── */}
-      <ConfirmDialog open={openModal === "confirmDelete"} onConfirm={handleDelete} onCancel={() => { setOpenModal(null); setPqDeleteId(null); }} title="Eliminar Parqueadero" message="¿Estás seguro de eliminar este parqueadero? Se perderán todas sus celdas y los registros de entrada/salida asociados." confirmLabel="Eliminar" />
     </>
   );
 }

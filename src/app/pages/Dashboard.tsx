@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useMemo, useState, useCallback } from "react";
+import { forwardRef, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
@@ -23,7 +23,6 @@ import {
   GraduationCap,
   LayoutDashboard,
   ParkingCircle,
-  RefreshCw,
   Users,
   Zap,
 } from "lucide-react";
@@ -314,8 +313,6 @@ export default function Dashboard() {
   const now = useClock();
   const [filter, setFilter] = useState<"all" | "car" | "moto">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [refreshing, setRefreshing] = useState(false);
 
   const { parqueaderos, celdas, movimientos, vehiculos, conductores, incidentes, reservas } = useData();
 
@@ -360,14 +357,6 @@ export default function Dashboard() {
       };
     });
   }, [movimientos, vehiculos]);
-
-  const refresh = useCallback(() => {
-    setRefreshing(true);
-    window.setTimeout(() => {
-      setLastUpdate(new Date());
-      setRefreshing(false);
-    }, 450);
-  }, []);
 
   useEffect(() => {
     if (lots.length > 0 && !selectedId) {
@@ -445,23 +434,28 @@ export default function Dashboard() {
     ];
   }, [selectedLot]);
 
+  // "Inactivo" debe reflejarse en los totales del Dashboard: un vehículo o conductor
+  // desactivado ya no cuenta como "registrado" para estas métricas.
+  const vehiculosActivos = useMemo(() => vehiculos.filter((v) => v.estado === "activo"), [vehiculos]);
+  const conductoresActivos = useMemo(() => conductores.filter((c) => c.estado === "activo"), [conductores]);
+
   const vehicleDistribution = useMemo(() => {
-    const carros = vehiculos.filter((v) => v.tipo === "carro").length;
-    const motos = vehiculos.filter((v) => v.tipo === "moto").length;
+    const carros = vehiculosActivos.filter((v) => v.tipo === "carro").length;
+    const motos = vehiculosActivos.filter((v) => v.tipo === "moto").length;
     return [
       { label: "Carros", value: carros, color: COLORS.blue },
       { label: "Motos", value: motos, color: COLORS.amber },
     ];
-  }, [vehiculos]);
+  }, [vehiculosActivos]);
 
   const conductorDistribution = useMemo(() => {
-    const aprendices = conductores.filter((c) => c.tipoConductor === "aprendiz").length;
-    const instructores = conductores.filter((c) => c.tipoConductor === "instructor").length;
+    const aprendices = conductoresActivos.filter((c) => c.tipoConductor === "aprendiz").length;
+    const instructores = conductoresActivos.filter((c) => c.tipoConductor === "instructor").length;
     return [
       { label: "Aprendices", value: aprendices, color: COLORS.primary },
       { label: "Instructores", value: instructores, color: COLORS.blue },
     ];
-  }, [conductores]);
+  }, [conductoresActivos]);
 
   const accessibility = useMemo(() => {
     const celdasMR = celdas.filter((c) => c.tipo === "movilidad reducida");
@@ -529,25 +523,7 @@ export default function Dashboard() {
                   <Clock3 size={16} className="text-[#64748B]" />
                   <span className="text-sm font-mono font-bold text-[#1a1a2e]">{formatClock(now)}</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl bg-[#EAF7E6] px-4 py-2">
-                  <Gauge size={16} className="text-[#39A900]" />
-                  <div>
-                    <p className="text-xs font-medium text-[#64748B]">Ocupación</p>
-                    <p className="text-lg font-bold text-[#2D7D00]">{totals.pct}%</p>
-                  </div>
-                </div>
-                <button
-                  onClick={refresh}
-                  disabled={refreshing}
-                  className="flex items-center gap-1.5 rounded-xl bg-[#39A900] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#2D7D00] disabled:opacity-60 shadow-sm"
-                >
-                  <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
-                  Actualizar
-                </button>
               </div>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-[#64748B]">
-              <span>Última actualización: {lastUpdate.toLocaleTimeString("es-CO")}</span>
             </div>
           </motion.header>
 
@@ -555,8 +531,8 @@ export default function Dashboard() {
           <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} onClick={() => navigate("/app/parqueaderos")} />
             <Kpi label="Celdas disponibles" value={totals.available} detail={`${totals.reserved} reservadas · ${totals.maintenance} en mant.`} icon={DoorOpen} color={COLORS.blue} onClick={() => navigate("/app/parqueaderos")} />
-            <Kpi label="Vehículos registrados" value={vehiculos.length} detail={`${vehicleDistribution[0].value} carros · ${vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
-            <Kpi label="Conductores registrados" value={conductores.length} detail={`${conductorDistribution[0].value} aprendices · ${conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
+            <Kpi label="Vehículos registrados" value={vehiculosActivos.length} detail={`${vehicleDistribution[0].value} carros · ${vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
+            <Kpi label="Conductores registrados" value={conductoresActivos.length} detail={`${conductorDistribution[0].value} aprendices · ${conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
           </div>
 
           {/* ========== FILA PRINCIPAL ========== */}

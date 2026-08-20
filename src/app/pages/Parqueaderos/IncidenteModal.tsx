@@ -143,7 +143,7 @@ export function IncidenteModal({
                 <div style={{ padding: "16px", textAlign: "center" }}>
                   <Upload size={32} color={C.textLight} style={{ margin: "0 auto 8px" }} />
                   <p style={{ fontSize: 12, color: C.textLight }}>Toca para cargar imagen de evidencia</p>
-                  <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>Formatos: JPG, PNG, GIF</p>
+                  <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>Formatos: JPG, PNG, GIF · Máximo 5MB</p>
                 </div>
               </label>
             )}

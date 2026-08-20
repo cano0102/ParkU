@@ -15,13 +15,18 @@ import {
   Pencil,
   X,
   BadgeCheck,
+  Camera,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import { theme } from "../theme";
 import { Modal } from "../components/shared";
+import { PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX } from "./Usuarios/helpers";
 
 const C = theme;
+
+const MAX_FOTO_SOURCE_MB = 5;
+const FOTO_SIZE = 256;
 
 const fieldInputStyle: React.CSSProperties = {
   width: "100%",
@@ -49,10 +54,11 @@ export function Perfil() {
 
   if (!user) return null;
 
-  const passwordLengthOk = passwordData.newPassword.length >= 8;
+  const passwordLengthOk = passwordData.newPassword.length >= PASSWORD_MIN && passwordData.newPassword.length <= PASSWORD_MAX;
   const passwordsMatch = !!passwordData.newPassword && passwordData.newPassword === passwordData.confirmPassword;
   const currentFilled = passwordData.currentPassword.length > 0;
-  const canSubmitPassword = passwordLengthOk && passwordsMatch && currentFilled;
+  const passwordDifferent = !!passwordData.newPassword && passwordData.newPassword !== passwordData.currentPassword;
+  const canSubmitPassword = passwordLengthOk && passwordsMatch && currentFilled && passwordDifferent;
 
   const closePasswordDialog = () => {
     setDialogOpen(false);
@@ -60,16 +66,68 @@ export function Perfil() {
   };
 
   const handleSaveProfile = () => {
-    if (!profileForm.nombre.trim()) return toast.error("El nombre no puede estar vacío");
-    updateUser({ nombre: profileForm.nombre.trim(), numero: profileForm.numero.trim() });
+    const nombre = profileForm.nombre.trim();
+    const numero = profileForm.numero.trim();
+    if (!nombre) return toast.error("El nombre no puede estar vacío");
+    if (numero && !TELEFONO_REGEX.test(numero)) return toast.error("Ingresa un número de teléfono válido");
+    updateUser({ nombre, numero });
     toast.success("Perfil actualizado");
     setEditMode(false);
+  };
+
+  // Redimensiona y recorta la imagen a un cuadrado en el propio navegador
+  // antes de guardarla, para no llenar el estado en memoria (y localStorage)
+  // con fotos de varios MB solo para mostrar un avatar pequeño.
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("El archivo debe ser una imagen");
+      return;
+    }
+    if (file.size > MAX_FOTO_SOURCE_MB * 1024 * 1024) {
+      toast.error(`La imagen no debe superar ${MAX_FOTO_SOURCE_MB}MB`);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = FOTO_SIZE;
+        canvas.height = FOTO_SIZE;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          toast.error("No se pudo procesar la imagen");
+          return;
+        }
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        ctx.drawImage(img, sx, sy, side, side, 0, 0, FOTO_SIZE, FOTO_SIZE);
+        updateUser({ foto: canvas.toDataURL("image/jpeg", 0.85) });
+        toast.success("Foto de perfil actualizada");
+      };
+      img.onerror = () => toast.error("No se pudo procesar la imagen");
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => toast.error("No se pudo cargar la imagen");
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemovePhoto = () => {
+    updateUser({ foto: "" });
+    toast.success("Foto de perfil eliminada");
   };
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentFilled) return toast.error("Ingresa tu contraseña actual");
-    if (!passwordLengthOk) return toast.error("Mínimo 8 caracteres");
+    if (!passwordLengthOk) return toast.error(`La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`);
+    if (!passwordDifferent) return toast.error("La nueva contraseña debe ser diferente a la actual");
     if (!passwordsMatch) return toast.error("Las contraseñas no coinciden");
 
     setSubmitting(true);
@@ -126,8 +184,8 @@ export function Perfil() {
           border-color:${C.primary} !important;
           box-shadow:0 0 0 3px rgba(57,169,0,.12);
         }
-        .perfil-info-item{ transition: border-color .15s, background .15s; }
-        .perfil-info-item:hover{ border-color: ${C.primaryBorder}; background: #F8FAF8; }
+        .perfil-row{ transition: background .15s; border-radius: 10px; }
+        .perfil-row:hover{ background: #F8FAF8; }
         .perfil-btn{ transition: all .15s ease; cursor:pointer; font-family:inherit; }
         .perfil-btn:hover{ transform: translateY(-1px); }
         .perfil-btn:active{ transform: translateY(0); }
@@ -167,23 +225,88 @@ export function Perfil() {
               gap: 16,
             }}
           >
-            <div
-              style={{
-                width: 62,
-                height: 62,
-                flexShrink: 0,
-                borderRadius: 18,
-                background: "rgba(255,255,255,.16)",
-                border: "1px solid rgba(255,255,255,.25)",
-                backdropFilter: "blur(6px)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 24,
-                fontWeight: 900,
-              }}
-            >
-              {user.nombre.charAt(0).toUpperCase()}
+            <div style={{ position: "relative", flexShrink: 0 }}>
+              <div
+                style={{
+                  width: 76,
+                  height: 76,
+                  borderRadius: 20,
+                  background: "rgba(255,255,255,.16)",
+                  border: "1px solid rgba(255,255,255,.25)",
+                  backdropFilter: "blur(6px)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 28,
+                  fontWeight: 900,
+                  overflow: "hidden",
+                }}
+              >
+                {user.foto ? (
+                  <img
+                    src={user.foto}
+                    alt={user.nombre}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                ) : (
+                  user.nombre.charAt(0).toUpperCase()
+                )}
+              </div>
+
+              <label
+                htmlFor="fotoPerfilInput"
+                className="perfil-btn"
+                title="Cambiar foto de perfil"
+                style={{
+                  position: "absolute",
+                  bottom: -6,
+                  right: -6,
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  background: "#fff",
+                  border: `2px solid ${C.primary}`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  boxShadow: "0 2px 6px rgba(0,0,0,.2)",
+                }}
+              >
+                <Camera size={12} color={C.primary} />
+              </label>
+              <input
+                id="fotoPerfilInput"
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoChange}
+                style={{ display: "none" }}
+              />
+
+              {user.foto && (
+                <button
+                  type="button"
+                  className="perfil-btn"
+                  onClick={handleRemovePhoto}
+                  title="Quitar foto de perfil"
+                  aria-label="Quitar foto de perfil"
+                  style={{
+                    position: "absolute",
+                    top: -6,
+                    right: -6,
+                    width: 20,
+                    height: 20,
+                    borderRadius: "50%",
+                    background: C.danger,
+                    border: "2px solid #fff",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#fff",
+                  }}
+                >
+                  <X size={10} />
+                </button>
+              )}
             </div>
 
             <div style={{ flex: 1, minWidth: 200 }}>
@@ -343,101 +466,116 @@ export function Perfil() {
             )}
           </div>
 
-          <div
-            style={{
-              padding: 14,
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-              gap: 10,
-            }}
-          >
+          <div style={{ padding: "2px 16px" }}>
             {infoItems.map((item) => (
               <div
                 key={item.key}
-                className="perfil-info-item"
+                className="perfil-row"
                 style={{
-                  borderRadius: 12,
-                  border: `1px solid ${C.border}`,
-                  background: "#F8FAFC",
-                  padding: "10px 12px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "12px 2px",
+                  borderBottom: `1px solid ${C.border}`,
                 }}
               >
                 <div
                   style={{
+                    width: 36,
+                    height: 36,
+                    flexShrink: 0,
+                    borderRadius: 10,
+                    background: C.primaryPale,
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    letterSpacing: 0.4,
-                    textTransform: "uppercase",
-                    color: C.textLight,
+                    justifyContent: "center",
                   }}
                 >
-                  <item.icon size={12} />
-                  {item.label}
+                  <item.icon size={16} color={C.primary} />
                 </div>
-                {item.editable && editMode ? (
-                  <input
-                    value={item.key === "nombre" ? profileForm.nombre : profileForm.numero}
-                    onChange={(e) =>
-                      setProfileForm({
-                        ...profileForm,
-                        [item.key === "nombre" ? "nombre" : "numero"]: e.target.value,
-                      })
-                    }
-                    placeholder={item.placeholder}
-                    style={fieldInputStyle}
-                  />
-                ) : (
-                  <p
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
                     style={{
-                      marginTop: 4,
-                      fontSize: 13.5,
+                      fontSize: 10.5,
                       fontWeight: 800,
-                      color: C.text,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
+                      letterSpacing: 0.4,
+                      textTransform: "uppercase",
+                      color: C.textLight,
                     }}
                   >
-                    {item.value}
-                  </p>
-                )}
+                    {item.label}
+                  </div>
+                  {item.editable && editMode ? (
+                    <input
+                      value={item.key === "nombre" ? profileForm.nombre : profileForm.numero}
+                      onChange={(e) =>
+                        setProfileForm({
+                          ...profileForm,
+                          [item.key === "nombre" ? "nombre" : "numero"]: e.target.value,
+                        })
+                      }
+                      placeholder={item.placeholder}
+                      style={fieldInputStyle}
+                    />
+                  ) : (
+                    <p
+                      style={{
+                        marginTop: 2,
+                        fontSize: 13.5,
+                        fontWeight: 800,
+                        color: C.text,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {item.value}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
 
             <div
-              className="perfil-info-item"
+              className="perfil-row"
               style={{
-                gridColumn: "1 / -1",
-                borderRadius: 12,
-                border: `1px solid ${C.border}`,
-                background: "#F8FAFC",
-                padding: "10px 12px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 10,
                 flexWrap: "wrap",
+                padding: "12px 2px",
               }}
             >
-              <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <div
                   style={{
+                    width: 36,
+                    height: 36,
+                    flexShrink: 0,
+                    borderRadius: 10,
+                    background: C.primaryPale,
                     display: "flex",
                     alignItems: "center",
-                    gap: 6,
-                    fontSize: 10.5,
-                    fontWeight: 800,
-                    letterSpacing: 0.4,
-                    textTransform: "uppercase",
-                    color: C.textLight,
+                    justifyContent: "center",
                   }}
                 >
-                  <Shield size={12} /> Rol
+                  <Shield size={16} color={C.primary} />
                 </div>
-                <p style={{ marginTop: 4, fontSize: 13.5, fontWeight: 800, color: C.text }}>{user.rol}</p>
+                <div>
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 800,
+                      letterSpacing: 0.4,
+                      textTransform: "uppercase",
+                      color: C.textLight,
+                    }}
+                  >
+                    Rol
+                  </div>
+                  <p style={{ marginTop: 2, fontSize: 13.5, fontWeight: 800, color: C.text }}>{user.rol}</p>
+                </div>
               </div>
               <span
                 style={{
@@ -505,26 +643,37 @@ export function Perfil() {
             </button>
           </div>
 
-          <div style={{ padding: 14 }}>
+          <div style={{ padding: "2px 16px" }}>
             <div
-              className="perfil-info-item"
+              className="perfil-row"
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 10,
                 flexWrap: "wrap",
-                borderRadius: 12,
-                border: `1px solid ${C.border}`,
-                background: "#F8FAFC",
-                padding: "12px 14px",
+                padding: "12px 2px",
               }}
             >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 800, color: C.text }}>
-                  <Shield size={13} color={C.primary} /> Contraseña protegida
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    flexShrink: 0,
+                    borderRadius: 10,
+                    background: C.primaryPale,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Shield size={16} color={C.primary} />
                 </div>
-                <p style={{ marginTop: 2, fontSize: 11, color: C.textLight }}>Cámbiala periódicamente para mantener tu cuenta segura.</p>
+                <div>
+                  <div style={{ fontSize: 12.5, fontWeight: 800, color: C.text }}>Contraseña protegida</div>
+                  <p style={{ marginTop: 2, fontSize: 11, color: C.textLight }}>Cámbiala periódicamente para mantener tu cuenta segura.</p>
+                </div>
               </div>
               <div style={{ fontSize: 18, letterSpacing: 3, color: C.textMuted, fontWeight: 700 }}>••••••••</div>
             </div>
@@ -600,6 +749,7 @@ export function Perfil() {
                     placeholder={label}
                     value={value}
                     onChange={setValue}
+                    maxLength={label === "Nueva contraseña" ? PASSWORD_MAX : undefined}
                     style={{
                       width: "100%",
                       padding: "10px 36px",
@@ -637,6 +787,7 @@ export function Perfil() {
                   placeholder="Confirmar nueva contraseña"
                   value={passwordData.confirmPassword}
                   onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                  maxLength={PASSWORD_MAX}
                   style={{
                     width: "100%",
                     padding: "10px 36px 10px 36px",
@@ -664,7 +815,8 @@ export function Perfil() {
             >
               {[
                 { label: "Contraseña actual ingresada", check: currentFilled },
-                { label: "Mínimo 8 caracteres", check: passwordLengthOk },
+                { label: `Entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`, check: passwordLengthOk },
+                { label: "Diferente a la contraseña actual", check: passwordDifferent },
                 { label: "Las contraseñas coinciden", check: passwordsMatch },
               ].map(({ label, check }) => (
                 <div

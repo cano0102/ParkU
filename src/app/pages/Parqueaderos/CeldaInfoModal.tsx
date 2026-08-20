@@ -29,6 +29,7 @@ export function CeldaInfoModal({
   onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
   onReportarIncidente, onEstacionarVehiculo, onReservarCelda,
 }: CeldaInfoModalProps) {
+  const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
   return (
     <Modal open={open} onClose={onClose} maxWidth={480}>
       <div style={{ background: `linear-gradient(135deg,${C.primary},${C.primaryDark})`, borderRadius: "24px 24px 0 0", padding: "1.6rem 1.8rem", color: "#fff", position: "relative", overflow: "hidden" }}>
@@ -58,9 +59,16 @@ export function CeldaInfoModal({
                 <div><div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>{r.label}</div><div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>{r.value}</div></div>
               </div>
             ))}
+            {parqueaderoInactivo && (
+              <div style={{ padding: "10px 12px", borderRadius: 11, background: C.dangerBg, border: `1px solid ${C.dangerBorder}`, fontSize: 11, color: C.danger, fontWeight: 700 }}>
+                Este parqueadero está inactivo: no se pueden registrar nuevos ingresos.
+              </div>
+            )}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button onClick={onCancelarReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Cancelar Reserva</button>
-              <button onClick={onEstacionarOficial} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
+              {!parqueaderoInactivo && (
+                <button onClick={onEstacionarOficial} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
+              )}
             </div>
           </>
         ) : celdaActiva?.estado === "no_disponible" && ocupanteActivo ? (
@@ -84,32 +92,39 @@ export function CeldaInfoModal({
                 {r.onClick && <ChevronRight size={14} color={C.textLight} style={{ marginLeft: "auto" }} />}
               </div>
             ))}
-            <div style={{ display: "flex", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>
               <button onClick={onLiberar} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Liberar Celda</button>
               <button
                 onClick={onReportarIncidente}
-                style={{ flex: 1, padding: "10px", borderRadius: 11, border: `2px solid ${C.primary}`, background: "transparent", color: C.primary, fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                title="Reportar Incidente"
+                style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", color: C.textLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
               >
-                <AlertTriangle size={14} style={{ marginRight: 4 }} />
-                Reportar Incidente
+                <AlertTriangle size={13} />
+                Incidente
               </button>
             </div>
           </>
         ) : celdaActiva?.estado === "disponible" ? (
-          <>
-            <div style={{ padding: "12px 14px", borderRadius: 11, background: C.primaryPale, border: `1px solid ${C.primaryLight}`, fontSize: 12, color: C.primaryDark, fontWeight: 600 }}>
-              ✅ Celda disponible para estacionar.
+          parqueaderoInactivo ? (
+            <div style={{ padding: "12px 14px", borderRadius: 11, background: C.dangerBg, border: `1px solid ${C.dangerBorder}`, fontSize: 12, color: C.danger, fontWeight: 600 }}>
+              ⚠️ Este parqueadero está inactivo y no acepta nuevos registros. Actívalo en el módulo Parqueaderos.
             </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={onEstacionarVehiculo} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>Estacionar Vehículo</button>
-              <button
-                onClick={onReservarCelda}
-                style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
-              >
-                📅 Reservar Celda
-              </button>
-            </div>
-          </>
+          ) : (
+            <>
+              <div style={{ padding: "12px 14px", borderRadius: 11, background: C.primaryPale, border: `1px solid ${C.primaryLight}`, fontSize: 12, color: C.primaryDark, fontWeight: 600 }}>
+                ✅ Celda disponible para estacionar.
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={onEstacionarVehiculo} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>Estacionar Vehículo</button>
+                <button
+                  onClick={onReservarCelda}
+                  style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
+                >
+                  📅 Reservar Celda
+                </button>
+              </div>
+            </>
+          )
         ) : null}
       </div>
     </Modal>

@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Car, Building2, Accessibility } from "lucide-react";
+import { Pencil, Car, Building2, Accessibility } from "lucide-react";
 import type { Conductor, Usuario, Vehiculo } from "../../context/DataContext";
 import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "./helpers";
 
@@ -9,12 +9,11 @@ interface ConductoresGridProps {
   onToggleEstado: (id: string, estado: "activo" | "inactivo") => void;
   onViewVehiculo: (v: Vehiculo) => void;
   onEdit: (c: Conductor) => void;
-  onDelete: (c: Conductor) => void;
 }
 
 export function ConductoresGrid({
   conductores, getUsuario, getVehiculosConductor,
-  onToggleEstado, onViewVehiculo, onEdit, onDelete,
+  onToggleEstado, onViewVehiculo, onEdit,
 }: ConductoresGridProps) {
   return (
     <div className="conductores-grid">
@@ -141,14 +140,6 @@ export function ConductoresGrid({
                   aria-label={`Editar ${sanitizeText(conductor.nombre)}`}
                 >
                   <Pencil size={14} />
-                </button>
-                <button
-                  className="action-btn danger"
-                  title="Eliminar"
-                  onClick={() => onDelete(conductor)}
-                  aria-label={`Eliminar ${sanitizeText(conductor.nombre)}`}
-                >
-                  <Trash2 size={14} />
                 </button>
               </div>
             </div>

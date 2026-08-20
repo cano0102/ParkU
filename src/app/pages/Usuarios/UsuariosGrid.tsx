@@ -1,4 +1,4 @@
-import { Mail, Phone, Shield, Lock, UserCheck, Pencil, Trash2 } from "lucide-react";
+import { Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
 import type { Usuario } from "../../context/DataContext";
 import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials, sanitizeText } from "./helpers";
 
@@ -6,10 +6,9 @@ interface UsuariosGridProps {
   usuarios: Usuario[];
   onToggleEstado: (u: Usuario) => void;
   onEdit: (u: Usuario) => void;
-  onDelete: (u: Usuario) => void;
 }
 
-export function UsuariosGrid({ usuarios, onToggleEstado, onEdit, onDelete }: UsuariosGridProps) {
+export function UsuariosGrid({ usuarios, onToggleEstado, onEdit }: UsuariosGridProps) {
   return (
     <div
       style={{
@@ -266,17 +265,6 @@ export function UsuariosGrid({ usuarios, onToggleEstado, onEdit, onDelete }: Usu
                     bg: COLORS.bg,
                     onClick: () => onEdit(u),
                   },
-                  ...(!protegido
-                    ? [
-                        {
-                          icon: <Trash2 size={12} />,
-                          title: "Eliminar",
-                          color: "#EF4444",
-                          bg: "#FEF2F2",
-                          onClick: () => onDelete(u),
-                        },
-                      ]
-                    : []),
                 ].map((btn, i) => (
                   <button
                     key={i}

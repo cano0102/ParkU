@@ -2,7 +2,6 @@ import React, { useMemo, useState, useCallback, useEffect, memo } from "react";
 import {
   Plus,
   Pencil,
-  Trash2,
   Eye,
   Shield,
   Search,
@@ -17,7 +16,7 @@ import {
 import { useData, Rol } from "../context/DataContext";
 import { toast } from "sonner";
 import { theme } from "../theme";
-import { Modal, ConfirmDialog } from "../components/shared";
+import { Modal } from "../components/shared";
 
 const COLORS = theme;
 
@@ -844,13 +843,11 @@ const RoleCard = memo(
     rol,
     onView,
     onEdit,
-    onDelete,
     onToggleEstado,
   }: {
     rol: Rol;
     onView: (rol: Rol) => void;
     onEdit: (rol: Rol) => void;
-    onDelete: (rol: Rol) => void;
     onToggleEstado: (rol: Rol) => void;
   }) => {
     const activeCount = useMemo(() => countActive(rol.permisos), [rol.permisos]);
@@ -878,7 +875,6 @@ const RoleCard = memo(
 
     const handleView = useCallback(() => onView(rol), [onView, rol]);
     const handleEdit = useCallback(() => onEdit(rol), [onEdit, rol]);
-    const handleDelete = useCallback(() => onDelete(rol), [onDelete, rol]);
     const handleToggleEstado = useCallback(
       (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -990,19 +986,6 @@ const RoleCard = memo(
           <button className="role-action-btn" onClick={handleEdit} aria-label={`Editar ${sanitizeText(rol.nombre)}`} title="Editar">
             <Pencil size={15} />
           </button>
-          {!protegido && (
-            <>
-              <span className="role-action-divider" />
-              <button
-                className="role-action-btn danger"
-                onClick={handleDelete}
-                aria-label={`Eliminar ${sanitizeText(rol.nombre)}`}
-                title="Eliminar"
-              >
-                <Trash2 size={15} />
-              </button>
-            </>
-          )}
         </div>
       </article>
     );
@@ -1019,14 +1002,12 @@ const emptyForm = (): FormState => ({
 });
 
 export function Roles() {
-  const { roles, addRol, updateRol, deleteRol } = useData();
+  const { roles, addRol, updateRol } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [editingRol, setEditingRol] = useState<Rol | null>(null);
   const [viewingRol, setViewingRol] = useState<Rol | null>(null);
-  const [deletingRol, setDeletingRol] = useState<Rol | null>(null);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
@@ -1077,15 +1058,6 @@ export function Roles() {
     setViewOpen(true);
   }, []);
 
-  const openConfirm = useCallback((rol: Rol) => {
-    if (ROLES_PROTEGIDOS.includes(rol.nombre as any)) {
-      toast.error("Este rol está protegido y no puede eliminarse");
-      return;
-    }
-    setDeletingRol(rol);
-    setConfirmOpen(true);
-  }, []);
-
   const handleToggleEstado = useCallback(
     (rol: Rol) => {
       if (ROLES_PROTEGIDOS.includes(rol.nombre as any)) {
@@ -1129,20 +1101,6 @@ export function Roles() {
     },
     [editingRol, addRol, updateRol]
   );
-
-  const handleDelete = useCallback(() => {
-    if (deletingRol) {
-      try {
-        deleteRol(deletingRol.id);
-        toast.success("Rol eliminado correctamente");
-        setConfirmOpen(false);
-        setDeletingRol(null);
-      } catch (error) {
-        toast.error("Error al eliminar el rol");
-        console.error("Error deleting role:", error);
-      }
-    }
-  }, [deletingRol, deleteRol]);
 
   return (
     <>
@@ -1558,7 +1516,6 @@ export function Roles() {
                 rol={rol}
                 onView={openView}
                 onEdit={openEdit}
-                onDelete={openConfirm}
                 onToggleEstado={handleToggleEstado}
               />
             ))}
@@ -1588,17 +1545,6 @@ export function Roles() {
           />
         )}
       </Modal>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        onConfirm={handleDelete}
-        onCancel={() => {
-          setConfirmOpen(false);
-          setDeletingRol(null);
-        }}
-        title="Eliminar Rol"
-        message={`¿Estás seguro de eliminar el rol "${deletingRol?.nombre}"? Esta acción no se puede deshacer.`}
-      />
     </>
   );
 }

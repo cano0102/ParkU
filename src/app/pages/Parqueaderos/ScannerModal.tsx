@@ -18,7 +18,7 @@ interface ScannerModalProps {
   onClose: () => void;
   onCapture: () => void;
   onFileOCR: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onSimOCR: (placa: string, conductor: string, rol: string) => void;
+  onSimOCR: (placa: string, conductor: string, rol: string, marca: string, modelo: string, color: string) => void;
 }
 
 export function ScannerModal({
@@ -60,7 +60,7 @@ export function ScannerModal({
           <div style={{ fontSize: 9, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Matrículas de prueba</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {PLACAS_DEMO.map(d => (
-              <button key={d.placa} onClick={() => onSimOCR(d.placa, d.conductor, d.rol)} disabled={ocrLoading}
+              <button key={d.placa} onClick={() => onSimOCR(d.placa, d.conductor, d.rol, d.marca, d.modelo, d.color)} disabled={ocrLoading}
                 style={{ padding: "5px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", fontSize: 11, fontWeight: 700, color: C.text, cursor: "pointer", fontFamily: "monospace" }}>
                 {d.placa} <span style={{ fontFamily: "sans-serif", color: C.textLight, fontSize: 9 }}>({d.rol})</span>
               </button>

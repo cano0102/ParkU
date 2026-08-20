@@ -35,6 +35,9 @@ export interface Usuario {
   tipoDocumento: string;
   identificacion: string;
   estado: 'activo' | 'inactivo';
+  // Foto de perfil como data URL (base64), ya redimensionada en el cliente. Opcional:
+  // ningún usuario semilla trae una, y el avatar cae de vuelta a la inicial del nombre.
+  foto?: string;
 }
 
 export interface Parqueadero {

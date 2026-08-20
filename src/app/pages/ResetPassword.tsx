@@ -15,26 +15,22 @@ import {
   LockKeyhole,
 } from "lucide-react";
 
-import {
-  confirmPasswordReset,
-} from "firebase/auth";
-
-import { auth } from "../../firebase/config";
-
 import { toast } from "sonner";
 import { theme } from "../theme";
+import { useAuth } from "../context/AuthContext";
 import logoSena from "../../styles/images/logoSena.png";
 
 const COLORS = theme;
 
 export function ResetPassword() {
   const navigate = useNavigate();
+  const { resetPasswordWithToken } = useAuth();
 
   const [searchParams] =
     useSearchParams();
 
-  const oobCode =
-    searchParams.get("oobCode");
+  const token =
+    searchParams.get("token");
 
   const [password, setPassword] =
     useState("");
@@ -55,14 +51,14 @@ export function ResetPassword() {
   const [loading, setLoading] =
     useState(false);
 
-  const handleSubmit = async (
+  const handleSubmit = (
     e: React.FormEvent
   ) => {
     e.preventDefault();
 
-    if (!oobCode) {
+    if (!token) {
       toast.error(
-        "Código inválido o expirado"
+        "Enlace inválido o expirado"
       );
       return;
     }
@@ -81,29 +77,24 @@ export function ResetPassword() {
       return;
     }
 
-    try {
-      setLoading(true);
+    setLoading(true);
 
-      await confirmPasswordReset(
-        auth,
-        oobCode,
-        password
-      );
+    const resultado = resetPasswordWithToken(token, password);
 
-      toast.success(
-        "Contraseña actualizada correctamente"
-      );
+    setLoading(false);
 
-      navigate("/login");
-    } catch (error) {
-      console.error(error);
-
+    if (!resultado.ok) {
       toast.error(
-        "El enlace expiró o es inválido"
+        resultado.message || "El enlace expiró o es inválido"
       );
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    toast.success(
+      "Contraseña actualizada correctamente"
+    );
+
+    navigate("/login");
   };
 
   return (

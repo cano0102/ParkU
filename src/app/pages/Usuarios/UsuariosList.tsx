@@ -1,4 +1,4 @@
-import { Mail, Shield, Lock, Pencil, Trash2 } from "lucide-react";
+import { Mail, Shield, Lock, Pencil } from "lucide-react";
 import type { Usuario } from "../../context/DataContext";
 import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials, sanitizeText } from "./helpers";
 
@@ -6,10 +6,9 @@ interface UsuariosListProps {
   usuarios: Usuario[];
   onToggleEstado: (u: Usuario) => void;
   onEdit: (u: Usuario) => void;
-  onDelete: (u: Usuario) => void;
 }
 
-export function UsuariosList({ usuarios, onToggleEstado, onEdit, onDelete }: UsuariosListProps) {
+export function UsuariosList({ usuarios, onToggleEstado, onEdit }: UsuariosListProps) {
   return (
     <div
       style={{
@@ -208,28 +207,6 @@ export function UsuariosList({ usuarios, onToggleEstado, onEdit, onDelete }: Usu
               >
                 <Pencil size={12} />
               </button>
-              {!protegido && (
-                <button
-                  title="Eliminar"
-                  onClick={() => onDelete(u)}
-                  className="u-btn"
-                  style={{
-                    width: 26,
-                    height: 26,
-                    borderRadius: 7,
-                    border: `1px solid ${COLORS.border}`,
-                    background: "#FEF2F2",
-                    color: "#EF4444",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                  aria-label="Eliminar"
-                >
-                  <Trash2 size={12} />
-                </button>
-              )}
             </div>
           </div>
         );

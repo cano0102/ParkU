@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useData, Usuario } from "../../context/DataContext";
-import { Modal, ConfirmDialog } from "../../components/shared";
+import { Modal } from "../../components/shared";
 import { COLORS, USUARIOS_PROTEGIDOS, sanitizeText, emptyForm, FormState } from "./helpers";
 import { UsuariosStats } from "./UsuariosStats";
 import { UsuariosToolbar } from "./UsuariosToolbar";
@@ -12,12 +12,10 @@ import { UsuariosPagination } from "./UsuariosPagination";
 import { UsuarioFormModal } from "./UsuarioFormModal";
 
 export default function Usuarios() {
-  const { usuarios, addUsuario, updateUsuario, deleteUsuario, roles } = useData();
+  const { usuarios, addUsuario, updateUsuario, roles } = useData();
 
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
-  const [deletingUsuario, setDeletingUsuario] = useState<Usuario | null>(null);
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
@@ -98,15 +96,6 @@ export default function Usuarios() {
     []
   );
 
-  const openConfirm = useCallback((u: Usuario) => {
-    if (USUARIOS_PROTEGIDOS.includes(u.correo)) {
-      toast.error("Este usuario está protegido y no puede eliminarse");
-      return;
-    }
-    setDeletingUsuario(u);
-    setConfirmOpen(true);
-  }, []);
-
   // Corrección: evita registrar dos usuarios iguales (mismo correo o misma identificación)
   const encontrarDuplicado = useCallback(
     (data: FormState, excludeId?: string) => {
@@ -154,20 +143,6 @@ export default function Usuarios() {
     },
     [editingUsuario, addUsuario, updateUsuario, encontrarDuplicado]
   );
-
-  const handleDelete = useCallback(() => {
-    if (deletingUsuario) {
-      try {
-        deleteUsuario(deletingUsuario.id);
-        toast.success("Usuario eliminado correctamente");
-        setConfirmOpen(false);
-        setDeletingUsuario(null);
-      } catch (error) {
-        toast.error("Error al eliminar el usuario");
-        console.error("Error deleting user:", error);
-      }
-    }
-  }, [deletingUsuario, deleteUsuario]);
 
   const handleToggleEstado = useCallback(
     (u: Usuario) => {
@@ -274,14 +249,12 @@ export default function Usuarios() {
                 usuarios={paginated}
                 onToggleEstado={handleToggleEstado}
                 onEdit={openEdit}
-                onDelete={openConfirm}
               />
             ) : (
               <UsuariosList
                 usuarios={paginated}
                 onToggleEstado={handleToggleEstado}
                 onEdit={openEdit}
-                onDelete={openConfirm}
               />
             )}
 
@@ -311,17 +284,6 @@ export default function Usuarios() {
           onCancel={() => setDialogOpen(false)}
         />
       </Modal>
-
-      <ConfirmDialog
-        open={confirmOpen}
-        onConfirm={handleDelete}
-        onCancel={() => {
-          setConfirmOpen(false);
-          setDeletingUsuario(null);
-        }}
-        title="Eliminar Usuario"
-        message={`¿Estás seguro de eliminar al usuario "${deletingUsuario?.nombre}"? Esta acción no se puede deshacer.`}
-      />
     </>
   );
 }
