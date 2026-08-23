@@ -1,6 +1,8 @@
 import { memo } from "react";
 import { Pencil, X, Mail, Phone, IdCard, Building2, Accessibility, Car } from "lucide-react";
-import type { Conductor, Usuario, Vehiculo } from "../../context/DataContext";
+import type { Conductor } from "@/services/conductores";
+import type { Usuario } from "@/services/usuarios";
+import type { Vehiculo } from "@/services/vehiculos";
 import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "./helpers";
 
 interface ConductorDetailModalProps {

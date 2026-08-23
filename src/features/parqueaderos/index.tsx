@@ -4,8 +4,25 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useData, Celda, Conductor, Parqueadero } from "../../context/DataContext";
-import { theme } from "../../theme";
+import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero } from "@/services/hooks/useParqueaderos";
+import type { Parqueadero } from "@/services/parqueaderos";
+import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda } from "@/services/hooks/useCeldas";
+import type { Celda } from "@/services/celdas";
+import { useConductores, useCreateConductor } from "@/services/hooks/useConductores";
+import type { Conductor } from "@/services/conductores";
+import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "@/services/hooks/useVehiculos";
+import type { Vehiculo } from "@/services/vehiculos";
+import {
+  useControlSalida,
+  useCreateControlSalida,
+  useUpdateControlSalida,
+} from "@/services/hooks/useControlSalida";
+import type { ControlSalida } from "@/services/controlSalida";
+import { useReservas, useCreateReserva, useUpdateReserva } from "@/services/hooks/useReservas";
+import type { Reserva } from "@/services/reservas";
+import { useCreateIncidente } from "@/services/hooks/useIncidentes";
+import type { Incidente } from "@/services/incidentes";
+import { theme } from "@/theme";
 import {
   FormParqueadero, VehiculoForm, IncidenteForm,
   CELDA_CONFIG, TIPOS_PARQUEADERO, capitalizar,
@@ -29,15 +46,49 @@ const MAX_EVIDENCIA_MB = 5;
 
 export default function Parqueaderos() {
   const navigate = useNavigate();
-  const {
-    parqueaderos, addParqueadero, updateParqueadero,
-    celdas, addCelda, updateCelda, deleteCelda,
-    conductores, addConductor,
-    vehiculos, addVehiculo, updateVehiculo,
-    controlesSalida, addControlSalida, updateControlSalida,
-    reservas, addReserva, updateReserva,
-    addIncidente,
-  } = useData();
+  const { data: parqueaderos = [] } = useParqueaderos();
+  const { data: celdas = [] } = useCeldas();
+  const { data: conductores = [] } = useConductores();
+  const { data: vehiculos = [] } = useVehiculos();
+  const { data: controlesSalida = [] } = useControlSalida();
+  const { data: reservas = [] } = useReservas();
+
+  const createParqueaderoMutation = useCreateParqueadero();
+  const updateParqueaderoMutation = useUpdateParqueadero();
+  const createCeldaMutation = useCreateCelda();
+  const updateCeldaMutation = useUpdateCelda();
+  const removeCeldaMutation = useRemoveCelda();
+  const createConductorMutation = useCreateConductor();
+  const createVehiculoMutation = useCreateVehiculo();
+  const updateVehiculoMutation = useUpdateVehiculo();
+  const createControlSalidaMutation = useCreateControlSalida();
+  const updateControlSalidaMutation = useUpdateControlSalida();
+  const createReservaMutation = useCreateReserva();
+  const updateReservaMutation = useUpdateReserva();
+  const createIncidenteMutation = useCreateIncidente();
+
+  const addParqueadero = (data: Omit<Parqueadero, "id">) => createParqueaderoMutation.mutate(data);
+  const updateParqueadero = (id: string, data: Partial<Omit<Parqueadero, "id">>) =>
+    updateParqueaderoMutation.mutate({ id, data });
+  const addCelda = (data: Omit<Celda, "id">) => createCeldaMutation.mutate(data);
+  const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutate({ id, data });
+  const deleteCelda = (id: string) => removeCeldaMutation.mutate(id);
+  // resolverConductor/resolverVehiculo necesitan el id real del registro creado
+  // antes de seguir (para encadenar el control de salida), así que estas dos sí
+  // esperan a que la mutación termine en vez de disparar y olvidar.
+  const addConductor = (data: Omit<Conductor, "id">): Promise<string> =>
+    createConductorMutation.mutateAsync(data).then((c) => c.id);
+  const addVehiculo = (data: Omit<Vehiculo, "id">): Promise<string> =>
+    createVehiculoMutation.mutateAsync(data).then((v) => v.id);
+  const updateVehiculo = (id: string, data: Partial<Omit<Vehiculo, "id">>) =>
+    updateVehiculoMutation.mutate({ id, data });
+  const addControlSalida = (data: Omit<ControlSalida, "id">) => createControlSalidaMutation.mutate(data);
+  const updateControlSalida = (id: string, data: Partial<Omit<ControlSalida, "id">>) =>
+    updateControlSalidaMutation.mutate({ id, data });
+  const addReserva = (data: Omit<Reserva, "id">) => createReservaMutation.mutate(data);
+  const updateReserva = (id: string, data: Partial<Omit<Reserva, "id">>) =>
+    updateReservaMutation.mutate({ id, data });
+  const addIncidente = (data: Omit<Incidente, "id">) => createIncidenteMutation.mutate(data);
 
   const [activeTab, setActiveTab]   = useState<"map" | "table">("table");
   const [openModal, setOpenModal]   = useState<"create"|"edit"|"ingreso"|"info"|"scanner"|"smartAssign"|"incidente"|"reserva"|null>(null);
@@ -377,7 +428,7 @@ export default function Parqueaderos() {
     toast.success(nuevoEstado === "activo" ? "Parqueadero activado." : "Parqueadero desactivado.");
   };
 
-  const resolverConductor = useCallback((nombre: string, tipo: Conductor["tipo"]): string => {
+  const resolverConductor = useCallback(async (nombre: string, tipo: Conductor["tipo"]): Promise<string> => {
     const existente = conductores.find(c => c.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
     if (existente) return existente.id;
     return addConductor({
@@ -386,7 +437,7 @@ export default function Parqueaderos() {
     });
   }, [conductores, addConductor]);
 
-  const resolverVehiculo = useCallback((placa: string, conductorId: string, tipo: "carro" | "moto", parqueaderoId: string, celdaId: string, fechaEntrada: string, datosVehiculo?: { marca?: string; modelo?: string; color?: string }): string => {
+  const resolverVehiculo = useCallback(async (placa: string, conductorId: string, tipo: "carro" | "moto", parqueaderoId: string, celdaId: string, fechaEntrada: string, datosVehiculo?: { marca?: string; modelo?: string; color?: string }): Promise<string> => {
     const existente = vehiculos.find(v => v.placa === placa);
     if (existente) return existente.id;
     return addVehiculo({
@@ -403,7 +454,7 @@ export default function Parqueaderos() {
     return "visitante";
   };
 
-  const registrarEnCelda = (celda: Celda, placaRaw: string, conductorRaw: string, esOficial: boolean, datosVehiculo?: { marca?: string; modelo?: string; color?: string }) => {
+  const registrarEnCelda = async (celda: Celda, placaRaw: string, conductorRaw: string, esOficial: boolean, datosVehiculo?: { marca?: string; modelo?: string; color?: string }): Promise<boolean> => {
     const placa = placaRaw.trim().toUpperCase();
     const conductorNombre = normalizarTexto(conductorRaw, 60);
     if (!placa || !conductorNombre) { setPlacaError("Completa todos los campos."); return false; }
@@ -429,10 +480,10 @@ export default function Parqueaderos() {
     if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
 
     const tipoConductor = tipoConductorDesdeParqueadero(pq?.tipo || "");
-    const conductorId = resolverConductor(conductorNombre, tipoConductor);
+    const conductorId = await resolverConductor(conductorNombre, tipoConductor);
     const fechaEntrada = new Date().toISOString().slice(0, 16);
     const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
-    const vehiculoId = resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada, datosVehiculo);
+    const vehiculoId = await resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada, datosVehiculo);
 
     const reservaPendiente = reservas.find(r => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
     if (reservaPendiente) updateReserva(reservaPendiente.id, { estado: "completada" });
@@ -443,9 +494,9 @@ export default function Parqueaderos() {
     return true;
   };
 
-  const registrarVehiculo = () => {
+  const registrarVehiculo = async () => {
     if (!celdaActiva) return;
-    if (registrarEnCelda(celdaActiva, vehiculoForm.placa, vehiculoForm.conductor, vehiculoForm.esOficial, {
+    if (await registrarEnCelda(celdaActiva, vehiculoForm.placa, vehiculoForm.conductor, vehiculoForm.esOficial, {
       marca: vehiculoForm.marca, modelo: vehiculoForm.modelo, color: vehiculoForm.color,
     })) {
       setOpenModal(null);
@@ -560,8 +611,8 @@ export default function Parqueaderos() {
     }, 800);
   };
 
-  const handleSmartAssign = (celda: Celda, placa: string, conductorNombre: string, esOficial: boolean) => {
-    registrarEnCelda(celda, placa, conductorNombre, esOficial);
+  const handleSmartAssign = async (celda: Celda, placa: string, conductorNombre: string, esOficial: boolean) => {
+    await registrarEnCelda(celda, placa, conductorNombre, esOficial);
     setScannedPlate(undefined);
   };
 

@@ -2,23 +2,23 @@ import { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from './layouts/MainLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import Landing from './pages/Landing';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { ForgotPassword } from './pages/ForgotPassword';
-import { ResetPassword } from './pages/ResetPassword';
-import { NotFound } from './pages/NotFound';
+import { NotFound } from './components/NotFound';
+import Landing from '@/features/landing';
+import { Login } from '@/features/auth/Login';
+import { Register } from '@/features/auth/Register';
+import { ForgotPassword } from '@/features/auth/ForgotPassword';
+import { ResetPassword } from '@/features/auth/ResetPassword';
 
 /* Páginas autenticadas: se cargan bajo demanda, no en el bundle inicial */
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Roles = lazy(() => import('./pages/Roles').then(m => ({ default: m.Roles })));
-const Usuarios = lazy(() => import('./pages/Usuarios'));
-const Conductores = lazy(() => import('./pages/Conductores').then(m => ({ default: m.Conductores })));
-const Parqueaderos = lazy(() => import('./pages/Parqueaderos'));
-const ControlSalidaPage = lazy(() => import('./pages/ControlSalida').then(m => ({ default: m.ControlSalidaPage })));
-const Reservas = lazy(() => import('./pages/Reservas').then(m => ({ default: m.Reservas })));
-const Incidentes = lazy(() => import('./pages/Incidentes').then(m => ({ default: m.Incidentes })));
-const Perfil = lazy(() => import('./pages/Perfil').then(m => ({ default: m.Perfil })));
+const Dashboard = lazy(() => import('@/features/dashboard'));
+const Roles = lazy(() => import('@/features/roles').then(m => ({ default: m.Roles })));
+const Usuarios = lazy(() => import('@/features/usuarios'));
+const Conductores = lazy(() => import('@/features/conductores').then(m => ({ default: m.Conductores })));
+const Parqueaderos = lazy(() => import('@/features/parqueaderos'));
+const ControlSalidaPage = lazy(() => import('@/features/control-salida').then(m => ({ default: m.ControlSalidaPage })));
+const Reservas = lazy(() => import('@/features/reservas').then(m => ({ default: m.Reservas })));
+const Incidentes = lazy(() => import('@/features/incidentes').then(m => ({ default: m.Incidentes })));
+const Perfil = lazy(() => import('@/features/perfil').then(m => ({ default: m.Perfil })));
 
 export const router = createBrowserRouter([
   {

@@ -1,0 +1,1 @@
+import{a5 as o,a6 as t}from"./index-CQbT-iSH.js";const e=o(t.get,t.set,"cs","Control de salida"),a=e.getAll,r=e.getById,c=e.create,l=e.update,s=e.remove,d=Object.freeze(Object.defineProperty({__proto__:null,create:c,getAll:a,getById:r,remove:s,update:l},Symbol.toStringTag,{value:"Module"}));export{d as c,a as g};

@@ -1,34 +1,13 @@
 import type React from "react";
 import { Car, Bike, GraduationCap, BookOpen, Briefcase, UserCog, Contact } from "lucide-react";
-import { theme } from "../../theme";
-import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "../Parqueaderos/helpers";
+import { theme } from "@/theme";
+import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "@/utils/validation";
+import { getAvatarGradient, getInitials, sanitizeText } from "@/utils/format";
 
 export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca };
+export { getAvatarGradient, getInitials, sanitizeText };
 
 export const COLORS = theme;
-
-const AVATAR_GRADIENTS = [
-  ["#39A900", "#2D7D00"],
-  ["#2563EB", "#1D4ED8"],
-  ["#8B5CF6", "#7C3AED"],
-  ["#F59E0B", "#D97706"],
-  ["#EF4444", "#DC2626"],
-  ["#0891B2", "#0E7490"],
-] as const;
-
-export const getAvatarGradient = (str: string): [string, string] => {
-  const idx = (str?.charCodeAt(0) ?? 0) % AVATAR_GRADIENTS.length;
-  return AVATAR_GRADIENTS[idx] as [string, string];
-};
-
-export const getInitials = (nombre: string): string => {
-  return nombre
-    .split(" ")
-    .slice(0, 2)
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase();
-};
 
 const TIPO_CONDUCTOR_STYLES: Record<string, { bg: string; text: string; border: string; dot: string; label: string; icon: typeof GraduationCap }> = {
   instructor:     { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#2563EB", label: "Instructor",     icon: GraduationCap },
@@ -61,12 +40,6 @@ export const getTipoVehiculoStyle = (tipo: "carro" | "moto") => {
     label: "Moto",
     icon: Bike,
   };
-};
-
-export const sanitizeText = (text: string): string => {
-  const element = document.createElement("div");
-  element.textContent = text;
-  return element.innerHTML;
 };
 
 export const inputStyle: React.CSSProperties = {

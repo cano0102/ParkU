@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Pencil, X, GaugeCircle, Palette, Calendar } from "lucide-react";
-import type { Vehiculo } from "../../context/DataContext";
+import type { Vehiculo } from "@/services/vehiculos";
 import { COLORS, getTipoVehiculoStyle, sanitizeText } from "./helpers";
 
 interface VehiculoViewProps {

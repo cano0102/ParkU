@@ -1,8 +1,9 @@
 import { memo, useEffect, useState } from "react";
 import { Camera, Sparkles } from "lucide-react";
-import type { Celda, Parqueadero } from "../../context/DataContext";
-import { theme } from "../../theme";
-import { Modal } from "../../components/shared";
+import type { Celda } from "@/services/celdas";
+import type { Parqueadero } from "@/services/parqueaderos";
+import { theme } from "@/theme";
+import { Modal } from "@/components/shared";
 import { ModalHeader, Banner } from "./UiBits";
 import {
   getTipoCeldaConfig, capitalizar, validarPlacaPorTipo, validarNombreConductor,

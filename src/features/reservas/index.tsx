@@ -19,11 +19,19 @@ import {
 
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useData, Reserva } from "../context/DataContext";
-import { theme } from "../theme";
-import { Modal } from "../components/shared";
+import { useReservas, useRemoveReserva } from "@/services/hooks/useReservas";
+import type { Reserva } from "@/services/reservas";
+import { useUpdateCelda } from "@/services/hooks/useCeldas";
+import type { Celda } from "@/services/celdas";
+import { useVehiculos } from "@/services/hooks/useVehiculos";
+import { useCeldas } from "@/services/hooks/useCeldas";
+import { useConductores } from "@/services/hooks/useConductores";
+import { useUsuarios } from "@/services/hooks/useUsuarios";
+import { useParqueaderos } from "@/services/hooks/useParqueaderos";
+import { theme } from "@/theme";
+import { Modal } from "@/components/shared";
 
-/* ─── Paleta compartida (src/app/theme.ts) ─── */
+/* ─── Paleta compartida (src/theme.ts) ─── */
 const C = theme;
 
 /* ─── Estado config ─────────────────────────────────── */
@@ -38,38 +46,23 @@ const ESTADO_CONFIG: Record<EstadoReserva, {
   cancelada:  { bg: "#FEE2E2", text: "#991B1B", border: "#FECACA", dot: "#EF4444", label: "Cancelada", icon: <XCircle size={10} /> },
 };
 
-/* ─── Helpers de tiempo ──────────────────────────────── */
-const toMinutes = (hhmm: string) => {
-  const [h, m] = hhmm.split(":").map(Number);
-  return h * 60 + m;
-};
-
 const todayStr = () => new Date().toISOString().split("T")[0];
-
-/* ─── Badge de estado inline ─── */
-function EstadoBadgeInline({ estado }: { estado: EstadoReserva }) {
-  const cfg = ESTADO_CONFIG[estado] ?? ESTADO_CONFIG.pendiente;
-  return (
-    <span style={{
-      display: "inline-flex", alignItems: "center", gap: 4,
-      padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
-      background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}`,
-    }}>
-      <span style={{ width: 6, height: 6, borderRadius: "50%", background: cfg.dot }} />
-      {cfg.label}
-    </span>
-  );
-}
 
 /* ══════════════════════════════════════════════════════
    MAIN COMPONENT - Reservas (estilo Roles)
 ══════════════════════════════════════════════════════ */
 export function Reservas() {
   const navigate = useNavigate();
-  const {
-    reservas, deleteReserva, updateCelda,
-    vehiculos, celdas, conductores, usuarios, parqueaderos,
-  } = useData();
+  const { data: reservas = [] } = useReservas();
+  const { data: vehiculos = [] } = useVehiculos();
+  const { data: celdas = [] } = useCeldas();
+  const { data: conductores = [] } = useConductores();
+  const { data: usuarios = [] } = useUsuarios();
+  const { data: parqueaderos = [] } = useParqueaderos();
+  const removeReservaMutation = useRemoveReserva();
+  const updateCeldaMutation = useUpdateCelda();
+  const deleteReserva = (id: string) => removeReservaMutation.mutate(id);
+  const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutate({ id, data });
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewingReserva, setViewingReserva] = useState<Reserva | null>(null);
@@ -205,7 +198,6 @@ export function Reservas() {
                 { label: "Completadas", value: counts.completada, estado: "completada", icon: Calendar },
                 { label: "Canceladas", value: counts.cancelada, estado: "cancelada", icon: XCircle },
               ].map((s) => {
-                const cfg = ESTADO_CONFIG[s.estado as EstadoReserva];
                 const isActive = filterEstado === s.estado;
                 return (
                   <div

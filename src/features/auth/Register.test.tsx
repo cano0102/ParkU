@@ -1,0 +1,87 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from '@/context/AuthContext';
+import { createTestQueryClient } from '@/test/queryWrapper';
+import { Register } from './Register';
+
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return { ...actual, useNavigate: () => mockNavigate };
+});
+
+vi.mock('sonner', () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
+import { toast } from 'sonner';
+
+function renderRegister() {
+  const client = createTestQueryClient();
+  return render(
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <AuthProvider>
+          <Register />
+        </AuthProvider>
+      </MemoryRouter>
+    </QueryClientProvider>
+  );
+}
+
+async function fillValidForm(user: ReturnType<typeof userEvent.setup>, overrides?: { correo?: string; identificacion?: string }) {
+  const correo = overrides?.correo ?? `nuevo-${Date.now()}@sena.edu.co`;
+  const identificacion = overrides?.identificacion ?? `${Date.now()}`;
+
+  await user.type(screen.getByLabelText('N.º de identificación'), identificacion);
+  await user.type(screen.getByLabelText('Nombre Completo'), 'Usuario de Prueba');
+  await user.type(screen.getByLabelText('Correo Electrónico'), correo);
+  await user.type(screen.getByLabelText('Teléfono'), '3101234567');
+  await user.type(screen.getByLabelText('Contraseña'), 'Pass1234');
+  await user.type(screen.getByLabelText('Confirmar Contraseña'), 'Pass1234');
+  await user.click(screen.getByLabelText(/Acepto los términos/));
+
+  return { correo, identificacion };
+}
+
+afterEach(() => {
+  localStorage.clear();
+  vi.clearAllMocks();
+});
+
+describe('Register', () => {
+  it('renderiza el formulario de registro', () => {
+    renderRegister();
+
+    expect(screen.getByLabelText('Nombre Completo')).toBeInTheDocument();
+    expect(screen.getByLabelText('Correo Electrónico')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeInTheDocument();
+  });
+
+  it('registra un usuario nuevo con datos válidos y navega al dashboard', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+
+    await fillValidForm(user);
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard'));
+    expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('muestra un error si el correo ya está registrado', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+
+    await fillValidForm(user, { correo: 'admin@sena.edu.co' });
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Ya existe una cuenta registrada con este correo.')
+    );
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+});

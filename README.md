@@ -149,30 +149,39 @@ Esto permite:
 ```bash
 src/
 │
+├── App.tsx, routes.tsx, theme.ts, main.tsx   # entrypoints
+│
+├── layouts/            # MainLayout de la app autenticada
+├── context/            # AuthContext (única sesión global)
+│
 ├── components/
-│   ├── ui/
-│   ├── layouts/
-│   └── shared/
+│   ├── shared/         # Modal, FormField, StatusBadge, ConfirmDialog, Toaster
+│   └── data/            # DataGrid, DataList, DataToolbar, DataPagination, StatsPanel, EntityFormModal, CameraScanner
 │
-├── pages/
+├── features/            # un dominio de negocio por carpeta
+│   ├── auth/
 │   ├── dashboard/
+│   ├── roles/
+│   ├── usuarios/
+│   ├── conductores/
 │   ├── parqueaderos/
-│   ├── celdas/
+│   ├── control-salida/
 │   ├── reservas/
-│   └── usuarios/
+│   ├── incidentes/
+│   ├── perfil/
+│   └── landing/
 │
-├── context/
+├── services/            # única capa que toca "el backend" (mock en memoria)
+│   └── hooks/           # hooks de React Query por dominio
 │
-├── hooks/
-│
-├── routes/
-│
-├── services/
-│
-├── utils/
-│
-└── types/
+├── hooks/               # hooks genéricos sin estado de dominio
+├── utils/               # funciones puras compartidas (cn, format, validation)
+├── types/               # tipos de entidad de dominio
+└── assets/images/
 ```
+
+Convenciones completas de nombres y límites entre capas: ver
+[`CONVENTIONS.md`](./CONVENTIONS.md).
 
 ---
 
@@ -213,6 +222,20 @@ Servidor local:
 ```bash
 http://localhost:5173
 ```
+
+---
+
+## 5️⃣ Otros scripts disponibles
+
+```bash
+npm run typecheck   # chequeo de tipos (TypeScript, sin emitir archivos)
+npm run lint        # ESLint (incluye las reglas de límites entre capas)
+npm test            # pruebas (Vitest)
+npm run build       # build de producción
+```
+
+Estos mismos pasos corren en cada push/PR vía GitHub Actions
+(`.github/workflows/ci.yml`).
 
 ---
 

@@ -16,9 +16,9 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
-import { theme } from "../theme";
-import { useAuth } from "../context/AuthContext";
-import logoSena from "../../styles/images/logoSena.png";
+import { theme } from "@/theme";
+import { useAuth } from "@/context/AuthContext";
+import logoSena from "@/assets/images/logoSena.png";
 
 const COLORS = theme;
 
@@ -51,7 +51,7 @@ export function ResetPassword() {
   const [loading, setLoading] =
     useState(false);
 
-  const handleSubmit = (
+  const handleSubmit = async (
     e: React.FormEvent
   ) => {
     e.preventDefault();
@@ -79,7 +79,7 @@ export function ResetPassword() {
 
     setLoading(true);
 
-    const resultado = resetPasswordWithToken(token, password);
+    const resultado = await resetPasswordWithToken(token, password);
 
     setLoading(false);
 

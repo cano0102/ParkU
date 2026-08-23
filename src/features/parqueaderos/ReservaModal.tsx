@@ -1,7 +1,9 @@
 import { Calendar, MapPin, X } from "lucide-react";
-import type { Celda, Parqueadero, Vehiculo } from "../../context/DataContext";
-import { theme } from "../../theme";
-import { Modal } from "../../components/shared";
+import type { Celda } from "@/services/celdas";
+import type { Parqueadero } from "@/services/parqueaderos";
+import type { Vehiculo } from "@/services/vehiculos";
+import { theme } from "@/theme";
+import { Modal } from "@/components/shared";
 import { Banner } from "./UiBits";
 
 const C = theme;

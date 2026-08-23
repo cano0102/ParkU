@@ -1,5 +1,19 @@
 import { Car, Bike, Accessibility } from "lucide-react";
-import type { Celda, Parqueadero, Vehiculo, Conductor } from "../../context/DataContext";
+import type { Celda } from "@/services/celdas";
+import type { Parqueadero } from "@/services/parqueaderos";
+import type { Vehiculo } from "@/services/vehiculos";
+import type { Conductor } from "@/services/conductores";
+import {
+  PLACA_CARRO_REGEX, PLACA_MOTO_REGEX, PLACA_REGEX,
+  validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,
+  validarPlacaPorTipo, tipoVehiculoDesdePlaca, esPlacaOficial,
+} from "@/utils/validation";
+
+export {
+  PLACA_CARRO_REGEX, PLACA_MOTO_REGEX, PLACA_REGEX,
+  validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,
+  validarPlacaPorTipo, tipoVehiculoDesdePlaca, esPlacaOficial,
+};
 
 /* ============================================================
    TIPOS LOCALES DE UI
@@ -111,40 +125,6 @@ export const SPACE_W=60,SPACE_H=42,GAP_X=7,ROW_GAP=10,LANE_H=46,PADDING=50,
 /* ============================================================
    UTILS
 ============================================================ */
-/* Placas colombianas — formatos vigentes (Resolución RUNT):
-   · Automóviles / camperos / camionetas / servicio público: 3 letras + 3 números  → ABC123 (6 caracteres)
-   · Motocicletas: 3 letras + 2 números + letra final opcional                     → ABC12D (6) o ABC12 (5, formato antiguo/gastado)
-   No todas las motos tienen la letra final vigente: muchas placas antiguas o desgastadas
-   solo muestran 3 letras + 2 números. Se admite ese formato de 5 caracteres para moto sin
-   perder la distinción con carro, ya que una placa de carro siempre tiene 6 caracteres y
-   termina en número, mientras que una placa de moto de 6 caracteres siempre termina en letra. */
-export const PLACA_CARRO_REGEX = /^[A-Z]{3}[0-9]{3}$/;
-export const PLACA_MOTO_REGEX  = /^[A-Z]{3}[0-9]{2}[A-Z]?$/;
-export const PLACA_REGEX = /^([A-Z]{3}[0-9]{3}|[A-Z]{3}[0-9]{2}[A-Z]?)$/;
-
-export const validarPlacaColombiana = (p:string) => PLACA_REGEX.test(p.trim().toUpperCase());
-export const validarPlacaCarro = (p:string) => PLACA_CARRO_REGEX.test(p.trim().toUpperCase());
-export const validarPlacaMoto  = (p:string) => PLACA_MOTO_REGEX.test(p.trim().toUpperCase());
-
-/** Determina si una placa válida corresponde a carro o a moto según su formato. */
-export const tipoVehiculoDesdePlaca = (p:string): "carro" | "moto" | null => {
-  const v = p.trim().toUpperCase();
-  if (PLACA_CARRO_REGEX.test(v)) return "carro";
-  if (PLACA_MOTO_REGEX.test(v))  return "moto";
-  return null;
-};
-
-/** Valida una placa exigiendo que su formato coincida con el tipo de celda/vehículo.
- *  Las celdas de movilidad reducida aceptan tanto formato de carro como de moto. */
-export const validarPlacaPorTipo = (p:string, tipo:"carro"|"moto"|"movilidad reducida"): boolean => {
-  const v = p.trim().toUpperCase();
-  if (tipo === "carro") return PLACA_CARRO_REGEX.test(v);
-  if (tipo === "moto")  return PLACA_MOTO_REGEX.test(v);
-  return PLACA_CARRO_REGEX.test(v) || PLACA_MOTO_REGEX.test(v);
-};
-
-export const esPlacaOficial = (placa:string) => /^(SNA|OFI)/.test(placa.trim().toUpperCase());
-
 const l2d:Record<string,string>={O:"0",I:"1",S:"5",B:"8",Z:"2",G:"6",D:"0",Q:"0"};
 const d2l:Record<string,string>={"0":"O","1":"I","5":"S","8":"B","2":"Z","6":"G"};
 /* Corrige un carácter mal leído por el OCR según la posición esperada:

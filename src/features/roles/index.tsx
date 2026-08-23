@@ -13,10 +13,12 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { useData, Rol } from "../context/DataContext";
+import { useRoles, useCreateRol, useUpdateRol } from "@/services/hooks/useRoles";
+import type { Rol } from "@/services/roles";
 import { toast } from "sonner";
-import { theme } from "../theme";
-import { Modal } from "../components/shared";
+import { theme } from "@/theme";
+import { Modal } from "@/components/shared";
+import { sanitizeText } from "@/utils/format";
 
 const COLORS = theme;
 
@@ -30,7 +32,6 @@ const PERMISOS = {
 } as const;
 
 type PermisosKeys = keyof typeof PERMISOS;
-type PermisoKey = keyof typeof PERMISOS.administracion | keyof typeof PERMISOS.operaciones | keyof typeof PERMISOS.parqueadero | keyof typeof PERMISOS.seguridad;
 
 const GRUPO_ICONS: Record<PermisosKeys, React.ReactNode> = {
   administracion: <Shield size={13} />,
@@ -99,11 +100,6 @@ const getRolAccent = (nombre: string): string => {
 };
 
 const countActive = (p: PermisosState): number => Object.values(p).filter(Boolean).length;
-const sanitizeText = (text: string): string => {
-  const element = document.createElement("div");
-  element.textContent = text;
-  return element.innerHTML;
-};
 
 interface FormState {
   nombre: string;
@@ -1002,7 +998,14 @@ const emptyForm = (): FormState => ({
 });
 
 export function Roles() {
-  const { roles, addRol, updateRol } = useData();
+  const { data: roles = [] } = useRoles();
+  const createRolMutation = useCreateRol();
+  const updateRolMutation = useUpdateRol();
+  const addRol = useCallback((data: Omit<Rol, "id">) => createRolMutation.mutate(data), [createRolMutation]);
+  const updateRol = useCallback(
+    (id: string, data: Partial<Rol>) => updateRolMutation.mutate({ id, data }),
+    [updateRolMutation]
+  );
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);

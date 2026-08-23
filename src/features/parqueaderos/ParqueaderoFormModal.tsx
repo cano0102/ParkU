@@ -1,6 +1,6 @@
 import { Pencil, Sparkles } from "lucide-react";
-import { theme } from "../../theme";
-import { Modal } from "../../components/shared";
+import { theme } from "@/theme";
+import { Modal } from "@/components/shared";
 import { ModalHeader, Banner } from "./UiBits";
 import {
   FormParqueadero, TIPOS_PARQUEADERO, capitalizar,

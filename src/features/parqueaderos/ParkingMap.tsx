@@ -1,7 +1,8 @@
 import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
-import type { Celda, Parqueadero } from "../../context/DataContext";
-import { theme } from "../../theme";
+import type { Celda } from "@/services/celdas";
+import type { Parqueadero } from "@/services/parqueaderos";
+import { theme } from "@/theme";
 import {
   Ocupante, LotLayout, FilaLayout,
   CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig,
@@ -260,7 +261,7 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
             <text textAnchor="middle" x="21" y="3" fontSize="8" fontWeight="900" fill="#fff">SALIDA</text>
           </g>
 
-          {lots.map(({ pq, celdasPorFila, libres, ocupados, reservadas, mantenimiento, pct, filas, lotTop, lotHeight, ancho }) => {
+          {lots.map(({ pq, celdasPorFila, libres, ocupados, reservadas, pct, filas, lotTop, lotHeight, ancho }) => {
             const hc = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
             // Composición de la zona por tipo de vehículo, para distinguir de un vistazo
             // qué parqueaderos son de carro, de moto o mixtos (celdas de movilidad reducida incluidas).

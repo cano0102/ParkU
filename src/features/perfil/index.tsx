@@ -18,10 +18,10 @@ import {
   Camera,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "../context/AuthContext";
-import { theme } from "../theme";
-import { Modal } from "../components/shared";
-import { PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX } from "./Usuarios/helpers";
+import { useAuth } from "@/context/AuthContext";
+import { theme } from "@/theme";
+import { Modal } from "@/components/shared";
+import { PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX } from "@/utils/validation";
 
 const C = theme;
 
@@ -132,7 +132,7 @@ export function Perfil() {
 
     setSubmitting(true);
     try {
-      const ok = changePassword(passwordData.currentPassword, passwordData.newPassword);
+      const ok = await changePassword(passwordData.currentPassword, passwordData.newPassword);
       if (!ok) return toast.error("Contraseña actual incorrecta");
       toast.success("Contraseña actualizada");
       closePasswordDialog();

@@ -1,5 +1,7 @@
 import type React from "react";
-import { theme } from "../../theme";
+import { theme } from "@/theme";
+import { getAvatarGradient, getInitials, sanitizeText } from "@/utils/format";
+import { NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMAIL_REGEX } from "@/utils/validation";
 
 export const COLORS = theme;
 
@@ -15,35 +17,9 @@ export const getRoleAccent = (rol: string) => {
   }
 };
 
-const AVATAR_PALETTE = [
-  ["#39A900", "#2D7D00"], ["#2563EB", "#1D4ED8"], ["#8B5CF6", "#7C3AED"],
-  ["#F59E0B", "#D97706"], ["#EF4444", "#DC2626"], ["#0891B2", "#0E7490"],
-] as const;
-
-export const avatarColors = (nombre: string): [string, string] => {
-  const idx = (nombre.charCodeAt(0) || 0) % AVATAR_PALETTE.length;
-  return AVATAR_PALETTE[idx] as [string, string];
-};
-
-export const initials = (nombre: string): string => {
-  return nombre.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase();
-};
-
-export const sanitizeText = (text: string): string => {
-  const element = document.createElement("div");
-  element.textContent = text;
-  return element.innerHTML;
-};
-
-// ----------------------------------------------
-// 🔧 REGLAS DE VALIDACIÓN (correcciones)
-// ----------------------------------------------
-export const NOMBRE_MIN = 3;
-export const NOMBRE_MAX = 100;
-export const PASSWORD_MIN = 8;
-export const PASSWORD_MAX = 64;
-export const TELEFONO_REGEX = /^[0-9()+\-\s]{7,15}$/;
-export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const avatarColors = getAvatarGradient;
+export const initials = getInitials;
+export { sanitizeText, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMAIL_REGEX };
 
 export const inputStyle: React.CSSProperties = {
   width: "100%",

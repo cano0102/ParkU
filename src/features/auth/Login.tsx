@@ -12,13 +12,11 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { auth } from "../../firebase/config";
 
-import logoSena from "../../styles/images/logoSena.png";
-import { theme } from "../theme";
+import logoSena from "@/assets/images/logoSena.png";
+import { theme } from "@/theme";
 
 const COLORS = theme;
 
@@ -73,7 +71,6 @@ export function Login() {
   useEffect(() => {
     if (touched.email) validateEmail(email);
     if (touched.password) validatePassword(password);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [email, password, touched]);
 
   const validateEmail = (value: string): boolean => {
@@ -146,11 +143,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      if (login) {
-        await login(trimmedEmail, password);
-      } else {
-        await signInWithEmailAndPassword(auth, trimmedEmail, password);
-      }
+      await login(trimmedEmail, password);
 
       if (rememberMe) {
         localStorage.setItem(REMEMBER_KEY, trimmedEmail);

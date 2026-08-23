@@ -15,11 +15,11 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
-import logoSena from "../../styles/images/logoSena.png";
-import { theme } from "../theme";
+import logoSena from "@/assets/images/logoSena.png";
+import { theme } from "@/theme";
 import {
   NOMBRE_MIN,
   NOMBRE_MAX,
@@ -27,7 +27,7 @@ import {
   PASSWORD_MAX,
   TELEFONO_REGEX,
   EMAIL_REGEX,
-} from "./Usuarios/helpers";
+} from "@/utils/validation";
 
 const COLORS = theme;
 

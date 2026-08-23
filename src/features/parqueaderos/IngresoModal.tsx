@@ -1,7 +1,9 @@
 import { AlertTriangle, Camera, Car, ChevronRight, UserCheck } from "lucide-react";
-import type { Celda, Conductor, Vehiculo } from "../../context/DataContext";
-import { theme } from "../../theme";
-import { Modal } from "../../components/shared";
+import type { Celda } from "@/services/celdas";
+import type { Conductor } from "@/services/conductores";
+import type { Vehiculo } from "@/services/vehiculos";
+import { theme } from "@/theme";
+import { Modal } from "@/components/shared";
 import { ModalHeader } from "./UiBits";
 import { VehiculoForm } from "./helpers";
 

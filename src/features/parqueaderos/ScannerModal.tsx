@@ -1,6 +1,6 @@
-import { Camera, CheckCircle2, Loader2, ScanLine, Upload, X } from "lucide-react";
-import { theme } from "../../theme";
-import { Modal } from "../../components/shared";
+import { Camera, CheckCircle2, Loader2, ScanLine, Upload } from "lucide-react";
+import { theme } from "@/theme";
+import { CameraScanner } from "@/components/data";
 import { Banner } from "./UiBits";
 import { PLACAS_DEMO } from "./helpers";
 
@@ -26,17 +26,14 @@ export function ScannerModal({
   onClose, onCapture, onFileOCR, onSimOCR,
 }: ScannerModalProps) {
   return (
-    <Modal open={open} onClose={onClose} maxWidth={440}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.4rem 1.8rem", borderBottom: `1px solid ${C.border}` }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center" }}><ScanLine size={18} color={C.primary} /></div>
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: C.primary, textTransform: "uppercase" }}>Reconocimiento Óptico</div>
-            <h2 style={{ fontSize: 18, fontWeight: 900, color: C.text, lineHeight: 1, margin: 0 }}>Escanear Placa</h2>
-          </div>
-        </div>
-        <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", color: C.textLight, display: "flex", alignItems: "center", justifyContent: "center" }}><X size={16} /></button>
-      </div>
+    <CameraScanner
+      open={open}
+      onClose={onClose}
+      icon={<ScanLine size={18} color={C.primary} />}
+      eyebrow="Reconocimiento Óptico"
+      title="Escanear Placa"
+      maxWidth={440}
+    >
       <div style={{ position: "relative", background: "#000", aspectRatio: "4/3", maxHeight: 320, overflow: "hidden" }}>
         <video ref={videoRef} autoPlay playsInline muted onLoadedMetadata={onCamaraLista} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
         <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
@@ -69,6 +66,6 @@ export function ScannerModal({
         </div>
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}`}</style>
-    </Modal>
+    </CameraScanner>
   );
 }

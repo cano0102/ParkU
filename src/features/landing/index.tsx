@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
-  ArrowRight,
   ShieldCheck,
   CarFront,
   BarChart3,
@@ -20,8 +19,8 @@ import {
   DoorOpen,
 } from "lucide-react";
 
-import logoSena from "../../styles/images/logoSena.png";
-import { theme } from "../theme";
+import logoSena from "@/assets/images/logoSena.png";
+import { theme } from "@/theme";
 
 const COLORS = theme;
 

@@ -1,0 +1,1 @@
+import{c as a}from"./controlSalida-DA1Er7mX.js";import{a4 as e}from"./index-CQbT-iSH.js";const o=e("controlSalida",a),r=o.useList,l=o.useCreate,c=o.useUpdate,n=o.useRemove;export{l as a,c as b,n as c,r as u};

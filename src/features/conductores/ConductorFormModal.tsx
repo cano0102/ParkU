@@ -1,6 +1,7 @@
-import { AlertCircle, Car, Mail, ShieldCheck, Sparkles, X } from "lucide-react";
-import type { Usuario } from "../../context/DataContext";
-import { FormField } from "../../components/shared";
+import { Car, Mail, ShieldCheck, Sparkles } from "lucide-react";
+import type { Usuario } from "@/services/usuarios";
+import { FormField } from "@/components/shared";
+import { EntityFormModal } from "@/components/data";
 import { COLORS, getAvatarGradient, getInitials, getTipoStyle, TIPOS_CONDUCTOR, inputStyle, inputErrorStyle, FormState, FormErrors } from "./helpers";
 
 interface ConductorFormModalProps {
@@ -26,74 +27,16 @@ export function ConductorFormModal({
   onSubmit, onCancel,
 }: ConductorFormModalProps) {
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit();
-      }}
+    <EntityFormModal
+      icon={<Sparkles size={18} color={COLORS.primary} />}
+      eyebrow="Registro integral"
+      title={isEdit ? "Editar Conductor" : "Nuevo Conductor"}
+      onSubmit={onSubmit}
+      onCancel={onCancel}
+      isValid={isValid}
+      submitLabel={isEdit ? "Guardar cambios" : "Crear Conductor"}
+      showValidationMessage={!isValid && Object.keys(touched).length > 0}
     >
-      <div
-        style={{
-          padding: "1.1rem 1.6rem 0.9rem",
-          borderBottom: `1px solid ${COLORS.border}`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: "rgba(57,169,0,.1)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Sparkles size={18} color={COLORS.primary} />
-          </div>
-          <div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: 1,
-                color: COLORS.primary,
-                textTransform: "uppercase",
-              }}
-            >
-              Registro integral
-            </div>
-            <h2 style={{ fontSize: 20, fontWeight: 900, color: COLORS.text, lineHeight: 1 }}>
-              {isEdit ? "Editar Conductor" : "Nuevo Conductor"}
-            </h2>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: 9,
-            border: `1px solid ${COLORS.border}`,
-            background: "#fff",
-            cursor: "pointer",
-            color: COLORS.textLight,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          aria-label="Cerrar formulario"
-        >
-          <X size={16} />
-        </button>
-      </div>
-
-      <div style={{ padding: "1rem 1.6rem", display: "flex", flexDirection: "column", gap: "0.65rem" }}>
         <section
           style={{
             borderRadius: 14,
@@ -519,71 +462,6 @@ export function ConductorFormModal({
             </FormField>
           </div>
         </section>
-      </div>
-
-      <div
-        style={{
-          padding: "0.8rem 1.6rem",
-          borderTop: `1px solid ${COLORS.border}`,
-          display: "flex",
-          gap: 10,
-          justifyContent: "flex-end",
-          alignItems: "center",
-        }}
-      >
-        {!isValid && Object.keys(touched).length > 0 && (
-          <span
-            style={{
-              fontSize: 11,
-              color: "#DC2626",
-              fontWeight: 600,
-              marginRight: "auto",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            <AlertCircle size={13} /> Revisa los campos marcados
-          </span>
-        )}
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{
-            padding: "11px 20px",
-            borderRadius: 12,
-            border: `1px solid ${COLORS.border}`,
-            background: "#fff",
-            color: COLORS.text,
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: "pointer",
-            fontFamily: "inherit",
-          }}
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={!isValid}
-          style={{
-            padding: "11px 24px",
-            borderRadius: 12,
-            border: "none",
-            background: isValid ? COLORS.primary : COLORS.textMuted,
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 800,
-            cursor: isValid ? "pointer" : "not-allowed",
-            fontFamily: "inherit",
-            boxShadow: isValid ? "0 6px 18px rgba(57,169,0,.22)" : "none",
-            opacity: isValid ? 1 : 0.65,
-            transition: "opacity .15s ease",
-          }}
-        >
-          {isEdit ? "Guardar cambios" : "Crear Conductor"}
-        </button>
-      </div>
-    </form>
+    </EntityFormModal>
   );
 }

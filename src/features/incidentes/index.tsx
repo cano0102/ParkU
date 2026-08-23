@@ -20,11 +20,22 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useData, type Celda, type Incidente } from '../context/DataContext';
-import { theme } from '../theme';
-import { Modal } from '../components/shared';
+import { useParqueaderos } from '@/services/hooks/useParqueaderos';
+import { useCeldas } from '@/services/hooks/useCeldas';
+import { useVehiculos } from '@/services/hooks/useVehiculos';
+import { useConductores } from '@/services/hooks/useConductores';
+import {
+  useIncidentes,
+  useCreateIncidente,
+  useUpdateIncidente,
+  useRemoveIncidente,
+} from '@/services/hooks/useIncidentes';
+import type { Celda } from '@/services/celdas';
+import type { Incidente } from '@/services/incidentes';
+import { theme } from '@/theme';
+import { Modal } from '@/components/shared';
 
-/* ─── Paleta compartida (src/app/theme.ts) ─── */
+/* ─── Paleta compartida (src/theme.ts) ─── */
 const C = theme;
 
 const MAX_EVIDENCIA_MB = 5;
@@ -83,7 +94,18 @@ function CeldaBadgeInline({ numero, estado }: { numero: string; estado?: Celda['
 ══════════════════════════════════════════════════════ */
 export function Incidentes() {
   const navigate = useNavigate();
-  const { parqueaderos, celdas, vehiculos, conductores, incidentes, addIncidente, updateIncidente, deleteIncidente } = useData();
+  const { data: parqueaderos = [] } = useParqueaderos();
+  const { data: celdas = [] } = useCeldas();
+  const { data: vehiculos = [] } = useVehiculos();
+  const { data: conductores = [] } = useConductores();
+  const { data: incidentes = [] } = useIncidentes();
+  const createIncidenteMutation = useCreateIncidente();
+  const updateIncidenteMutation = useUpdateIncidente();
+  const removeIncidenteMutation = useRemoveIncidente();
+  const addIncidente = (data: Omit<Incidente, 'id'>) => createIncidenteMutation.mutate(data);
+  const updateIncidente = (id: string, data: Partial<Omit<Incidente, 'id'>>) =>
+    updateIncidenteMutation.mutate({ id, data });
+  const deleteIncidente = (id: string) => removeIncidenteMutation.mutate(id);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);

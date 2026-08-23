@@ -12,10 +12,10 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
-import { theme } from "../theme";
-import { useData } from "../context/DataContext";
-import { useAuth } from "../context/AuthContext";
-import logoSena from "../../styles/images/logoSena.png";
+import { theme } from "@/theme";
+import { useUsuarios } from "@/services/hooks/useUsuarios";
+import { useAuth } from "@/context/AuthContext";
+import logoSena from "@/assets/images/logoSena.png";
 
 const COLORS = theme;
 
@@ -31,7 +31,7 @@ export function ForgotPassword() {
   const [resetLink, setResetLink] = useState<string | null>(null);
   const [errors, setErrors] = useState<{ email?: string }>({});
   const navigate = useNavigate();
-  const { usuarios } = useData();
+  const { data: usuarios = [] } = useUsuarios();
   const { requestPasswordReset } = useAuth();
 
   const validateForm = (): boolean => {
@@ -72,8 +72,8 @@ export function ForgotPassword() {
     // Sin servidor de correo propio, el "envío" se simula: se genera un
     // enlace de recuperación real (token de un solo uso, 30 min de validez)
     // y se muestra directamente en pantalla en vez de despacharlo a un correo.
-    setTimeout(() => {
-      const token = requestPasswordReset(email);
+    setTimeout(async () => {
+      const token = await requestPasswordReset(email);
       setLoading(false);
 
       if (!token) {

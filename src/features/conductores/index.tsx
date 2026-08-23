@@ -2,29 +2,43 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { User } from "lucide-react";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { useData, Conductor, Vehiculo } from "../../context/DataContext";
-import { Modal } from "../../components/shared";
+import {
+  useConductores,
+  useCreateConductor,
+  useUpdateConductor,
+} from "@/services/hooks/useConductores";
+import type { Conductor } from "@/services/conductores";
+import {
+  useVehiculos,
+  useCreateVehiculo,
+  useUpdateVehiculo,
+} from "@/services/hooks/useVehiculos";
+import type { Vehiculo } from "@/services/vehiculos";
+import { useUsuarios } from "@/services/hooks/useUsuarios";
+import { Modal } from "@/components/shared";
 import { COLORS, sanitizeText, emptyForm, FormState, FormErrors, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "./helpers";
-import { ConductoresStats } from "./ConductoresStats";
-import { ConductoresToolbar } from "./ConductoresToolbar";
-import { ConductoresGrid } from "./ConductoresGrid";
-import { ConductoresList } from "./ConductoresList";
-import { ConductoresPagination } from "./ConductoresPagination";
+import { DataGrid, DataList, DataPagination, DataToolbar, StatsPanel } from "@/components/data";
+import { renderConductorCard, getConductorColumns } from "./cards";
+import { ShieldCheck, Users, UserCheck, Car as CarIcon, Bike as BikeIcon } from "lucide-react";
 import { ConductorFormModal } from "./ConductorFormModal";
 import { ConductorDetailModal } from "./ConductorDetailModal";
 import { VehiculoView } from "./VehiculoView";
 import { conductoresStyles } from "./styles";
 
 export function Conductores() {
-  const {
-    conductores,
-    addConductor,
-    updateConductor,
-    usuarios,
-    vehiculos,
-    addVehiculo,
-    updateVehiculo,
-  } = useData();
+  const { data: conductores = [] } = useConductores();
+  const { data: usuarios = [] } = useUsuarios();
+  const { data: vehiculos = [] } = useVehiculos();
+  const createConductorMutation = useCreateConductor();
+  const updateConductorMutation = useUpdateConductor();
+  const createVehiculoMutation = useCreateVehiculo();
+  const updateVehiculoMutation = useUpdateVehiculo();
+  const addConductor = (data: Omit<Conductor, "id">) => createConductorMutation.mutateAsync(data);
+  const updateConductor = (id: string, data: Partial<Omit<Conductor, "id">>) =>
+    updateConductorMutation.mutate({ id, data });
+  const addVehiculo = (data: Omit<Vehiculo, "id">) => createVehiculoMutation.mutate(data);
+  const updateVehiculo = (id: string, data: Partial<Omit<Vehiculo, "id">>) =>
+    updateVehiculoMutation.mutate({ id, data });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewVehiculoOpen, setViewVehiculoOpen] = useState(false);
@@ -217,7 +231,7 @@ export function Conductores() {
     setTouched((t) => ({ ...t, [field]: true }));
   }, []);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const errors = validate(formData);
     setFormErrors(errors);
     setTouched({ usuarioId: true, centroFormacion: true, placa: true });
@@ -277,10 +291,10 @@ export function Conductores() {
         }
         toast.success("Conductor actualizado correctamente");
       } else {
-        const newId = addConductor(conductorData);
-        if (newId) {
+        const created = await addConductor(conductorData);
+        if (created?.id) {
           addVehiculo({
-            conductorId: newId,
+            conductorId: created.id,
             placa: formData.placa.toUpperCase().trim(),
             tipo: formData.tipoVehiculo,
             marca: sanitizeText(formData.marca.trim()),
@@ -342,29 +356,65 @@ export function Conductores() {
       <style>{conductoresStyles}</style>
 
       <div className="conductores-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <ConductoresStats
-          totalConductores={totalConductores}
-          totalActivos={totalActivos}
-          totalVehiculos={totalVehiculos}
-          totalCarros={totalCarros}
-          totalMotos={totalMotos}
+        <StatsPanel
+          eyebrowIcon={<ShieldCheck size={11} />}
+          eyebrowText="Gestión integral"
+          title="Conductores y Vehículos"
+          description="Administra conductores, aprendices, instructores y vehículos autorizados del sistema SENA."
+          metrics={[
+            { label: "Conductores", value: totalConductores, icon: <Users size={11} /> },
+            { label: "Activos", value: totalActivos, icon: <UserCheck size={11} /> },
+            { label: "Vehículos", value: totalVehiculos, icon: <CarIcon size={11} /> },
+            { label: "Carros/Motos", value: `${totalCarros}/${totalMotos}`, icon: <BikeIcon size={11} /> },
+          ]}
         />
 
-        <ConductoresToolbar
+        <DataToolbar
           search={search}
           onSearchChange={setSearch}
-          filterTipo={filterTipo}
-          onFilterTipoChange={setFilterTipo}
-          filterVehiculoTipo={filterVehiculoTipo}
-          onFilterVehiculoTipoChange={setFilterVehiculoTipo}
-          filterEstado={filterEstado}
-          onFilterEstadoChange={setFilterEstado}
+          searchPlaceholder="Buscar conductor, vehículo, identificación..."
+          searchAriaLabel="Buscar conductores"
+          filters={[
+            {
+              value: filterTipo,
+              onChange: setFilterTipo,
+              ariaLabel: "Filtrar por tipo",
+              options: [
+                { value: "todos", label: "Todos los tipos" },
+                { value: "aprendiz", label: "Aprendiz" },
+                { value: "instructor", label: "Instructor" },
+              ],
+            },
+            {
+              value: filterVehiculoTipo,
+              onChange: setFilterVehiculoTipo,
+              ariaLabel: "Filtrar por tipo de vehículo",
+              options: [
+                { value: "todos", label: "Todos los vehículos" },
+                { value: "carro", label: "Con Carro" },
+                { value: "moto", label: "Con Moto" },
+              ],
+            },
+            {
+              value: filterEstado,
+              onChange: (v) => setFilterEstado(v as "todos" | "activo" | "inactivo"),
+              ariaLabel: "Filtrar por estado",
+              options: [
+                { value: "todos", label: "Todos" },
+                { value: "activo", label: "Activos" },
+                { value: "inactivo", label: "Inactivos" },
+              ],
+            },
+          ]}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          createLabel="Nuevo Conductor"
           onCreate={openCreate}
-          activeFiltersCount={activeFiltersCount}
-          filteredCount={filteredConductores.length}
-          onClearFilters={clearFilters}
+          activeFiltersBar={{
+            activeFiltersCount,
+            filteredCount: filteredConductores.length,
+            onClearFilters: clearFilters,
+          }}
         />
 
         {filteredConductores.length === 0 ? (
@@ -388,33 +438,44 @@ export function Conductores() {
         ) : (
           <>
             {viewMode === "grid" ? (
-              <ConductoresGrid
-                conductores={paginatedConductores}
-                getUsuario={getUsuario}
-                getVehiculosConductor={getVehiculosConductor}
-                onToggleEstado={handleToggleEstado}
-                onViewVehiculo={openVehiculoView}
-                onViewDetail={openConductorDetail}
-                onEdit={openEdit}
+              <DataGrid
+                items={paginatedConductores}
+                getKey={(c) => c.id}
+                gridTemplateColumns="repeat(auto-fill,minmax(340px,1fr))"
+                gap={14}
+                renderCard={(c) =>
+                  renderConductorCard(c, {
+                    getUsuario,
+                    getVehiculosConductor,
+                    onToggleEstado: handleToggleEstado,
+                    onViewVehiculo: openVehiculoView,
+                    onViewDetail: openConductorDetail,
+                    onEdit: openEdit,
+                  })
+                }
               />
             ) : (
-              <ConductoresList
-                conductores={paginatedConductores}
-                getUsuario={getUsuario}
-                getVehiculosConductor={getVehiculosConductor}
-                onToggleEstado={handleToggleEstado}
-                onViewVehiculo={openVehiculoView}
-                onViewDetail={openConductorDetail}
-                onEdit={openEdit}
+              <DataList
+                items={paginatedConductores}
+                getKey={(c) => c.id}
+                columns={getConductorColumns({
+                  getUsuario,
+                  getVehiculosConductor,
+                  onToggleEstado: handleToggleEstado,
+                  onViewVehiculo: openVehiculoView,
+                  onViewDetail: openConductorDetail,
+                  onEdit: openEdit,
+                })}
               />
             )}
 
-            <ConductoresPagination
+            <DataPagination
               currentPage={currentPage}
               totalPages={totalPages}
               itemsPerPage={itemsPerPage}
               totalItems={filteredConductores.length}
-              viewMode={viewMode}
+              itemsPerPageOptions={viewMode === "list" ? [15, 25, 50, 100] : [9, 18, 36, 60]}
+              entityLabel="Conductores"
               onPageChange={setCurrentPage}
               onItemsPerPageChange={(n) => {
                 setItemsPerPage(n);

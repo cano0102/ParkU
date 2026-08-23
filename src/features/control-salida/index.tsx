@@ -8,7 +8,6 @@ import {
   MapPin,
   X,
   Clock,
-  CheckCircle2,
   User,
   ParkingCircle,
   Trash2,
@@ -16,9 +15,15 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useData, ControlSalida } from '../context/DataContext';
-import { theme } from '../theme';
-import { ConfirmDialog } from '../components/shared';
+import { useControlSalida, useRemoveControlSalida } from '@/services/hooks/useControlSalida';
+import type { ControlSalida } from '@/services/controlSalida';
+import { useVehiculos } from '@/services/hooks/useVehiculos';
+import { useCeldas } from '@/services/hooks/useCeldas';
+import { useConductores } from '@/services/hooks/useConductores';
+import { useUsuarios } from '@/services/hooks/useUsuarios';
+import { useParqueaderos } from '@/services/hooks/useParqueaderos';
+import { theme } from '@/theme';
+import { ConfirmDialog } from '@/components/shared';
 
 const COLORS = theme;
 const PAGE_SIZE = 8;
@@ -33,15 +38,17 @@ function isSameDay(dateStr: string, ref: Date) {
 }
 
 export function ControlSalidaPage() {
-  const {
-    controlesSalida,
-    deleteControlSalida,
-    vehiculos,
-    celdas,
-    conductores,
-    usuarios,
-    parqueaderos,
-  } = useData();
+  const { data: controlesSalida = [] } = useControlSalida();
+  const { data: vehiculos = [] } = useVehiculos();
+  const { data: celdas = [] } = useCeldas();
+  const { data: conductores = [] } = useConductores();
+  const { data: usuarios = [] } = useUsuarios();
+  const { data: parqueaderos = [] } = useParqueaderos();
+  const removeControlSalidaMutation = useRemoveControlSalida();
+  const deleteControlSalida = useCallback(
+    (id: string) => removeControlSalidaMutation.mutate(id),
+    [removeControlSalidaMutation]
+  );
 
   const [search, setSearch] = useState('');
   const [filterEstado, setFilterEstado] = useState<'todos' | 'en_parqueadero' | 'finalizado'>('todos');

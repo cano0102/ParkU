@@ -1,18 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { UserCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useData, Usuario } from "../../context/DataContext";
-import { Modal } from "../../components/shared";
+import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "@/services/hooks/useUsuarios";
+import type { Usuario } from "@/services/usuarios";
+import { useRoles } from "@/services/hooks/useRoles";
+import { Modal } from "@/components/shared";
 import { COLORS, USUARIOS_PROTEGIDOS, sanitizeText, emptyForm, FormState } from "./helpers";
-import { UsuariosStats } from "./UsuariosStats";
-import { UsuariosToolbar } from "./UsuariosToolbar";
-import { UsuariosGrid } from "./UsuariosGrid";
-import { UsuariosList } from "./UsuariosList";
-import { UsuariosPagination } from "./UsuariosPagination";
+import { DataGrid, DataList, DataPagination, DataToolbar, StatsPanel } from "@/components/data";
+import { renderUsuarioCard, getUsuarioColumns } from "./cards";
+import { Shield, Users, UserCheck, UserX } from "lucide-react";
 import { UsuarioFormModal } from "./UsuarioFormModal";
 
 export default function Usuarios() {
-  const { usuarios, addUsuario, updateUsuario, roles } = useData();
+  const { data: usuarios = [] } = useUsuarios();
+  const { data: roles = [] } = useRoles();
+  const createUsuarioMutation = useCreateUsuario();
+  const updateUsuarioMutation = useUpdateUsuario();
+  const addUsuario = (data: Omit<Usuario, "id">) => createUsuarioMutation.mutate(data);
+  const updateUsuario = (id: string, data: Partial<Omit<Usuario, "id">>) =>
+    updateUsuarioMutation.mutate({ id, data });
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
@@ -191,23 +197,48 @@ export default function Usuarios() {
       `}</style>
 
       <div className="u-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <UsuariosStats
-          total={usuarios.length}
-          activos={totalActivos}
-          inactivos={totalInactivos}
-          rolesCount={uniqueRoles.length}
+        <StatsPanel
+          eyebrowIcon={<Shield size={11} />}
+          eyebrowText="Gestión institucional"
+          title="Gestión de Usuarios"
+          description="Administra cuentas, accesos, roles y permisos del sistema."
+          metrics={[
+            { label: "Total", value: usuarios.length, icon: <Users size={11} /> },
+            { label: "Activos", value: totalActivos, icon: <UserCheck size={11} /> },
+            { label: "Inactivos", value: totalInactivos, icon: <UserX size={11} /> },
+            { label: "Roles", value: uniqueRoles.length, icon: <Shield size={11} /> },
+          ]}
         />
 
-        <UsuariosToolbar
+        <DataToolbar
           search={search}
           onSearchChange={setSearch}
-          filterEstado={filterEstado}
-          onFilterEstadoChange={setFilterEstado}
-          filterRol={filterRol}
-          onFilterRolChange={setFilterRol}
-          uniqueRoles={uniqueRoles}
+          searchPlaceholder="Buscar usuario..."
+          searchAriaLabel="Buscar usuarios"
+          filters={[
+            {
+              value: filterEstado,
+              onChange: (v) => setFilterEstado(v as "todos" | "activo" | "inactivo"),
+              ariaLabel: "Filtrar por estado",
+              options: [
+                { value: "todos", label: "Todos" },
+                { value: "activo", label: "Activos" },
+                { value: "inactivo", label: "Inactivos" },
+              ],
+            },
+            {
+              value: filterRol,
+              onChange: setFilterRol,
+              ariaLabel: "Filtrar por rol",
+              options: [
+                { value: "todos", label: "Todos los roles" },
+                ...uniqueRoles.map((r) => ({ value: r, label: r })),
+              ],
+            },
+          ]}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          createLabel="Nuevo Usuario"
           onCreate={openCreate}
         />
 
@@ -245,25 +276,26 @@ export default function Usuarios() {
         ) : (
           <>
             {viewMode === "grid" ? (
-              <UsuariosGrid
-                usuarios={paginated}
-                onToggleEstado={handleToggleEstado}
-                onEdit={openEdit}
+              <DataGrid
+                items={paginated}
+                getKey={(u) => u.id}
+                renderCard={(u) => renderUsuarioCard(u, { onToggleEstado: handleToggleEstado, onEdit: openEdit })}
               />
             ) : (
-              <UsuariosList
-                usuarios={paginated}
-                onToggleEstado={handleToggleEstado}
-                onEdit={openEdit}
+              <DataList
+                items={paginated}
+                getKey={(u) => u.id}
+                columns={getUsuarioColumns({ onToggleEstado: handleToggleEstado, onEdit: openEdit })}
               />
             )}
 
-            <UsuariosPagination
+            <DataPagination
               currentPage={currentPage}
               totalPages={totalPages}
               itemsPerPage={itemsPerPage}
               totalItems={filtered.length}
-              viewMode={viewMode}
+              itemsPerPageOptions={viewMode === "list" ? [15, 25, 50, 100] : [9, 18, 36, 60]}
+              entityLabel="Usuarios"
               onPageChange={setCurrentPage}
               onItemsPerPageChange={(n) => {
                 setItemsPerPage(n);

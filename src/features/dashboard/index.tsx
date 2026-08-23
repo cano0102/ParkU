@@ -1,9 +1,15 @@
 import { forwardRef, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useData } from "../context/DataContext";
-import { theme } from "../theme";
-import logoSena from "../../styles/images/logoSena.png";
+import { useParqueaderos } from "@/services/hooks/useParqueaderos";
+import { useCeldas } from "@/services/hooks/useCeldas";
+import { useMovimientos } from "@/services/hooks/useMovimientos";
+import { useVehiculos } from "@/services/hooks/useVehiculos";
+import { useConductores } from "@/services/hooks/useConductores";
+import { useIncidentes } from "@/services/hooks/useIncidentes";
+import { useReservas } from "@/services/hooks/useReservas";
+import { theme } from "@/theme";
+import logoSena from "@/assets/images/logoSena.png";
 import {
   Accessibility,
   Activity,
@@ -123,27 +129,27 @@ const Card = ({ children, className = "" }: { children: React.ReactNode; classNa
     initial="hidden"
     whileInView="show"
     viewport={{ once: true }}
-    className={`rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] ${className}`}
+    className={`rounded-2xl bg-white p-6 sm:p-7 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] ${className}`}
   >
     {children}
   </motion.div>
 );
 
 const SectionTitle = ({ icon: Icon, title, subtitle, color = COLORS.primary, actionLabel, onAction }: { icon: React.ElementType; title: string; subtitle?: string; color?: string; actionLabel?: string; onAction?: () => void }) => (
-  <div className="mb-5 flex items-center justify-between gap-3">
-    <div className="flex items-center gap-3 min-w-0">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
-        <Icon size={18} color={color} strokeWidth={2} />
+  <div className="mb-6 flex items-center justify-between gap-3">
+    <div className="flex items-center gap-3.5 min-w-0">
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
+        <Icon size={19} color={color} strokeWidth={2} />
       </div>
       <div className="min-w-0">
-        <h3 className="text-sm font-semibold text-[#1a1a2e]">{title}</h3>
-        {subtitle && <p className="text-xs text-[#64748B] truncate">{subtitle}</p>}
+        <h3 className="text-[15px] font-semibold text-[#1a1a2e]">{title}</h3>
+        {subtitle && <p className="text-xs text-[#64748B] truncate mt-0.5">{subtitle}</p>}
       </div>
     </div>
     {actionLabel && onAction && (
       <button
         onClick={onAction}
-        className="shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#2D7D00] hover:bg-[#EAF7E6] transition-colors"
+        className="shrink-0 flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-[#2D7D00] hover:bg-[#EAF7E6] transition-colors"
       >
         {actionLabel}
         <ChevronRight size={13} />
@@ -162,15 +168,15 @@ const Kpi = ({ label, value, detail, icon: Icon, color, onClick }: { label: stri
     className={onClick ? "cursor-pointer" : "cursor-default"}
     onClick={onClick}
   >
-    <div className="group rounded-2xl bg-white p-5 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
+    <div className="group rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
       <div className="flex items-center gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15` }}>
-          <Icon size={24} color={color} strokeWidth={2} />
+        <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${color}15`, height: 52, width: 52 }}>
+          <Icon size={25} color={color} strokeWidth={2} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium uppercase tracking-wider text-[#64748B]">{label}</p>
-          <p className="mt-1 text-2xl font-bold text-[#1a1a2e] tracking-tight">{value}</p>
-          <p className="text-xs text-[#64748B] truncate">{detail}</p>
+          <p className="mt-1.5 text-[28px] leading-none font-bold text-[#1a1a2e] tracking-tight">{value}</p>
+          <p className="mt-1.5 text-xs text-[#64748B] truncate">{detail}</p>
         </div>
         {onClick && <ChevronRight size={16} className="shrink-0 text-[#CBD5E1] transition-transform group-hover:translate-x-0.5 group-hover:text-[#94A3B8]" />}
       </div>
@@ -217,25 +223,25 @@ const LotRow = forwardRef<HTMLButtonElement, { lot: ParkingLot; selected: boolea
     <button
       ref={ref}
       onClick={onClick}
-      className={`w-full rounded-xl border p-3 text-left transition-all duration-200 ${
+      className={`w-full rounded-xl border p-3.5 text-left transition-all duration-200 ${
         selected
           ? "border-[#39A900] bg-[#EAF7E6] shadow-sm"
           : "border-transparent bg-[#F8FAF9] hover:bg-white hover:border-[#E2E8F0] hover:shadow-sm"
       }`}
     >
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
-            <Icon size={15} color={color} />
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ backgroundColor: `${color}15` }}>
+            <Icon size={16} color={color} />
           </div>
           <div className="min-w-0 text-left">
             <p className="text-sm font-semibold text-[#1a1a2e] truncate">{lot.name}</p>
-            <p className="text-[11px] text-[#64748B]">{lot.block}</p>
+            <p className="text-[11px] text-[#64748B] mt-0.5">{lot.block}</p>
           </div>
         </div>
         <p className="text-base font-bold shrink-0" style={{ color }}>{pct}%</p>
       </div>
-      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#E2E8F0]">
+      <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#E2E8F0]">
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -314,7 +320,13 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<"all" | "car" | "moto">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { parqueaderos, celdas, movimientos, vehiculos, conductores, incidentes, reservas } = useData();
+  const { data: parqueaderos = [] } = useParqueaderos();
+  const { data: celdas = [] } = useCeldas();
+  const { data: movimientos = [] } = useMovimientos();
+  const { data: vehiculos = [] } = useVehiculos();
+  const { data: conductores = [] } = useConductores();
+  const { data: incidentes = [] } = useIncidentes();
+  const { data: reservas = [] } = useReservas();
 
   // Parqueaderos + celdas reales del contexto
   const lots = useMemo<ParkingLot[]>(() => {
@@ -475,7 +487,7 @@ export default function Dashboard() {
     <>
       <style>{`
         :root { color-scheme: light; }
-        body { margin: 0; background: ${COLORS.background}; font-family: 'Montserrat', sans-serif; }
+        body { margin: 0; font-family: 'Montserrat', sans-serif; }
         * { box-sizing: border-box; }
         ::selection { background: ${COLORS.primary}; color: white; }
         ::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -484,59 +496,60 @@ export default function Dashboard() {
         ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
       `}</style>
 
-      <main className="min-h-screen bg-[#F5F7F8] text-[#1a1a2e]">
-        <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -left-20 top-0 h-72 w-72 rounded-full bg-[#39A900]/[0.05] blur-3xl" />
-          <div className="absolute right-0 top-0 h-80 w-80 translate-x-1/4 rounded-full bg-[#39A900]/[0.04] blur-3xl" />
-        </div>
-
-        <motion.div
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={{ show: { transition: { staggerChildren: 0.05 } } }}
+        className="dashboard-root flex flex-col gap-7"
+      >
+        {/* ========== HEADER ========== */}
+        <motion.header
+          variants={fadeUp}
           initial="hidden"
           animate="show"
-          variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-          className="relative mx-auto max-w-[1440px] px-5 py-5"
+          className="relative overflow-hidden rounded-[20px] p-6 sm:p-7 text-white shadow-[0_10px_28px_rgba(45,125,0,0.22)]"
+          style={{ background: "linear-gradient(135deg, #39A900 0%, #2D7D00 100%)" }}
         >
-          {/* ========== HEADER ========== */}
-          <motion.header
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-            className="mb-6 flex flex-col gap-4 rounded-3xl p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0]"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white border border-[#E2E8F0] p-2 shadow-md">
-                  <img src={logoSena} alt="SENA" className="h-full w-full object-contain" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">ParkU · SENA</h1>
-                  <p className="text-sm text-[#64748B]">Panel general de parqueaderos</p>
-                </div>
-              </div>
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/[0.07]" />
+          <div aria-hidden className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-white/[0.05]" />
 
-              <div className="flex flex-wrap items-center gap-4">
-                <div className="flex items-center gap-2 rounded-xl bg-[#F5F7F8] px-4 py-2">
-                  <CalendarDays size={16} className="text-[#64748B]" />
-                  <span className="text-sm font-medium text-[#1a1a2e] capitalize">{formatDate(now)}</span>
-                </div>
-                <div className="flex items-center gap-2 rounded-xl bg-[#F5F7F8] px-4 py-2">
-                  <Clock3 size={16} className="text-[#64748B]" />
-                  <span className="text-sm font-mono font-bold text-[#1a1a2e]">{formatClock(now)}</span>
-                </div>
+          <div className="relative z-[1] flex flex-wrap items-center justify-between gap-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white p-2.5 shadow-md">
+                <img src={logoSena} alt="SENA" className="h-full w-full object-contain" />
+              </div>
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 border border-white/25 px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
+                  <LayoutDashboard size={11} /> Panel general
+                </span>
+                <h1 className="mt-2 text-2xl sm:text-3xl font-extrabold tracking-tight leading-tight">ParkU · SENA</h1>
+                <p className="text-sm text-white/75 mt-0.5">Control y monitoreo de parqueaderos institucionales</p>
               </div>
             </div>
-          </motion.header>
 
-          {/* ========== KPIS ========== */}
-          <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} onClick={() => navigate("/app/parqueaderos")} />
-            <Kpi label="Celdas disponibles" value={totals.available} detail={`${totals.reserved} reservadas · ${totals.maintenance} en mant.`} icon={DoorOpen} color={COLORS.blue} onClick={() => navigate("/app/parqueaderos")} />
-            <Kpi label="Vehículos registrados" value={vehiculosActivos.length} detail={`${vehicleDistribution[0].value} carros · ${vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
-            <Kpi label="Conductores registrados" value={conductoresActivos.length} detail={`${conductorDistribution[0].value} aprendices · ${conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-xl bg-white/15 border border-white/25 px-4 py-2.5">
+                <CalendarDays size={16} />
+                <span className="text-sm font-medium capitalize">{formatDate(now)}</span>
+              </div>
+              <div className="flex items-center gap-2 rounded-xl bg-white/15 border border-white/25 px-4 py-2.5">
+                <Clock3 size={16} />
+                <span className="text-sm font-mono font-bold">{formatClock(now)}</span>
+              </div>
+            </div>
           </div>
+        </motion.header>
 
-          {/* ========== FILA PRINCIPAL ========== */}
-          <div className="grid gap-6 xl:grid-cols-12">
+        {/* ========== KPIS ========== */}
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          <Kpi label="Celdas totales" value={totals.capacity} detail={`${totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} onClick={() => navigate("/app/parqueaderos")} />
+          <Kpi label="Celdas disponibles" value={totals.available} detail={`${totals.reserved} reservadas · ${totals.maintenance} en mant.`} icon={DoorOpen} color={COLORS.blue} onClick={() => navigate("/app/parqueaderos")} />
+          <Kpi label="Vehículos registrados" value={vehiculosActivos.length} detail={`${vehicleDistribution[0].value} carros · ${vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
+          <Kpi label="Conductores registrados" value={conductoresActivos.length} detail={`${conductorDistribution[0].value} aprendices · ${conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
+        </div>
+
+        {/* ========== FILA PRINCIPAL ========== */}
+        <div className="grid gap-6 xl:grid-cols-12">
             {/* Estado por parqueadero */}
             <Card className="xl:col-span-8">
               <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -560,8 +573,8 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="grid gap-5 lg:grid-cols-[15rem_1fr]">
-                <div className="space-y-1.5 pr-1">
+              <div className="grid gap-6 lg:grid-cols-[17rem_1fr]">
+                <div className="space-y-2 pr-1">
                   <AnimatePresence mode="popLayout">
                     {visibleLots.map((lot) => (
                       <LotRow key={lot.id} lot={lot} selected={selectedLot.id === lot.id} onClick={() => setSelectedId(lot.id)} />
@@ -570,23 +583,23 @@ export default function Dashboard() {
                 </div>
 
                 <div className="flex min-w-0 flex-col gap-4">
-                  <div className="flex items-end justify-between gap-4 rounded-2xl bg-gradient-to-br from-[#2D7D00] to-[#39A900] p-4 text-white shadow-md">
+                  <div className="flex items-end justify-between gap-4 rounded-2xl bg-gradient-to-br from-[#2D7D00] to-[#39A900] p-5 text-white shadow-md">
                     <div>
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-white/60">Vista seleccionada</p>
                       <h3 className="mt-1 text-2xl font-bold">{selectedLot.name}</h3>
-                      <p className="text-xs text-white/70">{selectedLot.block} · {selectedLot.type === "mixed" ? "Mixto" : selectedLot.type === "moto" ? "Motos" : "Automoviles"}</p>
+                      <p className="text-xs text-white/70 mt-0.5">{selectedLot.block} · {selectedLot.type === "mixed" ? "Mixto" : selectedLot.type === "moto" ? "Motos" : "Automoviles"}</p>
                     </div>
-                    <div className="rounded-xl bg-white/20 px-4 py-2 text-right backdrop-blur-sm">
+                    <div className="rounded-xl bg-white/20 px-4 py-2.5 text-right backdrop-blur-sm">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-white">Capacidad</p>
                       <p className="text-2xl font-bold text-white">{selectedLot.capacity}</p>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-3">
                     {selectedStats.map((stat) => (
-                      <div key={stat.label} className="rounded-xl bg-[#F8FAF9] p-3 text-center border border-[#E2E8F0]">
+                      <div key={stat.label} className="rounded-xl bg-[#F8FAF9] p-3.5 text-center border border-[#E2E8F0]">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">{stat.label}</p>
-                        <p className="mt-1 text-xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
+                        <p className="mt-1.5 text-xl font-bold" style={{ color: stat.color }}>{stat.value}</p>
                       </div>
                     ))}
                   </div>
@@ -598,19 +611,19 @@ export default function Dashboard() {
             <Card className="xl:col-span-4 flex flex-col">
               <SectionTitle icon={Gauge} title="Panorama general" subtitle="Estado consolidado" color={statusColor(totals.pct)} />
               <Donut value={totals.pct} />
-              <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="mt-5 grid grid-cols-3 gap-3">
                 {[
                   { label: "Ocupadas", value: totals.occupied, color: COLORS.primary },
                   { label: "Libres", value: totals.available, color: COLORS.blue },
                   { label: "Mant.", value: totals.maintenance, color: COLORS.red },
                 ].map((item) => (
-                  <div key={item.label} className="rounded-xl bg-[#F8FAF9] p-3 text-center border border-[#E2E8F0]">
+                  <div key={item.label} className="rounded-xl bg-[#F8FAF9] p-3.5 text-center border border-[#E2E8F0]">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">{item.label}</p>
-                    <p className="mt-1 text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
+                    <p className="mt-1.5 text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
                   </div>
                 ))}
               </div>
-              <div className="mt-5 flex-1 space-y-2.5">
+              <div className="mt-6 flex-1 space-y-3">
                 <p className="text-xs font-semibold uppercase tracking-wider text-[#64748B]">Alertas activas</p>
                 {alerts.map((alert, i) => {
                   const color = alert.tone === "red" ? COLORS.red : alert.tone === "amber" ? COLORS.amber : COLORS.primary;
@@ -634,27 +647,27 @@ export default function Dashboard() {
           </div>
 
           {/* ========== FILA INTERMEDIA ========== */}
-          <div className="mt-6 grid gap-6 xl:grid-cols-12">
+          <div className="grid gap-6 xl:grid-cols-12">
             {/* Entradas y salidas */}
-            <Card className="xl:col-span-5">
+            <Card className="xl:col-span-4">
               <SectionTitle icon={Activity} title="Entradas y salidas" subtitle="Últimos registros de movimiento" color={COLORS.primary} actionLabel="Control de acceso" onAction={() => navigate("/app/entrada-salida")} />
               <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-2xl bg-[#EAF7E6] p-4 border border-[#B3E6A1]">
+                <div className="rounded-2xl bg-[#EAF7E6] p-5 border border-[#B3E6A1]">
                   <div className="flex items-center gap-2 text-[#2D7D00]">
                     <DoorOpen size={18} />
                     <p className="text-xs font-semibold uppercase tracking-wider">Entradas</p>
                   </div>
-                  <p className="mt-2 text-3xl font-bold text-[#2D7D00]">{entradas}</p>
+                  <p className="mt-2.5 text-3xl font-bold text-[#2D7D00]">{entradas}</p>
                 </div>
-                <div className="rounded-2xl bg-[#F1F5F9] p-4 border border-[#E2E8F0]">
+                <div className="rounded-2xl bg-[#F1F5F9] p-5 border border-[#E2E8F0]">
                   <div className="flex items-center gap-2 text-[#64748B]">
                     <DoorClosed size={18} />
                     <p className="text-xs font-semibold uppercase tracking-wider">Salidas</p>
                   </div>
-                  <p className="mt-2 text-3xl font-bold text-[#1a1a2e]">{salidas}</p>
+                  <p className="mt-2.5 text-3xl font-bold text-[#1a1a2e]">{salidas}</p>
                 </div>
               </div>
-              <p className="mt-4 text-xs text-[#64748B]">
+              <p className="mt-5 text-xs text-[#64748B]">
                 Basado en los últimos {movements.length} movimientos registrados en el sistema.
               </p>
             </Card>
@@ -671,7 +684,7 @@ export default function Dashboard() {
             </Card>
 
             {/* Distribución */}
-            <Card className="xl:col-span-3">
+            <Card className="xl:col-span-4">
               <SectionTitle icon={GraduationCap} title="Distribución" subtitle="Vehículos y conductores" color={COLORS.purple} actionLabel="Conductores" onAction={() => navigate("/app/conductores")} />
               <div className="space-y-4">
                 <DistributionChart items={vehicleDistribution} />
@@ -690,7 +703,7 @@ export default function Dashboard() {
           </div>
 
           {/* ========== FILA INFERIOR ========== */}
-          <div className="mt-6 grid gap-6 xl:grid-cols-12">
+          <div className="grid gap-6 xl:grid-cols-12">
             {/* Movimientos recientes */}
             <Card className="xl:col-span-8">
               <SectionTitle icon={Zap} title="Movimientos recientes" subtitle="Últimos registros de acceso" color={COLORS.teal} actionLabel="Ver todos" onAction={() => navigate("/app/entrada-salida")} />
@@ -731,7 +744,7 @@ export default function Dashboard() {
             <Card className="xl:col-span-4">
               <SectionTitle icon={ClipboardList} title="Reservas e incidentes" subtitle="Actividad reportada en el sistema" color={COLORS.amber} actionLabel="Ver incidentes" onAction={() => navigate("/app/incidentes")} />
 
-              <div className="mb-5 grid grid-cols-4 gap-2">
+              <div className="mb-6 grid grid-cols-4 gap-3">
                 {[
                   { label: "Pendientes", value: reservaCounts.pendiente, color: COLORS.amber },
                   { label: "Activas", value: reservaCounts.activa, color: COLORS.primary },
@@ -741,15 +754,15 @@ export default function Dashboard() {
                   <button
                     key={item.label}
                     onClick={() => navigate("/app/reservas")}
-                    className="rounded-xl bg-[#F8FAF9] p-2.5 text-center border border-[#E2E8F0] hover:bg-white hover:border-[#CBD5E1] transition-colors"
+                    className="rounded-xl bg-[#F8FAF9] p-3 text-center border border-[#E2E8F0] hover:bg-white hover:border-[#CBD5E1] transition-colors"
                   >
-                    <p className="text-[9px] font-semibold uppercase tracking-wider text-[#64748B]">{item.label}</p>
-                    <p className="mt-1 text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">{item.label}</p>
+                    <p className="mt-1.5 text-lg font-bold" style={{ color: item.color }}>{item.value}</p>
                   </button>
                 ))}
               </div>
 
-              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Incidentes pendientes</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#64748B]">Incidentes pendientes</p>
 
               {incidentesPendientes.length === 0 ? (
                 <div className="flex items-center gap-3 rounded-xl bg-[#EAF7E6] p-3 border border-[#B3E6A1]">
@@ -778,8 +791,7 @@ export default function Dashboard() {
               )}
             </Card>
           </div>
-        </motion.div>
-      </main>
+      </motion.div>
     </>
   );
 }
