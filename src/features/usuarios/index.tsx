@@ -194,6 +194,9 @@ export default function Usuarios() {
             gap:6px !important;
           }
         }
+        @media (max-width:480px){
+          .uf-modal-grid{ grid-template-columns:1fr !important; }
+        }
       `}</style>
 
       <div className="u-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>

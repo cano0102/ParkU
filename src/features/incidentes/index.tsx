@@ -310,6 +310,13 @@ export function Incidentes() {
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+
+        @media (max-width: 640px) {
+          .incidentes-hero-stats { grid-template-columns: repeat(2, 1fr) !important; min-width: 0 !important; }
+        }
+        @media (max-width: 480px) {
+          .incidentes-form-grid { grid-template-columns: 1fr !important; }
+        }
       `}</style>
 
       <div className="incidentes-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -344,7 +351,7 @@ export function Incidentes() {
               </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+            <div className="incidentes-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280, maxWidth: 420 }}>
               {[
                 { label: "Pendientes", value: pendientes, icon: AlertTriangle, color: C.warning },
                 { label: "Resueltos", value: resueltos, icon: CheckCircle, color: C.success },
@@ -688,7 +695,7 @@ export function Incidentes() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="incidentes-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label htmlFor="parqueadero" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                     Parqueadero *

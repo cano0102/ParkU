@@ -595,7 +595,7 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     {selectedStats.map((stat) => (
                       <div key={stat.label} className="rounded-xl bg-[#F8FAF9] p-3.5 text-center border border-[#E2E8F0]">
                         <p className="text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">{stat.label}</p>
@@ -611,7 +611,7 @@ export default function Dashboard() {
             <Card className="xl:col-span-4 flex flex-col">
               <SectionTitle icon={Gauge} title="Panorama general" subtitle="Estado consolidado" color={statusColor(totals.pct)} />
               <Donut value={totals.pct} />
-              <div className="mt-5 grid grid-cols-3 gap-3">
+              <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {[
                   { label: "Ocupadas", value: totals.occupied, color: COLORS.primary },
                   { label: "Libres", value: totals.available, color: COLORS.blue },
@@ -744,7 +744,7 @@ export default function Dashboard() {
             <Card className="xl:col-span-4">
               <SectionTitle icon={ClipboardList} title="Reservas e incidentes" subtitle="Actividad reportada en el sistema" color={COLORS.amber} actionLabel="Ver incidentes" onAction={() => navigate("/app/incidentes")} />
 
-              <div className="mb-6 grid grid-cols-4 gap-3">
+              <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
                   { label: "Pendientes", value: reservaCounts.pendiente, color: COLORS.amber },
                   { label: "Activas", value: reservaCounts.activa, color: COLORS.primary },

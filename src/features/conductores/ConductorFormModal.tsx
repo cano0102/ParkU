@@ -163,7 +163,7 @@ export function ConductorFormModal({
               )}
             </FormField>
 
-            <div style={{ display: "grid", gridTemplateColumns: isEdit ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
+            <div className="cf-modal-grid" style={{ display: "grid", gridTemplateColumns: isEdit ? "1fr 1fr 1fr" : "1fr 1fr", gap: 10 }}>
               <FormField label="Tipo de conductor">
                 <select
                   value={formData.tipoConductor}
@@ -355,7 +355,7 @@ export function ConductorFormModal({
               </span>
             )}
           </div>
-          <div style={{ padding: "0.85rem 1.1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+          <div className="cf-modal-grid" style={{ padding: "0.85rem 1.1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
             <FormField
               label="Placa *"
               error={touched.placa ? formErrors.placa : undefined}

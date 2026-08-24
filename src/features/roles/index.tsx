@@ -256,7 +256,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
           >
             Información básica
           </p>
-          <div style={{ display: "grid", gridTemplateColumns: isEditing ? "1fr 1fr" : "1fr", gap: 10 }}>
+          <div className="roles-form-grid" style={{ display: "grid", gridTemplateColumns: isEditing ? "1fr 1fr" : "1fr", gap: 10 }}>
             <div>
               <label
                 htmlFor="role-name"
@@ -405,7 +405,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
             />
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
+          <div className="roles-permiso-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
             {(Object.entries(PERMISOS) as [PermisosKeys, typeof PERMISOS[PermisosKeys]][]).map(
               ([grupo, permisos]) => {
                 const color = GRUPO_COLORS[grupo] ?? COLORS.primary;
@@ -1119,6 +1119,13 @@ export function Roles() {
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
 
+        @media (max-width: 640px) {
+          .roles-hero-stats { grid-template-columns: repeat(2, 1fr) !important; min-width: 0 !important; }
+        }
+        @media (max-width: 480px) {
+          .roles-form-grid, .roles-permiso-grid { grid-template-columns: 1fr !important; }
+        }
+
         /* ---------- Tarjeta de rol (rediseño) ---------- */
         .role-card{
           background: #fff;
@@ -1375,11 +1382,13 @@ export function Roles() {
             </div>
 
             <div
+              className="roles-hero-stats"
               style={{
                 display: "grid",
                 gridTemplateColumns: "repeat(4,1fr)",
                 gap: 8,
                 minWidth: 280,
+                maxWidth: 420,
               }}
             >
               {[

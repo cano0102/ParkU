@@ -200,7 +200,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                 Documento de identidad
               </p>
             </div>
-            <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="uf-modal-grid" style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <FormField label="Tipo de documento">
                 <select
                   value={form.tipoDocumento}
@@ -299,7 +299,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                   style={err("nombre") ? { ...inputStyle, ...inputErrorStyle } : inputStyle}
                 />
               </FormField>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div className="uf-modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <FormField label="Correo electrónico" error={err("correo")}>
                   <div style={{ position: "relative" }}>
                     <Mail
@@ -376,7 +376,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                 Credenciales y acceso
               </p>
             </div>
-            <div style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div className="uf-modal-grid" style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <FormField
                 label="Contraseña"
                 hint={isEdit ? "vacío = sin cambios" : `mín. ${PASSWORD_MIN} caracteres`}

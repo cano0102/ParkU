@@ -379,4 +379,8 @@ export const conductoresStyles = `
       gap: 6px !important;
     }
   }
+
+  @media (max-width: 480px) {
+    .cf-modal-grid { grid-template-columns: 1fr !important; }
+  }
 `;

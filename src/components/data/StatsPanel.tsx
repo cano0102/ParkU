@@ -21,6 +21,7 @@ export interface StatsPanelProps {
 export function StatsPanel({ eyebrowIcon, eyebrowText, title, description, metrics }: StatsPanelProps) {
   return (
     <div
+      className="stats-panel"
       style={{
         position: "relative",
         overflow: "hidden",
@@ -30,6 +31,11 @@ export function StatsPanel({ eyebrowIcon, eyebrowText, title, description, metri
         color: "#fff",
       }}
     >
+      <style>{`
+        @media (max-width: 640px) {
+          .stats-panel-metrics { grid-template-columns: repeat(2, 1fr) !important; min-width: 0 !important; }
+        }
+      `}</style>
       <div
         style={{
           position: "absolute",
@@ -85,11 +91,13 @@ export function StatsPanel({ eyebrowIcon, eyebrowText, title, description, metri
         </div>
 
         <div
+          className="stats-panel-metrics"
           style={{
             display: "grid",
             gridTemplateColumns: `repeat(${metrics.length},1fr)`,
             gap: 8,
             minWidth: 280,
+            maxWidth: 420,
           }}
         >
           {metrics.map((m) => (

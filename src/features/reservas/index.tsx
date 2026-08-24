@@ -157,6 +157,29 @@ export function Reservas() {
         ::-webkit-scrollbar{ width:5px; }
         ::-webkit-scrollbar-track{ background:transparent; }
         ::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+
+        @media (max-width: 640px) {
+          .reservas-hero-stats { grid-template-columns: repeat(2, 1fr) !important; min-width: 0 !important; }
+        }
+        @media (max-width: 860px) {
+          .reserva-table-header, .reserva-row {
+            grid-template-columns: minmax(140px,1fr) minmax(120px,1fr) 90px minmax(120px,1fr) 130px 90px 80px !important;
+            gap: 6px !important;
+          }
+        }
+        @media (max-width: 720px) {
+          .reserva-table-header { display: none; }
+          .reserva-row {
+            grid-template-columns: 1fr !important;
+            grid-auto-flow: row;
+            gap: 8px !important;
+            padding: 14px 16px !important;
+            border-radius: 14px;
+            border: 1px solid ${C.border} !important;
+            margin: 0 0 10px 0;
+            box-shadow: 0 1px 4px rgba(15,23,42,.04);
+          }
+        }
       `}</style>
 
       <div className="reservas-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -191,7 +214,7 @@ export function Reservas() {
               </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280 }}>
+            <div className="reservas-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280, maxWidth: 420 }}>
               {[
                 { label: "Pendientes", value: counts.pendiente, estado: "pendiente", icon: Clock3 },
                 { label: "Activas", value: counts.activa, estado: "activa", icon: CheckCircle2 },
@@ -302,7 +325,7 @@ export function Reservas() {
           boxShadow: "0 2px 8px rgba(15,23,42,.05)",
         }}>
           {/* Tabla header */}
-          <div style={{
+          <div className="reserva-table-header" style={{
             display: "grid",
             gridTemplateColumns: "minmax(180px,1fr) minmax(160px,1fr) 120px minmax(160px,1fr) 180px 110px 100px",
             background: "#F8FAF8",
