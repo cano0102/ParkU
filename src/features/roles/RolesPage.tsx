@@ -121,10 +121,12 @@ interface RolFormProps {
 const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, existingRoles, editingRolId = null }: RolFormProps) => {
   const [form, setForm] = useState<FormState>(initial);
   const [nombreError, setNombreError] = useState<string>("");
+  const [nombreTocado, setNombreTocado] = useState(false);
 
   useEffect(() => {
     setForm(initial);
     setNombreError("");
+    setNombreTocado(false);
   }, [initial]);
 
   const handleNombreChange = useCallback(
@@ -134,10 +136,13 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
       const duplicado = existingRoles.some(
         (r) => r.id !== editingRolId && r.nombre.trim().toLowerCase() === trimmed
       );
-      setNombreError(trimmed && duplicado ? "Ya existe un rol con este nombre" : "");
+      setNombreError(!trimmed ? "El nombre es obligatorio" : duplicado ? "Ya existe un rol con este nombre" : "");
     },
     [existingRoles, editingRolId]
   );
+
+  const nombreErrorVisible = nombreTocado ? nombreError : "";
+  const formInvalido = !form.nombre.trim() || !!nombreError;
 
   const handleTogglePermiso = useCallback((k: keyof PermisosState) => {
     setForm((f) => ({
@@ -158,6 +163,7 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
+      setNombreTocado(true);
       const rawName = form.nombre.trim();
       if (!rawName) {
         toast.error("El nombre es obligatorio");
@@ -270,11 +276,12 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
                 placeholder="ej. Operador de turno"
                 value={form.nombre}
                 onChange={(e) => handleNombreChange(e.target.value)}
+                onBlur={() => setNombreTocado(true)}
                 style={{
                   width: "100%",
                   padding: "9px 14px",
                   borderRadius: 11,
-                  border: `1px solid ${nombreError ? "#EF4444" : COLORS.border}`,
+                  border: `1px solid ${nombreErrorVisible ? "#EF4444" : COLORS.border}`,
                   fontSize: 13,
                   outline: "none",
                   fontFamily: "inherit",
@@ -282,15 +289,15 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
                 }}
                 required
                 aria-required="true"
-                aria-invalid={!!nombreError}
-                aria-describedby={nombreError ? "role-name-error" : undefined}
+                aria-invalid={!!nombreErrorVisible}
+                aria-describedby={nombreErrorVisible ? "role-name-error" : undefined}
               />
-              {nombreError && (
+              {nombreErrorVisible && (
                 <p
                   id="role-name-error"
                   style={{ marginTop: 5, fontSize: 11, fontWeight: 700, color: "#EF4444" }}
                 >
-                  {nombreError}
+                  {nombreErrorVisible}
                 </p>
               )}
             </div>
@@ -584,17 +591,18 @@ const RolForm = memo(({ initial, onSave, onCancel, title, isEditing = false, exi
         </button>
         <button
           type="submit"
+          disabled={formInvalido}
           style={{
             padding: "11px 24px",
             borderRadius: 12,
             border: "none",
-            background: COLORS.primary,
-            color: "#fff",
+            background: formInvalido ? "#E2E8F0" : COLORS.primary,
+            color: formInvalido ? COLORS.textLight : "#fff",
             fontSize: 13,
             fontWeight: 800,
-            cursor: "pointer",
+            cursor: formInvalido ? "not-allowed" : "pointer",
             fontFamily: "inherit",
-            boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+            boxShadow: formInvalido ? undefined : "0 6px 18px rgba(57,169,0,.22)",
           }}
         >
           {title === "Nuevo Rol" ? "Crear Rol" : "Guardar cambios"}

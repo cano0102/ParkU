@@ -51,6 +51,10 @@ export function ResetPassword() {
   const [loading, setLoading] =
     useState(false);
 
+  const passwordLengthOk = password.length >= 8;
+  const passwordsMatch = !!password && password === confirmPassword;
+  const puedeEnviar = passwordLengthOk && passwordsMatch;
+
   const handleSubmit = async (
     e: React.FormEvent
   ) => {
@@ -652,7 +656,7 @@ export function ResetPassword() {
                     <div
                       style={{
                         color:
-                          password.length >= 8
+                          passwordLengthOk
                             ? COLORS.primary
                             : COLORS.textLight,
                         fontWeight: 600,
@@ -664,9 +668,7 @@ export function ResetPassword() {
                     <div
                       style={{
                         color:
-                          password ===
-                            confirmPassword &&
-                          password
+                          passwordsMatch
                             ? COLORS.primary
                             : COLORS.textLight,
                         fontWeight: 600,
@@ -682,11 +684,11 @@ export function ResetPassword() {
 
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !puedeEnviar}
                   style={{
                     border: "none",
                     background:
-                      loading
+                      loading || !puedeEnviar
                         ? "#94A3B8"
                         : COLORS.primary,
                     color: "#fff",
@@ -694,7 +696,7 @@ export function ResetPassword() {
                       "18px 24px",
                     borderRadius: 18,
                     fontWeight: 800,
-                    cursor: loading
+                    cursor: loading || !puedeEnviar
                       ? "not-allowed"
                       : "pointer",
                     display: "flex",

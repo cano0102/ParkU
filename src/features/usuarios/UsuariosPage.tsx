@@ -320,6 +320,8 @@ export default function Usuarios() {
           initial={formInitial}
           title={editingUsuario ? "Editar Usuario" : "Nuevo Usuario"}
           roles={roles}
+          usuarios={usuarios}
+          editingId={editingUsuario?.id ?? null}
           onSave={handleSave}
           onCancel={() => setDialogOpen(false)}
         />

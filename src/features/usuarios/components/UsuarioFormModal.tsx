@@ -8,6 +8,7 @@ import { FormField } from "@/components/shared";
 import { EntityFormModal } from "@/components/data";
 import { ScannerQR } from "./ScannerQR";
 import type { QrCedulaPayload } from "@/services/api/qr";
+import type { Usuario } from "@/services/api/usuarios";
 import {
   COLORS, FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX,
   TELEFONO_REGEX, EMAIL_REGEX, inputStyle, inputErrorStyle, inputIconStyle,
@@ -18,11 +19,15 @@ interface UsuarioFormModalProps {
   initial: FormState;
   title: string;
   roles: { id: string; nombre: string; estado?: "activo" | "inactivo" }[];
+  /** Usuarios existentes, para detectar en vivo correo/identificación duplicados. */
+  usuarios: Usuario[];
+  /** Id del usuario en edición, para no chocar consigo mismo en la detección de duplicados. */
+  editingId: string | null;
   onSave: (data: FormState) => void;
   onCancel: () => void;
 }
 
-export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel }: UsuarioFormModalProps) => {
+export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, editingId, onSave, onCancel }: UsuarioFormModalProps) => {
   const [form, setForm] = useState<FormState>(initial);
   const [showPass, setShowPass] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
@@ -94,6 +99,8 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
       nextErrors.identificacion = "El número de identificación es obligatorio";
     } else if (identificacion.length < 6) {
       nextErrors.identificacion = "Debe tener al menos 6 dígitos";
+    } else if (usuarios.some((u) => u.id !== editingId && u.identificacion.trim() === identificacion)) {
+      nextErrors.identificacion = "Ya existe un usuario registrado con este número de identificación";
     }
 
     // Nombre completo: longitud mínima y máxima
@@ -105,11 +112,13 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
       nextErrors.nombre = `El nombre no puede superar ${NOMBRE_MAX} caracteres`;
     }
 
-    // Correo: formato válido
+    // Correo: formato válido, y no repetido con otro usuario
     if (!correo) {
       nextErrors.correo = "El correo es obligatorio";
     } else if (!EMAIL_REGEX.test(correo)) {
       nextErrors.correo = "Ingresa un correo electrónico válido";
+    } else if (usuarios.some((u) => u.id !== editingId && u.correo.trim().toLowerCase() === correo.toLowerCase())) {
+      nextErrors.correo = "Ya existe un usuario registrado con este correo";
     }
 
     // Teléfono: solo números (y separadores comunes), longitud razonable
@@ -135,7 +144,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
     }
 
     return nextErrors;
-  }, [isEdit]);
+  }, [isEdit, usuarios, editingId]);
 
   // Validación en tiempo real: recalcula los errores en cada cambio del formulario;
   // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
@@ -153,7 +162,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
     () => {
       const nextErrors = validate(form);
       setErrors(nextErrors);
-      setTouched({ identificacion: true, nombre: true, correo: true, numero: true, rol: true, password: true });
+      setTouched({ identificacion: true, nombre: true, correo: true, numero: true, rol: true, tipoUsuario: true, password: true });
       if (Object.keys(nextErrors).length > 0) {
         toast.error("Revisa los campos marcados en rojo");
         return;

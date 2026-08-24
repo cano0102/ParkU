@@ -124,6 +124,16 @@ export function Incidentes() {
     evidencia: '',
     notasResolucion: '',
   });
+  const [formTouched, setFormTouched] = useState<{ descripcion?: boolean; parqueaderoId?: boolean }>({});
+
+  // Validación en tiempo real: solo descripción y parqueadero son obligatorios.
+  const formErrors = {
+    descripcion: formData.descripcion.trim() ? '' : 'La descripción es obligatoria',
+    parqueaderoId: formData.parqueaderoId ? '' : 'Selecciona un parqueadero',
+  };
+  const formInvalido = !!formErrors.descripcion || !!formErrors.parqueaderoId;
+  const markTouched = (campo: 'descripcion' | 'parqueaderoId') =>
+    setFormTouched((t) => ({ ...t, [campo]: true }));
 
   /* ─── Lookups rápidos hacia el módulo de Parqueaderos/Celdas ─── */
   const parqueaderoPorId = useMemo(() => new Map(parqueaderos.map((p) => [p.id, p])), [parqueaderos]);
@@ -154,6 +164,7 @@ export function Incidentes() {
   /* ─── Handlers ───────────────────────────────────────── */
   const resetForm = () => {
     setFormData({ descripcion: '', parqueaderoId: '', celdaId: '', vehiculo: '', asignadoA: '', evidencia: '', notasResolucion: '' });
+    setFormTouched({});
     setIsEditing(false);
     setSelectedIncidente(null);
   };
@@ -193,7 +204,8 @@ export function Incidentes() {
   };
 
   const handleSave = () => {
-    if (!formData.descripcion || !formData.parqueaderoId) {
+    setFormTouched({ descripcion: true, parqueaderoId: true });
+    if (formInvalido) {
       toast.error('Descripción y Parqueadero son obligatorios');
       return;
     }
@@ -687,12 +699,18 @@ export function Incidentes() {
                   placeholder="Describe el incidente o novedad..."
                   value={formData.descripcion}
                   onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
+                  onBlur={() => markTouched('descripcion')}
+                  aria-invalid={!!(formTouched.descripcion && formErrors.descripcion)}
                   style={{
                     width: "100%", padding: "11px 14px", borderRadius: 11,
-                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    border: `1px solid ${formTouched.descripcion && formErrors.descripcion ? C.danger : C.border}`,
+                    fontSize: 13, outline: "none",
                     fontFamily: "inherit", background: "#F8FAFC", resize: "none",
                   }}
                 />
+                {formTouched.descripcion && formErrors.descripcion && (
+                  <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{formErrors.descripcion}</p>
+                )}
               </div>
 
               <div className="incidentes-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -704,9 +722,12 @@ export function Incidentes() {
                     id="parqueadero"
                     value={formData.parqueaderoId}
                     onChange={(e) => handleParqueaderoChange(e.target.value)}
+                    onBlur={() => markTouched('parqueaderoId')}
+                    aria-invalid={!!(formTouched.parqueaderoId && formErrors.parqueaderoId)}
                     style={{
                       width: "100%", padding: "11px 14px", borderRadius: 11,
-                      border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                      border: `1px solid ${formTouched.parqueaderoId && formErrors.parqueaderoId ? C.danger : C.border}`,
+                      fontSize: 13, outline: "none",
                       fontFamily: "inherit", background: "#F8FAFC",
                     }}
                   >
@@ -715,6 +736,9 @@ export function Incidentes() {
                       <option key={p.id} value={p.id}>{p.nombre}</option>
                     ))}
                   </select>
+                  {formTouched.parqueaderoId && formErrors.parqueaderoId && (
+                    <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{formErrors.parqueaderoId}</p>
+                  )}
                 </div>
 
                 <div>
@@ -899,11 +923,12 @@ export function Incidentes() {
             </button>
             <button
               onClick={handleSave}
+              disabled={formInvalido}
               style={{
                 padding: "10px 24px", borderRadius: 12,
-                border: "none", background: C.primary, color: "#fff",
-                fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-                boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+                border: "none", background: formInvalido ? "#E2E8F0" : C.primary, color: formInvalido ? C.textLight : "#fff",
+                fontSize: 13, fontWeight: 800, cursor: formInvalido ? "not-allowed" : "pointer", fontFamily: "inherit",
+                boxShadow: formInvalido ? undefined : "0 6px 18px rgba(57,169,0,.22)",
               }}
             >
               {isEditing ? "Actualizar Incidente" : "Registrar Incidente"}

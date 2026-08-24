@@ -50,9 +50,18 @@ export function Perfil() {
   const [showNew, setShowNew] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [profileForm, setProfileForm] = useState({ nombre: user?.nombre ?? "", numero: user?.numero ?? "" });
+  const [profileTouched, setProfileTouched] = useState<{ nombre?: boolean; numero?: boolean }>({});
   const [passwordData, setPasswordData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
   if (!user) return null;
+
+  // Validación en tiempo real del formulario de perfil.
+  const profileErrors = {
+    nombre: profileForm.nombre.trim() ? "" : "El nombre no puede estar vacío",
+    numero: profileForm.numero.trim() && !TELEFONO_REGEX.test(profileForm.numero.trim()) ? "Ingresa un número de teléfono válido" : "",
+  };
+  const profileInvalido = !!profileErrors.nombre || !!profileErrors.numero;
+  const markProfileTouched = (campo: "nombre" | "numero") => setProfileTouched((t) => ({ ...t, [campo]: true }));
 
   const passwordLengthOk = passwordData.newPassword.length >= PASSWORD_MIN && passwordData.newPassword.length <= PASSWORD_MAX;
   const passwordsMatch = !!passwordData.newPassword && passwordData.newPassword === passwordData.confirmPassword;
@@ -66,11 +75,12 @@ export function Perfil() {
   };
 
   const handleSaveProfile = () => {
-    const nombre = profileForm.nombre.trim();
-    const numero = profileForm.numero.trim();
-    if (!nombre) return toast.error("El nombre no puede estar vacío");
-    if (numero && !TELEFONO_REGEX.test(numero)) return toast.error("Ingresa un número de teléfono válido");
-    updateUser({ nombre, numero });
+    setProfileTouched({ nombre: true, numero: true });
+    if (profileInvalido) {
+      toast.error(profileErrors.nombre || profileErrors.numero);
+      return;
+    }
+    updateUser({ nombre: profileForm.nombre.trim(), numero: profileForm.numero.trim() });
     toast.success("Perfil actualizado");
     setEditMode(false);
   };
@@ -401,6 +411,7 @@ export function Perfil() {
                 className="perfil-btn"
                 onClick={() => {
                   setProfileForm({ nombre: user.nombre, numero: user.numero });
+                  setProfileTouched({});
                   setEditMode(true);
                 }}
                 style={{
@@ -426,6 +437,7 @@ export function Perfil() {
                   onClick={() => {
                     setEditMode(false);
                     setProfileForm({ nombre: user.nombre, numero: user.numero });
+                    setProfileTouched({});
                   }}
                   aria-label="Cancelar edición"
                   style={{
@@ -446,6 +458,7 @@ export function Perfil() {
                   type="button"
                   className="perfil-btn"
                   onClick={handleSaveProfile}
+                  disabled={profileInvalido}
                   style={{
                     display: "flex",
                     alignItems: "center",
@@ -453,8 +466,10 @@ export function Perfil() {
                     padding: "7px 14px",
                     borderRadius: 9,
                     border: "none",
-                    background: C.primary,
+                    background: profileInvalido ? C.textMuted : C.primary,
                     color: "#fff",
+                    cursor: profileInvalido ? "not-allowed" : "pointer",
+                    opacity: profileInvalido ? 0.65 : 1,
                     fontSize: 12,
                     fontWeight: 800,
                     boxShadow: "0 4px 12px rgba(57,169,0,.25)",
@@ -506,17 +521,29 @@ export function Perfil() {
                     {item.label}
                   </div>
                   {item.editable && editMode ? (
-                    <input
-                      value={item.key === "nombre" ? profileForm.nombre : profileForm.numero}
-                      onChange={(e) =>
-                        setProfileForm({
-                          ...profileForm,
-                          [item.key === "nombre" ? "nombre" : "numero"]: e.target.value,
-                        })
-                      }
-                      placeholder={item.placeholder}
-                      style={fieldInputStyle}
-                    />
+                    <>
+                      <input
+                        value={item.key === "nombre" ? profileForm.nombre : profileForm.numero}
+                        onChange={(e) =>
+                          setProfileForm({
+                            ...profileForm,
+                            [item.key === "nombre" ? "nombre" : "numero"]: e.target.value,
+                          })
+                        }
+                        onBlur={() => markProfileTouched(item.key === "nombre" ? "nombre" : "numero")}
+                        placeholder={item.placeholder}
+                        aria-invalid={!!(profileTouched[item.key as "nombre" | "numero"] && profileErrors[item.key as "nombre" | "numero"])}
+                        style={{
+                          ...fieldInputStyle,
+                          borderColor: profileTouched[item.key as "nombre" | "numero"] && profileErrors[item.key as "nombre" | "numero"] ? C.danger : C.border,
+                        }}
+                      />
+                      {profileTouched[item.key as "nombre" | "numero"] && profileErrors[item.key as "nombre" | "numero"] && (
+                        <p style={{ marginTop: 4, fontSize: 10.5, fontWeight: 700, color: C.danger }}>
+                          {profileErrors[item.key as "nombre" | "numero"]}
+                        </p>
+                      )}
+                    </>
                   ) : (
                     <p
                       style={{
