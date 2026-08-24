@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { X, AlertCircle } from "lucide-react";
-import type { Celda } from "@/services/celdas";
+import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/theme";
 import { CELDA_CONFIG, getTipoCeldaConfig } from "./helpers";
 

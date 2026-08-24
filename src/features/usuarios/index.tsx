@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { UserCircle } from "lucide-react";
 import { toast } from "sonner";
-import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "@/services/hooks/useUsuarios";
-import type { Usuario } from "@/services/usuarios";
-import { useRoles } from "@/services/hooks/useRoles";
+import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "@/features/usuarios/hooks/useUsuarios";
+import type { Usuario } from "@/services/api/usuarios";
+import { useRoles } from "@/features/roles/hooks/useRoles";
 import { Modal } from "@/components/shared";
 import { COLORS, USUARIOS_PROTEGIDOS, sanitizeText, emptyForm, FormState } from "./helpers";
 import { DataGrid, DataList, DataPagination, DataToolbar, StatsPanel } from "@/components/data";

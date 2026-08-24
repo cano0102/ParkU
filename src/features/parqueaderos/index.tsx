@@ -4,24 +4,24 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero } from "@/services/hooks/useParqueaderos";
-import type { Parqueadero } from "@/services/parqueaderos";
-import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda } from "@/services/hooks/useCeldas";
-import type { Celda } from "@/services/celdas";
-import { useConductores, useCreateConductor } from "@/services/hooks/useConductores";
-import type { Conductor } from "@/services/conductores";
-import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "@/services/hooks/useVehiculos";
-import type { Vehiculo } from "@/services/vehiculos";
+import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero } from "@/features/parqueaderos/hooks/useParqueaderos";
+import type { Parqueadero } from "@/services/api/parqueaderos";
+import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda } from "@/features/parqueaderos/hooks/useCeldas";
+import type { Celda } from "@/services/api/celdas";
+import { useConductores, useCreateConductor } from "@/features/conductores/hooks/useConductores";
+import type { Conductor } from "@/services/api/conductores";
+import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "@/features/conductores/hooks/useVehiculos";
+import type { Vehiculo } from "@/services/api/vehiculos";
 import {
   useControlSalida,
   useCreateControlSalida,
   useUpdateControlSalida,
-} from "@/services/hooks/useControlSalida";
-import type { ControlSalida } from "@/services/controlSalida";
-import { useReservas, useCreateReserva, useUpdateReserva } from "@/services/hooks/useReservas";
-import type { Reserva } from "@/services/reservas";
-import { useCreateIncidente } from "@/services/hooks/useIncidentes";
-import type { Incidente } from "@/services/incidentes";
+} from "@/features/control-salida/hooks/useControlSalida";
+import type { ControlSalida } from "@/services/api/controlSalida";
+import { useReservas, useCreateReserva, useUpdateReserva } from "@/features/reservas/hooks/useReservas";
+import type { Reserva } from "@/services/api/reservas";
+import { useCreateIncidente } from "@/features/incidentes/hooks/useIncidentes";
+import type { Incidente } from "@/services/api/incidentes";
 import { theme } from "@/theme";
 import {
   FormParqueadero, VehiculoForm, IncidenteForm,

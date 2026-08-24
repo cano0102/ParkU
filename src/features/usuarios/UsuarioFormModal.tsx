@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { FormField } from "@/components/shared";
 import { EntityFormModal } from "@/components/data";
 import { ScannerQR } from "./ScannerQR";
-import type { QrCedulaPayload } from "@/services/qr";
+import type { QrCedulaPayload } from "@/services/api/qr";
 import {
   COLORS, FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX,
   TELEFONO_REGEX, EMAIL_REGEX, inputStyle, inputErrorStyle, inputIconStyle,

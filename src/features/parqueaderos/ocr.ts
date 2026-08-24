@@ -6,7 +6,7 @@ import {
   calcularRoiDesdeGuia,
   preprocesarImagenArchivo,
   type RoiRect,
-} from "@/services/ocr";
+} from "@/services/api/ocr";
 
 export type { RoiRect };
 export { calcularRoiDesdeGuia, preprocesarImagenArchivo };

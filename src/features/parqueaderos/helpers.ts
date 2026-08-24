@@ -1,8 +1,8 @@
 import { Car, Bike, Accessibility } from "lucide-react";
-import type { Celda } from "@/services/celdas";
-import type { Parqueadero } from "@/services/parqueaderos";
-import type { Vehiculo } from "@/services/vehiculos";
-import type { Conductor } from "@/services/conductores";
+import type { Celda } from "@/services/api/celdas";
+import type { Parqueadero } from "@/services/api/parqueaderos";
+import type { Vehiculo } from "@/services/api/vehiculos";
+import type { Conductor } from "@/services/api/conductores";
 import {
   PLACA_CARRO_REGEX, PLACA_MOTO_REGEX, PLACA_REGEX,
   validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,

@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { Reservas } from './index';
 import { createTestQueryClient } from '@/test/queryWrapper';
-import * as reservasService from '@/services/reservas';
+import * as reservasService from '@/services/api/reservas';
 
 function renderReservas(client = createTestQueryClient()) {
   return render(

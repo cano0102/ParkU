@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { createTestQueryClient } from '@/test/queryWrapper';
-import * as usuariosService from '@/services/usuarios';
+import * as usuariosService from '@/services/api/usuarios';
 import { ForgotPassword } from './ForgotPassword';
 
 vi.mock('sonner', () => ({

@@ -1,8 +1,8 @@
 import { AlertTriangle, Car, Calendar, Clock as ClockIcon, ChevronRight, Clock, MapPin, UserCircle2, X } from "lucide-react";
-import type { Celda } from "@/services/celdas";
-import type { Parqueadero } from "@/services/parqueaderos";
-import type { Reserva } from "@/services/reservas";
-import type { Vehiculo } from "@/services/vehiculos";
+import type { Celda } from "@/services/api/celdas";
+import type { Parqueadero } from "@/services/api/parqueaderos";
+import type { Reserva } from "@/services/api/reservas";
+import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";
 import { EstadoBadge, TipoBadge } from "./UiBits";

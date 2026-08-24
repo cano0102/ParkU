@@ -19,15 +19,15 @@ import {
 
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useReservas, useRemoveReserva } from "@/services/hooks/useReservas";
-import type { Reserva } from "@/services/reservas";
-import { useUpdateCelda } from "@/services/hooks/useCeldas";
-import type { Celda } from "@/services/celdas";
-import { useVehiculos } from "@/services/hooks/useVehiculos";
-import { useCeldas } from "@/services/hooks/useCeldas";
-import { useConductores } from "@/services/hooks/useConductores";
-import { useUsuarios } from "@/services/hooks/useUsuarios";
-import { useParqueaderos } from "@/services/hooks/useParqueaderos";
+import { useReservas, useRemoveReserva } from "@/features/reservas/hooks/useReservas";
+import type { Reserva } from "@/services/api/reservas";
+import { useUpdateCelda } from "@/features/parqueaderos/hooks/useCeldas";
+import type { Celda } from "@/services/api/celdas";
+import { useVehiculos } from "@/features/conductores/hooks/useVehiculos";
+import { useCeldas } from "@/features/parqueaderos/hooks/useCeldas";
+import { useConductores } from "@/features/conductores/hooks/useConductores";
+import { useUsuarios } from "@/features/usuarios/hooks/useUsuarios";
+import { useParqueaderos } from "@/features/parqueaderos/hooks/useParqueaderos";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";
 

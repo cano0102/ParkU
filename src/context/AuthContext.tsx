@@ -3,10 +3,10 @@ import React, {
   useContext,
   useState
 } from 'react';
-import * as authService from '../services/auth';
-import { useRoles } from '../services/hooks/useRoles';
-import { useUpdateUsuario } from '../services/hooks/useUsuarios';
-import type { Rol } from '../services/roles';
+import * as authService from '../services/api/auth';
+import { useRoles } from '@/features/roles/hooks/useRoles';
+import { useUpdateUsuario } from '@/features/usuarios/hooks/useUsuarios';
+import type { Rol } from '../services/api/roles';
 
 interface User {
   id: string;

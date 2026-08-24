@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { createTestQueryClient } from '@/test/queryWrapper';
-import * as authService from '@/services/auth';
+import * as authService from '@/services/api/auth';
 import { ResetPassword } from './ResetPassword';
 
 const mockNavigate = vi.fn();

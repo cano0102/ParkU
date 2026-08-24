@@ -30,16 +30,24 @@ export default tseslint.config(
       },
       'boundaries/include': ['src/**/*.{ts,tsx}'],
       'boundaries/elements': [
+        // Más específico primero: un hook de dominio dentro de una feature es
+        // su propio tipo, para poder permitir el cruce feature -> feature-hook
+        // (deuda temporal documentada en docs/CONVENTIONS.md, hasta que la
+        // Fase 6 le dé a cada feature un barril index.ts) sin abrir la puerta
+        // a que una feature importe páginas/componentes/helpers de otra.
+        { type: 'feature-hook', pattern: 'src/features/*/hooks/**', capture: ['feature'] },
         { type: 'feature', pattern: 'src/features/*', mode: 'folder', capture: ['feature'] },
-        { type: 'service', pattern: 'src/services/**' },
+        { type: 'service-core', pattern: 'src/services/core/**' },
+        { type: 'service-api', pattern: 'src/services/api/**' },
         { type: 'component', pattern: 'src/components/**' },
         { type: 'util', pattern: 'src/utils/**' },
         { type: 'hook', pattern: 'src/hooks/**' },
         { type: 'context', pattern: 'src/context/**' },
         { type: 'layout', pattern: 'src/layouts/**' },
+        { type: 'route', pattern: 'src/routes/**' },
         { type: 'type', pattern: 'src/types/**' },
         { type: 'asset', pattern: 'src/assets/**' },
-        { type: 'app', pattern: 'src/{App,App.test,routes,theme,main}.{ts,tsx}', mode: 'file' },
+        { type: 'app', pattern: 'src/{App,App.test,theme,main}.{ts,tsx}', mode: 'file' },
       ],
     },
     rules: {
@@ -64,16 +72,22 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
 
       // Regla dura de la Fase 1: solo services/ puede importar el SDK de Firebase.
-      // (services/firebase.ts es la única integración, y hoy no está conectada a
-      // ningún flujo activo — todo lo demás corre contra el mock de services/auth.ts.)
+      // (services/core/firebase.ts es la única integración, y hoy no está
+      // conectada a ningún flujo activo — todo lo demás corre contra el mock
+      // de services/api/auth.ts.)
       'no-restricted-imports': [
         'error',
         { patterns: [{ group: ['firebase', 'firebase/*'], message: 'Solo src/services/ puede importar el SDK de Firebase.' }] },
       ],
 
-      // Reglas de límites de la Fase 8 ("un criterio, cero excepciones"):
-      // 1) una feature no puede importar de otra feature (sí puede importar de sí misma).
-      // 2) components/ no puede importar de features/ (es al revés: las features consumen components/).
+      // Reglas de límites (Fase 4 + Fase 8, "un criterio, cero excepciones"
+      // salvo la deuda temporal documentada en docs/CONVENTIONS.md):
+      // 1) una feature no puede importar de otra feature — SALVO el hook de
+      //    dominio de otra feature (feature-hook), deuda temporal hasta que
+      //    la Fase 6 le dé a cada feature un barril index.ts.
+      // 2) components/ no puede importar de features/ (ni sus hooks) ni de
+      //    services/ (es al revés: las features consumen components/, y las
+      //    features/hooks son las que hablan con services/, no components/).
       'boundaries/element-types': [
         'error',
         {
@@ -82,12 +96,12 @@ export default tseslint.config(
             {
               from: ['feature'],
               disallow: [['feature', { feature: '!${from.feature}' }]],
-              message: 'Una feature no puede importar de otra feature. Comparte lógica vía services/, utils/, components/ o types/.',
+              message: 'Una feature no puede importar de otra feature (sí de su hook de dominio, ver docs/CONVENTIONS.md). Comparte lógica vía services/, utils/, components/ o types/.',
             },
             {
               from: ['component'],
-              disallow: ['feature'],
-              message: 'components/ no puede importar de features/: las features consumen components/, nunca al revés.',
+              disallow: ['feature', 'feature-hook', 'service-api', 'service-core'],
+              message: 'components/ no puede importar de features/ ni de services/: las features consumen components/, nunca al revés.',
             },
           ],
         },

@@ -1,7 +1,7 @@
 import React, { memo, useState } from "react";
 import { Car, Eye, Pencil, MapPin } from "lucide-react";
-import type { Celda } from "@/services/celdas";
-import type { Parqueadero } from "@/services/parqueaderos";
+import type { Celda } from "@/services/api/celdas";
+import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/theme";
 import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar } from "./helpers";
 

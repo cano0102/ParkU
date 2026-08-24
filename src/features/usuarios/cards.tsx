@@ -1,7 +1,7 @@
 import { Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
-import type { Usuario } from "@/services/usuarios";
+import type { Usuario } from "@/services/api/usuarios";
 import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials, sanitizeText } from "./helpers";
 
 /**

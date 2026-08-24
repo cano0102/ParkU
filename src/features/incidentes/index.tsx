@@ -20,18 +20,18 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useParqueaderos } from '@/services/hooks/useParqueaderos';
-import { useCeldas } from '@/services/hooks/useCeldas';
-import { useVehiculos } from '@/services/hooks/useVehiculos';
-import { useConductores } from '@/services/hooks/useConductores';
+import { useParqueaderos } from '@/features/parqueaderos/hooks/useParqueaderos';
+import { useCeldas } from '@/features/parqueaderos/hooks/useCeldas';
+import { useVehiculos } from '@/features/conductores/hooks/useVehiculos';
+import { useConductores } from '@/features/conductores/hooks/useConductores';
 import {
   useIncidentes,
   useCreateIncidente,
   useUpdateIncidente,
   useRemoveIncidente,
-} from '@/services/hooks/useIncidentes';
-import type { Celda } from '@/services/celdas';
-import type { Incidente } from '@/services/incidentes';
+} from '@/features/incidentes/hooks/useIncidentes';
+import type { Celda } from '@/services/api/celdas';
+import type { Incidente } from '@/services/api/incidentes';
 import { theme } from '@/theme';
 import { Modal } from '@/components/shared';
 

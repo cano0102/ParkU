@@ -13,8 +13,8 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
-import { useRoles, useCreateRol, useUpdateRol } from "@/services/hooks/useRoles";
-import type { Rol } from "@/services/roles";
+import { useRoles, useCreateRol, useUpdateRol } from "@/features/roles/hooks/useRoles";
+import type { Rol } from "@/services/api/roles";
 import { toast } from "sonner";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";

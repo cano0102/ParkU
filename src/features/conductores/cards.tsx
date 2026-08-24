@@ -1,9 +1,9 @@
 import { Pencil, Car, Building2, Accessibility, Eye } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
-import type { Conductor } from "@/services/conductores";
-import type { Usuario } from "@/services/usuarios";
-import type { Vehiculo } from "@/services/vehiculos";
+import type { Conductor } from "@/services/api/conductores";
+import type { Usuario } from "@/services/api/usuarios";
+import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "./helpers";
 
 /**

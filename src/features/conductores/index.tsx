@@ -6,15 +6,15 @@ import {
   useConductores,
   useCreateConductor,
   useUpdateConductor,
-} from "@/services/hooks/useConductores";
-import type { Conductor } from "@/services/conductores";
+} from "@/features/conductores/hooks/useConductores";
+import type { Conductor } from "@/services/api/conductores";
 import {
   useVehiculos,
   useCreateVehiculo,
   useUpdateVehiculo,
-} from "@/services/hooks/useVehiculos";
-import type { Vehiculo } from "@/services/vehiculos";
-import { useUsuarios } from "@/services/hooks/useUsuarios";
+} from "@/features/conductores/hooks/useVehiculos";
+import type { Vehiculo } from "@/services/api/vehiculos";
+import { useUsuarios } from "@/features/usuarios/hooks/useUsuarios";
 import { Modal } from "@/components/shared";
 import { COLORS, sanitizeText, emptyForm, FormState, FormErrors, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "./helpers";
 import { DataGrid, DataList, DataPagination, DataToolbar, StatsPanel } from "@/components/data";
@@ -22,7 +22,7 @@ import { renderConductorCard, getConductorColumns } from "./cards";
 import { ShieldCheck, Users, UserCheck, Car as CarIcon, Bike as BikeIcon } from "lucide-react";
 import { ConductorFormModal } from "./ConductorFormModal";
 import { ConductorDetailModal } from "./ConductorDetailModal";
-import { VehiculoView } from "./VehiculoView";
+import { VehiculoView } from "./components/VehiculoView";
 import { conductoresStyles } from "./styles";
 
 export function Conductores() {

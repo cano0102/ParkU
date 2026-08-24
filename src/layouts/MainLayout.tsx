@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
-import type { Rol } from '../services/roles';
+import type { Rol } from '../services/api/roles';
 import { theme } from '../theme';
 import logoSena from "@/assets/images/logoSena.png";
 
