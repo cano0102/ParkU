@@ -32,10 +32,10 @@ import {
 } from '@/features/incidentes/hooks/useIncidentes';
 import type { Celda } from '@/services/api/celdas';
 import type { Incidente } from '@/services/api/incidentes';
-import { theme } from '@/theme';
+import { theme } from '@/styles/theme';
 import { Modal } from '@/components/shared';
 
-/* ─── Paleta compartida (src/theme.ts) ─── */
+/* ─── Paleta compartida (src/styles/theme.ts) ─── */
 const C = theme;
 
 const MAX_EVIDENCIA_MB = 5;

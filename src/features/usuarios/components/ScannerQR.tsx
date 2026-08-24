@@ -2,7 +2,7 @@ import { memo, useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { toast } from "sonner";
 import { QrCode } from "lucide-react";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { CameraScanner } from "@/components/scanner";
 import { decodeQrPayload, type QrCedulaPayload } from "@/services/api/qr";
 

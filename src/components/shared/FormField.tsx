@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AlertCircle } from 'lucide-react';
-import { theme } from '../../theme';
+import { theme } from '../../styles/theme';
 
 const C = theme;
 

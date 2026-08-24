@@ -2,7 +2,7 @@ import { AlertTriangle, Camera, Car, ChevronRight, UserCheck } from "lucide-reac
 import type { Celda } from "@/services/api/celdas";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { ModalHeader } from "@/components/shared";
 import { VehiculoForm } from "../../lib/helpers";

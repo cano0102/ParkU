@@ -16,7 +16,7 @@ import {
 import { useRoles, useCreateRol, useUpdateRol } from "@/features/roles/hooks/useRoles";
 import type { Rol } from "@/services/api/roles";
 import { toast } from "sonner";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { sanitizeText } from "@/utils/format";
 

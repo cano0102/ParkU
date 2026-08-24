@@ -8,7 +8,7 @@ import { useVehiculos } from "@/features/conductores";
 import { useConductores } from "@/features/conductores";
 import { useIncidentes } from "@/features/incidentes";
 import { useReservas } from "@/features/reservas";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import logoSena from "@/assets/images/logoSena.png";
 import {
   Accessibility,

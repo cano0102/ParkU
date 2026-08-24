@@ -2,7 +2,7 @@ import { Calendar, MapPin, X } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
 

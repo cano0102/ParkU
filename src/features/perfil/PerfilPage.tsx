@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX } from "@/utils/validation";
 

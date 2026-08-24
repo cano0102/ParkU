@@ -22,7 +22,7 @@ import { useReservas, useCreateReserva, useUpdateReserva } from "@/features/rese
 import type { Reserva } from "@/services/api/reservas";
 import { useCreateIncidente } from "@/features/incidentes";
 import type { Incidente } from "@/services/api/incidentes";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import {
   FormParqueadero, VehiculoForm, IncidenteForm,
   CELDA_CONFIG, TIPOS_PARQUEADERO, capitalizar,

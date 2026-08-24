@@ -16,7 +16,7 @@ import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 
 import logoSena from "@/assets/images/logoSena.png";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 
 const COLORS = theme;
 

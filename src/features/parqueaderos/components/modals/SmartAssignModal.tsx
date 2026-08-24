@@ -2,7 +2,7 @@ import { memo, useEffect, useState } from "react";
 import { Camera, Sparkles } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { ModalHeader, Banner } from "@/components/shared";
 import {

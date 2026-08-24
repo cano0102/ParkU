@@ -46,6 +46,7 @@ export default tseslint.config(
         { type: 'context', pattern: 'src/context/**' },
         { type: 'layout', pattern: 'src/layouts/**' },
         { type: 'route', pattern: 'src/routes/**' },
+        { type: 'style', pattern: 'src/styles/**' },
         { type: 'type', pattern: 'src/types/**' },
         { type: 'asset', pattern: 'src/assets/**' },
         { type: 'app', pattern: 'src/{App,App.test,theme,main}.{ts,tsx}', mode: 'file' },

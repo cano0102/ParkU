@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import { ZoomIn, ZoomOut, Maximize2 } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import {
   Ocupante, LotLayout, FilaLayout,
   CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig,

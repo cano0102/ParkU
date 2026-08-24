@@ -24,10 +24,10 @@ import {
 
 import { useAuth } from '../context/AuthContext';
 import type { Rol } from '../services/api/roles';
-import { theme } from '../theme';
+import { theme } from '../styles/theme';
 import logoSena from "@/assets/images/logoSena.png";
 
-/* ─── Design tokens (tema compartido, ver src/theme.ts) ─── */
+/* ─── Design tokens (tema compartido, ver src/styles/theme.ts) ─── */
 const C = theme;
 
 /* Superficie verde institucional del sidebar/topbar (en vez del blanco genérico

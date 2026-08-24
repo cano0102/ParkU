@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 import { X } from "lucide-react";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 
 const C = theme;
 

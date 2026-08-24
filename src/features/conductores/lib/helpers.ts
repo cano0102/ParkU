@@ -1,6 +1,6 @@
 import type React from "react";
 import { Car, Bike, GraduationCap, BookOpen, Briefcase, UserCog, Contact } from "lucide-react";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "@/utils/validation";
 import { getAvatarGradient, getInitials, sanitizeText } from "@/utils/format";
 

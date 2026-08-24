@@ -1,5 +1,5 @@
 import { Camera, CheckCircle2, Loader2, ScanLine, Upload } from "lucide-react";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { CameraScanner } from "@/components/scanner";
 import { Banner } from "@/components/shared";
 import { PLACAS_DEMO } from "../../lib/helpers";

@@ -22,7 +22,7 @@ import { useCeldas } from '@/features/parqueaderos';
 import { useConductores } from '@/features/conductores';
 import { useUsuarios } from '@/features/usuarios';
 import { useParqueaderos } from '@/features/parqueaderos';
-import { theme } from '@/theme';
+import { theme } from '@/styles/theme';
 import { ConfirmDialog } from '@/components/shared';
 
 const COLORS = theme;

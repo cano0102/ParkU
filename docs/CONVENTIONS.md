@@ -147,6 +147,28 @@ gestión nueva, revisar si ya se puede componer con
 reescribir el layout desde cero (ver `features/conductores` y
 `features/usuarios` como referencia).
 
+Los tres `*FormModal` de dominio (`ConductorFormModal`, `UsuarioFormModal`,
+`ParqueaderoFormModal`) usan todos `EntityFormModal` para el header y el
+pie (Cancelar/Guardar) — no reconstruyen esa parte a mano. Es el resultado
+de una auditoría de duplicación (Fase 7.2): los tres partían de un header
+y un footer casi idénticos escritos a mano; `ParqueaderoFormModal` fue el
+último en migrarse.
+
+**Auditoría de duplicación (Fase 7.2) — qué se comparó y qué no se tocó:**
+- Los 3 `lib/helpers.ts` (conductores/parqueaderos/usuarios) contra
+  `utils/format.ts`/`utils/validation.ts`: ya resuelto en una fase
+  anterior, cada `helpers.ts` reexporta desde `utils/` lo que es
+  verdaderamente compartido; lo que queda es específico del dominio.
+- `ConductorCard.tsx` vs `UsuarioCard.tsx`: comparten la forma
+  (`XCardHandlers` + `renderXCard()` + `getXColumns()`) pero no el
+  contenido — no se extrajo un `DataCard.tsx` genérico porque terminaría
+  necesitando el mismo render-prop completo que ya tienen hoy, sin
+  ahorrar lógica real.
+- Los 2 `lib/styles.ts` (conductores/parqueaderos) contra
+  `styles/theme.ts`: son cosas distintas por diseño (CSS de componentes
+  concretos vs. tokens de color que esos estilos ya consumen) — no hay
+  solapamiento que resolver.
+
 ## Tipos (`types/`)
 
 Los tipos de entidad de dominio están en `src/types/`, segregados por

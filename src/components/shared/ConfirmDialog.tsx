@@ -1,5 +1,5 @@
 import { Modal } from './Modal';
-import { theme } from '../../theme';
+import { theme } from '../../styles/theme';
 
 const C = theme;
 

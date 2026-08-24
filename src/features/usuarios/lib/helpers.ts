@@ -1,5 +1,5 @@
 import type React from "react";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { getAvatarGradient, getInitials, sanitizeText } from "@/utils/format";
 import { NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMAIL_REGEX } from "@/utils/validation";
 

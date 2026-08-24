@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { toast } from "sonner";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import logoSena from "@/assets/images/logoSena.png";
 

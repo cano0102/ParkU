@@ -1,7 +1,8 @@
 import { Pencil, Sparkles } from "lucide-react";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
-import { ModalHeader, Banner } from "@/components/shared";
+import { Banner } from "@/components/shared";
+import { EntityFormModal } from "@/components/data";
 import {
   FormParqueadero, TIPOS_PARQUEADERO, capitalizar,
   NOMBRE_PQ_MAX, BLOQUE_PQ_MAX, DIRECCION_PQ_MAX, DESCRIPCION_PQ_MAX,
@@ -24,8 +25,15 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
 
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalHeader eyebrow={isEdit ? "Editar Zona" : "Registro de Zona"} title={isEdit ? "Editar Parqueadero" : "Nuevo Parqueadero"} icon={isEdit ? <Pencil size={18} color={C.primary} /> : <Sparkles size={18} color={C.primary} />} onClose={onClose} />
-      <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
+      <EntityFormModal
+        icon={isEdit ? <Pencil size={18} color={C.primary} /> : <Sparkles size={18} color={C.primary} />}
+        eyebrow={isEdit ? "Editar Zona" : "Registro de Zona"}
+        title={isEdit ? "Editar Parqueadero" : "Nuevo Parqueadero"}
+        onSubmit={onSubmit}
+        onCancel={onClose}
+        isValid={true}
+        submitLabel={isEdit ? "Guardar Cambios" : "Crear Parqueadero"}
+      >
         {formError && <Banner tone="danger" message={formError} />}
         <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} maxLength={NOMBRE_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: PQ-8 Bloque D" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
         <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -56,11 +64,7 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
           <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Capacidad total: <strong>{capacidadForm}</strong> celdas</p>
         </div>
         <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Descripción</label><input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-      </div>
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, flexWrap: "wrap" }}>
-        <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
-        <button onClick={onSubmit} style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 6px 18px rgba(57,169,0,.22)" }}>{isEdit ? "Guardar Cambios" : "Crear Parqueadero"}</button>
-      </div>
+      </EntityFormModal>
     </Modal>
   );
 }

@@ -28,10 +28,10 @@ import { useCeldas } from "@/features/parqueaderos";
 import { useConductores } from "@/features/conductores";
 import { useUsuarios } from "@/features/usuarios";
 import { useParqueaderos } from "@/features/parqueaderos";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 
-/* ─── Paleta compartida (src/theme.ts) ─── */
+/* ─── Paleta compartida (src/styles/theme.ts) ─── */
 const C = theme;
 
 /* ─── Estado config ─────────────────────────────────── */

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { AlertCircle, X } from "lucide-react";
-import { theme } from "@/theme";
+import { theme } from "@/styles/theme";
 
 const COLORS = theme;
 
