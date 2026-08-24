@@ -15,13 +15,13 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useControlSalida, useRemoveControlSalida } from '@/features/control-salida/hooks/useControlSalida';
+import { useControlSalida, useRemoveControlSalida } from '@/features/controlSalida/hooks/useControlSalida';
 import type { ControlSalida } from '@/services/api/controlSalida';
-import { useVehiculos } from '@/features/conductores/hooks/useVehiculos';
-import { useCeldas } from '@/features/parqueaderos/hooks/useCeldas';
-import { useConductores } from '@/features/conductores/hooks/useConductores';
-import { useUsuarios } from '@/features/usuarios/hooks/useUsuarios';
-import { useParqueaderos } from '@/features/parqueaderos/hooks/useParqueaderos';
+import { useVehiculos } from '@/features/conductores';
+import { useCeldas } from '@/features/parqueaderos';
+import { useConductores } from '@/features/conductores';
+import { useUsuarios } from '@/features/usuarios';
+import { useParqueaderos } from '@/features/parqueaderos';
 import { theme } from '@/theme';
 import { ConfirmDialog } from '@/components/shared';
 

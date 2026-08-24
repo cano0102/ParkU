@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { useRoles, useCreateRol, useUpdateRol, useRemoveRol } from '@/features/roles/hooks/useRoles';
+import { useRoles, useCreateRol, useUpdateRol, useRemoveRol } from '@/features/roles';
 import { createTestQueryClient, withQueryClient } from '@/test/queryWrapper';
 
 /**

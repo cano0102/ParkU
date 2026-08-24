@@ -20,10 +20,10 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-import { useParqueaderos } from '@/features/parqueaderos/hooks/useParqueaderos';
-import { useCeldas } from '@/features/parqueaderos/hooks/useCeldas';
-import { useVehiculos } from '@/features/conductores/hooks/useVehiculos';
-import { useConductores } from '@/features/conductores/hooks/useConductores';
+import { useParqueaderos } from '@/features/parqueaderos';
+import { useCeldas } from '@/features/parqueaderos';
+import { useVehiculos } from '@/features/conductores';
+import { useConductores } from '@/features/conductores';
 import {
   useIncidentes,
   useCreateIncidente,

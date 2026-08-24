@@ -28,21 +28,30 @@ src/
 
 ## `features/<dominio>/`
 
-Cada feature es un dominio de negocio con ruta propia en `routes.tsx`:
+Cada feature es un dominio de negocio con ruta propia en `routes/index.tsx`:
 `auth`, `dashboard`, `roles`, `usuarios`, `conductores`, `parqueaderos`,
 `control-salida`, `reservas`, `incidentes`, `perfil`, `landing`.
 
-- El punto de entrada de cada feature es `index.tsx` (excepto `auth/`, que
-  tiene 4 archivos de nivel superior — `Login.tsx`, `Register.tsx`,
-  `ForgotPassword.tsx`, `ResetPassword.tsx` — porque son 4 pantallas
-  independientes, no una con sub-vistas).
+- El componente de página vive en `<Feature>Page.tsx`
+  (`DashboardPage.tsx`, `ConductoresPage.tsx`, etc. — excepto `auth/`, que
+  tiene 4 pantallas de nivel superior sin sufijo `Page`: `Login.tsx`,
+  `Register.tsx`, `ForgotPassword.tsx`, `ResetPassword.tsx`, porque son 4
+  pantallas independientes, no una con sub-vistas). `index.ts` (sin `x`)
+  es siempre el **barril**: reexporta la página y los hooks/símbolos que
+  otras features consumen — nunca contiene JSX propio. Esta separación
+  existe porque antes `index.tsx` significaba dos cosas distintas según
+  la carpeta (barril en `components/data/`, página en `features/*/`), lo
+  que producía pestañas homónimas en el editor; ahora `index` significa
+  una sola cosa en todo el proyecto: barril.
 - **Una feature no puede importar de otra feature**, salvo a través del
-  barril `index.ts` de la feature consumida (ver Fase 6). Si dos features
-  necesitan la misma lógica que no es específica de dominio, esa lógica
-  sube a `services/`, `utils/`, `components/` o `types/`. Es una regla
-  forzada por `eslint-plugin-boundaries` (ver `eslint.config.js`); los
-  hooks de dominio (ver tabla de propiedad más abajo) son hoy la única
-  excepción tolerada mientras no existan los barriles.
+  barril `index.ts` de la feature consumida (`@/features/<x>`, nunca una
+  ruta profunda como `@/features/<x>/hooks/useY` o
+  `@/features/<x>/XPage`). Si dos features necesitan la misma lógica que
+  no es específica de dominio, esa lógica sube a `services/`, `utils/`,
+  `components/` o `types/`. Forzado por `eslint-plugin-boundaries` con un
+  tipo `feature-barrel` dedicado a `src/features/*/index.ts` (ver
+  `eslint.config.js`) — importar el barril de otra feature está
+  permitido; importar cualquier otra cosa dentro de ella, no.
 - `helpers.ts` dentro de una feature es para lo que es *verdaderamente*
   específico de ese dominio (estilos de tarjeta, constantes de UI locales).
   Si una función se necesita en más de una feature, no vive en un
@@ -55,12 +64,13 @@ Cada feature es un dominio de negocio con ruta propia en `routes.tsx`:
   renderiza JSX propio del dominio), `hooks/` (los de React Query, ver
   tabla de propiedad en la sección `services/`), `lib/` (`helpers.ts`,
   `styles.ts` y cualquier adaptador no-React sobre un `services/api/*`,
-  como `lib/ocrAdapter.ts`). El punto de entrada (`index.tsx` +
-  `index.test.tsx`) se queda en la raíz de la feature. Implementación de
-  referencia: `features/parqueaderos/` (17 archivos → components/{map,modals}/,
-  hooks/, lib/); a menor escala, `features/conductores/` y
-  `features/usuarios/`. Las features de 2 archivos (`index.tsx` +
-  `index.test.tsx`) no se subdividen — sería sobreingeniería.
+  como `lib/ocrAdapter.ts`). `<Feature>Page.tsx` + `<Feature>Page.test.tsx`
+  y el barril `index.ts` se quedan en la raíz de la feature.
+  Implementación de referencia: `features/parqueaderos/` (17 archivos →
+  components/{map,modals}/, hooks/, lib/); a menor escala,
+  `features/conductores/` y `features/usuarios/`. Las features de 2
+  archivos (`<Feature>Page.tsx` + su test) no se subdividen — sería
+  sobreingeniería.
 
 ## `services/`
 
@@ -114,18 +124,19 @@ los 5 dominios que no tenían una feature de UI propia y por eso quedaban
 | `ocr.ts` | — (sin hook) | — | pipeline de imagen puro; el adaptador React vive en `features/parqueaderos/lib/` |
 | `qr.ts` | — (sin hook) | — | decodificador puro; lo consume `ScannerQR` directo |
 
-**Nota sobre acoplamiento cruzado (deuda temporal, se resuelve en la Fase 6):**
-varias pantallas necesitan datos de dominios que no les pertenecen — el
+**Nota sobre acoplamiento cruzado (resuelto en la Fase 6):** varias
+pantallas necesitan datos de dominios que no les pertenecen — el
 `dashboard` agrega prácticamente todos, `reservas`/`incidentes`/`control-salida`
 necesitan celdas+vehículos+conductores+usuarios+parqueaderos para mostrar
-contexto. Mover cada hook a su feature dueña hizo explícitos esos cruces
-como imports profundos (`@/features/conductores/hooks/useConductores` desde
-`features/dashboard/index.tsx`), que hoy son una excepción tolerada a "una
-feature no importa de otra feature". La Fase 6 los resuelve dándole a cada
-feature un barril `index.ts` que reexporte su API pública (incluidos los
-hooks que otras features consumen) — a partir de ahí el cruce pasa a ser
-`@/features/conductores` (vía barril) en vez de un import profundo a
-`.../hooks/useConductores`.
+contexto. Mover cada hook a su feature dueña (Fase 4) hizo explícitos esos
+cruces. La Fase 6 le dio a cada feature un barril `index.ts` que reexporta
+su página y los hooks que otras features realmente consumen — el cruce es
+`@/features/conductores` (vía barril), nunca un import profundo del tipo
+`@/features/conductores/hooks/useConductores` ni
+`@/features/conductores/ConductoresPage`. `eslint-plugin-boundaries` lo
+fuerza con un tipo `feature-barrel` dedicado a `src/features/*/index.ts`
+(ver `eslint.config.js`): importar el barril de otra feature está
+permitido, importar cualquier otra cosa dentro de ella no.
 
 ## `components/data/`
 
@@ -138,13 +149,23 @@ reescribir el layout desde cero (ver `features/conductores` y
 
 ## Tipos (`types/`)
 
-Los tipos de entidad de dominio están centralizados en `src/types/`. Cada
-`services/<dominio>.ts` reexporta el tipo que le corresponde (p. ej.
-`export type { Rol }` en `services/roles.ts`) para que el resto del código
-siga importándolo desde el servicio, sin tener que conocer `types/`
-directamente. No se crean tipos de entidad duplicados dentro de una
-feature — si una feature necesita un tipo que no es una entidad de dominio
-(p. ej. el estado de un formulario), ese tipo sí vive local a la feature.
+Los tipos de entidad de dominio están en `src/types/`, segregados por
+archivo desde la Fase 6: `usuarios.ts` (`Rol`, `Usuario`),
+`parqueaderos.ts` (`Parqueadero`, `Celda`), `conductores.ts` (`Conductor`,
+`Vehiculo`), `reservas.ts` (`Reserva`), `incidentes.ts` (`Incidente`), y
+`shared.ts` para los tipos operativos que no pertenecen a un solo dominio
+de UI (`ControlSalida`, `Movimiento`). `types/index.ts` es un barril que
+reexporta todo — `import type { Rol } from '@/types'` sigue funcionando
+igual que antes de la Fase 6, aunque importar directo del archivo de
+dominio (`@/types/usuarios`) también es válido.
+
+Cada `services/api/<dominio>.ts` reexporta el tipo que le corresponde
+(p. ej. `export type { Rol }` en `services/api/roles.ts`) para que el
+resto del código siga importándolo desde el servicio, sin tener que
+conocer `types/` directamente. No se crean tipos de entidad duplicados
+dentro de una feature — si una feature necesita un tipo que no es una
+entidad de dominio (p. ej. el estado de un formulario), ese tipo sí vive
+local a la feature.
 
 ## Alias de imports
 
@@ -171,8 +192,8 @@ de profundidad.
 - Algunos tests de hooks (p. ej. `services/core/queryFactory.test.ts`,
   `features/parqueaderos/hooks/useMovimientos.test.ts`) importan hooks de
   otras features para probar la fábrica genérica o un flujo derivado
-  end-to-end — es el mismo acoplamiento cruzado documentado arriba,
-  tolerado en tests hasta que existan los barriles de la Fase 6.
+  end-to-end — igual que en código de app, lo hacen a través del barril
+  público de la feature (`@/features/roles`), no de una ruta profunda.
 
 ## Lint (`eslint.config.js`)
 

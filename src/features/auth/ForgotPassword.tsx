@@ -13,7 +13,7 @@ import {
 
 import { toast } from "sonner";
 import { theme } from "@/theme";
-import { useUsuarios } from "@/features/usuarios/hooks/useUsuarios";
+import { useUsuarios } from "@/features/usuarios";
 import { useAuth } from "@/context/AuthContext";
 import logoSena from "@/assets/images/logoSena.png";
 

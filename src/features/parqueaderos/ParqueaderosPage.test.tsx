@@ -3,7 +3,7 @@ import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import Parqueaderos from './index';
+import Parqueaderos from './ParqueaderosPage';
 import { createTestQueryClient } from '../../test/queryWrapper';
 
 /**

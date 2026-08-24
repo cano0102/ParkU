@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { ControlSalidaPage } from './index';
+import { ControlSalidaPage } from './ControlSalidaPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
 
 function renderControlSalida(client = createTestQueryClient()) {
@@ -13,7 +13,7 @@ function renderControlSalida(client = createTestQueryClient()) {
   );
 }
 
-describe('features/control-salida', () => {
+describe('features/controlSalida', () => {
   it('renderiza la página con datos reales (banner, toolbar y paginación)', async () => {
     renderControlSalida();
 

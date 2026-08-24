@@ -4,8 +4,8 @@ import React, {
   useState
 } from 'react';
 import * as authService from '../services/api/auth';
-import { useRoles } from '@/features/roles/hooks/useRoles';
-import { useUpdateUsuario } from '@/features/usuarios/hooks/useUsuarios';
+import { useRoles } from '@/features/roles';
+import { useUpdateUsuario } from '@/features/usuarios';
 import type { Rol } from '../services/api/roles';
 
 interface User {

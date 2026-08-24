@@ -5,7 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { createTestQueryClient } from '@/test/queryWrapper';
 import { AuthProvider } from '@/context/AuthContext';
-import { Perfil } from './index';
+import { Perfil } from './PerfilPage';
 
 const SEED_USER = {
   id: '1',

@@ -1,13 +1,13 @@
 import { forwardRef, useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { useParqueaderos } from "@/features/parqueaderos/hooks/useParqueaderos";
-import { useCeldas } from "@/features/parqueaderos/hooks/useCeldas";
-import { useMovimientos } from "@/features/parqueaderos/hooks/useMovimientos";
-import { useVehiculos } from "@/features/conductores/hooks/useVehiculos";
-import { useConductores } from "@/features/conductores/hooks/useConductores";
-import { useIncidentes } from "@/features/incidentes/hooks/useIncidentes";
-import { useReservas } from "@/features/reservas/hooks/useReservas";
+import { useParqueaderos } from "@/features/parqueaderos";
+import { useCeldas } from "@/features/parqueaderos";
+import { useMovimientos } from "@/features/parqueaderos";
+import { useVehiculos } from "@/features/conductores";
+import { useConductores } from "@/features/conductores";
+import { useIncidentes } from "@/features/incidentes";
+import { useReservas } from "@/features/reservas";
 import { theme } from "@/theme";
 import logoSena from "@/assets/images/logoSena.png";
 import {

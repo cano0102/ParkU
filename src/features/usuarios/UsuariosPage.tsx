@@ -3,11 +3,11 @@ import { UserCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "@/features/usuarios/hooks/useUsuarios";
 import type { Usuario } from "@/services/api/usuarios";
-import { useRoles } from "@/features/roles/hooks/useRoles";
+import { useRoles } from "@/features/roles";
 import { Modal } from "@/components/shared";
 import { COLORS, USUARIOS_PROTEGIDOS, sanitizeText, emptyForm, FormState } from "./lib/helpers";
 import { DataGrid, DataList, DataPagination, DataToolbar, StatsPanel } from "@/components/data";
-import { renderUsuarioCard, getUsuarioColumns } from "./components/cards";
+import { renderUsuarioCard, getUsuarioColumns } from "./components/UsuarioCard";
 import { Shield, Users, UserCheck, UserX } from "lucide-react";
 import { UsuarioFormModal } from "./components/UsuarioFormModal";
 

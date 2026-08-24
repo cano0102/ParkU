@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Usuarios from './index';
+import Usuarios from './UsuariosPage';
 import { createTestQueryClient, withQueryClient } from '@/test/queryWrapper';
 
 function renderUsuarios() {

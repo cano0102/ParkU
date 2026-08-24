@@ -4,10 +4,7 @@ import { MainLayout } from '../layouts/MainLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { NotFound } from './NotFound';
 import Landing from '@/features/landing';
-import { Login } from '@/features/auth/Login';
-import { Register } from '@/features/auth/Register';
-import { ForgotPassword } from '@/features/auth/ForgotPassword';
-import { ResetPassword } from '@/features/auth/ResetPassword';
+import { Login, Register, ForgotPassword, ResetPassword } from '@/features/auth';
 
 /* Páginas autenticadas: se cargan bajo demanda, no en el bundle inicial */
 const Dashboard = lazy(() => import('@/features/dashboard'));
@@ -15,7 +12,7 @@ const Roles = lazy(() => import('@/features/roles').then(m => ({ default: m.Role
 const Usuarios = lazy(() => import('@/features/usuarios'));
 const Conductores = lazy(() => import('@/features/conductores').then(m => ({ default: m.Conductores })));
 const Parqueaderos = lazy(() => import('@/features/parqueaderos'));
-const ControlSalidaPage = lazy(() => import('@/features/control-salida').then(m => ({ default: m.ControlSalidaPage })));
+const ControlSalidaPage = lazy(() => import('@/features/controlSalida').then(m => ({ default: m.ControlSalidaPage })));
 const Reservas = lazy(() => import('@/features/reservas').then(m => ({ default: m.Reservas })));
 const Incidentes = lazy(() => import('@/features/incidentes').then(m => ({ default: m.Incidentes })));
 const Perfil = lazy(() => import('@/features/perfil').then(m => ({ default: m.Perfil })));

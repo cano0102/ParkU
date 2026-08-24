@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import Dashboard from './index';
+import Dashboard from './DashboardPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
 
 function renderDashboard() {

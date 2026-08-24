@@ -30,12 +30,13 @@ export default tseslint.config(
       },
       'boundaries/include': ['src/**/*.{ts,tsx}'],
       'boundaries/elements': [
-        // Más específico primero: un hook de dominio dentro de una feature es
-        // su propio tipo, para poder permitir el cruce feature -> feature-hook
-        // (deuda temporal documentada en docs/CONVENTIONS.md, hasta que la
-        // Fase 6 le dé a cada feature un barril index.ts) sin abrir la puerta
-        // a que una feature importe páginas/componentes/helpers de otra.
-        { type: 'feature-hook', pattern: 'src/features/*/hooks/**', capture: ['feature'] },
+        // Más específico primero: el barril público de una feature
+        // (src/features/x/index.ts) es su propio tipo, para poder permitir
+        // el cruce feature -> feature-barrel (Fase 6: "una feature no
+        // importa de otra, salvo a través de su barril index.ts") sin abrir
+        // la puerta a que una feature importe páginas/componentes/hooks
+        // internos de otra directamente.
+        { type: 'feature-barrel', pattern: 'src/features/*/index.ts', mode: 'file', capture: ['feature'] },
         { type: 'feature', pattern: 'src/features/*', mode: 'folder', capture: ['feature'] },
         { type: 'service-core', pattern: 'src/services/core/**' },
         { type: 'service-api', pattern: 'src/services/api/**' },
@@ -80,14 +81,16 @@ export default tseslint.config(
         { patterns: [{ group: ['firebase', 'firebase/*'], message: 'Solo src/services/ puede importar el SDK de Firebase.' }] },
       ],
 
-      // Reglas de límites (Fase 4 + Fase 8, "un criterio, cero excepciones"
-      // salvo la deuda temporal documentada en docs/CONVENTIONS.md):
-      // 1) una feature no puede importar de otra feature — SALVO el hook de
-      //    dominio de otra feature (feature-hook), deuda temporal hasta que
-      //    la Fase 6 le dé a cada feature un barril index.ts.
-      // 2) components/ no puede importar de features/ (ni sus hooks) ni de
-      //    services/ (es al revés: las features consumen components/, y las
-      //    features/hooks son las que hablan con services/, no components/).
+      // Reglas de límites (Fase 4 + Fase 6 + Fase 8, "un criterio, cero
+      // excepciones"):
+      // 1) una feature no puede importar de otra feature — SALVO a través
+      //    del barril público de esa feature (feature-barrel, su
+      //    index.ts), nunca un import profundo a sus páginas/componentes/
+      //    hooks internos.
+      // 2) components/ no puede importar de features/ (ni de su barril) ni
+      //    de services/ (es al revés: las features consumen components/, y
+      //    las features/hooks son las que hablan con services/, no
+      //    components/).
       'boundaries/element-types': [
         'error',
         {
@@ -96,11 +99,11 @@ export default tseslint.config(
             {
               from: ['feature'],
               disallow: [['feature', { feature: '!${from.feature}' }]],
-              message: 'Una feature no puede importar de otra feature (sí de su hook de dominio, ver docs/CONVENTIONS.md). Comparte lógica vía services/, utils/, components/ o types/.',
+              message: 'Una feature no puede importar de otra feature, salvo a través de su barril público (@/features/<x>, no una ruta profunda). Ver docs/CONVENTIONS.md.',
             },
             {
               from: ['component'],
-              disallow: ['feature', 'feature-hook', 'service-api', 'service-core'],
+              disallow: ['feature', 'feature-barrel', 'service-api', 'service-core'],
               message: 'components/ no puede importar de features/ ni de services/: las features consumen components/, nunca al revés.',
             },
           ],

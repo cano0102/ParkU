@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { useMovimientos } from './useMovimientos';
-import { useCreateConductor } from '@/features/conductores/hooks/useConductores';
-import { useCreateVehiculo } from '@/features/conductores/hooks/useVehiculos';
-import { useControlSalida } from '@/features/control-salida/hooks/useControlSalida';
+import { useCreateConductor } from '@/features/conductores';
+import { useCreateVehiculo } from '@/features/conductores';
+import { useControlSalida } from '@/features/controlSalida';
 import * as controlSalidaService from '@/services/api/controlSalida';
 import { createTestQueryClient, withQueryClient } from '@/test/queryWrapper';
 

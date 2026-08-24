@@ -14,11 +14,11 @@ import {
   useUpdateVehiculo,
 } from "@/features/conductores/hooks/useVehiculos";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { useUsuarios } from "@/features/usuarios/hooks/useUsuarios";
+import { useUsuarios } from "@/features/usuarios";
 import { Modal } from "@/components/shared";
 import { COLORS, sanitizeText, emptyForm, FormState, FormErrors, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "./lib/helpers";
 import { DataGrid, DataList, DataPagination, DataToolbar, StatsPanel } from "@/components/data";
-import { renderConductorCard, getConductorColumns } from "./components/cards";
+import { renderConductorCard, getConductorColumns } from "./components/ConductorCard";
 import { ShieldCheck, Users, UserCheck, Car as CarIcon, Bike as BikeIcon } from "lucide-react";
 import { ConductorFormModal } from "./components/ConductorFormModal";
 import { ConductorDetailModal } from "./components/ConductorDetailModal";

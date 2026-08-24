@@ -8,19 +8,19 @@ import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero } from "@/f
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda } from "@/features/parqueaderos/hooks/useCeldas";
 import type { Celda } from "@/services/api/celdas";
-import { useConductores, useCreateConductor } from "@/features/conductores/hooks/useConductores";
+import { useConductores, useCreateConductor } from "@/features/conductores";
 import type { Conductor } from "@/services/api/conductores";
-import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "@/features/conductores/hooks/useVehiculos";
+import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "@/features/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import {
   useControlSalida,
   useCreateControlSalida,
   useUpdateControlSalida,
-} from "@/features/control-salida/hooks/useControlSalida";
+} from "@/features/controlSalida";
 import type { ControlSalida } from "@/services/api/controlSalida";
-import { useReservas, useCreateReserva, useUpdateReserva } from "@/features/reservas/hooks/useReservas";
+import { useReservas, useCreateReserva, useUpdateReserva } from "@/features/reservas";
 import type { Reserva } from "@/services/api/reservas";
-import { useCreateIncidente } from "@/features/incidentes/hooks/useIncidentes";
+import { useCreateIncidente } from "@/features/incidentes";
 import type { Incidente } from "@/services/api/incidentes";
 import { theme } from "@/theme";
 import {
