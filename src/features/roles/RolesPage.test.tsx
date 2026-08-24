@@ -21,7 +21,7 @@ describe('Roles', () => {
       expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
     });
     expect(screen.getAllByText('Vigilante').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Usuario Normal').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Comunidad SENA').length).toBeGreaterThan(0);
   });
 
   it('filtra la lista al escribir en el buscador', async () => {
@@ -35,7 +35,7 @@ describe('Roles', () => {
     await user.type(search, 'Vigilante');
 
     await waitFor(() => {
-      expect(screen.queryByText('Usuario Normal')).not.toBeInTheDocument();
+      expect(screen.queryByText('Comunidad SENA')).not.toBeInTheDocument();
     });
     expect(screen.getAllByText('Vigilante').length).toBeGreaterThan(0);
   });

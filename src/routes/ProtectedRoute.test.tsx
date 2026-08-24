@@ -42,7 +42,7 @@ describe('routes/ProtectedRoute', () => {
 
   it('renderiza el contenido cuando hay sesión y no se exige un permiso concreto', () => {
     localStorage.setItem('parkUUser', JSON.stringify({
-      id: '4', correo: 'maria.diaz@ext.com', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Usuario Normal',
+      id: '4', correo: 'maria.diaz@ext.com', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Comunidad SENA',
     }));
     renderProtected();
     expect(screen.getByText('Contenido protegido')).toBeInTheDocument();
@@ -60,7 +60,7 @@ describe('routes/ProtectedRoute', () => {
 
   it('muestra "Acceso denegado" cuando el rol del usuario no tiene el permiso exigido', async () => {
     localStorage.setItem('parkUUser', JSON.stringify({
-      id: '4', correo: 'maria.diaz@ext.com', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Usuario Normal',
+      id: '4', correo: 'maria.diaz@ext.com', nombre: 'María Díaz P.', numero: '3104567890', rol: 'Comunidad SENA',
     }));
     renderProtected('roles');
     expect(await screen.findByText('Acceso denegado')).toBeInTheDocument();

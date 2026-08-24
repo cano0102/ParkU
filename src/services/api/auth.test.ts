@@ -25,17 +25,18 @@ describe('services/auth', () => {
     );
   });
 
-  it('register crea un usuario nuevo con rol Usuario Normal y evita correos duplicados', async () => {
+  it('register crea un usuario nuevo con rol Comunidad SENA y evita correos duplicados', async () => {
     const correo = `nuevo-${Date.now()}@sena.edu.co`;
     const user = await auth.register({
       correo,
       password: 'Pass1234',
       nombre: 'Usuario Nuevo',
       numero: '3000000000',
+      tipoUsuario: 'estudiante',
       tipoDocumento: 'CC',
       identificacion: `id-${Date.now()}`,
     });
-    expect(user.rol).toBe('Usuario Normal');
+    expect(user.rol).toBe('Comunidad SENA');
 
     await expect(
       auth.register({
@@ -43,6 +44,7 @@ describe('services/auth', () => {
         password: 'Pass1234',
         nombre: 'Duplicado',
         numero: '3000000001',
+        tipoUsuario: 'estudiante',
         tipoDocumento: 'CC',
         identificacion: `otro-id-${Date.now()}`,
       }),
@@ -53,7 +55,7 @@ describe('services/auth', () => {
     const correo = `reset-${Date.now()}@sena.edu.co`;
     await auth.register({
       correo, password: 'Pass1234', nombre: 'Reset Test', numero: '3000000002',
-      tipoDocumento: 'CC', identificacion: `id-reset-${Date.now()}`,
+      tipoUsuario: 'estudiante', tipoDocumento: 'CC', identificacion: `id-reset-${Date.now()}`,
     });
 
     const token = await auth.requestPasswordReset(correo);

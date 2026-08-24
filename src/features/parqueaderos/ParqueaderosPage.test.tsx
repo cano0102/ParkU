@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import Parqueaderos from './ParqueaderosPage';
 import { createTestQueryClient } from '../../test/queryWrapper';
+import { AuthProvider } from '@/context/AuthContext';
 
 /**
  * Pruebas de humo/moderadas para el punto de entrada más grande y complejo de
@@ -25,7 +26,9 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
-        <Parqueaderos />
+        <AuthProvider>
+          <Parqueaderos />
+        </AuthProvider>
       </QueryClientProvider>
     </MemoryRouter>
   );

@@ -30,6 +30,7 @@ interface AuthContextType {
     password: string;
     nombre: string;
     numero: string;
+    tipoUsuario: 'visitante' | 'estudiante' | 'docente' | 'administrativo' | 'otro';
     tipoDocumento: string;
     identificacion: string;
   }) => Promise<boolean>;
@@ -102,12 +103,13 @@ export function AuthProvider({
     return true;
   };
 
-  // REGISTRO — crea el usuario con rol "Usuario Normal" y lo deja logueado.
+  // REGISTRO — crea el usuario con rol "Comunidad SENA" y lo deja logueado.
   const register = async (data: {
     correo: string;
     password: string;
     nombre: string;
     numero: string;
+    tipoUsuario: 'visitante' | 'estudiante' | 'docente' | 'administrativo' | 'otro';
     tipoDocumento: string;
     identificacion: string;
   }): Promise<boolean> => {
@@ -127,7 +129,7 @@ export function AuthProvider({
       correo: userData.email,
       nombre: userData.displayName || 'Usuario',
       numero: userData.phoneNumber || '',
-      rol: 'Usuario Normal'
+      rol: 'Comunidad SENA'
     };
 
     setUser(googleUser);

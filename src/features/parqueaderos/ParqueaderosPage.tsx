@@ -40,12 +40,14 @@ import { ReservaModal, ReservaFormState } from "./components/modals/ReservaModal
 import { IncidenteModal } from "./components/modals/IncidenteModal";
 import { ScannerModal } from "./components/modals/ScannerModal";
 import { parqueaderosStyles } from "./lib/styles";
+import { useAuth } from "@/context/AuthContext";
 
 const C = theme;
 const MAX_EVIDENCIA_MB = 5;
 
 export default function Parqueaderos() {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
   const { data: parqueaderos = [] } = useParqueaderos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
@@ -99,6 +101,7 @@ export default function Parqueaderos() {
   const [filterTipo, setFilterTipo] = useState("Todos");
   const [pqForm, setPqForm]         = useState<FormParqueadero>({ nombre: "", bloque: "A", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" });
   const [formError, setFormError]   = useState<string | null>(null);
+  const [pqTocado, setPqTocado]     = useState(false);
   const [vehiculoForm, setVehiculoForm] = useState<VehiculoForm>({ placa: "", conductor: "", esOficial: false, marca: "", modelo: "", color: "" });
   const [incidenteForm, setIncidenteForm] = useState<IncidenteForm>({ descripcion: "", asignadoA: "", notasResolucion: "", evidencia: "" });
   const [incidenteError, setIncidenteError] = useState<string | null>(null);
@@ -267,12 +270,31 @@ export default function Parqueaderos() {
       setVehiculoForm({ placa: "", conductor: "", esOficial: true, marca: "", modelo: "", color: "" });
       setOpenModal("info");
     } else if (celda.estado === "mantenimiento") {
-      toast.info("Esta celda está en mantenimiento y no puede usarse.");
+      // Quien puede gestionar celdas ve el modal (con el ajuste manual de
+      // estado, para poder sacarla de mantenimiento); el resto solo recibe
+      // el aviso, igual que antes.
+      if (hasPermission("celdas")) {
+        setVehiculoForm({ placa: "", conductor: "", esOficial: false, marca: "", modelo: "", color: "" });
+        setOpenModal("info");
+      } else {
+        toast.info("Esta celda está en mantenimiento y no puede usarse.");
+      }
     } else {
       setVehiculoForm({ placa: "", conductor: "", esOficial: false, marca: "", modelo: "", color: "" });
       setOpenModal("info");
     }
-  }, [getOcupante]);
+  }, [getOcupante, hasPermission]);
+
+  /* ── Ajuste manual de estado de una celda (Administrador/Vigilante) ──
+     Vía de escape fuera del flujo normal (estacionar/reservar/liberar): sirve
+     para corregir una celda que quedó atascada en un estado por datos
+     inconsistentes, o para ponerla/sacarla de mantenimiento. */
+  const handleSetEstadoCeldaManual = useCallback((estado: Celda["estado"]) => {
+    if (!celdaActiva) return;
+    updateCelda(celdaActiva.id, { estado, ocupada: estado === "no_disponible" });
+    toast.success(`Celda ${celdaActiva.numero} marcada como "${estado.replace("_", " ")}"`);
+    setOpenModal(null);
+  }, [celdaActiva, updateCelda]);
 
   /* ── Función para abrir el modal de reserva desde una celda ── */
   const openReservaFromCelda = useCallback((celda: Celda) => {
@@ -355,7 +377,23 @@ export default function Parqueaderos() {
 
   const capacidadForm = pqForm.celdasCarros + pqForm.celdasMotos + pqForm.celdasMovilidadReducida;
 
+  // Validación en tiempo real del formulario de parqueadero: se recalcula en
+  // cada cambio (no solo al enviar), y solo se muestra una vez que el usuario
+  // empezó a escribir (pqTocado), para no saludarlo con errores en un
+  // formulario recién abierto.
+  useEffect(() => {
+    if (openModal !== "create" && openModal !== "edit") return;
+    if (!pqTocado) { setFormError(null); return; }
+    setFormError(validarFormParqueadero(pqForm, parqueaderos, openModal === "edit" ? pqEditId : null));
+  }, [pqForm, pqTocado, openModal, parqueaderos, pqEditId]);
+
+  const handlePqFormChange: React.Dispatch<React.SetStateAction<FormParqueadero>> = (updater) => {
+    setPqTocado(true);
+    setPqForm(updater);
+  };
+
   const handleCreate = () => {
+    setPqTocado(true);
     const error = validarFormParqueadero(pqForm, parqueaderos, null);
     if (error) return setFormError(error);
     const nombre = normalizarTexto(pqForm.nombre, NOMBRE_PQ_MAX);
@@ -371,6 +409,7 @@ export default function Parqueaderos() {
   };
 
   const handleEdit = () => {
+    setPqTocado(true);
     if (!pqEditId) return;
     const actual = parqueaderos.find(p => p.id === pqEditId);
     if (!actual) return;
@@ -779,7 +818,7 @@ export default function Parqueaderos() {
           <button onClick={() => setOpenModal("smartAssign")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
             <Zap size={14} color="#F59E0B" />Asignación Inteligente
           </button>
-          <button onClick={() => { setPqForm({ nombre: "", bloque: "", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" }); setFormError(null); setOpenModal("create"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>
+          <button onClick={() => { setPqForm({ nombre: "", bloque: "", tipo: "general", direccion: "", horaInicio: "06:00", horaFin: "22:00", celdasCarros: 8, celdasMotos: 2, celdasMovilidadReducida: 1, descripcion: "" }); setFormError(null); setPqTocado(false); setOpenModal("create"); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>
             <Plus size={15} />Nuevo Parqueadero
           </button>
         </div>
@@ -795,7 +834,7 @@ export default function Parqueaderos() {
             onEdit={pq => {
               setPqEditId(pq.id);
               setPqForm({ nombre: pq.nombre, bloque: pq.bloque, tipo: pq.tipo, direccion: pq.direccion, horaInicio: pq.horaInicio, horaFin: pq.horaFin, celdasCarros: pq.celdasCarros, celdasMotos: pq.celdasMotos, celdasMovilidadReducida: pq.celdasMovilidadReducida, descripcion: pq.descripcion });
-              setFormError(null); setOpenModal("edit");
+              setFormError(null); setPqTocado(false); setOpenModal("edit");
             }}
             onToggleEstado={handleToggleEstadoParqueadero}
             onCellClick={handleCellClick}
@@ -814,7 +853,7 @@ export default function Parqueaderos() {
         open={openModal === "create" || openModal === "edit"}
         isEdit={openModal === "edit"}
         pqForm={pqForm}
-        setPqForm={setPqForm}
+        setPqForm={handlePqFormChange}
         formError={formError}
         onClose={() => setOpenModal(null)}
         onSubmit={openModal === "edit" ? handleEdit : handleCreate}
@@ -859,6 +898,8 @@ export default function Parqueaderos() {
         onReservarCelda={() => {
           if (celdaActiva) openReservaFromCelda(celdaActiva);
         }}
+        canManageCeldas={hasPermission("celdas")}
+        onSetEstadoManual={handleSetEstadoCeldaManual}
       />
 
       <ReservaModal
@@ -866,6 +907,7 @@ export default function Parqueaderos() {
         celdaActiva={celdaActiva}
         parqueaderoActivo={parqueaderoActivo}
         vehiculos={vehiculos}
+        conductores={conductores}
         reservaForm={reservaForm}
         setReservaForm={setReservaForm}
         reservaError={reservaError}

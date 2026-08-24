@@ -11,7 +11,7 @@ import type { QrCedulaPayload } from "@/services/api/qr";
 import {
   COLORS, FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX,
   TELEFONO_REGEX, EMAIL_REGEX, inputStyle, inputErrorStyle, inputIconStyle,
-  sanitizeText,
+  sanitizeText, TIPOS_USUARIO, TIPO_USUARIO_LABEL,
 } from "../lib/helpers";
 
 interface UsuarioFormModalProps {
@@ -120,6 +120,11 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
     // Rol obligatorio
     if (!f.rol) {
       nextErrors.rol = "Debe seleccionar un rol";
+    }
+
+    // Tipo de usuario obligatorio (visitante/estudiante/docente/administrativo/otro)
+    if (!f.tipoUsuario) {
+      nextErrors.tipoUsuario = "Debe seleccionar un tipo de usuario";
     }
 
     // Contraseña: obligatoria al crear; si se escribe (crear o editar), validar longitud
@@ -442,6 +447,25 @@ export const UsuarioFormModal = memo(({ initial, title, roles, onSave, onCancel 
                   {rolesDisponibles.map((r) => (
                     <option key={r.id} value={r.nombre}>
                       {r.nombre}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+
+              <FormField label="Tipo de usuario" error={err("tipoUsuario")}>
+                <select
+                  value={form.tipoUsuario}
+                  onChange={(e) => { set("tipoUsuario", e.target.value); markTouched("tipoUsuario"); }}
+                  style={
+                    err("tipoUsuario")
+                      ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" }
+                      : { ...inputStyle, appearance: "none", cursor: "pointer" }
+                  }
+                >
+                  <option value="">Seleccionar tipo…</option>
+                  {TIPOS_USUARIO.map((t) => (
+                    <option key={t} value={t}>
+                      {TIPO_USUARIO_LABEL[t]}
                     </option>
                   ))}
                 </select>

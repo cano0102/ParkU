@@ -1,4 +1,4 @@
-import { AlertTriangle, Car, Calendar, Clock as ClockIcon, ChevronRight, Clock, MapPin, UserCircle2, X } from "lucide-react";
+import { AlertTriangle, Car, Calendar, Clock as ClockIcon, ChevronRight, Clock, MapPin, UserCircle2, Wrench, X } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Reserva } from "@/services/api/reservas";
@@ -25,12 +25,28 @@ interface CeldaInfoModalProps {
   onReportarIncidente: () => void;
   onEstacionarVehiculo: () => void;
   onReservarCelda: () => void;
+  /** true si el rol del usuario logueado tiene el permiso "celdas" — controla
+   *  si se muestra el ajuste manual de estado (ver onSetEstadoManual). */
+  canManageCeldas?: boolean;
+  /** Fuerza el estado de la celda sin pasar por el flujo normal (estacionar/
+   *  liberar/reservar). Es la vía de escape para una celda que quedó
+   *  atascada en un estado (p. ej. datos inconsistentes) o para marcarla en
+   *  mantenimiento, algo que hoy no tiene ningún otro camino en la UI. */
+  onSetEstadoManual?: (estado: Celda["estado"]) => void;
 }
+
+const ESTADOS_MANUALES: { estado: Celda["estado"]; label: string }[] = [
+  { estado: "disponible", label: "Disponible" },
+  { estado: "no_disponible", label: "Ocupada" },
+  { estado: "reservada", label: "Reservada" },
+  { estado: "mantenimiento", label: "Mantenimiento" },
+];
 
 export function CeldaInfoModal({
   open, celdaActiva, ocupanteActivo, reservaActiva, vehiculoReservado, parqueaderoActivo, onClose,
   onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
   onReportarIncidente, onEstacionarVehiculo, onReservarCelda,
+  canManageCeldas, onSetEstadoManual,
 }: CeldaInfoModalProps) {
   const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
   return (
@@ -49,6 +65,41 @@ export function CeldaInfoModal({
         </div>
       </div>
       <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 10 }}>
+        {canManageCeldas && celdaActiva && onSetEstadoManual && (
+          <div style={{ padding: "10px 12px", borderRadius: 11, border: `1px dashed ${C.border}`, background: "#F8FAFC" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Wrench size={12} color={C.textLight} />
+              <span style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>Ajuste manual de estado</span>
+            </div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {ESTADOS_MANUALES.map(({ estado, label }) => {
+                const activo = celdaActiva.estado === estado;
+                return (
+                  <button
+                    key={estado}
+                    disabled={activo}
+                    onClick={() => onSetEstadoManual(estado)}
+                    style={{
+                      padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, fontFamily: "inherit",
+                      border: `1px solid ${activo ? C.primary : C.border}`,
+                      background: activo ? C.primaryPale : "#fff",
+                      color: activo ? C.primaryDark : C.text,
+                      cursor: activo ? "default" : "pointer",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <p style={{ fontSize: 9, color: C.textLight, marginTop: 6 }}>Cambia el estado sin pasar por el flujo normal (estacionar/reservar/liberar). Úsalo solo para corregir una celda atascada o ponerla en mantenimiento.</p>
+          </div>
+        )}
+        {celdaActiva?.estado === "mantenimiento" && (
+          <div style={{ padding: "12px 14px", borderRadius: 11, background: "#F1F5F9", border: `1px solid ${C.border}`, fontSize: 12, color: C.textLight, fontWeight: 600 }}>
+            🔧 Esta celda está en mantenimiento y no acepta vehículos ni reservas.
+          </div>
+        )}
         {celdaActiva?.estado === "reservada" ? (
           <>
             <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada.</div>

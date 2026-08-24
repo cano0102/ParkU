@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext';
 import type { Rol } from '../services/api/roles';
 import { theme } from '../styles/theme';
 import logoSena from "@/assets/images/logoSena.png";
+import { useReservaAutoExpiry } from '@/features/reservas';
 
 /* ─── Design tokens (tema compartido, ver src/styles/theme.ts) ─── */
 const C = theme;
@@ -132,6 +133,7 @@ export function MainLayout() {
   const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout, hasPermission } = useAuth();
+  useReservaAutoExpiry();
 
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed,  setCollapsed]  = useState(false);

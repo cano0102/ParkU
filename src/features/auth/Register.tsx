@@ -48,6 +48,7 @@ interface FormState {
   numero: string;
   tipoDocumento: string;
   identificacion: string;
+  tipoUsuario: "" | "visitante" | "estudiante" | "docente" | "administrativo" | "otro";
   password: string;
   confirmPassword: string;
   aceptaTerminos: boolean;
@@ -59,6 +60,7 @@ const emptyForm = (): FormState => ({
   numero: "",
   tipoDocumento: "CC",
   identificacion: "",
+  tipoUsuario: "",
   password: "",
   confirmPassword: "",
   aceptaTerminos: false,
@@ -69,6 +71,7 @@ interface ValidationErrors {
   correo?: string;
   numero?: string;
   identificacion?: string;
+  tipoUsuario?: string;
   password?: string;
   confirmPassword?: string;
   aceptaTerminos?: string;
@@ -149,6 +152,10 @@ export function Register() {
       nextErrors.confirmPassword = "Las contraseñas no coinciden";
     }
 
+    if (!f.tipoUsuario) {
+      nextErrors.tipoUsuario = "Selecciona cómo te identificas";
+    }
+
     if (!f.aceptaTerminos) {
       nextErrors.aceptaTerminos = "Debes aceptar los términos para continuar";
     }
@@ -171,6 +178,7 @@ export function Register() {
       correo: true,
       numero: true,
       identificacion: true,
+      tipoUsuario: true,
       password: true,
       confirmPassword: true,
       aceptaTerminos: true,
@@ -189,6 +197,7 @@ export function Register() {
         password: form.password,
         nombre: form.nombre.trim(),
         numero: form.numero.trim(),
+        tipoUsuario: (form.tipoUsuario || "otro") as "visitante" | "estudiante" | "docente" | "administrativo" | "otro",
         tipoDocumento: form.tipoDocumento,
         identificacion: form.identificacion.trim(),
       });
@@ -623,6 +632,45 @@ export function Register() {
                     {errors.identificacion}
                   </p>
                 )}
+
+                {/* Tipo de usuario */}
+                <div>
+                  <label htmlFor="register-tipo-usuario" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
+                    ¿Cómo te identificas?
+                  </label>
+                  <select
+                    id="register-tipo-usuario"
+                    value={form.tipoUsuario}
+                    onChange={(e) => set("tipoUsuario", e.target.value)}
+                    onBlur={() => handleBlur("tipoUsuario")}
+                    className={err("tipoUsuario") ? "input-error" : ""}
+                    aria-invalid={!!err("tipoUsuario")}
+                    style={{
+                      width: "100%",
+                      padding: "13px 14px",
+                      borderRadius: 12,
+                      border: `1px solid ${err("tipoUsuario") ? COLORS.danger : COLORS.border}`,
+                      background: "#fff",
+                      fontSize: 14,
+                      outline: "none",
+                      cursor: "pointer",
+                      appearance: "none",
+                    }}
+                  >
+                    <option value="">Selecciona una opción...</option>
+                    <option value="visitante">Visitante</option>
+                    <option value="estudiante">Estudiante</option>
+                    <option value="docente">Docente</option>
+                    <option value="administrativo">Administrativo</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                  {err("tipoUsuario") && (
+                    <p role="alert" style={{ marginTop: 6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+                      <AlertCircle size={13} />
+                      {errors.tipoUsuario}
+                    </p>
+                  )}
+                </div>
 
                 {/* Nombre completo */}
                 <div>

@@ -167,7 +167,7 @@ export function IngresoModal({
               )
             ) : (
               <>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                   <input value={vehiculoForm.marca} onChange={e => setVehiculoForm(p => ({ ...p, marca: e.target.value }))} placeholder="Marca (ej. Toyota)" style={campoInputStyle} />
                   <input value={vehiculoForm.modelo} onChange={e => setVehiculoForm(p => ({ ...p, modelo: e.target.value }))} placeholder="Modelo (ej. Corolla)" style={campoInputStyle} />
                 </div>

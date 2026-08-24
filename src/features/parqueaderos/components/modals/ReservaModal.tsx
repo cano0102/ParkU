@@ -1,10 +1,13 @@
-import { Calendar, MapPin, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Calendar, Car, MapPin, Search, X } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
+import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
+import { horaAMinutos } from "../../lib/helpers";
 
 const C = theme;
 
@@ -23,6 +26,7 @@ interface ReservaModalProps {
   celdaActiva: Celda | null;
   parqueaderoActivo: Parqueadero | null;
   vehiculos: Vehiculo[];
+  conductores: Conductor[];
   reservaForm: ReservaFormState;
   setReservaForm: React.Dispatch<React.SetStateAction<ReservaFormState>>;
   reservaError: string | null;
@@ -31,9 +35,47 @@ interface ReservaModalProps {
 }
 
 export function ReservaModal({
-  open, celdaActiva, parqueaderoActivo, vehiculos, reservaForm, setReservaForm, reservaError, onClose, onSubmit,
+  open, celdaActiva, parqueaderoActivo, vehiculos, conductores, reservaForm, setReservaForm, reservaError, onClose, onSubmit,
 }: ReservaModalProps) {
-  const formValido = !!(reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin);
+  const [vehiculoQuery, setVehiculoQuery] = useState("");
+  const [vehiculoAbierto, setVehiculoAbierto] = useState(false);
+
+  const getConductorDe = (vehiculoId: string) => {
+    const v = vehiculos.find(v => v.id === vehiculoId);
+    return v ? conductores.find(c => c.id === v.conductorId) ?? null : null;
+  };
+
+  const vehiculoSeleccionado = vehiculos.find(v => v.id === reservaForm.vehiculoId) ?? null;
+  const conductorSeleccionado = vehiculoSeleccionado ? getConductorDe(vehiculoSeleccionado.id) : null;
+  const labelVehiculo = (v: Vehiculo) => `${v.placa} — ${v.marca} ${v.modelo}`.trim();
+
+  const vehiculosFiltrados = useMemo(() => {
+    const q = vehiculoQuery.trim().toLowerCase();
+    if (!q) return vehiculos;
+    return vehiculos.filter(v => {
+      const conductor = getConductorDe(v.id);
+      return (
+        v.placa.toLowerCase().includes(q) ||
+        (conductor?.nombre || "").toLowerCase().includes(q) ||
+        `${v.marca} ${v.modelo}`.toLowerCase().includes(q)
+      );
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehiculos, conductores, vehiculoQuery]);
+
+  const seleccionarVehiculo = (v: Vehiculo) => {
+    setReservaForm(prev => ({ ...prev, vehiculoId: v.id }));
+    setVehiculoQuery("");
+    setVehiculoAbierto(false);
+  };
+
+  const limpiarVehiculo = () => {
+    setReservaForm(prev => ({ ...prev, vehiculoId: "" }));
+    setVehiculoQuery("");
+  };
+
+  const horarioInvalido = !!(reservaForm.horaInicio && reservaForm.horaFin && horaAMinutos(reservaForm.horaFin) <= horaAMinutos(reservaForm.horaInicio));
+  const formValido = !!(reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin && !horarioInvalido);
 
   return (
     <Modal open={open} onClose={onClose} maxWidth={680}>
@@ -83,28 +125,72 @@ export function ReservaModal({
         <div style={{ padding: "1.4rem 1.8rem" }}>
           {reservaError && <Banner tone="danger" message={reservaError} />}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <div style={{ gridColumn: "1 / -1" }}>
+          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div style={{ gridColumn: "1 / -1", position: "relative" }}>
               <label htmlFor="vehiculoReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 Vehículo *
               </label>
-              <select
-                id="vehiculoReserva"
-                value={reservaForm.vehiculoId}
-                onChange={(e) => setReservaForm(prev => ({ ...prev, vehiculoId: e.target.value }))}
-                style={{
-                  width: "100%", padding: "11px 14px", borderRadius: 11,
-                  border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
-                  fontFamily: "inherit", background: "#F8FAFC",
-                }}
-              >
-                <option value="">Seleccionar vehículo...</option>
-                {vehiculos.map(v => (
-                  <option key={v.id} value={v.id}>
-                    {v.placa} — {v.marca} {v.modelo}
-                  </option>
-                ))}
-              </select>
+              <div style={{ position: "relative" }}>
+                <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
+                <input
+                  id="vehiculoReserva"
+                  value={vehiculoAbierto ? vehiculoQuery : (vehiculoSeleccionado ? `${labelVehiculo(vehiculoSeleccionado)}${conductorSeleccionado ? ` · ${conductorSeleccionado.nombre}` : ""}` : "")}
+                  onChange={(e) => { setVehiculoQuery(e.target.value); setVehiculoAbierto(true); if (reservaForm.vehiculoId) setReservaForm(prev => ({ ...prev, vehiculoId: "" })); }}
+                  onFocus={() => { setVehiculoQuery(""); setVehiculoAbierto(true); }}
+                  onBlur={() => setTimeout(() => setVehiculoAbierto(false), 150)}
+                  placeholder="Busca por placa o nombre del conductor..."
+                  autoComplete="off"
+                  style={{
+                    width: "100%", padding: "11px 36px 11px 34px", borderRadius: 11,
+                    border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                    fontFamily: "inherit", background: "#F8FAFC",
+                  }}
+                />
+                {reservaForm.vehiculoId && (
+                  <button
+                    type="button"
+                    onClick={limpiarVehiculo}
+                    aria-label="Quitar vehículo seleccionado"
+                    style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: C.textLight }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+              {vehiculoAbierto && (
+                <div style={{
+                  position: "absolute", zIndex: 10, top: "100%", left: 0, right: 0, marginTop: 4,
+                  maxHeight: 220, overflowY: "auto", borderRadius: 11, border: `1px solid ${C.border}`,
+                  background: "#fff", boxShadow: "0 10px 28px rgba(15,23,42,.12)",
+                }}>
+                  {vehiculosFiltrados.length === 0 ? (
+                    <div style={{ padding: "12px 14px", fontSize: 12, color: C.textLight }}>Sin resultados para "{vehiculoQuery}"</div>
+                  ) : (
+                    vehiculosFiltrados.map(v => {
+                      const conductor = getConductorDe(v.id);
+                      return (
+                        <button
+                          key={v.id}
+                          type="button"
+                          onMouseDown={(e) => { e.preventDefault(); seleccionarVehiculo(v); }}
+                          style={{
+                            width: "100%", display: "flex", alignItems: "center", gap: 8,
+                            padding: "9px 12px", border: "none", background: "#fff",
+                            borderBottom: `1px solid ${C.border}`, cursor: "pointer", textAlign: "left", fontFamily: "inherit",
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "#F8FAFC")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "#fff")}
+                        >
+                          <Car size={13} color={C.primary} />
+                          <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 12, color: C.text }}>{v.placa}</span>
+                          <span style={{ fontSize: 11, color: C.textLight, flex: 1 }}>{conductor?.nombre || "Sin conductor"}</span>
+                          <span style={{ fontSize: 10, color: C.textLight }}>{v.marca} {v.modelo}</span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
             </div>
 
             <div>
@@ -153,10 +239,13 @@ export function ReservaModal({
                 onChange={(e) => setReservaForm(prev => ({ ...prev, horaFin: e.target.value }))}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 11,
-                  border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                  border: `1px solid ${horarioInvalido ? C.danger : C.border}`, fontSize: 13, outline: "none",
                   fontFamily: "inherit", background: "#F8FAFC",
                 }}
               />
+              {horarioInvalido && (
+                <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>La hora de fin debe ser posterior a la de inicio.</p>
+              )}
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>

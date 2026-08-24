@@ -24,6 +24,7 @@ export interface RegisterInput {
   password: string;
   nombre: string;
   numero: string;
+  tipoUsuario: 'visitante' | 'estudiante' | 'docente' | 'administrativo' | 'otro';
   tipoDocumento: string;
   identificacion: string;
 }
@@ -78,7 +79,8 @@ export async function register(data: RegisterInput): Promise<AuthUser> {
     password: data.password,
     nombre,
     numero,
-    rol: 'Usuario Normal',
+    rol: 'Comunidad SENA',
+    tipoUsuario: data.tipoUsuario,
     tipoDocumento: data.tipoDocumento,
     identificacion: identificacionNormalizada,
     estado: 'activo',

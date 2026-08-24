@@ -4,10 +4,10 @@ import type { Rol } from './roles';
 import { describeCrudContract } from '../../test/crudContract';
 
 describe('services/roles', () => {
-  it('trae los 3 roles semilla (Administrador, Vigilante, Usuario Normal)', async () => {
+  it('trae los 3 roles semilla (Administrador, Vigilante, Comunidad SENA)', async () => {
     const all = await roles.getAll();
     const nombres = all.map((r) => r.nombre);
-    expect(nombres).toEqual(expect.arrayContaining(['Administrador', 'Vigilante', 'Usuario Normal']));
+    expect(nombres).toEqual(expect.arrayContaining(['Administrador', 'Vigilante', 'Comunidad SENA']));
   });
 });
 

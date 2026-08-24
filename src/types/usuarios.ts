@@ -19,6 +19,11 @@ export interface Rol {
   estado: 'activo' | 'inactivo';
 }
 
+/** Clasifica a la persona dueña de la cuenta, independiente del rol de
+ * permisos (Administrador/Vigilante/rol base): un usuario con el rol base
+ * puede ser, entre otros, visitante, estudiante, docente o administrativo. */
+export type TipoUsuario = 'visitante' | 'estudiante' | 'docente' | 'administrativo' | 'otro';
+
 export interface Usuario {
   id: string;
   correo: string;
@@ -26,6 +31,7 @@ export interface Usuario {
   nombre: string;
   numero: string;
   rol: string;
+  tipoUsuario: TipoUsuario;
   tipoDocumento: string;
   identificacion: string;
   estado: 'activo' | 'inactivo';

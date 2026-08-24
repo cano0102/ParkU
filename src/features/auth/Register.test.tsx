@@ -37,6 +37,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, overrides
   const identificacion = overrides?.identificacion ?? `${Date.now()}`;
 
   await user.type(screen.getByLabelText('N.º de identificación'), identificacion);
+  await user.selectOptions(screen.getByLabelText('¿Cómo te identificas?'), 'estudiante');
   await user.type(screen.getByLabelText('Nombre Completo'), 'Usuario de Prueba');
   await user.type(screen.getByLabelText('Correo Electrónico'), correo);
   await user.type(screen.getByLabelText('Teléfono'), '3101234567');

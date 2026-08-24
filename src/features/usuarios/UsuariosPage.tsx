@@ -93,6 +93,7 @@ export default function Usuarios() {
         nombre: u.nombre,
         numero: u.numero,
         rol: u.rol,
+        tipoUsuario: u.tipoUsuario,
         tipoDocumento: u.tipoDocumento,
         identificacion: u.identificacion,
         estado: u.estado,
@@ -130,15 +131,19 @@ export default function Usuarios() {
           return;
         }
 
+        // El formulario valida que tipoUsuario no quede vacío antes de permitir
+        // el envío (ver UsuarioFormModal); acá ya llega garantizado no-vacío.
+        const payload = { ...data, tipoUsuario: data.tipoUsuario || "otro" } as Omit<Usuario, "id">;
+
         if (editingUsuario) {
           // Corrección: si el campo de contraseña se deja vacío al editar,
           // no debe sobreescribir la contraseña existente (así lo indica
           // el hint "vacío = sin cambios" del formulario).
-          const { password, ...rest } = data;
-          updateUsuario(editingUsuario.id, password ? data : rest);
+          const { password, ...rest } = payload;
+          updateUsuario(editingUsuario.id, password ? payload : rest);
           toast.success("Usuario actualizado correctamente");
         } else {
-          addUsuario(data);
+          addUsuario(payload);
           toast.success("Usuario creado correctamente");
         }
         setDialogOpen(false);

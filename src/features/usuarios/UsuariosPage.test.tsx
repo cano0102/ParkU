@@ -145,10 +145,12 @@ describe('Usuarios', () => {
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), correo);
     await user.type(screen.getByPlaceholderText('••••••••'), 'Pass1234');
     // FormField no asocia su <label> con el control (sin htmlFor/id), así que
-    // el <select> de rol no es ubicable por texto de label; se toma por
-    // posición entre los combobox del formulario (tipo de documento, luego rol).
+    // los <select> no son ubicables por texto de label; se toman por posición
+    // entre los combobox del formulario: tipo de documento, luego rol, luego
+    // tipo de usuario.
     const selects = screen.getAllByRole('combobox');
-    await user.selectOptions(selects[selects.length - 1], 'Usuario Normal');
+    await user.selectOptions(selects[1], 'Comunidad SENA');
+    await user.selectOptions(selects[2], 'estudiante');
 
     await user.click(screen.getByRole('button', { name: 'Crear Usuario' }));
 
