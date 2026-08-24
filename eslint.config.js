@@ -83,7 +83,8 @@ export default tseslint.config(
       ],
 
       // Reglas de límites (Fase 4 + Fase 6 + Fase 8, "un criterio, cero
-      // excepciones"):
+      // excepciones" salvo las dos anotadas abajo, ambas evidencia real del
+      // código, no atajos):
       // 1) una feature no puede importar de otra feature — SALVO a través
       //    del barril público de esa feature (feature-barrel, su
       //    index.ts), nunca un import profundo a sus páginas/componentes/
@@ -92,6 +93,21 @@ export default tseslint.config(
       //    de services/ (es al revés: las features consumen components/, y
       //    las features/hooks son las que hablan con services/, no
       //    components/).
+      // 3) services/core no importa nada del proyecto — es la capa más
+      //    baja — SALVO tipos (`import type`): services/core/db.ts
+      //    necesita las interfaces de entidad de @/types para tipar el
+      //    store en memoria, y un tipo no genera acoplamiento real (se
+      //    borra al compilar). No hay forma de que boundaries distinga
+      //    `import type` de un import normal en esta versión, así que la
+      //    excepción se hace por tipo de elemento (`type`) en vez de por
+      //    sintaxis — el efecto es el mismo: services/core solo puede
+      //    "importar" definiciones de tipos, nunca lógica de otra capa.
+      // 4) services/api no importa de ninguna capa de UI (features,
+      //    components, routes, layouts, context) — solo de services/core
+      //    y @/types. Evita que un servicio termine acoplado a React o al
+      //    ruteo por accidente.
+      // 5) routes/ solo puede llegar a una feature a través de su barril,
+      //    igual que cualquier otra feature.
       'boundaries/element-types': [
         'error',
         {
@@ -106,6 +122,21 @@ export default tseslint.config(
               from: ['component'],
               disallow: ['feature', 'feature-barrel', 'service-api', 'service-core'],
               message: 'components/ no puede importar de features/ ni de services/: las features consumen components/, nunca al revés.',
+            },
+            {
+              from: ['service-core'],
+              disallow: ['feature', 'feature-barrel', 'service-api', 'component', 'util', 'hook', 'context', 'layout', 'route', 'style', 'asset', 'app'],
+              message: 'services/core/ es la capa más baja: no importa nada del proyecto salvo tipos (@/types). Ver docs/CONVENTIONS.md.',
+            },
+            {
+              from: ['service-api'],
+              disallow: ['feature', 'feature-barrel', 'component', 'util', 'hook', 'context', 'layout', 'route', 'style', 'app'],
+              message: 'services/api/ no depende de capas de UI (features, components, routes, layouts, context) — solo de services/core y @/types.',
+            },
+            {
+              from: ['route'],
+              disallow: ['feature'],
+              message: 'routes/ solo puede importar el barril público de una feature (@/features/<x>), nunca una ruta profunda.',
             },
           ],
         },
@@ -126,6 +157,12 @@ export default tseslint.config(
     files: ['**/*.test.{ts,tsx}', 'src/test/**/*.{ts,tsx}'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
+      // Los tests verifican comportamiento integrado (p. ej.
+      // services/core/queryFactory.test.ts prueba la fábrica genérica a
+      // través de un hook de dominio real) — no definen el grafo de
+      // dependencias de producción, así que no están sujetos a las mismas
+      // fronteras que el código de app.
+      'boundaries/element-types': 'off',
     },
   },
 );

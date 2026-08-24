@@ -226,3 +226,46 @@ recomendados. `@typescript-eslint/no-explicit-any` está en `warn` (no
 (sobre todo retornos de librerías externas como Tesseract OCR); código
 nuevo debería evitar `any`, pero no se bloquea CI por deuda ya existente
 antes de instalar el linter.
+
+### Mapa de capas (`boundaries/element-types`)
+
+| Capa | Puede importar de |
+|---|---|
+| `services/core` | nada del proyecto, salvo tipos de `@/types` (compilan a nada, no generan acoplamiento real) |
+| `services/api` | `services/core`, `@/types` — nunca capas de UI (features, components, routes, layouts, context) |
+| `features/*` | `services/api`, `services/core` (los hooks de dominio construyen sobre `queryFactory`), `components/*`, `hooks/`, `utils/`, `types/`, su propio interior |
+| `features/A` → `features/B` | prohibido, salvo a través del barril público de B (`@/features/B`, nunca una ruta profunda) |
+| `components/*` | `hooks/`, `utils/`, `types/` — nunca `services/` ni `features/` |
+| `routes/` | el barril de una `feature` (nunca una ruta profunda), `layouts/`, `context/`, tipos de `services/api` |
+
+Cada regla se verificó con un fixture de violación real (crear un archivo
+que la viole, confirmar que `eslint` lo marca, borrarlo) antes de darla
+por buena — no basta con que `eslint .` no tire error, porque un patrón
+mal escrito puede no estar matcheando nada en absoluto. Los tests
+(`**/*.test.{ts,tsx}`) están exentos: verifican comportamiento integrado
+entre capas (p. ej. `services/core/queryFactory.test.ts` prueba la
+fábrica genérica a través de `useRoles`, un hook real de otra capa), no
+definen el grafo de dependencias de producción.
+
+### Umbrales de cobertura (`vitest.config.ts`)
+
+Diferenciados por carpeta en vez de un umbral global único, más altos
+cuanto más bajo y reutilizado es el código:
+
+| Carpeta | Umbral | Estado real (último `--coverage`) |
+|---|---|---|
+| `services/core/` | 100% | ~95% statements/lines, ~97% branches |
+| `components/shared/` | 100% | ~93.5% branches (el resto, 100%) |
+| `services/api/` | 90% | ~70-82% según métrica |
+| `features/` | 70% | ~52-63% según métrica |
+
+**Los umbrales están puestos en el valor pedido, no rebajados a lo que ya
+se cumple** — hoy `npx vitest run --coverage` falla contra ellos, a
+propósito: es la señal honesta de cuánto falta, no una promesa de que ya
+se cumple. `npx vitest run` (sin `--coverage`, el comando real de la
+puerta de verificación de cada fase, y el que corre en CI) no se ve
+afectado — los umbrales solo se evalúan cuando se pide cobertura
+explícitamente. Cerrar esa brecha (sobre todo `services/api/ocr.ts` al
+47% y buena parte de `features/conductores/` — sin cobertura propia por
+la suite deshabilitada de esa feature) es trabajo pendiente, no de esta
+fase.
