@@ -3,7 +3,7 @@ import { Scanner } from "@yudiel/react-qr-scanner";
 import { toast } from "sonner";
 import { QrCode } from "lucide-react";
 import { theme } from "@/theme";
-import { CameraScanner } from "@/components/data";
+import { CameraScanner } from "@/components/scanner";
 import { decodeQrPayload, type QrCedulaPayload } from "@/services/qr";
 
 const COLORS = theme;
