@@ -1,0 +1,55 @@
+import { AlertTriangle } from "lucide-react";
+import type { Incidente } from "@/services/api/incidentes";
+import type { Celda } from "@/services/api/celdas";
+import { theme } from "@/styles/theme";
+import { IncidenteCard } from "./IncidenteCard";
+
+const C = theme;
+
+interface IncidentesGridProps {
+  incidentes: Incidente[];
+  celdaDe: (id?: string) => Celda | undefined;
+  nombreParqueadero: (id: string) => string;
+  onView: (incidente: Incidente) => void;
+  onEdit: (incidente: Incidente) => void;
+  onDelete: (incidente: Incidente) => void;
+  onToggleEstado: (id: string) => void;
+}
+
+/** Grid de tarjetas de incidente, o el estado vacío cuando el filtro no arroja resultados. */
+export function IncidentesGrid({ incidentes, celdaDe, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidentesGridProps) {
+  if (incidentes.length === 0) {
+    return (
+      <div style={{
+        display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        padding: "3rem 1rem", borderRadius: 16, border: `2px dashed ${C.border}`,
+        background: "#fff", color: C.textLight,
+      }}>
+        <AlertTriangle size={36} color={C.border} style={{ marginBottom: 10 }} />
+        <p style={{ fontWeight: 700, fontSize: 13 }}>No se encontraron incidentes</p>
+        <p style={{ fontSize: 11, marginTop: 4 }}>Prueba con otros filtros o registra uno nuevo</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill,minmax(360px,1fr))",
+      gap: 12,
+    }}>
+      {incidentes.map((incidente) => (
+        <IncidenteCard
+          key={incidente.id}
+          incidente={incidente}
+          celda={celdaDe(incidente.celdaId)}
+          nombreParqueadero={nombreParqueadero(incidente.parqueaderoId)}
+          onView={() => onView(incidente)}
+          onEdit={() => onEdit(incidente)}
+          onDelete={() => onDelete(incidente)}
+          onToggleEstado={() => onToggleEstado(incidente.id)}
+        />
+      ))}
+    </div>
+  );
+}
