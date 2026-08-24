@@ -1,0 +1,107 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import type { Rol } from "@/services/api/roles";
+import { sanitizeText } from "@/utils/format";
+import { countActive, PERMISOS, type PermisosKeys, type PermisosState } from "../lib/permisos";
+import { type FormState } from "../lib/helpers";
+
+interface UseRolFormArgs {
+  initial: FormState;
+  onSave: (data: FormState) => void;
+  existingRoles: Rol[];
+  editingRolId?: string | null;
+}
+
+/** Estado y validación en vivo del formulario de rol (crear/editar). */
+export function useRolForm({ initial, onSave, existingRoles, editingRolId = null }: UseRolFormArgs) {
+  const [form, setForm] = useState<FormState>(initial);
+  const [nombreError, setNombreError] = useState<string>("");
+  const [nombreTocado, setNombreTocado] = useState(false);
+
+  useEffect(() => {
+    setForm(initial);
+    setNombreError("");
+    setNombreTocado(false);
+  }, [initial]);
+
+  const handleNombreChange = useCallback(
+    (value: string) => {
+      setForm((f) => ({ ...f, nombre: value }));
+      const trimmed = value.trim().toLowerCase();
+      const duplicado = existingRoles.some(
+        (r) => r.id !== editingRolId && r.nombre.trim().toLowerCase() === trimmed
+      );
+      setNombreError(!trimmed ? "El nombre es obligatorio" : duplicado ? "Ya existe un rol con este nombre" : "");
+    },
+    [existingRoles, editingRolId]
+  );
+
+  const markNombreTocado = useCallback(() => setNombreTocado(true), []);
+
+  const nombreErrorVisible = nombreTocado ? nombreError : "";
+  const formInvalido = !form.nombre.trim() || !!nombreError;
+
+  const setDescripcion = useCallback((descripcion: string) => {
+    setForm((f) => ({ ...f, descripcion }));
+  }, []);
+
+  const setEstado = useCallback((estado: "activo" | "inactivo") => {
+    setForm((f) => ({ ...f, estado }));
+  }, []);
+
+  const handleTogglePermiso = useCallback((k: keyof PermisosState) => {
+    setForm((f) => ({
+      ...f,
+      permisos: { ...f.permisos, [k]: !f.permisos[k] },
+    }));
+  }, []);
+
+  const handleToggleGrupo = useCallback((grupo: PermisosKeys) => {
+    const keys = Object.keys(PERMISOS[grupo]) as Array<keyof PermisosState>;
+    setForm((f) => {
+      const allOn = keys.every((k) => f.permisos[k]);
+      return { ...f, permisos: keys.reduce((acc, k) => ({ ...acc, [k]: !allOn }), f.permisos) };
+    });
+  }, []);
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      setNombreTocado(true);
+      const rawName = form.nombre.trim();
+      if (!rawName) {
+        toast.error("El nombre es obligatorio");
+        return;
+      }
+      const duplicado = existingRoles.some(
+        (r) => r.id !== editingRolId && r.nombre.trim().toLowerCase() === rawName.toLowerCase()
+      );
+      if (duplicado) {
+        setNombreError("Ya existe un rol con este nombre");
+        toast.error("Ya existe un rol con este nombre");
+        return;
+      }
+      const sanitizedName = sanitizeText(rawName);
+      onSave({ ...form, nombre: sanitizedName });
+    },
+    [form, onSave, existingRoles, editingRolId]
+  );
+
+  const activeCount = useMemo(() => countActive(form.permisos), [form.permisos]);
+  const total = useMemo(() => Object.keys(form.permisos).length, [form.permisos]);
+
+  return {
+    form,
+    setDescripcion,
+    setEstado,
+    nombreErrorVisible,
+    formInvalido,
+    handleNombreChange,
+    markNombreTocado,
+    handleTogglePermiso,
+    handleToggleGrupo,
+    handleSubmit,
+    activeCount,
+    total,
+  };
+}
