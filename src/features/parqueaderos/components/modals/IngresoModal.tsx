@@ -4,8 +4,8 @@ import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";
-import { ModalHeader } from "./UiBits";
-import { VehiculoForm } from "./helpers";
+import { ModalHeader } from "@/components/shared";
+import { VehiculoForm } from "../../lib/helpers";
 
 const C = theme;
 

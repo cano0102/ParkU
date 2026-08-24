@@ -4,11 +4,11 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";
-import { ModalHeader, Banner } from "./UiBits";
+import { ModalHeader, Banner } from "@/components/shared";
 import {
   getTipoCeldaConfig, capitalizar, validarPlacaPorTipo, validarNombreConductor,
   tipoVehiculoDesdePlaca, esPlacaOficial, normalizarTexto, CONDUCTORES_SUGERIDOS,
-} from "./helpers";
+} from "../../lib/helpers";
 
 const C = theme;
 

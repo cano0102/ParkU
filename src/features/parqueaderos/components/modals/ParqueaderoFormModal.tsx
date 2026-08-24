@@ -1,11 +1,11 @@
 import { Pencil, Sparkles } from "lucide-react";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";
-import { ModalHeader, Banner } from "./UiBits";
+import { ModalHeader, Banner } from "@/components/shared";
 import {
   FormParqueadero, TIPOS_PARQUEADERO, capitalizar,
   NOMBRE_PQ_MAX, BLOQUE_PQ_MAX, DIRECCION_PQ_MAX, DESCRIPCION_PQ_MAX,
-} from "./helpers";
+} from "../../lib/helpers";
 
 const C = theme;
 

@@ -3,7 +3,7 @@ import { Pencil, X, Mail, Phone, IdCard, Building2, Accessibility, Car } from "l
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "./helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
 
 interface ConductorDetailModalProps {
   conductor: Conductor;

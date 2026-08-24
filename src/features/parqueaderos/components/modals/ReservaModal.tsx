@@ -4,7 +4,7 @@ import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";
-import { Banner } from "./UiBits";
+import { Banner } from "@/components/shared";
 
 const C = theme;
 

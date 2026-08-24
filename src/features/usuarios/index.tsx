@@ -5,11 +5,11 @@ import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "@/features/usua
 import type { Usuario } from "@/services/api/usuarios";
 import { useRoles } from "@/features/roles/hooks/useRoles";
 import { Modal } from "@/components/shared";
-import { COLORS, USUARIOS_PROTEGIDOS, sanitizeText, emptyForm, FormState } from "./helpers";
+import { COLORS, USUARIOS_PROTEGIDOS, sanitizeText, emptyForm, FormState } from "./lib/helpers";
 import { DataGrid, DataList, DataPagination, DataToolbar, StatsPanel } from "@/components/data";
-import { renderUsuarioCard, getUsuarioColumns } from "./cards";
+import { renderUsuarioCard, getUsuarioColumns } from "./components/cards";
 import { Shield, Users, UserCheck, UserX } from "lucide-react";
-import { UsuarioFormModal } from "./UsuarioFormModal";
+import { UsuarioFormModal } from "./components/UsuarioFormModal";
 
 export default function Usuarios() {
   const { data: usuarios = [] } = useUsuarios();

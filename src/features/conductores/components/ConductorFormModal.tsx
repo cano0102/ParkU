@@ -2,7 +2,7 @@ import { Car, Mail, ShieldCheck, Sparkles } from "lucide-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { FormField } from "@/components/shared";
 import { EntityFormModal } from "@/components/data";
-import { COLORS, getAvatarGradient, getInitials, getTipoStyle, TIPOS_CONDUCTOR, inputStyle, inputErrorStyle, FormState, FormErrors } from "./helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoStyle, TIPOS_CONDUCTOR, inputStyle, inputErrorStyle, FormState, FormErrors } from "../lib/helpers";
 
 interface ConductorFormModalProps {
   isEdit: boolean;

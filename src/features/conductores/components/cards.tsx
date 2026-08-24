@@ -4,7 +4,7 @@ import type { DataListColumn } from "@/components/data";
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "./helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
 
 /**
  * Antes ConductoresGrid.tsx y ConductoresList.tsx: el layout de cuadrícula y

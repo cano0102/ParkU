@@ -1,8 +1,8 @@
 import { Camera, CheckCircle2, Loader2, ScanLine, Upload } from "lucide-react";
 import { theme } from "@/theme";
 import { CameraScanner } from "@/components/scanner";
-import { Banner } from "./UiBits";
-import { PLACAS_DEMO } from "./helpers";
+import { Banner } from "@/components/shared";
+import { PLACAS_DEMO } from "../../lib/helpers";
 
 const C = theme;
 

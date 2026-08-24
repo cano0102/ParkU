@@ -4,3 +4,5 @@ export { FormField } from './FormField';
 export { StatusBadge } from './StatusBadge';
 export { Toaster } from './sonner';
 export { ErrorBoundary } from './ErrorBoundary';
+export { ModalHeader } from './ModalHeader';
+export { Banner } from './Banner';

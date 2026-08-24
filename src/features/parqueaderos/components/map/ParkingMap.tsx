@@ -8,8 +8,8 @@ import {
   CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig,
   SPACE_W, SPACE_H, GAP_X, ROW_GAP, LANE_H, PADDING, SECTION_GAP, ROAD_Y, ROAD_H,
   formatearDuracion,
-} from "./helpers";
-import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG, CAR_PALETTE, CAR_PALETTE_LIGHT } from "./mapVisuals";
+} from "../../lib/helpers";
+import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG, CAR_PALETTE, CAR_PALETTE_LIGHT } from "./MapVisuals";
 
 const C = theme;
 

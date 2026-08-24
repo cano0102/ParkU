@@ -1,7 +1,7 @@
 /**
  * Validaciones compartidas entre features. Antes vivían en
- * `features/parqueaderos/helpers.ts` (validación de placas) y
- * `features/usuarios/helpers.ts` (validación de campos de usuario), pero ya
+ * `features/parqueaderos/lib/helpers.ts` (validación de placas) y
+ * `features/usuarios/lib/helpers.ts` (validación de campos de usuario), pero ya
  * eran importadas cruzado por otras features (`conductores`, `auth`,
  * `perfil`) — se centralizan aquí para que ese cruce sea contra una capa
  * compartida en vez de feature-a-feature.

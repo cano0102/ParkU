@@ -3,7 +3,7 @@ import { Car, Eye, Pencil, MapPin } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/theme";
-import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar } from "./helpers";
+import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar } from "../lib/helpers";
 
 const C = theme;
 

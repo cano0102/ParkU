@@ -28,18 +28,18 @@ import {
   CELDA_CONFIG, TIPOS_PARQUEADERO, capitalizar,
   validarPlacaColombiana, validarPlacaPorTipo, validarNombreConductor, tipoVehiculoDesdePlaca, esPlacaOficial,
   normalizarTexto, validarFormParqueadero, NOMBRE_PQ_MAX,
-} from "./helpers";
-import { useOcrPlaca, preprocesarImagenArchivo, calcularRoiDesdeGuia } from "./ocr";
-import { ParkingMap } from "./ParkingMap";
-import { ParqueaderosTable } from "./ParqueaderosTable";
-import { SmartAssignModal } from "./SmartAssignModal";
-import { ParqueaderoFormModal } from "./ParqueaderoFormModal";
-import { IngresoModal } from "./IngresoModal";
-import { CeldaInfoModal } from "./CeldaInfoModal";
-import { ReservaModal, ReservaFormState } from "./ReservaModal";
-import { IncidenteModal } from "./IncidenteModal";
-import { ScannerModal } from "./ScannerModal";
-import { parqueaderosStyles } from "./styles";
+} from "./lib/helpers";
+import { useOcrPlaca, preprocesarImagenArchivo, calcularRoiDesdeGuia } from "./lib/ocrAdapter";
+import { ParkingMap } from "./components/map/ParkingMap";
+import { ParqueaderosTable } from "./components/ParqueaderosTable";
+import { SmartAssignModal } from "./components/modals/SmartAssignModal";
+import { ParqueaderoFormModal } from "./components/modals/ParqueaderoFormModal";
+import { IngresoModal } from "./components/modals/IngresoModal";
+import { CeldaInfoModal } from "./components/modals/CeldaInfoModal";
+import { ReservaModal, ReservaFormState } from "./components/modals/ReservaModal";
+import { IncidenteModal } from "./components/modals/IncidenteModal";
+import { ScannerModal } from "./components/modals/ScannerModal";
+import { parqueaderosStyles } from "./lib/styles";
 
 const C = theme;
 const MAX_EVIDENCIA_MB = 5;

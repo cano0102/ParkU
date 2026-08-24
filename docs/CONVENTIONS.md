@@ -49,7 +49,18 @@ Cada feature es un dominio de negocio con ruta propia en `routes.tsx`:
   `helpers.ts` — vive en `utils/`.
 - Los modales de alta/edición de una entidad se apoyan en
   `components/data/EntityFormModal`; los flujos de cámara (OCR de placa, QR
-  de cédula) se apoyan en `components/data/CameraScanner`.
+  de cédula) se apoyan en `components/scanner/CameraScanner`.
+- **Toda feature que supere los 8 archivos se subdivide por rol**:
+  `components/` (modales, tarjetas, vistas de detalle — todo lo que
+  renderiza JSX propio del dominio), `hooks/` (los de React Query, ver
+  tabla de propiedad en la sección `services/`), `lib/` (`helpers.ts`,
+  `styles.ts` y cualquier adaptador no-React sobre un `services/api/*`,
+  como `lib/ocrAdapter.ts`). El punto de entrada (`index.tsx` +
+  `index.test.tsx`) se queda en la raíz de la feature. Implementación de
+  referencia: `features/parqueaderos/` (17 archivos → components/{map,modals}/,
+  hooks/, lib/); a menor escala, `features/conductores/` y
+  `features/usuarios/`. Las features de 2 archivos (`index.tsx` +
+  `index.test.tsx`) no se subdividen — sería sobreingeniería.
 
 ## `services/`
 

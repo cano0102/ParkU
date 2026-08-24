@@ -12,7 +12,7 @@ import {
   COLORS, FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX,
   TELEFONO_REGEX, EMAIL_REGEX, inputStyle, inputErrorStyle, inputIconStyle,
   sanitizeText,
-} from "./helpers";
+} from "../lib/helpers";
 
 interface UsuarioFormModalProps {
   initial: FormState;

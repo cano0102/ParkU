@@ -5,8 +5,8 @@ import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/theme";
 import { Modal } from "@/components/shared";
-import { EstadoBadge, TipoBadge } from "./UiBits";
-import { Ocupante, formatearFechaHora, formatearDuracion } from "./helpers";
+import { EstadoBadge, TipoBadge } from "../map/CeldaBadges";
+import { Ocupante, formatearFechaHora, formatearDuracion } from "../../lib/helpers";
 
 const C = theme;
 

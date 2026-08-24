@@ -1,7 +1,7 @@
 /**
  * Utilidades de formateo de texto compartidas. Antes existían casi idénticas
  * (mismo algoritmo, distinto nombre) en `features/conductores/helpers.ts`,
- * `features/usuarios/helpers.ts` y `features/roles/index.tsx` — se centralizan
+ * `features/usuarios/lib/helpers.ts` y `features/roles/index.tsx` — se centralizan
  * aquí como única implementación.
  */
 
