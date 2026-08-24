@@ -181,7 +181,7 @@ src/
 ```
 
 Convenciones completas de nombres y límites entre capas: ver
-[`CONVENTIONS.md`](./CONVENTIONS.md).
+[`docs/CONVENTIONS.md`](./docs/CONVENTIONS.md).
 
 ---
 
