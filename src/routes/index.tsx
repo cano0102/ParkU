@@ -1,8 +1,8 @@
 import { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { MainLayout } from './layouts/MainLayout';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { NotFound } from './components/NotFound';
+import { MainLayout } from '../layouts/MainLayout';
+import { ProtectedRoute } from './ProtectedRoute';
+import { NotFound } from './NotFound';
 import Landing from '@/features/landing';
 import { Login } from '@/features/auth/Login';
 import { Register } from '@/features/auth/Register';

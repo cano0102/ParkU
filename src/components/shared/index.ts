@@ -3,3 +3,4 @@ export { ConfirmDialog } from './ConfirmDialog';
 export { FormField } from './FormField';
 export { StatusBadge } from './StatusBadge';
 export { Toaster } from './sonner';
+export { ErrorBoundary } from './ErrorBoundary';

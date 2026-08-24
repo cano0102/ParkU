@@ -3,9 +3,8 @@ import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { router } from './routes';
 import { AuthProvider } from './context/AuthContext';
-import { Toaster } from './components/shared';
-import { ErrorBoundary } from './components/ErrorBoundary';
-import { RouteFallback } from './components/RouteFallback';
+import { Toaster, ErrorBoundary } from './components/shared';
+import { RouteFallback } from './routes/RouteFallback';
 
 const queryClient = new QueryClient();
 
