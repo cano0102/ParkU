@@ -233,3 +233,48 @@ export const forgotPasswordStyles = `
 
   }
 `;
+
+export const resetPasswordStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+  *{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+  }
+
+  body{
+    font-family:'Montserrat',sans-serif;
+    background:${COLORS.background};
+  }
+
+  input{
+    font-family:'Montserrat',sans-serif;
+  }
+
+  button{
+    font-family:'Montserrat',sans-serif;
+    transition:.25s ease;
+  }
+
+  button:hover{
+    transform:translateY(-2px);
+  }
+
+  input:focus{
+    border-color:${COLORS.primary} !important;
+    box-shadow:0 0 0 4px rgba(57,169,0,.12);
+  }
+
+  @media(max-width:900px){
+
+    .reset-grid{
+      grid-template-columns:1fr !important;
+    }
+
+    .reset-left{
+      display:none !important;
+    }
+
+  }
+`;
