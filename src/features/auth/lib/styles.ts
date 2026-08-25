@@ -175,3 +175,61 @@ export const loginStyles = `
     }
   }
 `;
+
+export const forgotPasswordStyles = `
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+
+  *{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+  }
+
+  body{
+    font-family:'Montserrat',sans-serif;
+    background:${COLORS.background};
+  }
+
+  input{
+    font-family:'Montserrat',sans-serif;
+  }
+
+  button{
+    font-family:'Montserrat',sans-serif;
+    transition:.25s ease;
+  }
+
+  button:hover:not(:disabled){
+    transform:translateY(-2px);
+  }
+
+  input:focus{
+    border-color:${COLORS.primary} !important;
+    box-shadow:0 0 0 4px rgba(57,169,0,.12);
+  }
+
+  input.error{
+    border-color:${COLORS.danger} !important;
+    box-shadow:0 0 0 4px rgba(239,68,68,.12) !important;
+  }
+
+  @media(max-width:900px){
+
+    .forgot-grid{
+      grid-template-columns:1fr !important;
+    }
+
+    .forgot-left{
+      display:none !important;
+    }
+
+    .mobile-back{
+      display:flex !important;
+      align-items:center;
+      gap:8px;
+      width:max-content;
+      margin-bottom:1.5rem;
+    }
+
+  }
+`;
