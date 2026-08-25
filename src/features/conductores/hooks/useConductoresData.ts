@@ -22,6 +22,7 @@ export function useConductoresData() {
   const updateVehiculo = (id: string, data: Partial<Omit<Vehiculo, "id">>) =>
     updateVehiculoMutation.mutate({ id, data });
 
+  // Cuenta de acceso vinculada (opcional): no todo conductor real tiene una.
   const getUsuario = useCallback((id: string) => usuarios.find((u) => u.id === id), [usuarios]);
   const getVehiculosConductor = useCallback((id: string) => vehiculos.filter((v) => v.conductorId === id), [vehiculos]);
 

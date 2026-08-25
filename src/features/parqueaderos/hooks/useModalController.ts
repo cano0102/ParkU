@@ -14,36 +14,20 @@ export function useModalController(data: ParqueaderosData) {
   const [openModal, setOpenModal] = useState<ModalKind>(null);
   const [celdaSeleccionadaId, setCeldaSeleccionadaId] = useState<string | null>(null);
 
+  // El registro de entrada/salida es la ÚNICA fuente de verdad de "quién ocupa esta celda
+  // ahora" — el vehículo ya no guarda su propia ubicación (ver services/api/vehiculos.ts).
   const getOcupante = useCallback((celdaId: string): Ocupante | null => {
-    // 1. Buscar control de salida activo
     const cs = controlesSalida.find((c) => c.celdaId === celdaId && c.estado === "en_parqueadero");
-    if (cs) {
-      const vehiculo = vehiculos.find((v) => v.id === cs.vehiculoId);
-      if (vehiculo) {
-        const conductor = conductores.find((c) => c.id === vehiculo.conductorId);
-        return {
-          vehiculo, conductor,
-          esOficial: esPlacaOficial(vehiculo.placa),
-          controlId: cs.id,
-          fechaEntrada: cs.fechaEntrada,
-        };
-      }
-    }
-
-    // 2. Si no hay control activo, buscar vehículo asociado directamente a la celda
-    const vehiculoEnCelda = vehiculos.find((v) => v.celdaId === celdaId);
-    if (vehiculoEnCelda) {
-      const conductor = conductores.find((c) => c.id === vehiculoEnCelda.conductorId);
-      return {
-        vehiculo: vehiculoEnCelda,
-        conductor: conductor || undefined,
-        esOficial: esPlacaOficial(vehiculoEnCelda.placa),
-        controlId: "",
-        fechaEntrada: vehiculoEnCelda.fechaEntrada || new Date().toISOString(),
-      };
-    }
-
-    return null;
+    if (!cs) return null;
+    const vehiculo = vehiculos.find((v) => v.id === cs.vehiculoId);
+    if (!vehiculo) return null;
+    const conductor = conductores.find((c) => c.id === (cs.conductorId || vehiculo.conductorId));
+    return {
+      vehiculo, conductor,
+      esOficial: esPlacaOficial(vehiculo.placa),
+      controlId: cs.id,
+      fechaEntrada: cs.fechaEntrada,
+    };
   }, [controlesSalida, vehiculos, conductores]);
 
   const celdaActiva = useMemo(() => celdas.find((c) => c.id === celdaSeleccionadaId) ?? null, [celdas, celdaSeleccionadaId]);

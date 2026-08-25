@@ -1,7 +1,8 @@
-import { Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
+import { Mail, Shield, Lock, UserCheck, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import type { Usuario } from "@/services/api/usuarios";
+import { nombreDeRol } from "@/services/core/roles";
 import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials, sanitizeText } from "../lib/helpers";
 
 /**
@@ -18,7 +19,8 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
   const { onToggleEstado, onEdit } = handlers;
   const protegido = USUARIOS_PROTEGIDOS.includes(u.correo);
   const activo = u.estado === "activo";
-  const roleStyle = getRoleAccent(u.rol);
+  const rolNombre = nombreDeRol(u.rol);
+  const roleStyle = getRoleAccent(rolNombre);
   const [c1, c2] = avatarColors(u.nombre);
   const ini = initials(u.nombre);
 
@@ -53,8 +55,8 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
               <p style={{ fontSize: 13, fontWeight: 800, color: COLORS.text, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {sanitizeText(u.nombre)}
               </p>
-              <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1 }}>
-                {u.tipoDocumento} · {u.identificacion}
+              <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {u.correo}
               </p>
             </div>
 
@@ -83,7 +85,7 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
                 fontSize: 10, fontWeight: 700, background: roleStyle.bg, color: roleStyle.text, border: `1px solid ${roleStyle.border}`,
               }}
             >
-              <Shield size={9} /> {u.rol || "Sin rol"}
+              <Shield size={9} /> {rolNombre}
             </span>
             <span
               style={{
@@ -112,7 +114,6 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
       <div style={{ padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
         {[
           { icon: <Mail size={12} />, text: u.correo },
-          { icon: <Phone size={12} />, text: u.numero || "—" },
         ].map((row, i) => (
           <div
             key={i}
@@ -201,19 +202,11 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
       ),
     },
     {
-      header: "Documento",
-      width: "130px",
-      render: (u) => (
-        <div style={{ color: COLORS.textLight, fontSize: 11 }}>
-          {u.tipoDocumento} · {u.identificacion}
-        </div>
-      ),
-    },
-    {
       header: "Rol",
       width: "110px",
       render: (u) => {
-        const roleStyle = getRoleAccent(u.rol);
+        const rolNombre = nombreDeRol(u.rol);
+        const roleStyle = getRoleAccent(rolNombre);
         return (
           <span
             style={{
@@ -222,7 +215,7 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
               border: `1px solid ${roleStyle.border}`, whiteSpace: "nowrap",
             }}
           >
-            <Shield size={9} /> {u.rol || "Sin rol"}
+            <Shield size={9} /> {rolNombre}
           </span>
         );
       },

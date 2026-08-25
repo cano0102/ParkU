@@ -5,7 +5,6 @@ import type { Reserva } from "@/services/api/reservas";
 import { useUpdateCelda, useCeldas, useParqueaderos } from "@/features/parqueaderos";
 import type { Celda } from "@/services/api/celdas";
 import { useVehiculos, useConductores } from "@/features/conductores";
-import { useUsuarios } from "@/features/usuarios";
 import type { EstadoReserva } from "../lib/constants";
 
 /** Datos, filtros y eliminación del historial de reservas. */
@@ -14,7 +13,6 @@ export function useReservasPage() {
   const { data: vehiculos = [] } = useVehiculos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
-  const { data: usuarios = [] } = useUsuarios();
   const { data: parqueaderos = [] } = useParqueaderos();
   const removeReservaMutation = useRemoveReserva();
   const updateCeldaMutation = useUpdateCelda();
@@ -31,14 +29,12 @@ export function useReservasPage() {
   const getCelda = (id: string) => celdas.find((c) => c.id === id);
   const getParqueadero = (id: string) => parqueaderos.find((p) => p.id === id);
 
-  const getConductorVehiculo = (vehiculoId: string) => {
-    const v = getVehiculo(vehiculoId);
-    return v ? conductores.find((c) => c.id === v.conductorId) : null;
-  };
-
-  const getUsuarioConductor = (vehiculoId: string) => {
-    const c = getConductorVehiculo(vehiculoId);
-    return c ? usuarios.find((u) => u.id === c.usuarioId) : null;
+  // La reserva ya trae su propio conductorId (relación directa en la API real);
+  // si no vino, se cae de vuelta al dueño del vehículo reservado.
+  const getConductorReserva = (reserva: Reserva) => {
+    if (reserva.conductorId) return conductores.find((c) => c.id === reserva.conductorId) ?? null;
+    const v = getVehiculo(reserva.vehiculoId);
+    return v ? conductores.find((c) => c.id === v.conductorId) ?? null : null;
   };
 
   const counts = {
@@ -53,13 +49,13 @@ export function useReservasPage() {
       .filter((reserva) => {
         const vehiculo = getVehiculo(reserva.vehiculoId);
         const celda = getCelda(reserva.celdaId);
-        const usuario = getUsuarioConductor(reserva.vehiculoId);
+        const conductor = getConductorReserva(reserva);
         const q = search.toLowerCase();
 
         const matchesSearch =
           vehiculo?.placa.toLowerCase().includes(q) ||
           celda?.numero.toLowerCase().includes(q) ||
-          usuario?.nombre.toLowerCase().includes(q) ||
+          conductor?.nombre.toLowerCase().includes(q) ||
           reserva.fechaReserva.includes(search);
 
         const matchesEstado = filterEstado === "todos" || reserva.estado === filterEstado;
@@ -95,7 +91,7 @@ export function useReservasPage() {
   return {
     reservas, viewOpen, setViewOpen, viewingReserva, setViewingReserva,
     search, setSearch, filterEstado, setFilterEstado, confirmDelete, setConfirmDelete,
-    getVehiculo, getCelda, getParqueadero, getUsuarioConductor,
+    getVehiculo, getCelda, getParqueadero, getConductorReserva,
     counts, filteredReservas, handleDelete, confirmDeleteAction,
     activeFiltersCount, clearFilters,
   };

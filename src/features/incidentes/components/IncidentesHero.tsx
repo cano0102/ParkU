@@ -1,17 +1,17 @@
-import { AlertTriangle, CheckCircle, Image as ImageIcon, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle, Clock, ShieldAlert } from "lucide-react";
 import { theme } from "@/styles/theme";
 
 const C = theme;
 
 interface IncidentesHeroProps {
   pendientes: number;
+  enProceso: number;
   resueltos: number;
-  conEvidencia: number;
   total: number;
 }
 
 /** Banner superior de la página de Incidentes con las pastillas de estadísticas. */
-export function IncidentesHero({ pendientes, resueltos, conEvidencia, total }: IncidentesHeroProps) {
+export function IncidentesHero({ pendientes, enProceso, resueltos, total }: IncidentesHeroProps) {
   return (
     <div
       style={{
@@ -45,8 +45,8 @@ export function IncidentesHero({ pendientes, resueltos, conEvidencia, total }: I
         <div className="incidentes-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280, maxWidth: 420 }}>
           {[
             { label: "Pendientes", value: pendientes, icon: AlertTriangle, color: C.warning },
+            { label: "En proceso", value: enProceso, icon: Clock, color: C.primary },
             { label: "Resueltos", value: resueltos, icon: CheckCircle, color: C.success },
-            { label: "Con evidencia", value: conEvidencia, icon: ImageIcon, color: C.primary },
             { label: "Total", value: total, icon: ShieldAlert, color: "#fff" },
           ].map((s) => (
             <div key={s.label} style={{

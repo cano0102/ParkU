@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { createAppBackends } from '@/test/appFakeApi';
 import Dashboard from './DashboardPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 function renderDashboard() {
   const client = createTestQueryClient();
@@ -31,12 +36,12 @@ describe('features/dashboard', () => {
     renderDashboard();
     await waitFor(() => expect(screen.getAllByText('PQ-1 Torre A').length).toBeGreaterThan(0));
 
-    // PQ-5 Motos Norte es un parqueadero exclusivo de motos (celdasCarros: 0).
+    // PQ-2 Torre B es un parqueadero exclusivo de motos en la semilla (sin celdas de carro).
     await user.click(screen.getByRole('button', { name: 'Motos' }));
-    await waitFor(() => expect(screen.getAllByText('PQ-5 Motos Norte').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('PQ-2 Torre B').length).toBeGreaterThan(0));
 
     await user.click(screen.getByRole('button', { name: 'Todos' }));
-    await waitFor(() => expect(screen.getAllByText('PQ-3 Administrativo').length).toBeGreaterThan(0));
+    await waitFor(() => expect(screen.getAllByText('PQ-3 Torre C').length).toBeGreaterThan(0));
   });
 
   it('permite seleccionar otro parqueadero de la lista y actualiza el detalle', async () => {

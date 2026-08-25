@@ -5,10 +5,9 @@ import type { Ocupante, IncidenteForm } from "../lib/helpers";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 
-const MAX_EVIDENCIA_MB = 5;
-const emptyIncidenteForm = (): IncidenteForm => ({ descripcion: "", asignadoA: "", notasResolucion: "", evidencia: "" });
+const emptyIncidenteForm = (): IncidenteForm => ({ descripcion: "" });
 
-/** Formulario de reporte de incidente sobre la celda activa (con evidencia fotográfica). */
+/** Formulario rápido de reporte de incidente sobre la celda activa (desde el plano de Parqueaderos). */
 export function useIncidenteReporte(
   data: Pick<ParqueaderosData, "addIncidente">,
   celdaActiva: Celda | null,
@@ -18,38 +17,14 @@ export function useIncidenteReporte(
   const [incidenteForm, setIncidenteForm] = useState<IncidenteForm>(emptyIncidenteForm());
   const [incidenteError, setIncidenteError] = useState<string | null>(null);
 
-  const resetIncidenteEvidencia = useCallback(() => {
-    setIncidenteForm((prev) => ({ ...prev, evidencia: "" }));
-  }, []);
-
-  const handleIncidenteFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("El archivo debe ser una imagen");
-      return;
-    }
-    if (file.size > MAX_EVIDENCIA_MB * 1024 * 1024) {
-      toast.error(`La imagen no debe superar ${MAX_EVIDENCIA_MB}MB`);
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      setIncidenteForm((prev) => ({ ...prev, evidencia: (ev.target?.result as string) || "" }));
-    };
-    reader.onerror = () => toast.error("No se pudo cargar la imagen");
-    reader.readAsDataURL(file);
-  }, []);
-
   const closeIncidenteModal = useCallback(() => {
     setOpenModal(null);
     setIncidenteError(null);
-    resetIncidenteEvidencia();
-  }, [setOpenModal, resetIncidenteEvidencia]);
+  }, [setOpenModal]);
 
   const registrarIncidente = useCallback(() => {
     if (!celdaActiva || !ocupanteActivo) return;
-    const { descripcion, asignadoA, notasResolucion, evidencia } = incidenteForm;
+    const { descripcion } = incidenteForm;
     if (!descripcion.trim()) {
       setIncidenteError("La descripción del incidente es obligatoria.");
       return;
@@ -59,14 +34,12 @@ export function useIncidenteReporte(
       descripcion: descripcion.trim(),
       parqueaderoId: celdaActiva.parqueaderoId,
       celdaId: celdaActiva.id,
-      celdaNumero: celdaActiva.numero,
-      vehiculo: ocupanteActivo.vehiculo.placa,
-      conductor: ocupanteActivo.conductor?.nombre || "",
-      asignadoA: asignadoA.trim() || undefined,
-      notasResolucion: notasResolucion.trim() || undefined,
-      evidencia: evidencia || undefined,
-      fecha: new Date().toISOString(),
-      estado: "pendiente" as const,
+      vehiculoId: ocupanteActivo.vehiculo.id,
+      usuarioAsignadoId: "",
+      tipoNovedad: "otro",
+      prioridad: "media",
+      estado: "pendiente",
+      justificacionCierre: "",
     });
     setIncidenteForm(emptyIncidenteForm());
     setIncidenteError(null);
@@ -76,6 +49,6 @@ export function useIncidenteReporte(
 
   return {
     incidenteForm, setIncidenteForm, incidenteError, setIncidenteError,
-    handleIncidenteFileChange, resetIncidenteEvidencia, closeIncidenteModal, registrarIncidente,
+    closeIncidenteModal, registrarIncidente,
   };
 }

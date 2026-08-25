@@ -38,6 +38,9 @@ export function ConductoresToolbar({
             { value: "todos", label: "Todos los tipos" },
             { value: "aprendiz", label: "Aprendiz" },
             { value: "instructor", label: "Instructor" },
+            { value: "administrativo", label: "Administrativo" },
+            { value: "contratista", label: "Contratista" },
+            { value: "visitante", label: "Visitante" },
           ],
         },
         {
@@ -48,6 +51,9 @@ export function ConductoresToolbar({
             { value: "todos", label: "Todos los vehículos" },
             { value: "carro", label: "Con Carro" },
             { value: "moto", label: "Con Moto" },
+            { value: "bicicleta", label: "Con Bicicleta" },
+            { value: "camion", label: "Con Camión" },
+            { value: "bus", label: "Con Bus" },
           ],
         },
         {

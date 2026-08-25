@@ -63,7 +63,7 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 800, color: C.text }}>{pq.nombre}</div>
-                    <div style={{ fontSize: 10, color: C.textLight, marginBottom: 3 }}>Bloque {pq.bloque} · {celdasPq.length} celdas</div>
+                    <div style={{ fontSize: 10, color: C.textLight, marginBottom: 3 }}>{pq.zona || pq.ubicacion} · {celdasPq.length} celdas</div>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {Object.entries(TIPO_CELDA_CONFIG).map(([tipo, cfg]) => {
                         const total = celdasPq.filter(c => c.tipo === tipo).length;

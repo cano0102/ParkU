@@ -42,25 +42,12 @@ export const inputIconStyle: React.CSSProperties = {
   paddingLeft: 38,
 };
 
-export const TIPOS_USUARIO = ["visitante", "estudiante", "docente", "administrativo", "otro"] as const;
-export type TipoUsuarioForm = (typeof TIPOS_USUARIO)[number];
-export const TIPO_USUARIO_LABEL: Record<TipoUsuarioForm, string> = {
-  visitante: "Visitante",
-  estudiante: "Estudiante",
-  docente: "Docente",
-  administrativo: "Administrativo",
-  otro: "Otro",
-};
-
 export interface FormState {
   correo: string;
   password: string;
   nombre: string;
-  numero: string;
+  /** Id del Rol (string, p. ej. "1") — se convierte a rol_id numérico al guardar. */
   rol: string;
-  tipoUsuario: TipoUsuarioForm | "";
-  tipoDocumento: string;
-  identificacion: string;
   estado: "activo" | "inactivo";
 }
 
@@ -68,10 +55,6 @@ export const emptyForm = (): FormState => ({
   correo: "",
   password: "",
   nombre: "",
-  numero: "",
   rol: "",
-  tipoUsuario: "",
-  tipoDocumento: "CC",
-  identificacion: "",
   estado: "activo",
 });

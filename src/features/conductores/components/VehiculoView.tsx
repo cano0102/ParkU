@@ -105,10 +105,10 @@ export const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewPro
       <div style={{ padding: "1.4rem 1.8rem" }}>
         {[
           { label: "Marca", value: vehiculo.marca, icon: GaugeCircle },
-          { label: "Modelo", value: vehiculo.modelo, icon: GaugeCircle },
+          { label: "Línea", value: vehiculo.linea, icon: GaugeCircle },
           { label: "Color", value: vehiculo.color, icon: Palette },
-          { label: "Año", value: vehiculo.año, icon: Calendar },
-        ].map((item) => (
+          { label: "Año", value: vehiculo.modelo, icon: Calendar },
+        ].filter((item) => item.value).map((item) => (
           <div
             key={item.label}
             style={{

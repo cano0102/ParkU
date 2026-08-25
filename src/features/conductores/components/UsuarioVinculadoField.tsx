@@ -20,10 +20,10 @@ export function UsuarioVinculadoField({
   usuarioIdSeleccionado, usuarioSeleccionado, onSelectUsuario,
 }: UsuarioVinculadoFieldProps) {
   return (
-    <FormField label="Usuario vinculado *" error={error}>
+    <FormField label="Cuenta de acceso vinculada (opcional)" error={error}>
       <input
         type="text"
-        placeholder="Buscar por nombre, identificación o correo..."
+        placeholder="Buscar por nombre o correo..."
         value={usuarioSearch}
         onChange={(e) => onUsuarioSearchChange(e.target.value)}
         style={inputStyle}
@@ -64,8 +64,8 @@ export function UsuarioVinculadoField({
                   {u.nombre}
                 </p>
                 <p style={{ fontSize: 10, color: COLORS.textLight }}>
-                  {u.tipoDocumento} · {u.identificacion}
-                  {yaEsConductor ? " — ya es conductor" : ""}
+                  {u.correo}
+                  {yaEsConductor ? " — ya vinculado a otro conductor" : ""}
                 </p>
               </div>
               {selected && <ShieldCheck size={14} color={COLORS.primary} />}

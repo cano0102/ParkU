@@ -57,7 +57,8 @@ export function useParqueaderosData() {
   const addReserva = (data: Omit<Reserva, "id">) => createReservaMutation.mutate(data);
   const updateReserva = (id: string, data: Partial<Omit<Reserva, "id">>) =>
     updateReservaMutation.mutate({ id, data });
-  const addIncidente = (data: Omit<Incidente, "id">) => createIncidenteMutation.mutate(data);
+  const addIncidente = (data: Omit<Incidente, "id" | "fecha">) =>
+    createIncidenteMutation.mutate({ ...data, fecha: new Date().toISOString() });
 
   return {
     parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas,

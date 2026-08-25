@@ -1,8 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createAppBackends } from '@/test/appFakeApi';
 import { Roles } from './RolesPage';
 import { createTestQueryClient, withQueryClient } from '@/test/queryWrapper';
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 function renderRoles() {
   const client = createTestQueryClient();

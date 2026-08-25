@@ -1,6 +1,6 @@
 import { Car, Bike, Accessibility } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
-import type { Parqueadero } from "@/services/api/parqueaderos";
+import type { Parqueadero, TipoParqueadero, AccesoParqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Conductor } from "@/services/api/conductores";
 import {
@@ -20,14 +20,14 @@ export {
 ============================================================ */
 export interface FormParqueadero {
   nombre: string;
-  bloque: string;
-  tipo: string;
-  direccion: string;
+  ubicacion: string;
+  acceso: AccesoParqueadero;
+  tipo: TipoParqueadero;
+  capacidadMaxima: number;
   horaInicio: string;
   horaFin: string;
-  celdasCarros: number;
-  celdasMotos: number;
-  celdasMovilidadReducida: number;
+  zona: string;
+  piso: string;
   descripcion: string;
 }
 
@@ -42,9 +42,6 @@ export interface VehiculoForm {
 
 export interface IncidenteForm {
   descripcion: string;
-  asignadoA: string;
-  notasResolucion: string;
-  evidencia: string; // base64 o URL de objeto
 }
 
 export interface CeldaPos extends Celda { x: number; y: number; }
@@ -63,6 +60,7 @@ export const CELDA_CONFIG = {
   no_disponible: { bg:"#1A1A1A", border:"#EF4444", text:"#ffffff", label:"Ocupado",       dotColor:"#EF4444", mapFill:"#2c1414", mapStroke:"#EF4444" },
   reservada:     { bg:"#FFFBEB", border:"#FCD34D", text:"#78350F", label:"Reservada",     dotColor:"#F59E0B", mapFill:"#332a10", mapStroke:"#F59E0B" },
   mantenimiento: { bg:"#F1F5F9", border:"#94A3B8", text:"#334155", label:"Mantenimiento", dotColor:"#94A3B8", mapFill:"#23262b", mapStroke:"#94A3B8" },
+  inactiva:      { bg:"#F1F5F9", border:"#CBD5E1", text:"#475569", label:"Inactiva",      dotColor:"#94A3B8", mapFill:"#1c1f24", mapStroke:"#64748B" },
 } as const;
 
 /* Configuración visual por TIPO DE VEHÍCULO de la celda (carro / moto / movilidad reducida).
@@ -96,9 +94,10 @@ export const TIPO_CELDA_CONFIG = {
 } as const;
 
 export const getTipoCeldaConfig = (tipo: string) =>
-  (TIPO_CELDA_CONFIG as Record<string, typeof TIPO_CELDA_CONFIG["carro"]>)[tipo] || TIPO_CELDA_CONFIG.carro;
+  (TIPO_CELDA_CONFIG as unknown as Record<string, typeof TIPO_CELDA_CONFIG["carro"]>)[tipo] || TIPO_CELDA_CONFIG.carro;
 
-export const TIPOS_PARQUEADERO = ["general","motos","visitantes","docentes","administrativos"] as const;
+export const TIPOS_PARQUEADERO: TipoParqueadero[] = ["general", "docentes", "administrativos", "aprendices", "visitantes", "motos", "vehiculo_sena"];
+export const ACCESOS_PARQUEADERO: AccesoParqueadero[] = ["regional", "avenida_boyaca"];
 export const capitalizar = (s:string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const CONDUCTORES_SUGERIDOS = [
@@ -184,29 +183,23 @@ export const formatearDuracion=(iso:string)=>{
    VALIDACIÓN DEL FORMULARIO DE PARQUEADERO (crear / editar)
 ============================================================ */
 export const NOMBRE_PQ_MAX = 60;
-export const BLOQUE_PQ_MAX = 15;
-export const DIRECCION_PQ_MAX = 120;
+export const UBICACION_PQ_MAX = 120;
 export const DESCRIPCION_PQ_MAX = 200;
-/* Letras (con tildes/ñ), números, espacios y guiones; debe empezar con letra o número. */
-export const BLOQUE_PQ_REGEX = /^[A-Za-zÀ-ÿ0-9][A-Za-zÀ-ÿ0-9\s-]*$/;
 
 /** Valida el formulario de creación/edición de un parqueadero.
  *  `excludeId` es el id del parqueadero que se está editando (para no chocar consigo mismo),
  *  o null cuando se está creando uno nuevo. Devuelve el mensaje de error o null si es válido. */
 export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parqueadero[], excludeId: string | null): string | null {
   const nombre = normalizarTexto(form.nombre, NOMBRE_PQ_MAX);
-  const bloque = form.bloque.trim();
+  const ubicacion = form.ubicacion.trim();
   if (!nombre) return "El nombre es obligatorio.";
   if (nombre.length < 3) return "El nombre debe tener al menos 3 caracteres.";
-  if (!bloque) return "El bloque es obligatorio.";
-  if (bloque.length > BLOQUE_PQ_MAX || !BLOQUE_PQ_REGEX.test(bloque)) return "El bloque solo puede tener letras, números, espacios y guiones (máx. 15 caracteres).";
+  if (!ubicacion) return "La ubicación es obligatoria.";
   if (parqueaderos.some(p => p.id !== excludeId && p.nombre.trim().toLowerCase() === nombre.toLowerCase())) return `Ya existe un parqueadero llamado "${nombre}".`;
-  if (parqueaderos.some(p => p.id !== excludeId && p.bloque.trim().toLowerCase() === bloque.toLowerCase())) return `Ya existe el bloque "${bloque}".`;
   if (!form.horaInicio || !form.horaFin) return "Debes definir la hora de apertura y de cierre.";
   if (horaAMinutos(form.horaFin) <= horaAMinutos(form.horaInicio)) return "La hora de cierre debe ser posterior a la hora de apertura.";
-  const capacidad = form.celdasCarros + form.celdasMotos + form.celdasMovilidadReducida;
-  if (capacidad <= 0) return "Debe definir al menos una celda (carro, moto o movilidad reducida).";
-  if (form.direccion.trim().length > DIRECCION_PQ_MAX) return `La dirección no puede superar ${DIRECCION_PQ_MAX} caracteres.`;
+  if (form.capacidadMaxima <= 0) return "La capacidad máxima debe ser mayor a cero.";
+  if (ubicacion.length > UBICACION_PQ_MAX) return `La ubicación no puede superar ${UBICACION_PQ_MAX} caracteres.`;
   if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
   return null;
 }

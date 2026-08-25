@@ -1,5 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { theme } from "@/styles/theme";
+import { nombreDeRol } from "@/services/core/roles";
 import { useMainLayoutState } from "./hooks/useMainLayoutState";
 import { mainLayoutStyles } from "./lib/styles";
 import { SIDEBAR_GRADIENT } from "./lib/sidebarTheme";
@@ -41,7 +42,7 @@ export function MainLayout() {
             grouped={s.grouped}
             activePath={s.location.pathname}
             userName={s.user?.nombre}
-            userRol={s.user?.rol}
+            userRol={s.user ? nombreDeRol(s.user.rol) : undefined}
             onLogout={s.handleLogout}
           />
         </aside>
@@ -76,7 +77,7 @@ export function MainLayout() {
               grouped={s.grouped}
               activePath={s.location.pathname}
               userName={s.user?.nombre}
-              userRol={s.user?.rol}
+              userRol={s.user ? nombreDeRol(s.user.rol) : undefined}
               onLogout={s.handleLogout}
             />
           </aside>

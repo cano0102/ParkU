@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { createAppBackends } from '@/test/appFakeApi';
 import { Incidentes } from './IncidentesPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 function renderIncidentes(client = createTestQueryClient()) {
   return render(

@@ -1,4 +1,4 @@
-import { AlertTriangle, Car, CheckCircle, Clock, Edit, Eye, Image as ImageIcon, MapPin, Trash2, User } from "lucide-react";
+import { AlertTriangle, Car, CheckCircle, Clock, Edit, Eye, MapPin, Trash2, User } from "lucide-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
@@ -10,6 +10,8 @@ const C = theme;
 interface IncidenteCardProps {
   incidente: Incidente;
   celda: Celda | undefined;
+  vehiculoPlaca?: string;
+  asignadoNombre?: string;
   nombreParqueadero: string;
   onView: () => void;
   onEdit: () => void;
@@ -18,7 +20,7 @@ interface IncidenteCardProps {
 }
 
 /** Tarjeta de un incidente en el grid: resumen, ubicación y acciones rápidas. */
-export function IncidenteCard({ incidente, celda, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidenteCardProps) {
+export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidenteCardProps) {
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
 
@@ -55,15 +57,6 @@ export function IncidenteCard({ incidente, celda, nombreParqueadero, onView, onE
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               <EstadoBadgeInline estado={incidente.estado} />
               {celda && <CeldaBadgeInline numero={celda.numero} estado={celda.estado} />}
-              {incidente.evidencia && (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 4,
-                  padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 700,
-                  background: "#F1F5F9", color: C.textLight,
-                }}>
-                  <ImageIcon size={10} /> Evidencia
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -76,16 +69,16 @@ export function IncidenteCard({ incidente, celda, nombreParqueadero, onView, onE
               {celda && <> · Celda <strong>{celda.numero}</strong></>}
             </span>
           </div>
-          {incidente.vehiculo && (
+          {vehiculoPlaca && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
               <Car size={12} color={C.textLight} />
-              <span>{incidente.vehiculo}</span>
+              <span>{vehiculoPlaca}</span>
             </div>
           )}
-          {incidente.asignadoA && (
+          {asignadoNombre && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
               <User size={12} color={C.textLight} />
-              <span>{incidente.asignadoA}</span>
+              <span>{asignadoNombre}</span>
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: C.textLight }}>

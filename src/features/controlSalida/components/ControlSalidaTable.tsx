@@ -3,7 +3,7 @@ import { theme } from "@/styles/theme";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Celda } from "@/services/api/celdas";
-import type { Usuario } from "@/services/api/usuarios";
+import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ControlSalidaRow, controlSalidaGridColumns } from "./ControlSalidaRow";
 import { ControlSalidaPagination } from "./ControlSalidaPagination";
@@ -18,7 +18,7 @@ interface ControlSalidaTableProps {
   onPageChange: (updater: (page: number) => number) => void;
   getVehiculo: (id: string) => Vehiculo | undefined;
   getCelda: (id: string) => Celda | undefined;
-  getUsuarioConductor: (vehiculoId: string) => Usuario | null | undefined;
+  getUsuarioConductor: (vehiculoId: string) => Conductor | null | undefined;
   getParqueadero: (id: string) => Parqueadero | undefined;
   onDelete: (control: ControlSalida) => void;
 }

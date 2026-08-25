@@ -3,7 +3,7 @@ import { theme } from "@/styles/theme";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Celda } from "@/services/api/celdas";
-import type { Usuario } from "@/services/api/usuarios";
+import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { formatDateTime, getTiempoEstadia, isSameDay } from "../lib/helpers";
 
@@ -15,7 +15,7 @@ interface ControlSalidaRowProps {
   control: ControlSalida;
   vehiculo: Vehiculo | undefined;
   celda: Celda | undefined;
-  usuario: Usuario | null | undefined;
+  usuario: Conductor | null | undefined;
   parqueadero: Parqueadero | null | undefined;
   onDelete: (control: ControlSalida) => void;
 }
@@ -43,7 +43,7 @@ export function ControlSalidaRow({ control, vehiculo, celda, usuario, parqueader
       <div>
         <span className="cell-label">Conductor</span>
         <div style={{ fontWeight: 600, color: COLORS.text }}>{usuario?.nombre || "—"}</div>
-        <div style={{ fontSize: 10, color: COLORS.textLight }}>{usuario?.identificacion || ""}</div>
+        <div style={{ fontSize: 10, color: COLORS.textLight }}>{usuario?.numeroDocumento || ""}</div>
       </div>
 
       <div>

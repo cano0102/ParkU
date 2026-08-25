@@ -132,7 +132,7 @@ export const SmartAssignModal = memo(({ open, parqueaderos, celdas, onClose, onA
             <div style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5, marginBottom: 8 }}>Asignación Sugerida</div>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
               <div style={{ width: 40, height: 40, borderRadius: 10, background: getTipoCeldaConfig(recomendacion.celda.tipo).accentSoft, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "monospace", fontWeight: 900, fontSize: 13, color: getTipoCeldaConfig(recomendacion.celda.tipo).accentDark }}>{recomendacion.celda.numero}</div>
-              <div><div style={{ fontWeight: 800, color: C.text, fontSize: 13 }}>{recomendacion.pq.nombre}</div><div style={{ fontSize: 10, color: C.textLight }}>{capitalizar(recomendacion.pq.tipo)} · Bloque {recomendacion.pq.bloque}</div></div>
+              <div><div style={{ fontWeight: 800, color: C.text, fontSize: 13 }}>{recomendacion.pq.nombre}</div><div style={{ fontSize: 10, color: C.textLight }}>{capitalizar(recomendacion.pq.tipo)} · {recomendacion.pq.zona || recomendacion.pq.ubicacion}</div></div>
             </div>
             <div style={{ padding: "8px 10px", borderRadius: 9, background: "#fff", border: `1px solid ${C.border}`, fontSize: 11, color: C.textLight }}>💡 {recomendacion.motivo}</div>
           </div>

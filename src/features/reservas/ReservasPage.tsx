@@ -40,7 +40,7 @@ export function Reservas() {
           totalReservas={p.reservas.length}
           getVehiculo={p.getVehiculo}
           getCelda={p.getCelda}
-          getUsuarioConductor={p.getUsuarioConductor}
+          getConductorReserva={p.getConductorReserva}
           getParqueadero={p.getParqueadero}
           onView={(reserva) => { p.setViewingReserva(reserva); p.setViewOpen(true); }}
           onDelete={p.handleDelete}
@@ -55,7 +55,7 @@ export function Reservas() {
               reserva={p.viewingReserva}
               vehiculo={p.getVehiculo(p.viewingReserva.vehiculoId)}
               celda={celda}
-              usuario={p.getUsuarioConductor(p.viewingReserva.vehiculoId)}
+              usuario={p.getConductorReserva(p.viewingReserva)}
               parqueadero={celda ? p.getParqueadero(celda.parqueaderoId) : undefined}
               onClose={() => p.setViewOpen(false)}
             />

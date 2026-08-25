@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
-import type { Conductor } from "@/services/api/conductores";
 import {
   type VehiculoForm,
   normalizarTexto, validarPlacaColombiana, validarPlacaPorTipo, validarNombreConductor, tipoVehiculoDesdePlaca,
@@ -12,45 +11,37 @@ import type { ModalKind } from "./useModalController";
 
 const emptyVehiculoForm = (esOficial = false): VehiculoForm => ({ placa: "", conductor: "", esOficial, marca: "", modelo: "", color: "" });
 
-function tipoConductorDesdeParqueadero(tipoPq: string): Conductor["tipo"] {
-  if (tipoPq === "docentes") return "docente";
-  if (tipoPq === "administrativos") return "administrativo";
-  return "visitante";
-}
-
 /** Formulario de registro/estacionamiento de un vehículo en una celda: identificación de
- * conductor/vehículo (con autocompletado), validación en vivo y el registro final. */
+ * conductor/vehículo (con autocompletado), validación en vivo y el registro final.
+ *
+ * A diferencia del mock, ya no crea un Conductor nuevo con solo un nombre: la API real exige
+ * documento y tipo de usuario para un Conductor (ver services/api/conductores.ts), datos que
+ * este formulario de portería no recoge. Si el nombre escrito no coincide con un conductor ya
+ * registrado, el ingreso se registra igual pero sin conductor vinculado (el vigilante puede
+ * completar la ficha después desde Conductores). */
 export function useIngresoVehiculo(
   data: ParqueaderosData,
   celdaActiva: Celda | null,
   parqueaderoActivo: Parqueadero | null,
   setOpenModal: (m: ModalKind) => void
 ) {
-  const { conductores, vehiculos, controlesSalida, reservas, addConductor, addVehiculo, addControlSalida, updateCelda, updateReserva } = data;
+  const { conductores, vehiculos, controlesSalida, reservas, addVehiculo, addControlSalida, updateCelda, updateReserva } = data;
 
   const [vehiculoForm, setVehiculoForm] = useState<VehiculoForm>(emptyVehiculoForm());
   const [placaError, setPlacaError] = useState<string | null>(null);
 
-  const resolverConductor = async (nombre: string, tipo: Conductor["tipo"]): Promise<string> => {
-    const existente = conductores.find((c) => c.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
-    if (existente) return existente.id;
-    return addConductor({
-      usuarioId: "", nombre, tipoConductor: "aprendiz", centroFormacion: "",
-      discapacidad: false, estado: "activo", tipo, email: "",
-    });
-  };
-
   const resolverVehiculo = async (
-    placa: string, conductorId: string, tipo: "carro" | "moto", parqueaderoId: string, celdaId: string,
-    fechaEntrada: string, datosVehiculo?: { marca?: string; modelo?: string; color?: string }
+    placa: string, conductorId: string, tipo: "carro" | "moto",
+    datosVehiculo?: { marca?: string; modelo?: string; color?: string }
   ): Promise<string> => {
     const existente = vehiculos.find((v) => v.placa === placa);
     if (existente) return existente.id;
+    const modeloAnio = Number(datosVehiculo?.modelo);
     return addVehiculo({
-      conductorId, placa, tipo,
-      marca: datosVehiculo?.marca?.trim() || "", modelo: datosVehiculo?.modelo?.trim() || "",
-      año: new Date().getFullYear(), color: datosVehiculo?.color?.trim() || "",
-      descripcion: "", estado: "activo", parqueaderoId, celdaId, fechaEntrada,
+      conductorId, conductorNombre: "", placa, tipo,
+      marca: datosVehiculo?.marca?.trim() || "", linea: "",
+      modelo: Number.isFinite(modeloAnio) && modeloAnio > 0 ? modeloAnio : null,
+      color: datosVehiculo?.color?.trim() || "", descripcion: "", estado: "activo",
     });
   };
 
@@ -82,16 +73,15 @@ export function useIngresoVehiculo(
     const yaActivo = controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find((v) => v.id === cs.vehiculoId)?.placa === placa);
     if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
 
-    const tipoConductor = tipoConductorDesdeParqueadero(pq?.tipo || "");
-    const conductorId = await resolverConductor(conductorNombre, tipoConductor);
+    const conductorId = conductorExistente?.id ?? "";
     const fechaEntrada = new Date().toISOString().slice(0, 16);
     const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
-    const vehiculoId = await resolverVehiculo(placa, conductorId, vehiculoTipo, celda.parqueaderoId, celda.id, fechaEntrada, datosVehiculo);
+    const vehiculoId = await resolverVehiculo(placa, conductorId, vehiculoTipo, datosVehiculo);
 
     const reservaPendiente = reservas.find((r) => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
     if (reservaPendiente) updateReserva(reservaPendiente.id, { estado: "completada" });
 
-    addControlSalida({ vehiculoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
+    addControlSalida({ vehiculoId, conductorId, parqueaderoId: celda.parqueaderoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
     updateCelda(celda.id, { estado: "no_disponible", ocupada: true });
     toast.success(`Vehículo ${placa} registrado.`);
     return true;
@@ -165,7 +155,7 @@ export function useIngresoVehiculo(
      (o, si ya es un conductor real identificado —por placa o por nombre exacto—, ese nombre ya
      es válido de por sí, aunque no cumpla el formato "nombre apellido" del validador genérico:
      el módulo Conductores permite nombres como "Carlos López M.", con inicial abreviada). */
-  const ingresoPlacaOk = celdaActiva ? validarPlacaPorTipo(vehiculoForm.placa, celdaActiva.tipo) : false;
+  const ingresoPlacaOk = celdaActiva ? validarPlacaPorTipo(vehiculoForm.placa, celdaActiva.tipo === "moto" ? "moto" : "carro") : false;
   // "Inactivo" debe bloquear de verdad: un conductor desactivado no es un nombre válido
   // para registrar, aunque el resto de su ficha (placa, nombre) sea correcto.
   const ingresoConductorOk = conductorIdentificado

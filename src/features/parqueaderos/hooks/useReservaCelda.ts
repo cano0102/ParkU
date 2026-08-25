@@ -1,14 +1,13 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import type { Celda } from "@/services/api/celdas";
-import type { Vehiculo } from "@/services/api/vehiculos";
 import { ReservaFormState } from "../components/modals/ReservaModal";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
-  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "addReserva" | "updateReserva" | "updateCelda" | "updateVehiculo">,
+  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "addReserva" | "updateReserva" | "updateCelda">,
   celdaActiva: Celda | null,
   getOcupante: (celdaId: string) => { controlId: string } | null,
   updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => void,
@@ -72,8 +71,18 @@ export function useReservaCelda(
         return;
       }
 
-      const { parqueaderoId, ...payload } = reservaForm;
-      data.addReserva({ ...payload, estado: "activa" });
+      const vehiculoReservado = data.vehiculos.find((v) => v.id === reservaForm.vehiculoId);
+      data.addReserva({
+        tipoReserva: "visitante",
+        vehiculoId: reservaForm.vehiculoId,
+        celdaId: reservaForm.celdaId,
+        conductorId: vehiculoReservado?.conductorId ?? "",
+        motivo: "",
+        fechaReserva: reservaForm.fechaReserva,
+        horaInicio: reservaForm.horaInicio,
+        horaFin: reservaForm.horaFin,
+        estado: "pendiente",
+      });
       data.updateCelda(reservaForm.celdaId, { estado: "reservada" });
       toast.success(`Reserva creada para la celda ${celdaActiva?.numero}`);
       setOpenModal(null);
@@ -99,12 +108,6 @@ export function useReservaCelda(
     const ocupante = getOcupante(celdaActiva.id);
     if (ocupante && ocupante.controlId) {
       updateControlSalida(ocupante.controlId, { fechaSalida: new Date().toISOString().slice(0, 16), estado: "finalizado" });
-    }
-    const vehiculoEnCelda: Vehiculo | undefined = data.vehiculos.find((v) => v.celdaId === celdaActiva.id);
-    if (vehiculoEnCelda) {
-      // Limpia la referencia para que la celda liberada no siga apareciendo
-      // como "ocupada" por este vehículo (getOcupante la usa como fallback).
-      data.updateVehiculo(vehiculoEnCelda.id, { celdaId: "" });
     }
     data.updateCelda(celdaActiva.id, { estado: "disponible", ocupada: false });
     toast.info(`Celda ${celdaActiva.numero} liberada.`);

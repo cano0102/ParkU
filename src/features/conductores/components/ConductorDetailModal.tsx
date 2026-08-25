@@ -3,7 +3,7 @@ import { Pencil, X, Mail, Phone, IdCard, Building2, Accessibility, Car } from "l
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
 
 interface ConductorDetailModalProps {
   conductor: Conductor;
@@ -16,14 +16,14 @@ interface ConductorDetailModalProps {
 
 export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdit, onViewVehiculo, onClose }: ConductorDetailModalProps) => {
   const [g1, g2] = getAvatarGradient(conductor.nombre);
-  const tipoStyle = getTipoStyle(conductor.tipoConductor);
+  const tipoStyle = getTipoUsuarioStyle(conductor.tipoUsuarioNombre);
   const TipoIcon = tipoStyle.icon;
   const activo = conductor.estado === "activo";
 
   const filas = [
-    { label: "Correo", value: usuario?.correo, icon: Mail },
-    { label: "Teléfono", value: usuario?.numero, icon: Phone },
-    { label: "Documento", value: usuario ? `${usuario.tipoDocumento} · ${usuario.identificacion}` : undefined, icon: IdCard },
+    { label: "Correo", value: conductor.correo || usuario?.correo, icon: Mail },
+    { label: "Teléfono", value: conductor.numeroTelefonico, icon: Phone },
+    { label: "Documento", value: `${conductor.tipoDocumento} · ${conductor.numeroDocumento}`, icon: IdCard },
     { label: "Centro de formación", value: conductor.centroFormacion, icon: Building2 },
   ].filter((f) => f.value);
 
@@ -97,10 +97,10 @@ export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdi
             <span style={{ padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800, background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)" }}>
               {activo ? "Activo" : "Inactivo"}
             </span>
-            {conductor.discapacidad && (
+            {conductor.movilidadReducida && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800, background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)" }}>
                 <Accessibility size={11} />
-                {conductor.tipoDiscapacidad ? sanitizeText(conductor.tipoDiscapacidad) : "Discapacidad"}
+                {conductor.tipoDiscapacidad ? sanitizeText(conductor.tipoDiscapacidad) : "Movilidad reducida"}
               </span>
             )}
           </div>

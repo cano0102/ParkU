@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParqueaderos, useCeldas, useMovimientos } from "@/features/parqueaderos";
+import { useParqueaderos, useCeldas } from "@/features/parqueaderos";
+import { useControlSalida } from "@/features/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
 import { useIncidentes } from "@/features/incidentes";
 import { useReservas } from "@/features/reservas";
@@ -15,7 +16,10 @@ export function useDashboardData() {
 
   const { data: parqueaderos = [] } = useParqueaderos();
   const { data: celdas = [] } = useCeldas();
-  const { data: movimientos = [] } = useMovimientos();
+  // Solo Admin/Vigilante pueden leer /api/entradas-salidas — para un Conductor
+  // esta query falla (403) y queda en `[]`, así que los paneles de movimientos
+  // simplemente se ven vacíos en vez de romper el resto del Dashboard.
+  const { data: controlesSalida = [] } = useControlSalida();
   const { data: vehiculos = [] } = useVehiculos();
   const { data: conductores = [] } = useConductores();
   const { data: incidentes = [] } = useIncidentes();
@@ -28,18 +32,20 @@ export function useDashboardData() {
       const ocupadas = celdasDelPQ.filter((c) => c.estado === "no_disponible").length;
       const reservadas = celdasDelPQ.filter((c) => c.estado === "reservada").length;
       const mantenimiento = celdasDelPQ.filter((c) => c.estado === "mantenimiento").length;
+      const carros = celdasDelPQ.filter((c) => c.tipo === "carro").length;
+      const motos = celdasDelPQ.filter((c) => c.tipo === "moto").length;
 
       let tipo: ParkingLot["type"] = "mixed";
-      if (pq.celdasMotos === 0) tipo = "car";
-      else if (pq.celdasCarros === 0) tipo = "moto";
+      if (motos === 0) tipo = "car";
+      else if (carros === 0) tipo = "moto";
 
       return {
         id: pq.id,
         name: pq.nombre,
-        block: pq.bloque,
+        block: pq.zona || pq.ubicacion,
         type: tipo,
         status: pq.estado === "activo" ? "activo" : "mantenimiento",
-        capacity: pq.capacidad || celdasDelPQ.length || 1,
+        capacity: pq.capacidadMaxima || celdasDelPQ.length || 1,
         occupied: ocupadas,
         reserved: reservadas,
         maintenance: mantenimiento,
@@ -47,21 +53,39 @@ export function useDashboardData() {
     });
   }, [parqueaderos, celdas]);
 
-  // Movimientos reales (derivados de controles de salida en el contexto)
+  // Movimientos reales: cada registro de entrada/salida genera un movimiento "entrada"
+  // (fecha de ingreso) y, si ya salió, uno más de "salida" (fecha de salida) — ya no hay
+  // un endpoint/tabla "movimientos" separado, se deriva directo de entradas-salidas.
   const movements = useMemo<Movement[]>(() => {
-    return movimientos.slice(0, 10).map((m) => {
-      const vehiculo = vehiculos.find((v) => v.placa === m.placa);
-      return {
-        id: m.id,
-        plate: m.placa,
-        driver: m.conductorNombre,
-        lotId: m.parqueaderoId,
-        kind: m.tipo,
+    const items: (Movement & { orden: string })[] = [];
+    for (const cs of controlesSalida) {
+      const vehiculo = vehiculos.find((v) => v.id === cs.vehiculoId);
+      const conductor = conductores.find((c) => c.id === (cs.conductorId || vehiculo?.conductorId));
+      items.push({
+        id: `${cs.id}-entrada`,
+        plate: vehiculo?.placa ?? "",
+        driver: conductor?.nombre ?? vehiculo?.conductorNombre ?? "",
+        lotId: cs.parqueaderoId,
+        kind: "entrada",
         vehicle: vehiculo?.tipo === "moto" ? "Moto" : "Automovil",
-        fecha: m.fecha,
-      };
-    });
-  }, [movimientos, vehiculos]);
+        fecha: cs.fechaEntrada,
+        orden: cs.fechaEntrada,
+      });
+      if (cs.fechaSalida) {
+        items.push({
+          id: `${cs.id}-salida`,
+          plate: vehiculo?.placa ?? "",
+          driver: conductor?.nombre ?? vehiculo?.conductorNombre ?? "",
+          lotId: cs.parqueaderoId,
+          kind: "salida",
+          vehicle: vehiculo?.tipo === "moto" ? "Moto" : "Automovil",
+          fecha: cs.fechaSalida,
+          orden: cs.fechaSalida,
+        });
+      }
+    }
+    return items.sort((a, b) => b.orden.localeCompare(a.orden)).slice(0, 10);
+  }, [controlesSalida, vehiculos, conductores]);
 
   useEffect(() => {
     if (lots.length > 0 && !selectedId) {
@@ -142,8 +166,8 @@ export function useDashboardData() {
   }, [vehiculosActivos]);
 
   const conductorDistribution = useMemo(() => {
-    const aprendices = conductoresActivos.filter((c) => c.tipoConductor === "aprendiz").length;
-    const instructores = conductoresActivos.filter((c) => c.tipoConductor === "instructor").length;
+    const aprendices = conductoresActivos.filter((c) => c.tipoUsuarioNombre.toLowerCase() === "aprendiz").length;
+    const instructores = conductoresActivos.filter((c) => c.tipoUsuarioNombre.toLowerCase() === "instructor").length;
     return [
       { label: "Aprendices", value: aprendices, color: COLORS.primary },
       { label: "Instructores", value: instructores, color: COLORS.blue },
@@ -151,9 +175,9 @@ export function useDashboardData() {
   }, [conductoresActivos]);
 
   const accessibility = useMemo(() => {
-    const celdasMR = celdas.filter((c) => c.tipo === "movilidad reducida");
+    const celdasMR = celdas.filter((c) => c.usabilidad === "movilidad_reducida");
     const disponiblesMR = celdasMR.filter((c) => c.estado === "disponible").length;
-    const conductoresDiscapacidad = conductores.filter((c) => c.discapacidad).length;
+    const conductoresDiscapacidad = conductores.filter((c) => c.movilidadReducida).length;
     return { totalMR: celdasMR.length, disponiblesMR, conductoresDiscapacidad };
   }, [celdas, conductores]);
 

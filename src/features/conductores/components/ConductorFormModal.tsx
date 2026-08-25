@@ -48,7 +48,7 @@ export function ConductorFormModal({
         </div>
         <div style={{ padding: "0.85rem 1.1rem", display: "flex", flexDirection: "column", gap: 9 }}>
           <UsuarioVinculadoField
-            error={touched.usuarioId ? formErrors.usuarioId : undefined}
+            error={undefined}
             usuarioSearch={usuarioSearch}
             onUsuarioSearchChange={setUsuarioSearch}
             usuariosFiltrados={usuariosFiltrados}
@@ -63,20 +63,18 @@ export function ConductorFormModal({
 
           <DatosConductorFields
             isEdit={isEdit}
-            tipoConductor={formData.tipoConductor}
-            centroFormacion={formData.centroFormacion}
-            centroFormacionError={touched.centroFormacion ? formErrors.centroFormacion : undefined}
-            estado={formData.estado}
-            onTipoConductorChange={(tipo) => setFormData({ ...formData, tipoConductor: tipo })}
-            onCentroFormacionChange={(v) => setFormData({ ...formData, centroFormacion: v })}
-            onCentroFormacionBlur={() => markTouched("centroFormacion")}
+            form={formData}
+            errors={formErrors}
+            touched={touched}
+            onChange={(patch) => setFormData({ ...formData, ...patch })}
+            onBlur={markTouched}
             onToggleEstado={() => setFormData({ ...formData, estado: formData.estado === "activo" ? "inactivo" : "activo" })}
           />
 
           <DiscapacidadFields
-            discapacidad={formData.discapacidad}
+            discapacidad={formData.movilidadReducida}
             tipoDiscapacidad={formData.tipoDiscapacidad}
-            onToggleDiscapacidad={() => setFormData({ ...formData, discapacidad: !formData.discapacidad })}
+            onToggleDiscapacidad={() => setFormData({ ...formData, movilidadReducida: !formData.movilidadReducida })}
             onTipoDiscapacidadChange={(v) => setFormData({ ...formData, tipoDiscapacidad: v })}
           />
         </div>

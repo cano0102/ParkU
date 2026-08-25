@@ -3,7 +3,7 @@ import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Celda } from "@/services/api/celdas";
-import type { Usuario } from "@/services/api/usuarios";
+import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ESTADO_CONFIG, todayStr } from "../lib/constants";
 
@@ -15,7 +15,7 @@ interface ReservaRowProps {
   reserva: Reserva;
   vehiculo: Vehiculo | undefined;
   celda: Celda | undefined;
-  usuario: Usuario | null | undefined;
+  usuario: Conductor | null | undefined;
   parqueadero: Parqueadero | undefined;
   onView: () => void;
   onDelete: () => void;
@@ -24,7 +24,7 @@ interface ReservaRowProps {
 /** Una fila de la tabla de reservas: vehículo, conductor, ubicación, horario, fecha, estado y acciones. */
 export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, onView, onDelete }: ReservaRowProps) {
   const cfg = ESTADO_CONFIG[reserva.estado];
-  const esPasada = reserva.fechaReserva < todayStr() && reserva.estado !== "completada" && reserva.estado !== "cancelada";
+  const esPasada = reserva.fechaReserva < todayStr() && !["completada", "cancelada", "rechazada"].includes(reserva.estado);
 
   return (
     <div
@@ -52,7 +52,7 @@ export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, onV
         {usuario ? (
           <>
             <div style={{ fontWeight: 600, color: C.text }}>{usuario.nombre}</div>
-            <div style={{ fontSize: 10, color: C.textLight }}>{usuario.identificacion}</div>
+            <div style={{ fontSize: 10, color: C.textLight }}>{usuario.numeroDocumento}</div>
           </>
         ) : (
           <span style={{ color: C.textLight, fontSize: 11 }}>Sin conductor</span>

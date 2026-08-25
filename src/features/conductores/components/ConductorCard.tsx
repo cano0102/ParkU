@@ -4,13 +4,13 @@ import type { DataListColumn } from "@/components/data";
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
 
 /**
  * Antes ConductoresGrid.tsx y ConductoresList.tsx: el layout de cuadrícula y
  * de lista ahora viven en components/data/ (DataGrid, DataList) — lo que
  * queda aquí es solo el contenido de cada tarjeta/fila, específico de este
- * dominio (bloque de placas, tipo de conductor, discapacidad, etc.).
+ * dominio (bloque de placas, tipo de usuario, movilidad reducida, etc.).
  */
 export interface ConductorCardHandlers {
   getUsuario: (id: string) => Usuario | undefined;
@@ -22,14 +22,12 @@ export interface ConductorCardHandlers {
 }
 
 export function renderConductorCard(conductor: Conductor, handlers: ConductorCardHandlers): ReactNode {
-  const { getUsuario, getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit } = handlers;
-  const usuario = getUsuario(conductor.usuarioId);
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit } = handlers;
   const vehiculosCond = getVehiculosConductor(conductor.id);
-  if (!usuario) return null;
 
   const [g1, g2] = getAvatarGradient(conductor.nombre);
   const initials = getInitials(conductor.nombre);
-  const tipoStyle = getTipoStyle(conductor.tipoConductor);
+  const tipoStyle = getTipoUsuarioStyle(conductor.tipoUsuarioNombre);
   const activo = conductor.estado === "activo";
   const TipoIcon = tipoStyle.icon;
   const vehiculoPrincipal = vehiculosCond[0];
@@ -47,7 +45,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
         <div className="card-identity">
           <p className="card-name">{sanitizeText(conductor.nombre)}</p>
           <p className="card-doc">
-            {usuario.tipoDocumento} · {usuario.identificacion}
+            {conductor.tipoDocumento} · {conductor.numeroDocumento}
           </p>
         </div>
 
@@ -67,10 +65,10 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
           {tipoStyle.label}
         </span>
         <span className={`status-badge ${activo ? "active" : "inactive"}`}>{conductor.estado}</span>
-        {conductor.discapacidad && (
+        {conductor.movilidadReducida && (
           <span className="card-tag" style={{ background: "#F3E8FF", color: "#9333EA" }}>
             <Accessibility size={10} />
-            Discapacidad
+            Movilidad reducida
           </span>
         )}
       </div>
@@ -84,7 +82,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
         <div className="plate-block has-plate" onClick={() => onViewVehiculo(vehiculoPrincipal)} style={{ cursor: "pointer" }}>
           <span className="plate-chip">{vehiculoPrincipal.placa}</span>
           <span className="plate-meta">
-            {vehiculoPrincipal.marca} {vehiculoPrincipal.modelo}
+            {vehiculoPrincipal.marca} {vehiculoPrincipal.modelo ?? ""}
           </span>
           <vTipoStyle.icon size={15} color={vTipoStyle.dot} style={{ flexShrink: 0 }} />
         </div>
@@ -97,7 +95,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
               <div key={v.id} className="plate-row" onClick={() => onViewVehiculo(v)}>
                 <span className="plate-chip">{v.placa}</span>
                 <span className="plate-meta">
-                  {v.marca} {v.modelo}
+                  {v.marca} {v.modelo ?? ""}
                 </span>
                 <VIcon size={13} color={vStyle.dot} style={{ flexShrink: 0 }} />
               </div>
@@ -139,14 +137,13 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
 }
 
 export function getConductorColumns(handlers: ConductorCardHandlers): DataListColumn<Conductor>[] {
-  const { getUsuario, getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit } = handlers;
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit } = handlers;
 
   return [
     {
       header: "Conductor",
       width: "2fr",
       render: (conductor) => {
-        const usuario = getUsuario(conductor.usuarioId);
         const [g1, g2] = getAvatarGradient(conductor.nombre);
         const initials = getInitials(conductor.nombre);
         return (
@@ -166,7 +163,7 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
                 {sanitizeText(conductor.nombre)}
               </p>
               <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1 }}>
-                {usuario?.tipoDocumento} · {usuario?.identificacion}
+                {conductor.tipoDocumento} · {conductor.numeroDocumento}
               </p>
             </div>
           </div>
@@ -221,7 +218,7 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
       header: "Tipo",
       width: "0.9fr",
       render: (conductor) => {
-        const tipoStyle = getTipoStyle(conductor.tipoConductor);
+        const tipoStyle = getTipoUsuarioStyle(conductor.tipoUsuarioNombre);
         const TipoIcon = tipoStyle.icon;
         return (
           <span

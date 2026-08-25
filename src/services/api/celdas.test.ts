@@ -1,20 +1,26 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { createFakeRestBackend } from '../../test/fakeApi';
+import { describeCrudContract } from '../../test/crudContract';
 import * as celdas from './celdas';
 import type { Celda } from './celdas';
-import { describeCrudContract } from '../../test/crudContract';
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('../core/http', () => ({ apiFetch: apiFetchMock }));
+
+const seed = [
+  { id: 1, parqueadero: 1, numero: 'C-001', tipo: 'CARRO', usabilidad: 'GENERAL', estado: 'DISPONIBLE', observaciones: null },
+  { id: 2, parqueadero: 1, numero: 'C-002', tipo: 'MOTO', usabilidad: 'GENERAL', estado: 'OCUPADA', observaciones: null },
+];
+const backend = createFakeRestBackend('/celdas', seed);
+apiFetchMock.mockImplementation(backend.apiFetch);
 
 describe('services/celdas', () => {
-  it('genera celdas para los 7 parqueaderos semilla', async () => {
+  it('traduce estado/tipo/usabilidad desde la API real (mayúsculas -> minúsculas del mock)', async () => {
     const all = await celdas.getAll();
-    expect(all.length).toBeGreaterThan(0);
-    expect(new Set(all.map((c) => c.parqueaderoId)).size).toBe(7);
-  });
-
-  it('ninguna celda queda "ocupada" sin invariantes rotas de tipo/estado', async () => {
-    const all = await celdas.getAll();
-    for (const c of all) {
-      expect(c.ocupada).toBe(c.estado === 'no_disponible');
-    }
+    expect(all).toEqual([
+      { id: '1', parqueaderoId: '1', numero: 'C-001', tipo: 'carro', usabilidad: 'general', estado: 'disponible', ocupada: false, observaciones: '' },
+      { id: '2', parqueaderoId: '1', numero: 'C-002', tipo: 'moto', usabilidad: 'general', estado: 'no_disponible', ocupada: true, observaciones: '' },
+    ]);
   });
 });
 
@@ -25,9 +31,10 @@ describeCrudContract<Celda>(
     parqueaderoId: '1',
     numero: 'C-999',
     tipo: 'carro',
+    usabilidad: 'general',
     estado: 'disponible',
     ocupada: false,
-    nombre: 'Celda de prueba',
+    observaciones: '',
   }),
   () => ({ estado: 'mantenimiento' }),
 );

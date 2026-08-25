@@ -4,7 +4,7 @@ import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Celda } from "@/services/api/celdas";
-import type { Usuario } from "@/services/api/usuarios";
+import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ESTADO_CONFIG } from "../lib/constants";
 
@@ -14,7 +14,7 @@ interface ReservaViewModalProps {
   reserva: Reserva;
   vehiculo: Vehiculo | undefined;
   celda: Celda | undefined;
-  usuario: Usuario | null | undefined;
+  usuario: Conductor | null | undefined;
   parqueadero: Parqueadero | undefined;
   onClose: () => void;
 }
@@ -26,7 +26,7 @@ export function ReservaViewModal({ reserva, vehiculo, celda, usuario, parqueader
 
   const items = [
     {
-      label: "Conductor", value: usuario ? `${usuario.nombre} · ${usuario.identificacion}` : "Sin conductor", icon: UserCircle2,
+      label: "Conductor", value: usuario ? `${usuario.nombre} · ${usuario.numeroDocumento}` : "Sin conductor", icon: UserCircle2,
       onClick: usuario ? () => navigate(`/app/conductores?q=${encodeURIComponent(usuario.nombre)}`) : undefined,
     },
     { label: "Vehículo", value: vehiculo?.placa || "—", icon: Car, onClick: undefined },

@@ -1,11 +1,16 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { createAppBackends } from '@/test/appFakeApi';
 import Parqueaderos from './ParqueaderosPage';
 import { createTestQueryClient } from '../../test/queryWrapper';
 import { AuthProvider } from '@/context/AuthContext';
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
+apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 /**
  * Pruebas de humo/moderadas para el punto de entrada más grande y complejo de
@@ -40,11 +45,11 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
 
     expect(await screen.findByText('PQ-1 Torre A')).toBeInTheDocument();
     expect(screen.getByText('PQ-2 Torre B')).toBeInTheDocument();
-    expect(screen.getByText('PQ-3 Administrativo')).toBeInTheDocument();
-    expect(screen.getByText('PQ-4 Visitantes')).toBeInTheDocument();
-    expect(screen.getByText('PQ-5 Motos Norte')).toBeInTheDocument();
-    expect(screen.getByText('PQ-6 Motos Sur')).toBeInTheDocument();
-    expect(screen.getByText('PQ-7 Bloque C')).toBeInTheDocument();
+    expect(screen.getByText('PQ-3 Torre C')).toBeInTheDocument();
+    expect(screen.getByText('PQ-4 Torre D')).toBeInTheDocument();
+    expect(screen.getByText('PQ-5 Torre E')).toBeInTheDocument();
+    expect(screen.getByText('PQ-6 Torre F')).toBeInTheDocument();
+    expect(screen.getByText('PQ-7 Torre G')).toBeInTheDocument();
     expect(screen.getByText('Gestión de Parqueaderos')).toBeInTheDocument();
   });
 
@@ -84,8 +89,8 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     // Expande la fila de PQ-1 Torre A para ver su grilla de celdas.
     await user.click(screen.getByText('PQ-1 Torre A'));
 
-    // Celda semilla c0 (C-001 de PQ-1) está ocupada por el vehículo ABC123
-    // (ver src/services/_db.ts: vehiculo v1 + control cs1 'en_parqueadero').
+    // Celda semilla C-001 (parqueadero 1) está ocupada por el vehículo ABC123
+    // (ver src/test/appFakeApi.ts: vehiculo 1 + registro de entrada "DENTRO").
     const celdaC001 = await screen.findByText('C-001');
     const celdaBoton = celdaC001.closest('button');
     expect(celdaBoton).not.toBeNull();
@@ -119,15 +124,16 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     await user.click(screen.getByRole('button', { name: /Nuevo Parqueadero/i }));
     const dialog = await screen.findByRole('dialog');
 
-    const textboxes = within(dialog).getAllByRole('textbox');
-    const [nombreInput, bloqueInput] = textboxes;
-    await user.type(nombreInput, 'PQ-Test Nuevo Bloque');
-    await user.type(bloqueInput, 'Bloque Test');
+    // El formulario simplificado ya no pide bloque/celdas por tipo (ver
+    // services/api/parqueaderos.ts): nombre + ubicación son sus dos textbox.
+    const [nombreInput, ubicacionInput] = within(dialog).getAllByRole('textbox');
+    await user.type(nombreInput, 'PQ-Test Nuevo');
+    await user.type(ubicacionInput, 'Acceso de prueba');
 
     await user.click(within(dialog).getByRole('button', { name: 'Crear Parqueadero' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(await screen.findByText('PQ-Test Nuevo Bloque')).toBeInTheDocument();
+    expect(await screen.findByText('PQ-Test Nuevo')).toBeInTheDocument();
   });
 
   it('el botón "Asignación Inteligente" abre el modal correspondiente', async () => {

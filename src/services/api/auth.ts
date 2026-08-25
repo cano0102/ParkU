@@ -1,21 +1,24 @@
 /**
- * Sesión/login. Replica 1:1 el comportamiento que hoy vive en AuthContext.tsx
- * (login/registro/reset de contraseña contra el store mock de usuarios), pero
- * como funciones planas sin React — la Fase 2 hace que AuthContext consuma
- * este módulo en vez de tocar el store directamente. No importa
- * services/firebase.ts: la decisión confirmada para esta fase es mantener el
- * mock (ver services/firebase.ts para el motivo).
+ * Sesión/login contra la API real (Api-ParkU). Antes esto validaba
+ * login/registro/reset contra el store mock de usuarios; ahora llama a
+ * `/api/auth/*` y guarda el JWT + refresh token que devuelve (ver
+ * `services/core/tokenStorage.ts`, leído por `services/core/http.ts` en cada
+ * petición posterior).
+ *
+ * `getPermisos` se eliminó: los permisos ya no dependen de una consulta al
+ * backend, son una matriz estática por rol (`services/core/roles.ts`) — ver
+ * el porqué en el plan de conexión a la API.
  */
-import * as usuarios from './usuarios';
-import * as roles from './roles';
-import type { Rol } from '../core/db';
+import { apiFetch } from '../core/http';
+import { setTokens, clearTokens } from '../core/tokenStorage';
+import type { RolId } from '../core/roles';
 
 export interface AuthUser {
   id: string;
   correo: string;
   nombre: string;
   numero: string;
-  rol: string;
+  rol: RolId;
   foto?: string;
 }
 
@@ -29,129 +32,124 @@ export interface RegisterInput {
   identificacion: string;
 }
 
-export async function login(correo: string, password: string): Promise<AuthUser> {
-  const correoNormalizado = correo.trim().toLowerCase();
-  const lista = await usuarios.getAll();
-  const usuario = lista.find((u) => u.correo.trim().toLowerCase() === correoNormalizado);
+interface ApiUsuario {
+  id: number;
+  correo: string;
+  nombre: string;
+  rol: number;
+  estado: string;
+}
 
-  if (!usuario) {
-    throw new Error('No existe una cuenta con este correo.');
-  }
-  if (usuario.estado !== 'activo') {
-    throw new Error('Esta cuenta está desactivada. Contacta al administrador.');
-  }
-  if (usuario.password !== password) {
-    throw new Error('Contraseña incorrecta. Verifica tus credenciales.');
-  }
+interface LoginResponseData {
+  user: ApiUsuario;
+  token: string;
+  refreshToken: string;
+  expiresIn: string;
+}
 
+interface AuthEnvelope<T> {
+  success: boolean;
+  message: string;
+  data: T;
+}
+
+function toAuthUser(u: ApiUsuario, numero = ''): AuthUser {
   return {
-    id: usuario.id,
-    correo: usuario.correo,
-    nombre: usuario.nombre,
-    numero: usuario.numero,
-    rol: usuario.rol,
-    foto: usuario.foto,
+    id: String(u.id),
+    correo: u.correo,
+    nombre: u.nombre,
+    numero,
+    rol: u.rol as RolId,
   };
 }
 
-export async function register(data: RegisterInput): Promise<AuthUser> {
-  const correoNormalizado = data.correo.trim().toLowerCase();
-  const identificacionNormalizada = data.identificacion.trim();
-
-  const lista = await usuarios.getAll();
-  const duplicado = lista.find(
-    (u) =>
-      u.correo.trim().toLowerCase() === correoNormalizado ||
-      (identificacionNormalizada && u.identificacion.trim() === identificacionNormalizada),
-  );
-  if (duplicado) {
-    if (duplicado.correo.trim().toLowerCase() === correoNormalizado) {
-      throw new Error('Ya existe una cuenta registrada con este correo.');
-    }
-    throw new Error('Ya existe una cuenta registrada con ese número de identificación.');
-  }
-
-  const nombre = data.nombre.trim();
-  const numero = data.numero.trim();
-
-  const creado = await usuarios.create({
-    correo: correoNormalizado,
-    password: data.password,
-    nombre,
-    numero,
-    rol: 'Comunidad SENA',
-    tipoUsuario: data.tipoUsuario,
-    tipoDocumento: data.tipoDocumento,
-    identificacion: identificacionNormalizada,
-    estado: 'activo',
+export async function login(correo: string, password: string): Promise<AuthUser> {
+  const res = await apiFetch<AuthEnvelope<LoginResponseData>>('/auth/login', {
+    method: 'POST',
+    auth: false,
+    body: { correo: correo.trim().toLowerCase(), contrasena: password },
   });
+  setTokens(res.data.token, res.data.refreshToken);
+  return toAuthUser(res.data.user);
+}
 
-  return {
-    id: creado.id,
-    correo: creado.correo,
-    nombre: creado.nombre,
-    numero: creado.numero,
-    rol: creado.rol,
-  };
+/**
+ * El registro público (`POST /api/auth/registro`) solo acepta
+ * correo/contrasena/nombre (siempre crea rol Conductor) y no devuelve token
+ * — para mantener el "queda logueado" que ya tenía el mock, se hace login
+ * inmediatamente después con las mismas credenciales.
+ */
+export async function register(data: RegisterInput): Promise<AuthUser> {
+  await apiFetch('/auth/registro', {
+    method: 'POST',
+    auth: false,
+    body: {
+      correo: data.correo.trim().toLowerCase(),
+      contrasena: data.password,
+      nombre: data.nombre.trim(),
+      numero: data.numero?.trim() || undefined,
+    },
+  });
+  return login(data.correo, data.password);
+}
+
+export async function logout(): Promise<void> {
+  try {
+    await apiFetch('/auth/logout', { method: 'POST' });
+  } catch {
+    // best-effort: si el token ya expiró o la red falla, igual limpiamos la sesión local.
+  } finally {
+    clearTokens();
+  }
+}
+
+/** Confirma contra el backend que el token guardado sigue siendo válido (bootstrap de sesión). */
+export async function verificarToken(): Promise<AuthUser | null> {
+  try {
+    const res = await apiFetch<AuthEnvelope<{ usuario: ApiUsuario }>>('/auth/verificar');
+    return toAuthUser(res.data.usuario);
+  } catch {
+    return null;
+  }
 }
 
 export async function changePassword(userId: string, currentPassword: string, newPassword: string): Promise<boolean> {
-  const usuario = await usuarios.getById(userId);
-  if (!usuario || usuario.password !== currentPassword) return false;
-  await usuarios.update(userId, { password: newPassword });
-  return true;
+  try {
+    await apiFetch(`/usuarios/${userId}/contrasena`, {
+      method: 'PATCH',
+      body: { actual: currentPassword, nueva: newPassword },
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-/* Recuperación de contraseña sin servicio de correo externo (igual que hoy):
-   un token de un solo uso con 30 min de vigencia, guardado en memoria. Antes
-   vivía como useState dentro de AuthContext; nada en esta lógica es
-   específico de React. */
-interface ResetRequest {
-  token: string;
-  usuarioId: string;
-  correo: string;
-  expiresAt: number;
-  usado: boolean;
-}
-
-const RESET_TOKEN_TTL_MS = 30 * 60 * 1000;
-let resetRequests: ResetRequest[] = [];
-
+/**
+ * Genera un enlace de recuperación de un solo uso. En producción la API no
+ * confirma si el correo existe (evita enumeración de cuentas): devuelve
+ * éxito siempre, y solo incluye `token` en la respuesta fuera de producción.
+ * Por eso `null` aquí no significa "el correo no existe" — el caller debe
+ * tratarlo como "no hay enlace para mostrar en pantalla", no como error.
+ */
 export async function requestPasswordReset(correo: string): Promise<string | null> {
-  const correoNormalizado = correo.trim().toLowerCase();
-  const lista = await usuarios.getAll();
-  const usuario = lista.find((u) => u.correo.trim().toLowerCase() === correoNormalizado);
-  if (!usuario) return null;
-
-  const token =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-  resetRequests = [
-    ...resetRequests,
-    { token, usuarioId: usuario.id, correo: usuario.correo, expiresAt: Date.now() + RESET_TOKEN_TTL_MS, usado: false },
-  ];
-
-  return token;
+  const res = await apiFetch<{ success: boolean; message: string; token?: string }>('/auth/recuperar-password', {
+    method: 'POST',
+    auth: false,
+    body: { correo: correo.trim().toLowerCase() },
+  });
+  return res.token ?? null;
 }
 
 export async function resetPasswordWithToken(token: string, newPassword: string): Promise<{ ok: boolean; message?: string }> {
-  const solicitud = resetRequests.find((r) => r.token === token);
-  if (!solicitud) return { ok: false, message: 'El enlace de recuperación no es válido.' };
-  if (solicitud.usado) return { ok: false, message: 'Este enlace ya fue utilizado. Solicita uno nuevo.' };
-  if (Date.now() > solicitud.expiresAt) return { ok: false, message: 'El enlace de recuperación expiró. Solicita uno nuevo.' };
-
-  await usuarios.update(solicitud.usuarioId, { password: newPassword });
-  resetRequests = resetRequests.map((r) => (r.token === token ? { ...r, usado: true } : r));
-
-  return { ok: true };
-}
-
-/** Permisos del rol por nombre (null si el rol fue borrado o está inactivo —
- * deniega por defecto, igual que el `hasPermission` actual). */
-export async function getPermisos(rolNombre: string): Promise<Rol['permisos'] | null> {
-  const lista = await roles.getAll();
-  const rol = lista.find((r) => r.nombre === rolNombre);
-  return rol && rol.estado === 'activo' ? rol.permisos : null;
+  try {
+    const res = await apiFetch<{ success: boolean; message: string }>('/auth/restablecer-password', {
+      method: 'POST',
+      auth: false,
+      body: { token, nuevaContrasena: newPassword },
+    });
+    return { ok: true, message: res.message };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'El enlace de recuperación no es válido.' };
+  }
 }

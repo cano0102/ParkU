@@ -3,7 +3,7 @@ import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Celda } from "@/services/api/celdas";
-import type { Usuario } from "@/services/api/usuarios";
+import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ReservaRow, RESERVA_GRID_COLUMNS } from "./ReservaRow";
 
@@ -14,14 +14,14 @@ interface ReservasTableProps {
   totalReservas: number;
   getVehiculo: (id: string) => Vehiculo | undefined;
   getCelda: (id: string) => Celda | undefined;
-  getUsuarioConductor: (vehiculoId: string) => Usuario | null | undefined;
+  getConductorReserva: (reserva: Reserva) => Conductor | null | undefined;
   getParqueadero: (id: string) => Parqueadero | undefined;
   onView: (reserva: Reserva) => void;
   onDelete: (reserva: Reserva) => void;
 }
 
 /** Tabla del historial de reservas: encabezado, filas (o estado vacío) y el contador de resultados. */
-export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, getCelda, getUsuarioConductor, getParqueadero, onView, onDelete }: ReservasTableProps) {
+export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, getCelda, getConductorReserva, getParqueadero, onView, onDelete }: ReservasTableProps) {
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
       <div className="reserva-table-header" style={{
@@ -57,7 +57,7 @@ export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, ge
                 reserva={reserva}
                 vehiculo={getVehiculo(reserva.vehiculoId)}
                 celda={celda}
-                usuario={getUsuarioConductor(reserva.vehiculoId)}
+                usuario={getConductorReserva(reserva)}
                 parqueadero={celda ? getParqueadero(celda.parqueaderoId) : undefined}
                 onView={() => onView(reserva)}
                 onDelete={() => onDelete(reserva)}

@@ -26,10 +26,13 @@ export function ParkingLot({
   const hc = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
   // Composición de la zona por tipo de vehículo, para distinguir de un vistazo
   // qué parqueaderos son de carro, de moto o mixtos (celdas de movilidad reducida incluidas).
+  // Ya no viene precalculada en el parqueadero (la API real no la guarda ahí) — se cuenta
+  // directo sobre las celdas ya posicionadas en este plano.
+  const celdasLot = filas.flatMap((f) => f.celdas);
   const composicion = ([
-    { t: "carro" as const, n: pq.celdasCarros },
-    { t: "moto" as const, n: pq.celdasMotos },
-    { t: "movilidad reducida" as const, n: pq.celdasMovilidadReducida },
+    { t: "carro" as const, n: celdasLot.filter((c) => c.tipo === "carro").length },
+    { t: "moto" as const, n: celdasLot.filter((c) => c.tipo === "moto").length },
+    { t: "movilidad reducida" as const, n: celdasLot.filter((c) => c.usabilidad === "movilidad_reducida").length },
   ]).filter((x) => x.n > 0);
   const chipW = 32, chipGap = 5;
   const chipsW = composicion.length * chipW + Math.max(0, composicion.length - 1) * chipGap;
@@ -40,7 +43,7 @@ export function ParkingLot({
       <rect x={PADDING - 20} y={lotTop - 12} width={ancho - PADDING + 40} height={lotHeight + 12} rx="14" fill={MAP_THEME.asphaltPanel} stroke={MAP_THEME.panelBorder} strokeWidth="1.5" />
       <rect x={PADDING - 10} y={lotTop - 6} width={ancho - PADDING + 10} height={34} rx="8" fill={hc} />
       <text x={PADDING + 2} y={lotTop + 10} fill="#fff" fontSize="10.5" fontWeight="900">{pq.nombre.toUpperCase()}</text>
-      <text x={PADDING + 2} y={lotTop + 22} fill="rgba(255,255,255,.8)" fontSize="7.5" fontWeight="bold">BLOQUE {pq.bloque}</text>
+      <text x={PADDING + 2} y={lotTop + 22} fill="rgba(255,255,255,.8)" fontSize="7.5" fontWeight="bold">{pq.zona ? `ZONA ${pq.zona.toUpperCase()}` : pq.ubicacion.toUpperCase()}</text>
       {/* Chips de composición: cuántas celdas de cada tipo tiene esta zona */}
       {composicion.map(({ t, n }) => {
         const cfg = getTipoCeldaConfig(t);

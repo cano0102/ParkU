@@ -18,10 +18,10 @@ export function useConductorForm(data: ConductoresData) {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [usuarioSearch, setUsuarioSearch] = useState("");
 
-  // Usuarios que ya son conductores (para evitar duplicados), excluyendo el que se está editando
+  // Usuarios que ya tienen un conductor vinculado (para evitar duplicados), excluyendo el que se está editando
   const usuariosConConductorIds = useMemo(() => {
-    const ids = new Set(data.conductores.map((c) => c.usuarioId));
-    if (editingConductor) ids.delete(editingConductor.usuarioId);
+    const ids = new Set(data.conductores.map((c) => c.usuarioId).filter(Boolean));
+    if (editingConductor?.usuarioId) ids.delete(editingConductor.usuarioId);
     return ids;
   }, [data.conductores, editingConductor]);
 
@@ -29,10 +29,7 @@ export function useConductorForm(data: ConductoresData) {
     const q = usuarioSearch.toLowerCase().trim();
     if (!q) return data.usuarios;
     return data.usuarios.filter(
-      (u) =>
-        u.nombre.toLowerCase().includes(q) ||
-        u.identificacion.toLowerCase().includes(q) ||
-        u.correo.toLowerCase().includes(q)
+      (u) => u.nombre.toLowerCase().includes(q) || u.correo.toLowerCase().includes(q)
     );
   }, [data.usuarios, usuarioSearch]);
 
@@ -53,13 +50,20 @@ export function useConductorForm(data: ConductoresData) {
       setEditingVehiculoId(v?.id ?? null);
       setFormData({
         usuarioId: conductor.usuarioId,
-        tipoConductor: conductor.tipoConductor,
+        nombre: conductor.nombre,
+        tipoDocumento: conductor.tipoDocumento,
+        numeroDocumento: conductor.numeroDocumento,
+        correo: conductor.correo,
+        numeroTelefonico: conductor.numeroTelefonico,
+        tipoUsuarioId: conductor.tipoUsuarioId,
+        regionalFormacion: conductor.regionalFormacion,
         centroFormacion: conductor.centroFormacion,
-        discapacidad: conductor.discapacidad,
-        tipoDiscapacidad: conductor.tipoDiscapacidad || "",
+        programaFormacion: conductor.programaFormacion,
+        movilidadReducida: conductor.movilidadReducida,
+        tipoDiscapacidad: conductor.tipoDiscapacidad,
         estado: conductor.estado,
         placa: v?.placa || "",
-        tipoVehiculo: (v?.tipo as "carro" | "moto") || "carro",
+        tipoVehiculo: v?.tipo || "carro",
         marca: v?.marca || "",
         descripcionVehiculo: v?.descripcion || "",
       });
@@ -72,7 +76,6 @@ export function useConductorForm(data: ConductoresData) {
   );
 
   // Placas ya registradas en otros vehículos (para evitar duplicados), excluyendo el vehículo puntual en edición
-  // (no todos los vehículos del conductor, ya que un conductor puede tener varios)
   const placasOcupadas = useMemo(() => {
     return new Set(
       data.vehiculos
@@ -84,10 +87,14 @@ export function useConductorForm(data: ConductoresData) {
   // Validación en vivo del formulario
   const validate = useCallback((form: FormState): FormErrors => {
     const errors: FormErrors = {};
-    if (!form.usuarioId) {
-      errors.usuarioId = "Selecciona un usuario";
-    } else if (usuariosConConductorIds.has(form.usuarioId)) {
-      errors.usuarioId = "Este usuario ya está registrado como conductor";
+    if (!form.nombre.trim()) {
+      errors.nombre = "El nombre es obligatorio";
+    }
+    if (!form.numeroDocumento.trim()) {
+      errors.numeroDocumento = "El número de documento es obligatorio";
+    }
+    if (!form.tipoUsuarioId) {
+      errors.tipoUsuarioId = "Selecciona un tipo de usuario";
     }
     if (!form.centroFormacion.trim()) {
       errors.centroFormacion = "El centro de formación es requerido";
@@ -97,14 +104,14 @@ export function useConductorForm(data: ConductoresData) {
       errors.placa = "La placa es obligatoria";
     } else if (!validarPlacaColombiana(placa)) {
       errors.placa = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
-    } else if (!validarPlacaPorTipo(placa, form.tipoVehiculo)) {
+    } else if ((form.tipoVehiculo === "carro" || form.tipoVehiculo === "moto") && !validarPlacaPorTipo(placa, form.tipoVehiculo)) {
       const tipoDetectado = tipoVehiculoDesdePlaca(placa);
       errors.placa = `Seleccionaste "${form.tipoVehiculo}", pero la placa tiene formato de ${tipoDetectado}.`;
     } else if (placasOcupadas.has(placa)) {
       errors.placa = "Esta placa ya está registrada en otro vehículo";
     }
     return errors;
-  }, [usuariosConConductorIds, placasOcupadas]);
+  }, [placasOcupadas]);
 
   useEffect(() => {
     setFormErrors(validate(formData));
@@ -124,7 +131,7 @@ export function useConductorForm(data: ConductoresData) {
   const handleSave = useCallback(async () => {
     const errors = validate(formData);
     setFormErrors(errors);
-    setTouched({ usuarioId: true, centroFormacion: true, placa: true });
+    setTouched({ nombre: true, numeroDocumento: true, tipoUsuarioId: true, centroFormacion: true, placa: true });
 
     if (Object.keys(errors).length > 0) {
       const firstError = Object.values(errors)[0];
@@ -132,22 +139,23 @@ export function useConductorForm(data: ConductoresData) {
       return;
     }
 
-    const usuarioSel = data.usuarios.find((u) => u.id === formData.usuarioId);
-    if (!usuarioSel) {
-      toast.error("El usuario seleccionado no es válido");
-      return;
-    }
-
     const conductorData = {
       usuarioId: formData.usuarioId,
-      nombre: usuarioSel.nombre,
-      email: usuarioSel.correo,
-      tipoConductor: formData.tipoConductor,
+      nombre: sanitizeText(formData.nombre.trim()),
+      tipoDocumento: formData.tipoDocumento,
+      numeroDocumento: formData.numeroDocumento.trim(),
+      correo: formData.correo.trim(),
+      direccion: editingConductor?.direccion || "",
+      numeroTelefonico: formData.numeroTelefonico.trim(),
+      tipoUsuarioId: formData.tipoUsuarioId,
+      tipoUsuarioNombre: "",
+      regionalFormacion: sanitizeText(formData.regionalFormacion.trim()),
       centroFormacion: sanitizeText(formData.centroFormacion.trim()),
-      discapacidad: formData.discapacidad,
+      programaFormacion: sanitizeText(formData.programaFormacion.trim()),
+      vigencia: editingConductor?.vigencia || "",
+      movilidadReducida: formData.movilidadReducida,
       tipoDiscapacidad: sanitizeText(formData.tipoDiscapacidad.trim()),
       estado: formData.estado,
-      tipo: editingConductor?.tipo || "docente",
     };
 
     try {
@@ -155,11 +163,13 @@ export function useConductorForm(data: ConductoresData) {
         data.updateConductor(editingConductor.id, conductorData);
 
         const vehiculoData = {
+          conductorId: editingConductor.id,
+          conductorNombre: conductorData.nombre,
           placa: formData.placa.toUpperCase().trim(),
           tipo: formData.tipoVehiculo,
           marca: sanitizeText(formData.marca.trim()),
-          modelo: "",
-          año: new Date().getFullYear(),
+          linea: "",
+          modelo: null,
           color: "",
           descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
           estado: "activo" as const,
@@ -171,13 +181,7 @@ export function useConductorForm(data: ConductoresData) {
         if (existingVehiculo) {
           data.updateVehiculo(existingVehiculo.id, vehiculoData);
         } else {
-          data.addVehiculo({
-            conductorId: editingConductor.id,
-            ...vehiculoData,
-            parqueaderoId: "",
-            celdaId: "",
-            fechaEntrada: new Date().toISOString(),
-          });
+          data.addVehiculo(vehiculoData);
         }
         toast.success("Conductor actualizado correctamente");
       } else {
@@ -185,24 +189,22 @@ export function useConductorForm(data: ConductoresData) {
         if (created?.id) {
           data.addVehiculo({
             conductorId: created.id,
+            conductorNombre: created.nombre,
             placa: formData.placa.toUpperCase().trim(),
             tipo: formData.tipoVehiculo,
             marca: sanitizeText(formData.marca.trim()),
-            modelo: "",
-            año: new Date().getFullYear(),
+            linea: "",
+            modelo: null,
             color: "",
             descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
-            parqueaderoId: "",
-            celdaId: "",
-            fechaEntrada: new Date().toISOString(),
           });
         }
         toast.success("Conductor creado correctamente");
       }
       setDialogOpen(false);
     } catch (error) {
-      toast.error("Error al guardar el conductor");
+      toast.error(error instanceof Error ? error.message : "Error al guardar el conductor");
       console.error("Error saving conductor:", error);
     }
   }, [formData, editingConductor, editingVehiculoId, data, validate]);

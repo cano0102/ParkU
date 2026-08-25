@@ -1,11 +1,12 @@
 import { Sparkles, X } from "lucide-react";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
+import type { Usuario } from "@/services/api/usuarios";
 import type { Celda } from "@/services/api/celdas";
+import type { TipoNovedad, PrioridadNovedad, Incidente } from "@/services/api/incidentes";
 import { theme } from "@/styles/theme";
 import { IncidenteBasicFields } from "./IncidenteBasicFields";
 import { IncidenteVehiculoAsignadoFields } from "./IncidenteVehiculoAsignadoFields";
-import { IncidenteEvidenciaField } from "./IncidenteEvidenciaField";
 
 const C = theme;
 
@@ -13,15 +14,17 @@ interface IncidenteFormData {
   descripcion: string;
   parqueaderoId: string;
   celdaId: string;
-  vehiculo: string;
-  asignadoA: string;
-  evidencia: string;
-  notasResolucion: string;
+  vehiculoId: string;
+  usuarioAsignadoId: string;
+  tipoNovedad: TipoNovedad;
+  prioridad: PrioridadNovedad;
+  estado: Incidente["estado"];
+  justificacionCierre: string;
 }
 
 interface IncidenteFormModalProps {
   isEditing: boolean;
-  showNotasResolucion: boolean;
+  showJustificacionCierre: boolean;
   formData: IncidenteFormData;
   setFormData: (updater: (f: IncidenteFormData) => IncidenteFormData) => void;
   formTouched: { descripcion?: boolean; parqueaderoId?: boolean };
@@ -30,23 +33,22 @@ interface IncidenteFormModalProps {
   markTouched: (campo: "descripcion" | "parqueaderoId") => void;
   parqueaderos: Parqueadero[];
   vehiculos: Vehiculo[];
+  usuarios: Usuario[];
   celdasDelParqueadero: Celda[];
   celdaSeleccionada: Celda | undefined;
-  ocupanteSeleccionado: { vehiculo: { placa: string }; conductorNombre?: string } | null;
+  ocupanteSeleccionado: { vehiculo: { id: string; placa: string }; conductorNombre?: string } | null;
   ocupanteDeCelda: (celdaId?: string) => { vehiculo: { placa: string } } | null;
   onParqueaderoChange: (value: string) => void;
   onCeldaChange: (value: string) => void;
-  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onRemoveEvidencia: () => void;
   onClose: () => void;
   onSave: () => void;
 }
 
 /** Modal de crear/editar incidente: header, campos y acciones. */
 export function IncidenteFormModal({
-  isEditing, showNotasResolucion, formData, setFormData, formTouched, formErrors, formInvalido, markTouched,
-  parqueaderos, vehiculos, celdasDelParqueadero, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
-  onParqueaderoChange, onCeldaChange, onFileChange, onRemoveEvidencia, onClose, onSave,
+  isEditing, showJustificacionCierre, formData, setFormData, formTouched, formErrors, formInvalido, markTouched,
+  parqueaderos, vehiculos, usuarios, celdasDelParqueadero, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
+  onParqueaderoChange, onCeldaChange, onClose, onSave,
 }: IncidenteFormModalProps) {
   return (
     <div>
@@ -113,20 +115,19 @@ export function IncidenteFormModal({
           />
 
           <IncidenteVehiculoAsignadoFields
-            vehiculo={formData.vehiculo}
-            asignadoA={formData.asignadoA}
+            vehiculoId={formData.vehiculoId}
+            usuarioAsignadoId={formData.usuarioAsignadoId}
+            tipoNovedad={formData.tipoNovedad}
+            prioridad={formData.prioridad}
             vehiculos={vehiculos}
-            showNotasResolucion={showNotasResolucion}
-            notasResolucion={formData.notasResolucion}
-            onVehiculoChange={(value) => setFormData((f) => ({ ...f, vehiculo: value }))}
-            onAsignadoAChange={(value) => setFormData((f) => ({ ...f, asignadoA: value }))}
-            onNotasResolucionChange={(value) => setFormData((f) => ({ ...f, notasResolucion: value }))}
-          />
-
-          <IncidenteEvidenciaField
-            evidencia={formData.evidencia}
-            onFileChange={onFileChange}
-            onRemove={onRemoveEvidencia}
+            usuarios={usuarios}
+            showJustificacionCierre={showJustificacionCierre}
+            justificacionCierre={formData.justificacionCierre}
+            onVehiculoChange={(value) => setFormData((f) => ({ ...f, vehiculoId: value }))}
+            onUsuarioAsignadoChange={(value) => setFormData((f) => ({ ...f, usuarioAsignadoId: value }))}
+            onTipoNovedadChange={(value) => setFormData((f) => ({ ...f, tipoNovedad: value }))}
+            onPrioridadChange={(value) => setFormData((f) => ({ ...f, prioridad: value }))}
+            onJustificacionCierreChange={(value) => setFormData((f) => ({ ...f, justificacionCierre: value }))}
           />
         </div>
       </div>

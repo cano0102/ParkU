@@ -141,8 +141,6 @@ export default function Parqueaderos() {
         incidenteForm={incidente.incidenteForm}
         setIncidenteForm={incidente.setIncidenteForm}
         incidenteError={incidente.incidenteError}
-        onFileChange={incidente.handleIncidenteFileChange}
-        onRemoveEvidencia={incidente.resetIncidenteEvidencia}
         onClose={incidente.closeIncidenteModal}
         onSubmit={incidente.registrarIncidente}
       />

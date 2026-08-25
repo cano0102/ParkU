@@ -1,7 +1,7 @@
 import { Eye as EyeIcon, EyeOff, KeyRound } from "lucide-react";
 import { FormField } from "@/components/shared";
 import {
-  COLORS, PASSWORD_MAX, PASSWORD_MIN, TIPOS_USUARIO, TIPO_USUARIO_LABEL,
+  COLORS, PASSWORD_MAX, PASSWORD_MIN,
   inputErrorStyle, inputIconStyle, inputStyle,
 } from "../lib/helpers";
 
@@ -12,24 +12,22 @@ interface CredencialesAccesoFieldsProps {
   password: string;
   showPass: boolean;
   rol: string;
-  tipoUsuario: string;
   estado: "activo" | "inactivo";
   passwordError?: string;
   rolError?: string;
-  tipoUsuarioError?: string;
+  /** Roles reales (`/api/roles`) — se selecciona por `id`, no por nombre. */
   rolesDisponibles: { id: string; nombre: string }[];
   onPasswordChange: (value: string) => void;
   onPasswordBlur: () => void;
   onToggleShowPass: () => void;
   onRolChange: (value: string) => void;
-  onTipoUsuarioChange: (value: string) => void;
   onEstadoChange: (value: "activo" | "inactivo") => void;
 }
 
-/** Sección "Credenciales y acceso": contraseña, rol, tipo de usuario y (al editar) estado de la cuenta. */
+/** Sección "Credenciales y acceso": contraseña, rol y (al editar) estado de la cuenta. */
 export function CredencialesAccesoFields({
-  isEdit, password, showPass, rol, tipoUsuario, estado, passwordError, rolError, tipoUsuarioError, rolesDisponibles,
-  onPasswordChange, onPasswordBlur, onToggleShowPass, onRolChange, onTipoUsuarioChange, onEstadoChange,
+  isEdit, password, showPass, rol, estado, passwordError, rolError, rolesDisponibles,
+  onPasswordChange, onPasswordBlur, onToggleShowPass, onRolChange, onEstadoChange,
 }: CredencialesAccesoFieldsProps) {
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
@@ -73,20 +71,7 @@ export function CredencialesAccesoFields({
           >
             <option value="">Seleccionar rol…</option>
             {rolesDisponibles.map((r) => (
-              <option key={r.id} value={r.nombre}>{r.nombre}</option>
-            ))}
-          </select>
-        </FormField>
-
-        <FormField label="Tipo de usuario" error={tipoUsuarioError}>
-          <select
-            value={tipoUsuario}
-            onChange={(e) => onTipoUsuarioChange(e.target.value)}
-            style={tipoUsuarioError ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" } : { ...inputStyle, appearance: "none", cursor: "pointer" }}
-          >
-            <option value="">Seleccionar tipo…</option>
-            {TIPOS_USUARIO.map((t) => (
-              <option key={t} value={t}>{TIPO_USUARIO_LABEL[t]}</option>
+              <option key={r.id} value={r.id}>{r.nombre}</option>
             ))}
           </select>
         </FormField>

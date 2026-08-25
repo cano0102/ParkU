@@ -10,13 +10,15 @@ const C = theme;
 interface IncidenteViewModalProps {
   incidente: Incidente;
   celda: Celda | undefined;
+  vehiculoPlaca?: string;
+  asignadoNombre?: string;
   nombreParqueadero: string;
   onClose: () => void;
   onEdit: () => void;
 }
 
 /** Vista de solo lectura del detalle de un incidente. */
-export function IncidenteViewModal({ incidente, celda, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
+export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
   const navigate = useNavigate();
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
@@ -33,8 +35,8 @@ export function IncidenteViewModal({ incidente, celda, nombreParqueadero, onClos
         }]
       : []),
     { label: "Fecha y hora", value: fecha.toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" }), icon: Clock, onClick: undefined },
-    ...(incidente.vehiculo ? [{ label: "Vehículo", value: incidente.vehiculo, icon: Car, onClick: undefined }] : []),
-    ...(incidente.asignadoA ? [{ label: "Asignado a", value: incidente.asignadoA, icon: User, onClick: undefined }] : []),
+    ...(vehiculoPlaca ? [{ label: "Vehículo", value: vehiculoPlaca, icon: Car, onClick: undefined }] : []),
+    ...(asignadoNombre ? [{ label: "Asignado a", value: asignadoNombre, icon: User, onClick: undefined }] : []),
   ];
 
   return (
@@ -127,31 +129,18 @@ export function IncidenteViewModal({ incidente, celda, nombreParqueadero, onClos
           </div>
         ))}
 
-        {incidente.notasResolucion && (
+        {incidente.justificacionCierre && (
           <div style={{
             padding: "10px 12px", borderRadius: 12,
             background: "#F0FDF4", border: `1px solid ${C.success}33`,
             marginBottom: 8,
           }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: C.success, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-              Notas de resolución
+              Justificación de cierre
             </div>
             <div style={{ fontSize: 12, color: C.text, lineHeight: 1.4 }}>
-              {incidente.notasResolucion}
+              {incidente.justificacionCierre}
             </div>
-          </div>
-        )}
-
-        {incidente.evidencia && (
-          <div style={{
-            padding: "10px 12px", borderRadius: 12,
-            background: "#F8FAFC", border: `1px solid ${C.border}`,
-            marginBottom: 8,
-          }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
-              Evidencia fotográfica
-            </div>
-            <img src={incidente.evidencia} alt="Evidencia" style={{ width: "100%", borderRadius: 10 }} />
           </div>
         )}
 

@@ -8,14 +8,14 @@ import {
   Calendar,
   AlertTriangle,
 } from "lucide-react";
-import type { Rol } from "@/services/api/roles";
+import type { PermisosRol } from "@/services/core/roles";
 
 export interface MenuItem {
   path: string;
   label: string;
   icon: typeof LayoutDashboard;
   group: string;
-  permission: keyof Rol["permisos"];
+  permission: keyof PermisosRol;
 }
 
 export const menuItems: MenuItem[] = [

@@ -4,11 +4,13 @@ import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
 import { EntityFormModal } from "@/components/data";
 import {
-  FormParqueadero, TIPOS_PARQUEADERO, capitalizar,
-  NOMBRE_PQ_MAX, BLOQUE_PQ_MAX, DIRECCION_PQ_MAX, DESCRIPCION_PQ_MAX,
+  FormParqueadero, TIPOS_PARQUEADERO, ACCESOS_PARQUEADERO, capitalizar,
+  NOMBRE_PQ_MAX, UBICACION_PQ_MAX, DESCRIPCION_PQ_MAX,
 } from "../../lib/helpers";
 
 const C = theme;
+const fieldStyle = { width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" } as const;
+const labelStyle = { display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 } as const;
 
 interface ParqueaderoFormModalProps {
   open: boolean;
@@ -21,8 +23,6 @@ interface ParqueaderoFormModalProps {
 }
 
 export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formError, onClose, onSubmit }: ParqueaderoFormModalProps) {
-  const capacidadForm = pqForm.celdasCarros + pqForm.celdasMotos + pqForm.celdasMovilidadReducida;
-
   return (
     <Modal open={open} onClose={onClose}>
       <EntityFormModal
@@ -35,35 +35,57 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
         submitLabel={isEdit ? "Guardar Cambios" : "Crear Parqueadero"}
       >
         {formError && <Banner tone="danger" message={formError} />}
-        <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Nombre *</label><input value={pqForm.nombre} maxLength={NOMBRE_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: PQ-8 Bloque D" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Bloque *</label><input value={pqForm.bloque} maxLength={BLOQUE_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, bloque: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Categoría</label><select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }}>{TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{capitalizar(t)}</option>)}</select></div>
-        </div>
-        <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Dirección</label><input value={pqForm.direccion} maxLength={DIRECCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, direccion: e.target.value }))} placeholder="Ej: Calle 100 # 50-30" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Hora apertura</label><input type="time" value={pqForm.horaInicio} onChange={e => setPqForm(p => ({ ...p, horaInicio: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
-          <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Hora cierre</label><input type="time" value={pqForm.horaFin} onChange={e => setPqForm(p => ({ ...p, horaFin: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+        <div>
+          <label style={labelStyle}>Nombre *</label>
+          <input value={pqForm.nombre} maxLength={NOMBRE_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, nombre: e.target.value }))} placeholder="Ej: PQ-8 Bloque D" style={fieldStyle} />
         </div>
         <div>
-          <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Celdas por tipo</label>
-          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-            <div>
-              <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700 }}>Carros</span>
-              <input type="number" min={0} max={60} value={pqForm.celdasCarros} onChange={e => setPqForm(p => ({ ...p, celdasCarros: Math.max(0, Math.min(60, parseInt(e.target.value, 10) || 0)) }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
-            </div>
-            <div>
-              <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700 }}>Motos</span>
-              <input type="number" min={0} max={60} value={pqForm.celdasMotos} onChange={e => setPqForm(p => ({ ...p, celdasMotos: Math.max(0, Math.min(60, parseInt(e.target.value, 10) || 0)) }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
-            </div>
-            <div>
-              <span style={{ fontSize: 10, color: C.textLight, fontWeight: 700 }}>M. reducida</span>
-              <input type="number" min={0} max={60} value={pqForm.celdasMovilidadReducida} onChange={e => setPqForm(p => ({ ...p, celdasMovilidadReducida: Math.max(0, Math.min(60, parseInt(e.target.value, 10) || 0)) }))} style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
-            </div>
-          </div>
-          <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Capacidad total: <strong>{capacidadForm}</strong> celdas</p>
+          <label style={labelStyle}>Ubicación *</label>
+          <input value={pqForm.ubicacion} maxLength={UBICACION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, ubicacion: e.target.value }))} placeholder="Ej: Acceso Regional - Torre Sur" style={fieldStyle} />
         </div>
-        <div><label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Descripción</label><input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} /></div>
+        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Acceso</label>
+            <select value={pqForm.acceso} onChange={e => setPqForm(p => ({ ...p, acceso: e.target.value as FormParqueadero["acceso"] }))} style={fieldStyle}>
+              {ACCESOS_PARQUEADERO.map(a => <option key={a} value={a}>{a === "regional" ? "Regional" : "Avenida Boyacá"}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Categoría</label>
+            <select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value as FormParqueadero["tipo"] }))} style={fieldStyle}>
+              {TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{capitalizar(t.replace("_", " "))}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Zona</label>
+            <input value={pqForm.zona} onChange={e => setPqForm(p => ({ ...p, zona: e.target.value }))} placeholder="Ej: Torre Sur" style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Piso</label>
+            <input value={pqForm.piso} onChange={e => setPqForm(p => ({ ...p, piso: e.target.value }))} placeholder="Ej: Nivel 1" style={fieldStyle} />
+          </div>
+        </div>
+        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label style={labelStyle}>Hora apertura</label>
+            <input type="time" value={pqForm.horaInicio} onChange={e => setPqForm(p => ({ ...p, horaInicio: e.target.value }))} style={fieldStyle} />
+          </div>
+          <div>
+            <label style={labelStyle}>Hora cierre</label>
+            <input type="time" value={pqForm.horaFin} onChange={e => setPqForm(p => ({ ...p, horaFin: e.target.value }))} style={fieldStyle} />
+          </div>
+        </div>
+        <div>
+          <label style={labelStyle}>Capacidad máxima *</label>
+          <input type="number" min={1} max={500} value={pqForm.capacidadMaxima} onChange={e => setPqForm(p => ({ ...p, capacidadMaxima: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+          <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Las celdas se crean por separado desde la pantalla de Celdas.</p>
+        </div>
+        <div>
+          <label style={labelStyle}>Descripción</label>
+          <input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={fieldStyle} />
+        </div>
       </EntityFormModal>
     </Modal>
   );

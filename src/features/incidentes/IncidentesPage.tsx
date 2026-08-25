@@ -19,7 +19,7 @@ export function Incidentes() {
       <style>{incidentesStyles}</style>
 
       <div className="incidentes-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <IncidentesHero pendientes={p.pendientes} resueltos={p.resueltos} conEvidencia={p.conEvidencia} total={p.incidentes.length} />
+        <IncidentesHero pendientes={p.pendientes} enProceso={p.enProceso} resueltos={p.resueltos} total={p.incidentes.length} />
 
         <IncidentesToolbar
           search={p.search}
@@ -40,6 +40,8 @@ export function Incidentes() {
         <IncidentesGrid
           incidentes={p.filteredIncidentes}
           celdaDe={p.celdaDe}
+          vehiculoDe={p.vehiculoDe}
+          nombreUsuarioAsignado={p.nombreUsuarioAsignado}
           nombreParqueadero={p.nombreParqueadero}
           onView={p.openView}
           onEdit={p.openEdit}
@@ -51,7 +53,7 @@ export function Incidentes() {
       <Modal open={p.dialogOpen} onClose={p.closeForm} maxWidth={640}>
         <IncidenteFormModal
           isEditing={p.isEditing}
-          showNotasResolucion={p.isEditing && p.selectedIncidente?.estado === "resuelto"}
+          showJustificacionCierre={p.isEditing && p.selectedIncidente?.estado === "resuelto"}
           formData={p.formData}
           setFormData={p.setFormData}
           formTouched={p.formTouched}
@@ -60,14 +62,13 @@ export function Incidentes() {
           markTouched={p.markTouched}
           parqueaderos={p.parqueaderos}
           vehiculos={p.vehiculos}
+          usuarios={p.usuarios}
           celdasDelParqueadero={p.celdasDelParqueadero}
           celdaSeleccionada={p.celdaDe(p.formData.celdaId)}
           ocupanteSeleccionado={p.ocupanteSeleccionado}
           ocupanteDeCelda={p.ocupanteDeCelda}
           onParqueaderoChange={p.handleParqueaderoChange}
           onCeldaChange={p.handleCeldaChange}
-          onFileChange={p.handleFileChange}
-          onRemoveEvidencia={p.removeEvidencia}
           onClose={p.closeForm}
           onSave={p.handleSave}
         />
@@ -78,6 +79,8 @@ export function Incidentes() {
           <IncidenteViewModal
             incidente={p.selectedIncidente}
             celda={p.celdaDe(p.selectedIncidente.celdaId)}
+            vehiculoPlaca={p.vehiculoDe(p.selectedIncidente.vehiculoId)?.placa}
+            asignadoNombre={p.nombreUsuarioAsignado(p.selectedIncidente.usuarioAsignadoId)}
             nombreParqueadero={p.nombreParqueadero(p.selectedIncidente.parqueaderoId)}
             onClose={() => p.setViewOpen(false)}
             onEdit={() => p.openEdit(p.selectedIncidente!)}

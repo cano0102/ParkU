@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import type { Usuario } from "@/services/api/usuarios";
+import { esRolId, ROLES } from "@/services/core/roles";
 import { USUARIOS_PROTEGIDOS, emptyForm, type FormState } from "../lib/helpers";
 import type { UsuariosData } from "./useUsuariosData";
 
@@ -25,26 +26,18 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
       // contraseña real (ver handleSave, que omite este campo si llega vacío).
       password: "",
       nombre: u.nombre,
-      numero: u.numero,
-      rol: u.rol,
-      tipoUsuario: u.tipoUsuario,
-      tipoDocumento: u.tipoDocumento,
-      identificacion: u.identificacion,
+      rol: String(u.rol),
       estado: u.estado,
     });
     setDialogOpen(true);
   }, []);
 
-  // Corrección: evita registrar dos usuarios iguales (mismo correo o misma identificación)
+  // Corrección: evita registrar dos usuarios con el mismo correo
   const encontrarDuplicado = useCallback(
     (form: FormState, excludeId?: string) => {
       const correoNuevo = form.correo.trim().toLowerCase();
-      const idNuevo = form.identificacion.trim();
       return data.usuarios.find(
-        (u) =>
-          u.id !== excludeId &&
-          (u.correo.trim().toLowerCase() === correoNuevo ||
-            (idNuevo && u.identificacion.trim() === idNuevo))
+        (u) => u.id !== excludeId && u.correo.trim().toLowerCase() === correoNuevo
       );
     },
     [data.usuarios]
@@ -55,24 +48,24 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
       try {
         const duplicado = encontrarDuplicado(form, editingUsuario?.id);
         if (duplicado) {
-          const motivo =
-            duplicado.correo.trim().toLowerCase() === form.correo.trim().toLowerCase()
-              ? "Ya existe un usuario registrado con ese correo"
-              : "Ya existe un usuario registrado con ese número de identificación";
-          toast.error(motivo);
+          toast.error("Ya existe un usuario registrado con ese correo");
           return;
         }
 
-        // El formulario valida que tipoUsuario no quede vacío antes de permitir
-        // el envío (ver UsuarioFormModal); acá ya llega garantizado no-vacío.
-        const payload = { ...form, tipoUsuario: form.tipoUsuario || "otro" } as Omit<Usuario, "id">;
+        const rolId = Number(form.rol);
+        const payload = {
+          ...form,
+          rol: esRolId(rolId) ? rolId : ROLES.CONDUCTOR,
+        } as Omit<Usuario, "id">;
 
         if (editingUsuario) {
           // Corrección: si el campo de contraseña se deja vacío al editar,
           // no debe sobreescribir la contraseña existente (así lo indica
-          // el hint "vacío = sin cambios" del formulario).
+          // el hint "vacío = sin cambios" del formulario) — y de todas formas
+          // la API rechaza un PUT que incluya contraseña (ver services/api/usuarios.ts).
           const { password, ...rest } = payload;
-          data.updateUsuario(editingUsuario.id, password ? payload : rest);
+          void password;
+          data.updateUsuario(editingUsuario.id, rest);
           toast.success("Usuario actualizado correctamente");
         } else {
           data.addUsuario(payload);
@@ -94,7 +87,7 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
         return;
       }
       try {
-        data.updateUsuario(u.id, { ...u, estado: u.estado === "activo" ? "inactivo" : "activo" });
+        data.updateUsuario(u.id, { estado: u.estado === "activo" ? "inactivo" : "activo" });
         toast.success(`Usuario ${u.estado === "activo" ? "desactivado" : "activado"} correctamente`);
       } catch (error) {
         toast.error("Error al cambiar el estado");

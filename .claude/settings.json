@@ -20,7 +20,14 @@
       "Bash(git commit -m ' *)",
       "Bash(node ocr-real-check.mjs)",
       "Bash(node \"C:\\\\Users\\\\Anderson\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-Anderson-Downloads-parku-web\\\\c97c8843-b277-4ba2-8168-b9915335b3cd\\\\scratchpad\\\\ocr-diagnose.mjs\")",
-      "Bash(node ocr-diagnose4.mjs)"
+      "Bash(node ocr-diagnose4.mjs)",
+      "Bash(curl -s --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/catalogos/tipos-usuario)",
+      "Bash(curl -s --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/reservas/vehiculo/1)",
+      "Bash(curl -s --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/auth/verificar)",
+      "Bash(curl -s -i --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/catalogos/tipos-usuario)",
+      "Bash(curl -s --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/conductores/1)",
+      "Bash(curl -s --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/vehiculos/conductor/1)",
+      "Bash(npx vitest *)"
     ]
   }
 }

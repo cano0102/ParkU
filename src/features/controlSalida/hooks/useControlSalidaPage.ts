@@ -4,7 +4,6 @@ import { useControlSalida, useRemoveControlSalida } from "./useControlSalida";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
 import { useCeldas, useParqueaderos } from "@/features/parqueaderos";
-import { useUsuarios } from "@/features/usuarios";
 import { PAGE_SIZE } from "../lib/helpers";
 
 /** Datos, filtros, paginación y eliminación del historial de entrada/salida. */
@@ -13,7 +12,6 @@ export function useControlSalidaPage() {
   const { data: vehiculos = [] } = useVehiculos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
-  const { data: usuarios = [] } = useUsuarios();
   const { data: parqueaderos = [] } = useParqueaderos();
   const removeControlSalidaMutation = useRemoveControlSalida();
   const deleteControlSalida = useCallback(
@@ -40,14 +38,9 @@ export function useControlSalidaPage() {
     [vehiculos, conductores, getVehiculo]
   );
 
-  const getUsuarioConductor = useCallback(
-    (vehiculoId: string) => {
-      const conductor = getConductorVehiculo(vehiculoId);
-      if (!conductor) return null;
-      return usuarios.find((u) => u.id === conductor.usuarioId);
-    },
-    [conductores, usuarios, getConductorVehiculo]
-  );
+  // El conductor ya trae su propio documento/nombre (ver services/api/conductores.ts) —
+  // ya no hace falta pasar por un Usuario vinculado (opcional) para mostrarlos.
+  const getUsuarioConductor = getConductorVehiculo;
 
   // Celdas disponibles (sin filtrar por tipo)
   const celdasDisponibles = useMemo(() => celdas.filter((c) => c.estado === "disponible"), [celdas]);
@@ -68,9 +61,8 @@ export function useControlSalidaPage() {
             vehiculo?.placa.toLowerCase().includes(q) ||
             celda?.numero.toLowerCase().includes(q) ||
             usuario?.nombre.toLowerCase().includes(q) ||
-            usuario?.identificacion.includes(q) ||
-            vehiculo?.marca.toLowerCase().includes(q) ||
-            vehiculo?.modelo.toLowerCase().includes(q);
+            usuario?.numeroDocumento.includes(q) ||
+            vehiculo?.marca.toLowerCase().includes(q);
           const matchesEstado = filterEstado === "todos" ? true : control.estado === filterEstado;
           const matchesParqueadero = filterParqueadero === "todos" ? true : parqueadero?.id === filterParqueadero;
           return matchesSearch && matchesEstado && matchesParqueadero;

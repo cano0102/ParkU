@@ -39,7 +39,6 @@ export function useParqueaderosPage() {
     modal.setCeldaSeleccionadaId(celda.id);
     ingreso.setPlacaError(null);
     incidente.setIncidenteError(null);
-    incidente.resetIncidenteEvidencia();
 
     if (celda.estado === "no_disponible") {
       const ocupante = modal.getOcupante(celda.id);
@@ -48,7 +47,7 @@ export function useParqueaderosPage() {
         conductor: ocupante?.conductor?.nombre || "",
         esOficial: ocupante?.esOficial || false,
         marca: ocupante?.vehiculo.marca || "",
-        modelo: ocupante?.vehiculo.modelo || "",
+        modelo: ocupante?.vehiculo.modelo ? String(ocupante.vehiculo.modelo) : "",
         color: ocupante?.vehiculo.color || "",
       });
       modal.setOpenModal("info");

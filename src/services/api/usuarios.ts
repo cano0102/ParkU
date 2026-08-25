@@ -1,12 +1,88 @@
-import { usuariosTable, type Usuario } from '../core/db';
-import { createCrudService } from '../core/crud';
+/**
+ * Usuarios contra la API real (`/api/usuarios`, solo Admin). El modelo real
+ * (`usuario`: id, nombre, correo, contrasena, rol_id, estado ENUM) no tiene
+ * columnas `numero`/`foto`/`tipoUsuario`/`tipoDocumento`/`identificacion` —
+ * esos datos de persona (documento, tipo, teléfono) viven en la entidad
+ * Conductor (`services/api/conductores.ts`), separada de la cuenta de
+ * acceso. Por eso el `Usuario` que administra esta pantalla se reduce a
+ * credenciales + rol + estado; los campos de documento/contacto se gestionan
+ * desde Conductores.
+ *
+ * `contrasena` nunca viaja en `update()`: la API rechaza un PUT que la
+ * incluya (usa `PATCH /:id/contrasena`, ver services/api/auth.ts#changePassword)
+ * — no hay forma de que un Admin restablezca la contraseña de otro usuario
+ * sin conocerla, así que si `data.password` llega con contenido en `update`,
+ * simplemente se ignora (no hay endpoint real para esa acción).
+ */
+import { apiFetch } from '../core/http';
+import { esRolId, ROLES, type RolId } from '../core/roles';
 
-export type { Usuario };
+export interface Usuario {
+  id: string;
+  correo: string;
+  /** Solo se usa al crear; vacío en las respuestas y al editar. */
+  password: string;
+  nombre: string;
+  rol: RolId;
+  estado: 'activo' | 'inactivo';
+}
 
-const crud = createCrudService<Usuario>(usuariosTable.get, usuariosTable.set, 'usr', 'Usuario');
+interface ApiUsuario {
+  id: number;
+  correo: string;
+  nombre: string;
+  rol: number;
+  estado: string;
+}
 
-export const getAll = crud.getAll;
-export const getById = crud.getById;
-export const create = crud.create;
-export const update = crud.update;
-export const remove = crud.remove;
+function toFrontend(u: ApiUsuario): Usuario {
+  return {
+    id: String(u.id),
+    correo: u.correo,
+    password: '',
+    nombre: u.nombre,
+    rol: esRolId(u.rol) ? u.rol : ROLES.CONDUCTOR,
+    estado: u.estado === 'ACTIVO' ? 'activo' : 'inactivo',
+  };
+}
+
+export async function getAll(): Promise<Usuario[]> {
+  const rows = await apiFetch<ApiUsuario[]>('/usuarios');
+  return rows.map(toFrontend);
+}
+
+export async function getById(id: string): Promise<Usuario | undefined> {
+  try {
+    return toFrontend(await apiFetch<ApiUsuario>(`/usuarios/${id}`));
+  } catch {
+    return undefined;
+  }
+}
+
+export async function create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
+  const created = await apiFetch<ApiUsuario>('/usuarios', {
+    method: 'POST',
+    body: {
+      correo: data.correo.trim().toLowerCase(),
+      contrasena: data.password,
+      nombre: data.nombre,
+      rol: data.rol,
+      estado: data.estado === 'activo',
+    },
+  });
+  return toFrontend(created);
+}
+
+export async function update(id: string, data: Partial<Omit<Usuario, 'id'>>): Promise<Usuario> {
+  const payload: Record<string, unknown> = {};
+  if (data.correo !== undefined) payload.correo = data.correo.trim().toLowerCase();
+  if (data.nombre !== undefined) payload.nombre = data.nombre;
+  if (data.rol !== undefined) payload.rol = data.rol;
+  if (data.estado !== undefined) payload.estado = data.estado === 'activo';
+  const updated = await apiFetch<ApiUsuario>(`/usuarios/${id}`, { method: 'PUT', body: payload });
+  return toFrontend(updated);
+}
+
+export async function remove(id: string): Promise<void> {
+  await apiFetch<void>(`/usuarios/${id}`, { method: 'DELETE' });
+}

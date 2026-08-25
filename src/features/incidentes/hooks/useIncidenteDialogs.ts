@@ -1,17 +1,18 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { Incidente } from "@/services/api/incidentes";
-import { MAX_EVIDENCIA_MB } from "../lib/constants";
+import type { Incidente, TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
 import type { IncidentesData } from "./useIncidentesData";
 
 const emptyFormData = () => ({
   descripcion: "",
   parqueaderoId: "",
   celdaId: "",
-  vehiculo: "",
-  asignadoA: "",
-  evidencia: "",
-  notasResolucion: "",
+  vehiculoId: "",
+  usuarioAsignadoId: "",
+  tipoNovedad: "otro" as TipoNovedad,
+  prioridad: "media" as PrioridadNovedad,
+  estado: "pendiente" as Incidente["estado"],
+  justificacionCierre: "",
 });
 
 /** Los tres modales de Incidentes: crear/editar (con su validación en vivo), ver detalle y confirmar eliminación. */
@@ -60,10 +61,12 @@ export function useIncidenteDialogs(data: IncidentesData) {
       descripcion: incidente.descripcion,
       parqueaderoId: incidente.parqueaderoId,
       celdaId: incidente.celdaId || "",
-      vehiculo: incidente.vehiculo || "",
-      asignadoA: incidente.asignadoA || "",
-      evidencia: incidente.evidencia || "",
-      notasResolucion: incidente.notasResolucion || "",
+      vehiculoId: incidente.vehiculoId || "",
+      usuarioAsignadoId: incidente.usuarioAsignadoId || "",
+      tipoNovedad: incidente.tipoNovedad,
+      prioridad: incidente.prioridad,
+      estado: incidente.estado,
+      justificacionCierre: incidente.justificacionCierre || "",
     });
     setIsEditing(true);
     setViewOpen(false);
@@ -89,7 +92,7 @@ export function useIncidenteDialogs(data: IncidentesData) {
     setFormData({
       ...formData,
       celdaId,
-      vehiculo: ocupante ? ocupante.vehiculo.placa : formData.vehiculo,
+      vehiculoId: ocupante ? ocupante.vehiculo.id : formData.vehiculoId,
     });
   };
 
@@ -101,52 +104,13 @@ export function useIncidenteDialogs(data: IncidentesData) {
     }
 
     if (isEditing && selectedIncidente) {
-      updateIncidente(selectedIncidente.id, {
-        ...formData,
-        celdaId: formData.celdaId || undefined,
-        vehiculo: formData.vehiculo || undefined,
-        notasResolucion: formData.notasResolucion || undefined,
-      });
+      updateIncidente(selectedIncidente.id, { ...formData });
       toast.success("Incidente actualizado correctamente");
     } else {
-      addIncidente({
-        ...formData,
-        celdaId: formData.celdaId || undefined,
-        vehiculo: formData.vehiculo || undefined,
-        notasResolucion: formData.notasResolucion || undefined,
-        fecha: new Date().toISOString(),
-        estado: "pendiente",
-      });
+      addIncidente({ ...formData });
       toast.success("Incidente registrado correctamente");
     }
     closeForm();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
-      toast.error("El archivo debe ser una imagen");
-      return;
-    }
-
-    if (file.size > MAX_EVIDENCIA_MB * 1024 * 1024) {
-      toast.error(`La imagen no debe superar ${MAX_EVIDENCIA_MB}MB`);
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setFormData({ ...formData, evidencia: reader.result as string });
-      toast.success("Evidencia cargada");
-    };
-    reader.onerror = () => toast.error("No se pudo cargar la imagen");
-    reader.readAsDataURL(file);
-  };
-
-  const removeEvidencia = () => {
-    setFormData({ ...formData, evidencia: "" });
   };
 
   const handleDelete = (incidente: Incidente) => setConfirmDelete(incidente);
@@ -181,8 +145,6 @@ export function useIncidenteDialogs(data: IncidentesData) {
     handleParqueaderoChange,
     handleCeldaChange,
     handleSave,
-    handleFileChange,
-    removeEvidencia,
     handleDelete,
     confirmDeleteAction,
   };

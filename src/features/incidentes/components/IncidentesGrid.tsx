@@ -1,6 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
+import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
 import { IncidenteCard } from "./IncidenteCard";
 
@@ -9,6 +10,8 @@ const C = theme;
 interface IncidentesGridProps {
   incidentes: Incidente[];
   celdaDe: (id?: string) => Celda | undefined;
+  vehiculoDe: (id?: string) => Vehiculo | undefined;
+  nombreUsuarioAsignado: (id?: string) => string | undefined;
   nombreParqueadero: (id: string) => string;
   onView: (incidente: Incidente) => void;
   onEdit: (incidente: Incidente) => void;
@@ -17,7 +20,7 @@ interface IncidentesGridProps {
 }
 
 /** Grid de tarjetas de incidente, o el estado vacío cuando el filtro no arroja resultados. */
-export function IncidentesGrid({ incidentes, celdaDe, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidentesGridProps) {
+export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioAsignado, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidentesGridProps) {
   if (incidentes.length === 0) {
     return (
       <div style={{
@@ -43,6 +46,8 @@ export function IncidentesGrid({ incidentes, celdaDe, nombreParqueadero, onView,
           key={incidente.id}
           incidente={incidente}
           celda={celdaDe(incidente.celdaId)}
+          vehiculoPlaca={vehiculoDe(incidente.vehiculoId)?.placa}
+          asignadoNombre={nombreUsuarioAsignado(incidente.usuarioAsignadoId)}
           nombreParqueadero={nombreParqueadero(incidente.parqueaderoId)}
           onView={() => onView(incidente)}
           onEdit={() => onEdit(incidente)}

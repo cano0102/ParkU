@@ -1,9 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { createAppBackends } from '@/test/appFakeApi';
 import { ControlSalidaPage } from './ControlSalidaPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 function renderControlSalida(client = createTestQueryClient()) {
   return render(
@@ -14,13 +19,10 @@ function renderControlSalida(client = createTestQueryClient()) {
 }
 
 describe('features/controlSalida', () => {
-  it('renderiza la página con datos reales (banner, toolbar y paginación)', async () => {
+  it('renderiza la página con datos reales (banner, toolbar y el registro semilla)', async () => {
     renderControlSalida();
 
-    // Con >100 registros (12 semilla + sintéticos) y PAGE_SIZE=8 la paginación
-    // aparece; el orden es por fecha de entrada descendente, así que los
-    // registros semilla (2025-06-20) no necesariamente caen en la página 1.
-    await waitFor(() => expect(screen.getByText(/Pág\. \d+ de \d+/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
     expect(screen.getByText('Entrada y Salida')).toBeInTheDocument();
     expect(screen.getByLabelText('Buscar registros')).toBeInTheDocument();
   });
@@ -28,24 +30,17 @@ describe('features/controlSalida', () => {
   it('filtra la lista al escribir una placa en el buscador (vehículo real ABC123)', async () => {
     const user = userEvent.setup();
     renderControlSalida();
-    await waitFor(() => expect(screen.getByText(/Pág\. \d+ de \d+/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
 
     const search = screen.getByLabelText('Buscar registros');
-    await user.type(search, 'ABC123');
+    await user.type(search, 'ZZZ999');
 
-    await waitFor(() => expect(screen.queryByText('GHI789')).not.toBeInTheDocument());
-    expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0);
+    await waitFor(() => expect(screen.getByText('No se encontraron registros')).toBeInTheDocument());
   });
 
   it('abre el diálogo de confirmación al eliminar y lo cancela sin borrar el registro', async () => {
     const user = userEvent.setup();
     renderControlSalida();
-    await waitFor(() => expect(screen.getByText(/Pág\. \d+ de \d+/)).toBeInTheDocument());
-
-    // Filtra a un único registro para que el botón "Eliminar registro" sea inequívoco
-    // (todas las filas comparten el mismo aria-label).
-    const search = screen.getByLabelText('Buscar registros');
-    await user.type(search, 'ABC123');
     await waitFor(() => expect(screen.getAllByLabelText('Eliminar registro')).toHaveLength(1));
 
     await user.click(screen.getByLabelText('Eliminar registro'));
@@ -65,10 +60,6 @@ describe('features/controlSalida', () => {
   it('elimina el registro al confirmar en el diálogo', async () => {
     const user = userEvent.setup();
     renderControlSalida();
-    await waitFor(() => expect(screen.getByText(/Pág\. \d+ de \d+/)).toBeInTheDocument());
-
-    const search = screen.getByLabelText('Buscar registros');
-    await user.type(search, 'ABC123');
     await waitFor(() => expect(screen.getAllByLabelText('Eliminar registro')).toHaveLength(1));
 
     await user.click(screen.getByLabelText('Eliminar registro'));

@@ -1,7 +1,7 @@
 import { Link, Navigate } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import type { Rol } from '../services/api/roles';
+import type { PermisosRol } from '../services/core/roles';
 import { theme } from '../styles/theme';
 
 const C = theme;
@@ -66,7 +66,7 @@ export function ProtectedRoute({
 }: {
   children: React.ReactNode;
   /** Clave de `Rol.permisos` requerida para ver esta ruta. Si se omite, solo se exige sesión iniciada. */
-  permission?: keyof Rol['permisos'];
+  permission?: keyof PermisosRol;
 }) {
   const { isAuthenticated, hasPermission } = useAuth();
 

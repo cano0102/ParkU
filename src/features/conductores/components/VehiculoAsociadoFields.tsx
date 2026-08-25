@@ -1,16 +1,17 @@
 import { Car } from "lucide-react";
 import { FormField } from "@/components/shared";
-import { COLORS, inputStyle } from "../lib/helpers";
+import type { Vehiculo } from "@/services/api/vehiculos";
+import { COLORS, TIPOS_VEHICULO, getTipoVehiculoStyle, inputStyle } from "../lib/helpers";
 
 interface VehiculoAsociadoFieldsProps {
   placa: string;
   placaError?: string;
-  tipoVehiculo: "carro" | "moto";
+  tipoVehiculo: Vehiculo["tipo"];
   marca: string;
   descripcionVehiculo: string;
   onPlacaChange: (value: string) => void;
   onPlacaBlur: () => void;
-  onTipoVehiculoChange: (tipo: "carro" | "moto") => void;
+  onTipoVehiculoChange: (tipo: Vehiculo["tipo"]) => void;
   onMarcaChange: (value: string) => void;
   onDescripcionChange: (value: string) => void;
 }
@@ -58,24 +59,15 @@ export function VehiculoAsociadoFields({
         </FormField>
 
         <FormField label="Tipo de vehículo">
-          <div style={{ display: "flex", gap: 8 }}>
-            {(["carro", "moto"] as const).map((tipo) => (
-              <button
-                key={tipo}
-                type="button"
-                onClick={() => onTipoVehiculoChange(tipo)}
-                style={{
-                  flex: 1, padding: "10px", borderRadius: 11, fontSize: 12, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                  border: tipoVehiculo === tipo ? "1px solid transparent" : `1px solid ${COLORS.border}`,
-                  background: tipoVehiculo === tipo ? "rgba(57,169,0,.1)" : COLORS.bg,
-                  color: tipoVehiculo === tipo ? COLORS.primaryDark : COLORS.textLight,
-                }}
-              >
-                {tipo === "carro" ? "🚗 Carro" : "🏍️ Moto"}
-              </button>
+          <select
+            value={tipoVehiculo}
+            onChange={(e) => onTipoVehiculoChange(e.target.value as Vehiculo["tipo"])}
+            style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+          >
+            {TIPOS_VEHICULO.map((tipo) => (
+              <option key={tipo} value={tipo}>{getTipoVehiculoStyle(tipo).label}</option>
             ))}
-          </div>
+          </select>
         </FormField>
 
         <FormField label="Marca">
