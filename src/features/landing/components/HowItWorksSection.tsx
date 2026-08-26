@@ -26,7 +26,7 @@ export function HowItWorksSection() {
           </h2>
 
           <p style={{ color: COLORS.textLight, maxWidth: 700, margin: "auto", lineHeight: 1.8 }}>
-            Empieza a usar ParkU en tres simples pasos.
+            Empieza a usar ParkU en dos simples pasos.
           </p>
         </Reveal>
 
@@ -34,9 +34,11 @@ export function HowItWorksSection() {
           className="steps-grid"
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
+            gridTemplateColumns: "repeat(2,1fr)",
             gap: "2rem",
             position: "relative",
+            maxWidth: 640,
+            margin: "0 auto",
           }}
         >
           {steps.map((step, i) => {

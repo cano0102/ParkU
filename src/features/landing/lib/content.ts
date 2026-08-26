@@ -7,7 +7,6 @@ import {
   Users,
   Sparkles,
   UserPlus,
-  QrCode,
   DoorOpen,
 } from "lucide-react";
 
@@ -20,7 +19,7 @@ export const features = [
   {
     icon: ScanLine,
     title: "Lectura Inteligente",
-    desc: "Ingreso mediante QR y reconocimiento de placas.",
+    desc: "Ingreso mediante reconocimiento de placas.",
   },
   {
     icon: Activity,
@@ -39,11 +38,6 @@ export const steps = [
     icon: UserPlus,
     title: "Regístrate",
     desc: "Crea tu cuenta institucional con tus datos del SENA en pocos minutos.",
-  },
-  {
-    icon: QrCode,
-    title: "Genera tu código QR",
-    desc: "Vincula tu vehículo y obtén un código de acceso único y seguro.",
   },
   {
     icon: DoorOpen,
