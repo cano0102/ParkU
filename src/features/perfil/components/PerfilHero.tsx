@@ -1,6 +1,7 @@
 import { BadgeCheck, Camera, Shield, Sparkles, X } from "lucide-react";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
+import { nombreDeRol } from "@/services/core/roles";
 
 const C = theme;
 
@@ -106,7 +107,7 @@ export function PerfilHero({ user, onPhotoChange, onRemovePhoto }: PerfilHeroPro
               padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800,
             }}
           >
-            <Shield size={12} /> {user.rol}
+            <Shield size={12} /> {nombreDeRol(user.rol)}
           </span>
           <span
             style={{

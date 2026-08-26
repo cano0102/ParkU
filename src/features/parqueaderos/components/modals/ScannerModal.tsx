@@ -8,8 +8,8 @@ const C = theme;
 
 interface ScannerModalProps {
   open: boolean;
-  videoRef: React.RefObject<HTMLVideoElement>;
-  guiaRef: React.RefObject<HTMLDivElement>;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
+  guiaRef: React.RefObject<HTMLDivElement | null>;
   camaraLista: boolean;
   onCamaraLista: () => void;
   ocrLoading: boolean;

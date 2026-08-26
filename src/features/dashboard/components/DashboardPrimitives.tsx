@@ -1,12 +1,12 @@
 import { forwardRef, type ElementType, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 import { Bike, Car, ChevronRight, ParkingCircle } from "lucide-react";
 import { theme } from "@/styles/theme";
 import { occupancyOf, statusColor, type ParkingLot } from "../lib/helpers";
 
 const COLORS = theme;
 
-export const fadeUp = {
+export const fadeUp: Variants = {
   hidden: { opacity: 0, y: 16 },
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
 };

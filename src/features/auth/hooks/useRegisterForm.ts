@@ -81,7 +81,7 @@ export function useRegisterForm() {
     }
   };
 
-  const err = (field: keyof FormState) => (touched[field] ? errors[field] : undefined);
+  const err = (field: keyof ValidationErrors) => (touched[field] ? errors[field] : undefined);
 
   return {
     form,

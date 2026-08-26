@@ -5,14 +5,20 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { createTestQueryClient } from '@/test/queryWrapper';
 import { AuthProvider } from '@/context/AuthContext';
+import { createAppBackends } from '@/test/appFakeApi';
+import { ROLES } from '@/services/core/roles';
 import { Perfil } from './PerfilPage';
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
+apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 const SEED_USER = {
   id: '1',
   correo: 'admin@sena.edu.co',
   nombre: 'Administrador ParkU',
   numero: '3101234567',
-  rol: 'Administrador',
+  rol: ROLES.ADMIN,
 };
 
 function renderPerfil() {
@@ -28,6 +34,7 @@ function renderPerfil() {
 
 describe('Perfil', () => {
   beforeEach(() => {
+    localStorage.setItem('parkuToken', 'fake-token-1');
     localStorage.setItem('parkUUser', JSON.stringify(SEED_USER));
   });
 

@@ -5,6 +5,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { createTestQueryClient } from '@/test/queryWrapper';
+import { createAppBackends } from '@/test/appFakeApi';
 import { Register } from './Register';
 
 const mockNavigate = vi.fn();
@@ -16,6 +17,10 @@ vi.mock('react-router-dom', async () => {
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+
+const apiFetchMock = vi.hoisted(() => vi.fn());
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
+apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 import { toast } from 'sonner';
 

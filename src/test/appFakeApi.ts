@@ -12,6 +12,7 @@
  */
 import { vi } from 'vitest';
 import { createFakeRestBackend } from './fakeApi';
+import { ROLES } from '@/services/core/roles';
 
 export const rolesSeed = [
   { id: 1, nombre: 'Administrador', descripcion: 'Acceso total al sistema', estado: true },
@@ -111,6 +112,102 @@ export const catalogosSeed = [
   { id: 5, nombre: 'Visitante', descripcion: '', estado: true },
 ];
 
+/**
+ * Backend falso de `/auth/*`: no es un recurso CRUD estándar (son rutas de
+ * acción — login/registro/verificar/recuperar/restablecer), así que no usa
+ * `createFakeRestBackend`. Opera directamente sobre `usuariosSeed` (incluida
+ * la `contrasena`, que el backend `/usuarios` no expone) para que un usuario
+ * registrado en un test pueda loguearse después con las mismas credenciales.
+ *
+ * `/auth/verificar` no recibe el header `Authorization` real (el mock
+ * reemplaza `apiFetch` completo, antes de que `http.ts` lo agregue), así que
+ * en su lugar confía en `parkUUser` de localStorage — igual de válido para
+ * el propósito del bootstrap de sesión en estos tests.
+ */
+function createAuthBackend() {
+  const resetTokens = new Map<string, string>();
+
+  function findAccount(correo: string) {
+    const c = (correo ?? '').trim().toLowerCase();
+    return usuariosSeed.find((u) => u.correo.trim().toLowerCase() === c);
+  }
+
+  async function apiFetch<R>(path: string, options: { method?: string; body?: unknown } = {}): Promise<R> {
+    const method = (options.method ?? 'GET').toUpperCase();
+    const body = (options.body ?? {}) as Record<string, any>;
+
+    if (method === 'POST' && path === '/auth/login') {
+      const account = findAccount(body.correo);
+      if (!account || account.contrasena !== body.contrasena) {
+        throw new Error('Contraseña incorrecta. Verifica tus credenciales.');
+      }
+      return {
+        success: true,
+        message: 'Login exitoso',
+        data: {
+          user: { id: account.id, correo: account.correo, nombre: account.nombre, rol: account.rol, estado: account.estado },
+          token: `fake-token-${account.id}`,
+          refreshToken: `fake-refresh-${account.id}`,
+          expiresIn: '7d',
+        },
+      } as unknown as R;
+    }
+
+    if (method === 'POST' && path === '/auth/registro') {
+      if (findAccount(body.correo)) {
+        throw new Error('Ya existe una cuenta registrada con este correo.');
+      }
+      const nextId = usuariosSeed.reduce((max, u) => Math.max(max, u.id), 0) + 1;
+      usuariosSeed.push({
+        id: nextId,
+        correo: body.correo,
+        contrasena: body.contrasena,
+        nombre: body.nombre,
+        rol: ROLES.CONDUCTOR,
+        estado: 'ACTIVO',
+      });
+      return { success: true, message: 'Registro exitoso', data: {} } as unknown as R;
+    }
+
+    if (method === 'POST' && path === '/auth/logout') {
+      return { success: true, message: 'Logout exitoso', data: {} } as unknown as R;
+    }
+
+    if (method === 'GET' && path === '/auth/verificar') {
+      const raw = (() => {
+        try { return localStorage.getItem('parkUUser'); } catch { return null; }
+      })();
+      if (!raw) throw new Error('No autenticado');
+      const u = JSON.parse(raw);
+      return {
+        success: true,
+        message: '',
+        data: { usuario: { id: Number(u.id), correo: u.correo, nombre: u.nombre, rol: Number(u.rol), estado: 'ACTIVO' } },
+      } as unknown as R;
+    }
+
+    if (method === 'POST' && path === '/auth/recuperar-password') {
+      const account = findAccount(body.correo);
+      const token = account ? `reset-${account.id}-${Math.random().toString(36).slice(2)}` : undefined;
+      if (account && token) resetTokens.set(token, account.correo.trim().toLowerCase());
+      return { success: true, message: 'Si el correo existe, se generó un enlace', ...(token ? { token } : {}) } as unknown as R;
+    }
+
+    if (method === 'POST' && path === '/auth/restablecer-password') {
+      const correo = resetTokens.get(body.token);
+      if (!correo) throw new Error('El enlace de recuperación no es válido.');
+      const account = findAccount(correo);
+      if (account) account.contrasena = body.nuevaContrasena;
+      resetTokens.delete(body.token);
+      return { success: true, message: 'Contraseña actualizada correctamente' } as unknown as R;
+    }
+
+    throw new Error(`appFakeApi(auth): sin handler para ${method} ${path}`);
+  }
+
+  return { apiFetch: vi.fn(apiFetch) };
+}
+
 /** Crea un set fresco de backends por dominio (uno por test, para no filtrar estado entre tests). */
 export function createAppBackends() {
   const roles = createFakeRestBackend('/roles', rolesSeed);
@@ -183,6 +280,7 @@ export function createAppBackends() {
   });
   const incidentes = createFakeRestBackend('/novedades', incidentesSeed);
   const catalogos = createFakeRestBackend('/catalogos/tipos-usuario', catalogosSeed);
+  const auth = createAuthBackend();
 
   const backends: [string, ReturnType<typeof createFakeRestBackend>][] = [
     ['/catalogos/tipos-usuario', catalogos],
@@ -199,10 +297,12 @@ export function createAppBackends() {
   ];
 
   const apiFetch = vi.fn(async (path: string, opts?: object) => {
+    // `/auth` no es un recurso CRUD del router genérico (ver createAuthBackend).
+    if (path.startsWith('/auth')) return auth.apiFetch(path, opts as any);
     const match = backends.find(([prefix]) => path.startsWith(prefix));
     if (!match) throw new Error(`appFakeApi: sin router para ${path}`);
     return match[1].apiFetch(path, opts as any);
   });
 
-  return { apiFetch, roles, usuarios, conductores, vehiculos, parqueaderos, celdas, controlSalida, reservas, incidentes, catalogos };
+  return { apiFetch, roles, usuarios, conductores, vehiculos, parqueaderos, celdas, controlSalida, reservas, incidentes, catalogos, auth };
 }
