@@ -3,7 +3,7 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
-import { ModalHeader, Banner } from "@/components/shared";
+import { ModalHeader } from "@/components/shared";
 import { IncidenteForm, Ocupante } from "../../lib/helpers";
 
 const C = theme;
@@ -33,8 +33,6 @@ export function IncidenteModal({
         onClose={onClose}
       />
       <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
-        {incidenteError && <Banner tone="danger" message={incidenteError} />}
-
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Descripción del incidente *</label>
           <textarea
@@ -42,11 +40,12 @@ export function IncidenteModal({
             value={incidenteForm.descripcion}
             onChange={(e) => setIncidenteForm(prev => ({ ...prev, descripcion: e.target.value }))}
             placeholder="Describe el incidente o novedad en la celda..."
+            aria-invalid={!!incidenteError}
             style={{
               width: "100%",
               padding: "11px 14px",
               borderRadius: 11,
-              border: `1px solid ${C.border}`,
+              border: `1px solid ${incidenteError ? C.danger : C.border}`,
               fontSize: 13,
               fontFamily: "inherit",
               background: "#F8FAFC",
@@ -55,6 +54,9 @@ export function IncidenteModal({
               outline: "none",
             }}
           />
+          {incidenteError && (
+            <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{incidenteError}</p>
+          )}
           <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>
             El tipo, la prioridad y la asignación se pueden completar después desde el módulo de Incidentes.
           </p>
@@ -72,6 +74,7 @@ export function IncidenteModal({
         <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
         <button
           onClick={onSubmit}
+          disabled={!incidenteForm.descripcion.trim()}
           style={{
             padding: "10px 24px",
             borderRadius: 12,

@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Celda } from "@/services/api/celdas";
 import type { Ocupante, IncidenteForm } from "../lib/helpers";
@@ -7,6 +7,9 @@ import type { ModalKind } from "./useModalController";
 
 const emptyIncidenteForm = (): IncidenteForm => ({ descripcion: "" });
 
+const validarIncidenteForm = (form: IncidenteForm): string | null =>
+  form.descripcion.trim() ? null : "La descripción del incidente es obligatoria.";
+
 /** Formulario rápido de reporte de incidente sobre la celda activa (desde el plano de Parqueaderos). */
 export function useIncidenteReporte(
   data: Pick<ParqueaderosData, "addIncidente">,
@@ -14,24 +17,40 @@ export function useIncidenteReporte(
   ocupanteActivo: Ocupante | null,
   setOpenModal: (m: ModalKind) => void
 ) {
-  const [incidenteForm, setIncidenteForm] = useState<IncidenteForm>(emptyIncidenteForm());
+  const [incidenteForm, setIncidenteFormRaw] = useState<IncidenteForm>(emptyIncidenteForm());
   const [incidenteError, setIncidenteError] = useState<string | null>(null);
+  const [incidenteTocado, setIncidenteTocado] = useState(false);
+
+  // Validación en tiempo real: se recalcula en cada cambio (no solo al enviar), y solo se
+  // muestra una vez que el usuario empezó a escribir, para no saludarlo con un error en un
+  // modal recién abierto.
+  useEffect(() => {
+    setIncidenteError(incidenteTocado ? validarIncidenteForm(incidenteForm) : null);
+  }, [incidenteForm, incidenteTocado]);
+
+  const setIncidenteForm: React.Dispatch<React.SetStateAction<IncidenteForm>> = useCallback((updater) => {
+    setIncidenteTocado(true);
+    setIncidenteFormRaw(updater);
+  }, []);
 
   const closeIncidenteModal = useCallback(() => {
     setOpenModal(null);
+    setIncidenteFormRaw(emptyIncidenteForm());
     setIncidenteError(null);
+    setIncidenteTocado(false);
   }, [setOpenModal]);
 
   const registrarIncidente = useCallback(() => {
     if (!celdaActiva || !ocupanteActivo) return;
-    const { descripcion } = incidenteForm;
-    if (!descripcion.trim()) {
-      setIncidenteError("La descripción del incidente es obligatoria.");
+    setIncidenteTocado(true);
+    const error = validarIncidenteForm(incidenteForm);
+    if (error) {
+      setIncidenteError(error);
       return;
     }
 
     data.addIncidente({
-      descripcion: descripcion.trim(),
+      descripcion: incidenteForm.descripcion.trim(),
       parqueaderoId: celdaActiva.parqueaderoId,
       celdaId: celdaActiva.id,
       vehiculoId: ocupanteActivo.vehiculo.id,
@@ -41,14 +60,15 @@ export function useIncidenteReporte(
       estado: "pendiente",
       justificacionCierre: "",
     });
-    setIncidenteForm(emptyIncidenteForm());
+    setIncidenteFormRaw(emptyIncidenteForm());
     setIncidenteError(null);
+    setIncidenteTocado(false);
     setOpenModal(null);
     toast.success("Incidente registrado correctamente.");
   }, [celdaActiva, ocupanteActivo, incidenteForm, data, setOpenModal]);
 
   return {
-    incidenteForm, setIncidenteForm, incidenteError, setIncidenteError,
+    incidenteForm, setIncidenteForm, incidenteError,
     closeIncidenteModal, registrarIncidente,
   };
 }

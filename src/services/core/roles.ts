@@ -11,6 +11,16 @@
  * cada endpoint, campo a campo igual a los 3 roles que traía el mock
  * (Administrador/Vigilante/Comunidad SENA) — ver services/core/db.ts (ya
  * eliminado) para el origen de esos valores.
+ *
+ * Excepción deliberada: `CONDUCTOR.parqueaderos` se puso en `true` (el mock
+ * lo traía en `false`) para que Comunidad SENA pueda ver el mapa/disponibilidad
+ * y reservar una celda — de otro modo `reservas: true` no tiene forma de
+ * usarse, ya que el único flujo de creación de reserva vive dentro de esta
+ * página. Si el backend real todavía bloquea `GET /parqueaderos` o
+ * `GET /celdas` para el rol Conductor, hay que habilitarlo ahí también; el
+ * resto de acciones de esta pantalla (crear/editar parqueadero, ingreso/
+ * egreso de vehículos, asignación inteligente, incidentes) siguen vetadas
+ * para Conductor vía `celdas`/`asignaciones`/`entradaSalida`/`incidentes`.
  */
 
 export const ROLES = {
@@ -73,7 +83,12 @@ export const PERMISOS_POR_ROL: Record<RolId, PermisosRol> = {
     usuarios: false,
     conductores: false,
     vehiculos: false,
-    parqueaderos: false,
+    // Solo lectura del mapa/disponibilidad de celdas + reservar una: ve la sección de
+    // Parqueaderos, pero sin `celdas`/`asignaciones`/`entradaSalida`/`incidentes` no puede
+    // crear/editar parqueaderos, registrar ingresos/egresos, usar asignación inteligente ni
+    // reportar incidentes (esas acciones están gateadas en la UI por esos permisos, no por
+    // este). Ver ParqueaderosPage.tsx / CeldaInfoModal.tsx.
+    parqueaderos: true,
     celdas: false,
     asignaciones: false,
     entradaSalida: false,

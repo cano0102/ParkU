@@ -1,4 +1,6 @@
 import { theme } from "@/styles/theme";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
 import { ParqueaderosHero } from "./components/ParqueaderosHero";
@@ -17,6 +19,14 @@ const C = theme;
 
 export default function Parqueaderos() {
   const { navigate, hasPermission, data, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick } = useParqueaderosPage();
+  const { user } = useAuth();
+
+  // Comunidad SENA (Conductor) solo puede reservar para su propio vehículo: el buscador del
+  // modal de reserva no debe exponer la lista completa de vehículos/conductores del sistema.
+  const esConductor = user?.rol === ROLES.CONDUCTOR;
+  const miConductor = esConductor ? data.conductores.find((c) => c.usuarioId === user!.id) : undefined;
+  const vehiculosParaReserva = esConductor ? data.vehiculos.filter((v) => v.conductorId === miConductor?.id) : data.vehiculos;
+  const conductoresParaReserva = esConductor ? data.conductores.filter((c) => c.id === miConductor?.id) : data.conductores;
 
   return (
     <>
@@ -36,6 +46,8 @@ export default function Parqueaderos() {
           onClearFilters={filters.clearFilters}
           onOpenSmartAssign={() => modal.setOpenModal("smartAssign")}
           onOpenCreate={pqFormState.openCreate}
+          canCrearParqueadero={hasPermission("celdas")}
+          canAsignacionInteligente={hasPermission("asignaciones")}
         />
 
         {filters.activeFilters > 0 && (
@@ -53,6 +65,7 @@ export default function Parqueaderos() {
             onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
             onCellClick={handleCellClick}
             cellMatchesSearch={filters.cellMatchesSearch}
+            canManage={hasPermission("celdas")}
           />
         )}
 
@@ -90,6 +103,7 @@ export default function Parqueaderos() {
         ingresoConductorOk={ingreso.ingresoConductorOk}
         ingresoValid={ingreso.ingresoValid}
         ingresoPlacaHint={ingreso.ingresoPlacaHint}
+        placaYaEstacionada={ingreso.placaYaEstacionada}
         vehiculoEncontrado={ingreso.vehiculoEncontrado}
         conductorEncontrado={ingreso.conductorEncontrado}
         conductorIdentificado={ingreso.conductorIdentificado}
@@ -117,6 +131,8 @@ export default function Parqueaderos() {
         onEstacionarVehiculo={ingreso.abrirIngresoVisitante}
         onReservarCelda={() => { if (modal.celdaActiva) reserva.openReservaFromCelda(modal.celdaActiva); }}
         canManageCeldas={hasPermission("celdas")}
+        canRegistrarIngreso={hasPermission("entradaSalida")}
+        canReportarIncidentes={hasPermission("incidentes")}
         onSetEstadoManual={modal.handleSetEstadoCeldaManual}
       />
 
@@ -124,8 +140,8 @@ export default function Parqueaderos() {
         open={modal.openModal === "reserva"}
         celdaActiva={modal.celdaActiva}
         parqueaderoActivo={modal.parqueaderoActivo}
-        vehiculos={data.vehiculos}
-        conductores={data.conductores}
+        vehiculos={vehiculosParaReserva}
+        conductores={conductoresParaReserva}
         reservaForm={reserva.reservaForm}
         setReservaForm={reserva.setReservaForm}
         reservaError={reserva.reservaError}

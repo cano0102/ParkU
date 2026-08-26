@@ -36,11 +36,19 @@ export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioA
   }
 
   return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: "repeat(auto-fill,minmax(360px,1fr))",
-      gap: 12,
-    }}>
+    <div
+      className="incidentes-grid"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill,minmax(360px,1fr))",
+        gap: 12,
+      }}
+    >
+      <style>{`
+        @media (max-width: 400px) {
+          .incidentes-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
       {incidentes.map((incidente) => (
         <IncidenteCard
           key={incidente.id}

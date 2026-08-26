@@ -118,6 +118,17 @@ export function useIngresoVehiculo(
     return vehiculos.find((v) => v.placa === placa) ?? null;
   }, [vehiculoForm.placa, vehiculos]);
 
+  /* Chequeo en vivo de "vehículo ya estacionado en otra celda": los datos (controlesSalida,
+     vehículos) ya están cargados en memoria, así que no hace falta esperar al envío del
+     formulario para avisar — se recalcula con cada tecleo de la placa, igual que el resto de
+     validaciones de este formulario. */
+  const placaYaEstacionada = useMemo(() => {
+    if (!vehiculoEncontrado || !celdaActiva) return false;
+    return controlesSalida.some(
+      (cs) => cs.estado === "en_parqueadero" && cs.celdaId !== celdaActiva.id && cs.vehiculoId === vehiculoEncontrado.id
+    );
+  }, [vehiculoEncontrado, controlesSalida, celdaActiva]);
+
   const conductorEncontrado = useMemo(() => {
     if (!vehiculoEncontrado) return null;
     return conductores.find((c) => c.id === vehiculoEncontrado.conductorId) ?? null;
@@ -162,7 +173,7 @@ export function useIngresoVehiculo(
     ? conductorIdentificado.estado === "activo"
     : validarNombreConductor(vehiculoForm.conductor);
   const parqueaderoIngresoActivo = parqueaderoActivo?.estado === "activo";
-  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo;
+  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo && !placaYaEstacionada;
   const ingresoPlacaHint = celdaActiva
     ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + letra final opcional (ABC12D o ABC12)"
       : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
@@ -173,6 +184,6 @@ export function useIngresoVehiculo(
     vehiculoForm, setVehiculoForm, placaError, setPlacaError,
     registrarEnCelda, registrarVehiculo, abrirIngresoOficial, abrirIngresoVisitante,
     conductoresSugeridos, vehiculoEncontrado, conductorEncontrado, conductorIdentificado, vehiculosConductor,
-    ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo,
+    ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo, placaYaEstacionada,
   };
 }

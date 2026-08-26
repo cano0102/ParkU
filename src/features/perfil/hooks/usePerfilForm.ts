@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { TELEFONO_REGEX } from "@/utils/validation";
+import { validarTelefono } from "@/utils/validation";
 
 /** Edición en línea de nombre/teléfono, con validación en tiempo real. */
 export function usePerfilForm(user: { nombre: string; numero: string }) {
@@ -12,7 +12,7 @@ export function usePerfilForm(user: { nombre: string; numero: string }) {
 
   const profileErrors = {
     nombre: profileForm.nombre.trim() ? "" : "El nombre no puede estar vacío",
-    numero: profileForm.numero.trim() && !TELEFONO_REGEX.test(profileForm.numero.trim()) ? "Ingresa un número de teléfono válido" : "",
+    numero: profileForm.numero.trim() && !validarTelefono(profileForm.numero.trim()) ? "Ingresa un número de teléfono colombiano válido (10 dígitos)" : "",
   };
   const profileInvalido = !!profileErrors.nombre || !!profileErrors.numero;
   const markProfileTouched = (campo: "nombre" | "numero") => setProfileTouched((t) => ({ ...t, [campo]: true }));

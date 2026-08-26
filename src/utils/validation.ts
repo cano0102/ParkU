@@ -50,3 +50,14 @@ export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 64;
 export const TELEFONO_REGEX = /^[0-9()+\-\s]{7,15}$/;
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Colombia (numeración unificada a 10 dígitos desde 2021): valida que, ignorando
+ *  espacios/paréntesis/guiones que el usuario haya usado para separar el número,
+ *  queden exactamente 10 dígitos y no empiece en 0 (ningún indicativo ni celular
+ *  real arranca así). `TELEFONO_REGEX` por sí sola solo exigía "7 a 15 caracteres
+ *  entre dígitos y separadores", lo que aceptaba como válido cualquier relleno de
+ *  dígitos repetidos (p. ej. "0000000000") sin que fuera un teléfono real. */
+export const validarTelefono = (valor: string): boolean => {
+  const soloDigitos = valor.replace(/\D/g, "");
+  return /^[1-9]\d{9}$/.test(soloDigitos);
+};

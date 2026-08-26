@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Celda } from "@/services/api/celdas";
 
 const DRAG_THRESHOLD = 8;
@@ -11,9 +11,14 @@ export interface HoverInfo {
   clientY: number;
 }
 
-/** Pan, zoom y el gesto de clic-vs-arrastre sobre el plano (una celda solo se abre si no hubo arrastre). */
-export function useParkingMapInteraction(onCellClick: (celda: Celda) => void) {
-  const [zoom, setZoom] = useState(1);
+/**
+ * Pan, zoom y el gesto de clic-vs-arrastre sobre el plano (una celda solo se abre si no hubo arrastre).
+ * `fitZoom` es el nivel de zoom que hace caber el plano completo en el ancho del contenedor visible:
+ * mientras el usuario no haya hecho zoom/arrastre manual, el mapa sigue ese valor automáticamente,
+ * para que en pantallas angostas no arranque recortado al 100%.
+ */
+export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, fitZoom: number = 1) {
+  const [zoom, setZoom] = useState(fitZoom);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [hover, setHover] = useState<HoverInfo | null>(null);
@@ -22,6 +27,11 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void) {
   const pointerStartRef = useRef({ x: 0, y: 0 });
   const isDraggedRef = useRef(false);
   const pendingCellRef = useRef<Celda | null>(null);
+  const userAdjustedRef = useRef(false);
+
+  useEffect(() => {
+    if (!userAdjustedRef.current) setZoom(fitZoom);
+  }, [fitZoom]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.button !== 0) return;
@@ -47,7 +57,9 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void) {
 
   const handlePointerUp = useCallback(() => {
     setIsDragging(false);
-    if (!isDraggedRef.current && pendingCellRef.current) {
+    if (isDraggedRef.current) {
+      userAdjustedRef.current = true;
+    } else if (pendingCellRef.current) {
       onCellClick(pendingCellRef.current);
     }
     isDraggedRef.current = false;
@@ -59,9 +71,19 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void) {
     pendingCellRef.current = celda;
   }, []);
 
-  const zoomIn = useCallback(() => setZoom((z) => Math.min(2.5, z + 0.15)), []);
-  const zoomOut = useCallback(() => setZoom((z) => Math.max(0.4, z - 0.15)), []);
-  const resetView = useCallback(() => { setZoom(1); setPan({ x: 0, y: 0 }); }, []);
+  const zoomIn = useCallback(() => {
+    userAdjustedRef.current = true;
+    setZoom((z) => Math.min(2.5, z + 0.15));
+  }, []);
+  const zoomOut = useCallback(() => {
+    userAdjustedRef.current = true;
+    setZoom((z) => Math.max(Math.min(0.4, fitZoom), z - 0.15));
+  }, [fitZoom]);
+  const resetView = useCallback(() => {
+    userAdjustedRef.current = false;
+    setZoom(fitZoom);
+    setPan({ x: 0, y: 0 });
+  }, [fitZoom]);
 
   const setCellHover = useCallback((info: HoverInfo | null) => {
     if (!isDraggedRef.current) setHover(info);

@@ -3,7 +3,7 @@ import {
   validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,
   validarPlacaPorTipo, tipoVehiculoDesdePlaca, esPlacaOficial,
   NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX,
-  TELEFONO_REGEX, EMAIL_REGEX,
+  TELEFONO_REGEX, validarTelefono, EMAIL_REGEX,
 } from './validation';
 
 describe('utils/validation — placas', () => {
@@ -86,6 +86,23 @@ describe('utils/validation — campos de usuario', () => {
     });
     it('rechaza teléfonos demasiado cortos', () => {
       expect(TELEFONO_REGEX.test('123')).toBe(false);
+    });
+  });
+
+  describe('validarTelefono', () => {
+    it('acepta un celular colombiano de 10 dígitos, con o sin separadores', () => {
+      expect(validarTelefono('3001234567')).toBe(true);
+      expect(validarTelefono('(300) 123-4567')).toBe(true);
+    });
+    it('rechaza un relleno de dígitos repetidos que no es un teléfono real', () => {
+      expect(validarTelefono('0000000000')).toBe(false);
+    });
+    it('rechaza menos o más de 10 dígitos', () => {
+      expect(validarTelefono('300123456')).toBe(false);
+      expect(validarTelefono('30012345678')).toBe(false);
+    });
+    it('rechaza un número que empiece en 0', () => {
+      expect(validarTelefono('0123456789')).toBe(false);
     });
   });
 

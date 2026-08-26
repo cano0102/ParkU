@@ -27,7 +27,9 @@
       "Bash(curl -s -i --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/catalogos/tipos-usuario)",
       "Bash(curl -s --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/conductores/1)",
       "Bash(curl -s --max-time 15 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MTEsImNvcnJlbyI6InRlc3QuaW50ZWdyYWNpb24ucGFya3VAZXhhbXBsZS5jb20iLCJyb2wiOjMsImlhdCI6MTc4NzYzMTIwMiwiZXhwIjoxNzg4MjM2MDAyfQ.xrj7jJi1ydZ7TVGkL9_k-wUvjL2QFUET_7FKkEkWYqY' https://api-parku-e017.onrender.com/api/vehiculos/conductor/1)",
-      "Bash(npx vitest *)"
+      "Bash(npx vitest *)",
+      "Read(//c//**)",
+      "Read(//c/Users/Anderson/**)"
     ]
   }
 }

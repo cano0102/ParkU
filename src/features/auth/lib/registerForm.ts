@@ -3,7 +3,7 @@ import {
   NOMBRE_MAX,
   PASSWORD_MIN,
   PASSWORD_MAX,
-  TELEFONO_REGEX,
+  validarTelefono,
   EMAIL_REGEX,
 } from "@/utils/validation";
 
@@ -65,8 +65,8 @@ export function validate(f: FormState): ValidationErrors {
 
   if (!numero) {
     nextErrors.numero = "El teléfono es obligatorio";
-  } else if (!TELEFONO_REGEX.test(numero)) {
-    nextErrors.numero = "El teléfono solo debe contener números (7 a 15 dígitos)";
+  } else if (!validarTelefono(numero)) {
+    nextErrors.numero = "Ingresa un número de teléfono colombiano válido (10 dígitos)";
   }
 
   if (!identificacion) {

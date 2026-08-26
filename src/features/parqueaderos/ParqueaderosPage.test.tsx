@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, within, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,10 +7,22 @@ import { createAppBackends } from '@/test/appFakeApi';
 import Parqueaderos from './ParqueaderosPage';
 import { createTestQueryClient } from '../../test/queryWrapper';
 import { AuthProvider } from '@/context/AuthContext';
+import { ROLES } from '@/services/core/roles';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
+
+// Este archivo cubre la vista de Admin/Vigilante (crear/editar parqueadero, liberar celda,
+// asignación inteligente) — requiere un usuario logueado con esos permisos; ver appFakeApi.ts
+// (usuario id 1, rol Administrador) para el seed que /auth/verificar valida.
+const SEED_ADMIN = {
+  id: '1',
+  correo: 'admin@sena.edu.co',
+  nombre: 'Administrador ParkU',
+  numero: '3101234567',
+  rol: ROLES.ADMIN,
+};
 
 /**
  * Pruebas de humo/moderadas para el punto de entrada más grande y complejo de
@@ -40,6 +52,15 @@ function renderPage() {
 }
 
 describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
+  beforeEach(() => {
+    localStorage.setItem('parkuToken', 'fake-token-1');
+    localStorage.setItem('parkUUser', JSON.stringify(SEED_ADMIN));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('renderiza los parqueaderos sembrados en la vista de tabla', async () => {
     renderPage();
 

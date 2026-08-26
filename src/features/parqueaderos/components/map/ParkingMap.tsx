@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useLayoutEffect, useRef, useState } from "react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
@@ -25,18 +25,37 @@ interface ParkingMapProps {
 
 export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellMatchesSearch }: ParkingMapProps) => {
   const { lots, totalW, totalH } = useMapLayout(parqueaderos, celdas);
+
+  // Ancho real del contenedor visible: en móvil el plano (min. 960px de contenido) nunca
+  // cabe entero, así que el zoom inicial se ajusta a este valor en vez de arrancar en 100%.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const fitZoom = containerWidth && totalW ? Math.min(1, (containerWidth - 2) / totalW) : 1;
+
   const {
     zoom, pan, isDragging, isDraggedRef, hover, setCellHover, clearHover,
     handlePointerDown, handlePointerMove, handlePointerUp, handleCellPointerDown,
     zoomIn, zoomOut, resetView,
-  } = useParkingMapInteraction(onCellClick);
+  } = useParkingMapInteraction(onCellClick, fitZoom);
 
   return (
-    <div style={{
-      position: "relative", width: "100%", overflow: "hidden",
-      borderRadius: 16, border: `1px solid ${C.border}`,
-      background: MAP_THEME.asphalt, boxShadow: "0 2px 8px rgba(15,23,42,.05)",
-    }}>
+    <div
+      ref={containerRef}
+      style={{
+        position: "relative", width: "100%", overflow: "hidden",
+        borderRadius: 16, border: `1px solid ${C.border}`,
+        background: MAP_THEME.asphalt, boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+      }}
+    >
       <MapLegend />
       <MapControls onZoomIn={zoomIn} onZoomOut={zoomOut} onReset={resetView} />
 

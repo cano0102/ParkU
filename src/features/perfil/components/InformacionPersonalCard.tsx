@@ -29,7 +29,7 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
 
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, padding: "12px 16px", background: "#F8FAF8", borderBottom: `1px solid ${C.border}` }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", padding: "12px 16px", background: "#F8FAF8", borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <User size={15} color={C.primary} />
           <span style={{ fontSize: 13, fontWeight: 800, color: C.text }}>Información personal</span>

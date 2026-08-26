@@ -6,9 +6,10 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createFakeRestBackend } from '@/test/fakeApi';
 import { Reservas } from './ReservasPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
+import { AuthProvider } from '@/context/AuthContext';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
 
 const vehiculos = createFakeRestBackend('/vehiculos', [
   { id: 1, placa: 'ABC123', tipo: 'CARRO', marca: 'Chevrolet', linea: 'Spark', modelo: 2020, color: 'Rojo', observaciones: null, estado: true, conductores: [{ id: 1, nombre_apellidos: 'Conductor Uno', DetallePropiedad: { es_principal: true } }], conductor_principal_id: 1, conductor_principal_nombre: 'Conductor Uno' },
@@ -55,7 +56,9 @@ function renderReservas(client = createTestQueryClient()) {
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
-        <Reservas />
+        <AuthProvider>
+          <Reservas />
+        </AuthProvider>
       </QueryClientProvider>
     </MemoryRouter>
   );

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { useReservas, useRemoveReserva } from "./useReservas";
 import type { Reserva } from "@/services/api/reservas";
 import { useUpdateCelda, useCeldas, useParqueaderos } from "@/features/parqueaderos";
@@ -9,7 +11,8 @@ import type { EstadoReserva } from "../lib/constants";
 
 /** Datos, filtros y eliminación del historial de reservas. */
 export function useReservasPage() {
-  const { data: reservas = [] } = useReservas();
+  const { user } = useAuth();
+  const { data: reservasTodas = [] } = useReservas();
   const { data: vehiculos = [] } = useVehiculos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
@@ -36,6 +39,18 @@ export function useReservasPage() {
     const v = getVehiculo(reserva.vehiculoId);
     return v ? conductores.find((c) => c.id === v.conductorId) ?? null : null;
   };
+
+  // Un Conductor (Comunidad SENA) solo debe ver su propio historial de reservas, no el de
+  // todos los usuarios — Admin/Vigilante sí necesitan el historial completo para gestionarlo.
+  const miConductorId = useMemo(
+    () => (user?.rol === ROLES.CONDUCTOR ? conductores.find((c) => c.usuarioId === user.id)?.id ?? null : null),
+    [user, conductores]
+  );
+  const reservas = useMemo(() => {
+    if (user?.rol !== ROLES.CONDUCTOR) return reservasTodas;
+    return reservasTodas.filter((r) => getConductorReserva(r)?.id === miConductorId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reservasTodas, user, miConductorId, conductores, vehiculos]);
 
   const counts = {
     pendiente: reservas.filter((r) => r.estado === "pendiente").length,

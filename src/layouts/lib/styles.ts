@@ -23,7 +23,7 @@ export function mainLayoutStyles(sidebarWidth: number) {
       .main-with-layout {
         padding-top: 76px;
         padding-bottom: 80px;
-        padding-inline: 0;
+        padding-inline: 14px;
       }
     }
 

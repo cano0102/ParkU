@@ -10,7 +10,7 @@ const C = theme;
 /* ============================================================
    VISTA TABLA
 ============================================================ */
-export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onToggleEstado, onCellClick, cellMatchesSearch }: {
+export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onToggleEstado, onCellClick, cellMatchesSearch, canManage }: {
   parqueaderos: Parqueadero[];
   celdas: Celda[];
   getOcupante: (celdaId: string) => Ocupante | null;
@@ -18,6 +18,8 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
   onToggleEstado: (p: Parqueadero) => void;
   onCellClick: (c: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
+  /** true si el rol puede editar/activar/desactivar parqueaderos (permiso "celdas"). */
+  canManage: boolean;
 }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -94,20 +96,31 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                 <div><span className="pq-cell-label">Reservadas</span><span style={{ fontWeight: 700, color: C.amber }}>{reservas}</span></div>
                 <div>
                   <span className="pq-cell-label">Estado</span>
-                  <button
-                    onClick={e => { e.stopPropagation(); onToggleEstado(pq); }}
-                    title={activo ? "Desactivar" : "Activar"}
-                    style={{
+                  {canManage ? (
+                    <button
+                      onClick={e => { e.stopPropagation(); onToggleEstado(pq); }}
+                      title={activo ? "Desactivar" : "Activar"}
+                      style={{
+                        display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 999,
+                        border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                        letterSpacing: 0.3, background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
+                        color: activo ? "#166534" : "#B91C1C", fontFamily: "inherit",
+                      }}
+                      aria-label={activo ? "Desactivar parqueadero" : "Activar parqueadero"}
+                    >
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: activo ? C.primary : "#EF4444" }} />
+                      {pq.estado}
+                    </button>
+                  ) : (
+                    <span style={{
                       display: "inline-flex", alignItems: "center", gap: 5, padding: "4px 9px", borderRadius: 999,
-                      border: "none", cursor: "pointer", fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                      letterSpacing: 0.3, background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)",
-                      color: activo ? "#166534" : "#B91C1C", fontFamily: "inherit",
-                    }}
-                    aria-label={activo ? "Desactivar parqueadero" : "Activar parqueadero"}
-                  >
-                    <span style={{ width: 5, height: 5, borderRadius: "50%", background: activo ? C.primary : "#EF4444" }} />
-                    {pq.estado}
-                  </button>
+                      fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.3,
+                      background: activo ? "rgba(57,169,0,.1)" : "rgba(239,68,68,.08)", color: activo ? "#166534" : "#B91C1C",
+                    }}>
+                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: activo ? C.primary : "#EF4444" }} />
+                      {pq.estado}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
                   <button title="Ver celdas" onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : pq.id); }}
@@ -115,11 +128,13 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                     onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                     <Eye size={13} />
                   </button>
-                  <button title="Editar" onClick={e => { e.stopPropagation(); onEdit(pq); }}
-                    style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-                    onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                    <Pencil size={13} />
-                  </button>
+                  {canManage && (
+                    <button title="Editar" onClick={e => { e.stopPropagation(); onEdit(pq); }}
+                      style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                      <Pencil size={13} />
+                    </button>
+                  )}
                 </div>
               </div>
               {isExpanded && (

@@ -28,6 +28,13 @@ interface CeldaInfoModalProps {
   /** true si el rol del usuario logueado tiene el permiso "celdas" — controla
    *  si se muestra el ajuste manual de estado (ver onSetEstadoManual). */
   canManageCeldas?: boolean;
+  /** true si el rol tiene el permiso "entradaSalida" — controla si se muestran
+   *  las acciones de estacionar/liberar/cancelar reserva (portería). Comunidad
+   *  SENA (Conductor) no lo tiene: solo puede ver la celda y reservarla. */
+  canRegistrarIngreso: boolean;
+  /** true si el rol tiene el permiso "incidentes" — controla el botón de
+   *  reportar incidente. */
+  canReportarIncidentes: boolean;
   /** Fuerza el estado de la celda sin pasar por el flujo normal (estacionar/
    *  liberar/reservar). Es la vía de escape para una celda que quedó
    *  atascada en un estado (p. ej. datos inconsistentes) o para marcarla en
@@ -46,7 +53,7 @@ export function CeldaInfoModal({
   open, celdaActiva, ocupanteActivo, reservaActiva, vehiculoReservado, parqueaderoActivo, onClose,
   onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
   onReportarIncidente, onEstacionarVehiculo, onReservarCelda,
-  canManageCeldas, onSetEstadoManual,
+  canManageCeldas, canRegistrarIngreso, canReportarIncidentes, onSetEstadoManual,
 }: CeldaInfoModalProps) {
   const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
   return (
@@ -118,12 +125,14 @@ export function CeldaInfoModal({
                 Este parqueadero está inactivo: no se pueden registrar nuevos ingresos.
               </div>
             )}
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button onClick={onCancelarReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Cancelar Reserva</button>
-              {!parqueaderoInactivo && (
-                <button onClick={onEstacionarOficial} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
-              )}
-            </div>
+            {canRegistrarIngreso && (
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button onClick={onCancelarReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Cancelar Reserva</button>
+                {!parqueaderoInactivo && (
+                  <button onClick={onEstacionarOficial} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
+                )}
+              </div>
+            )}
           </>
         ) : celdaActiva?.estado === "no_disponible" && ocupanteActivo ? (
           <>
@@ -146,17 +155,23 @@ export function CeldaInfoModal({
                 {r.onClick && <ChevronRight size={14} color={C.textLight} style={{ marginLeft: "auto" }} />}
               </div>
             ))}
-            <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>
-              <button onClick={onLiberar} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Liberar Celda</button>
-              <button
-                onClick={onReportarIncidente}
-                title="Reportar Incidente"
-                style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", color: C.textLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
-              >
-                <AlertTriangle size={13} />
-                Incidente
-              </button>
-            </div>
+            {(canRegistrarIngreso || canReportarIncidentes) && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, paddingTop: 4, flexWrap: "wrap" }}>
+                {canRegistrarIngreso && (
+                  <button onClick={onLiberar} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.danger, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(239,68,68,.25)" }}>Liberar Celda</button>
+                )}
+                {canReportarIncidentes && (
+                  <button
+                    onClick={onReportarIncidente}
+                    title="Reportar Incidente"
+                    style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", color: C.textLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    <AlertTriangle size={13} />
+                    Incidente
+                  </button>
+                )}
+              </div>
+            )}
           </>
         ) : celdaActiva?.estado === "disponible" ? (
           parqueaderoInactivo ? (
@@ -169,7 +184,9 @@ export function CeldaInfoModal({
                 ✅ Celda disponible para estacionar.
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button onClick={onEstacionarVehiculo} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>Estacionar Vehículo</button>
+                {canRegistrarIngreso && (
+                  <button onClick={onEstacionarVehiculo} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>Estacionar Vehículo</button>
+                )}
                 <button
                   onClick={onReservarCelda}
                   style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}

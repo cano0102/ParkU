@@ -25,6 +25,8 @@ interface IngresoModalProps {
   ingresoConductorOk: boolean;
   ingresoValid: boolean;
   ingresoPlacaHint: string;
+  /** true si la placa escrita ya está estacionada en otra celda distinta a la activa. */
+  placaYaEstacionada: boolean;
   /** Vehículo ya registrado en el sistema con esa placa, si existe. */
   vehiculoEncontrado: Vehiculo | null;
   /** Conductor asociado a ese vehículo, si el vehículo existe y tiene uno vinculado. */
@@ -44,7 +46,7 @@ interface IngresoModalProps {
 
 export function IngresoModal({
   open, celdaActiva, vehiculoForm, setVehiculoForm, placaError, onPlacaChange,
-  ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint,
+  ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, placaYaEstacionada,
   vehiculoEncontrado, conductorEncontrado, conductorIdentificado, conductoresSugeridos, vehiculosConductor,
   parqueaderoInactivo,
   onClose, onOpenScanner, onSubmit,
@@ -83,7 +85,7 @@ export function IngresoModal({
               onChange={e => { onPlacaChange(); setVehiculoForm(p => ({ ...p, placa: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "") })); }}
               placeholder={celdaActiva?.tipo === "moto" ? "ABC12D" : "ABC123"}
               maxLength={6}
-              style={{ flex: 1, padding: "11px 14px", borderRadius: 11, border: `1px solid ${vehiculoForm.placa && !ingresoPlacaOk ? C.danger : C.border}`, fontSize: 13, fontFamily: "monospace", fontWeight: 700, background: "#F8FAFC" }}
+              style={{ flex: 1, padding: "11px 14px", borderRadius: 11, border: `1px solid ${(vehiculoForm.placa && !ingresoPlacaOk) || placaYaEstacionada ? C.danger : C.border}`, fontSize: 13, fontFamily: "monospace", fontWeight: 700, background: "#F8FAFC" }}
             />
             <button onClick={onOpenScanner} style={{ display: "flex", alignItems: "center", gap: 6, padding: "11px 14px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}><Camera size={14} />OCR</button>
           </div>
@@ -91,6 +93,8 @@ export function IngresoModal({
             <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{placaError}</p>
           ) : vehiculoForm.placa && !ingresoPlacaOk ? (
             <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>{ingresoPlacaHint}</p>
+          ) : placaYaEstacionada ? (
+            <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>Este vehículo ya está estacionado en otra celda.</p>
           ) : (
             <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>{ingresoPlacaHint}</p>
           )}
