@@ -61,3 +61,6 @@ export const validarTelefono = (valor: string): boolean => {
   const soloDigitos = valor.replace(/\D/g, "");
   return /^[1-9]\d{9}$/.test(soloDigitos);
 };
+
+/** Quita dígitos de un campo de nombre de persona a medida que se escribe (nombres no llevan números). */
+export const quitarDigitos = (valor: string): string => valor.replace(/[0-9]/g, "");

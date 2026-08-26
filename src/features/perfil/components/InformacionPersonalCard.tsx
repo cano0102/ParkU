@@ -3,6 +3,7 @@ import { CheckCircle2, IdCard, Mail, Pencil, Phone, Save, Shield, User, X } from
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import { nombreDeRol } from "@/services/core/roles";
+import { quitarDigitos } from "@/utils/validation";
 import type { usePerfilForm } from "../hooks/usePerfilForm";
 
 const C = theme;
@@ -87,7 +88,11 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
                 <>
                   <input
                     value={item.key === "nombre" ? form.profileForm.nombre : form.profileForm.numero}
-                    onChange={(e) => form.setProfileForm({ ...form.profileForm, [item.key === "nombre" ? "nombre" : "numero"]: e.target.value })}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const valor = item.key === "nombre" ? quitarDigitos(raw) : raw;
+                      form.setProfileForm({ ...form.profileForm, [item.key === "nombre" ? "nombre" : "numero"]: valor });
+                    }}
                     onBlur={() => form.markProfileTouched(item.key === "nombre" ? "nombre" : "numero")}
                     placeholder={item.placeholder}
                     aria-invalid={!!(form.profileTouched[item.key as "nombre" | "numero"] && form.profileErrors[item.key as "nombre" | "numero"])}

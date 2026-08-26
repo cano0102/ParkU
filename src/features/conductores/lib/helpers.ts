@@ -1,11 +1,11 @@
 import type React from "react";
 import { Car, Bike, Truck, Bus as BusIcon, Wind, GraduationCap, BookOpen, Briefcase, Handshake, Contact, type LucideIcon } from "lucide-react";
 import { theme } from "@/styles/theme";
-import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "@/utils/validation";
+import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos } from "@/utils/validation";
 import { getAvatarGradient, getInitials, sanitizeText } from "@/utils/format";
 import type { Vehiculo } from "@/services/api/vehiculos";
 
-export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca };
+export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos };
 export { getAvatarGradient, getInitials, sanitizeText };
 
 export const COLORS = theme;

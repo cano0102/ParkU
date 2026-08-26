@@ -140,7 +140,10 @@ describe('Usuarios', () => {
     await screen.findByRole('heading', { level: 2, name: 'Nuevo Usuario' });
 
     const suffix = Date.now();
-    const nombre = `Usuario Prueba ${suffix}`;
+    // El nombre no lleva el sufijo numérico: los campos de nombre de persona
+    // ya no aceptan dígitos (ver src/utils/validation.ts#quitarDigitos). La
+    // unicidad para la búsqueda posterior la da el correo, no el nombre.
+    const nombre = `Usuario Prueba Nuevo`;
     const correo = `usuario.prueba.${suffix}@sena.edu.co`;
 
     await user.type(screen.getByPlaceholderText('ej. María García López'), nombre);

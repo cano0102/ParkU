@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { quitarDigitos } from "@/utils/validation";
 import { emptyForm, validate, type FormState, type ValidationErrors } from "../lib/registerForm";
+
+/** Tiempo de pausa sin escribir antes de revelar la validación de un campo. */
+const VALIDATION_DEBOUNCE_MS = 600;
 
 /** Estado, validación en vivo y envío del formulario de registro. */
 export function useRegisterForm() {
@@ -12,12 +16,18 @@ export function useRegisterForm() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Partial<Record<keyof FormState, boolean>>>({});
+  const [dirty, setDirty] = useState<Partial<Record<keyof FormState, boolean>>>({});
 
   const navigate = useNavigate();
   const { register } = useAuth();
 
   const set = (field: keyof FormState, value: string | boolean) => {
     setForm((f) => ({ ...f, [field]: value }));
+    setDirty((d) => ({ ...d, [field]: true }));
+  };
+
+  const setNombre = (raw: string) => {
+    set("nombre", quitarDigitos(raw));
   };
 
   const setTelefono = (raw: string) => {
@@ -33,6 +43,16 @@ export function useRegisterForm() {
   useEffect(() => {
     setErrors(validate(form));
   }, [form]);
+
+  // Al dejar de escribir (pausa sin cambios), revela la validación de los
+  // campos que el usuario ya editó — sin esperar a que salga del campo (blur)
+  // ni a que intente enviar el formulario.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTouched((prev) => ({ ...prev, ...dirty }));
+    }, VALIDATION_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [form, dirty]);
 
   const handleBlur = (field: keyof FormState) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -86,6 +106,7 @@ export function useRegisterForm() {
   return {
     form,
     set,
+    setNombre,
     setTelefono,
     setIdentificacion,
     showPassword,

@@ -1,6 +1,6 @@
 import { Mail } from "lucide-react";
 import { FormField } from "@/components/shared";
-import { COLORS, NOMBRE_MAX, inputErrorStyle, inputIconStyle, inputStyle } from "../lib/helpers";
+import { COLORS, NOMBRE_MAX, inputErrorStyle, inputIconStyle, inputStyle, quitarDigitos } from "../lib/helpers";
 
 const iconColor = COLORS.textLight;
 
@@ -33,7 +33,7 @@ export function DatosPersonalesFields({
             placeholder="ej. María García López"
             value={nombre}
             maxLength={NOMBRE_MAX}
-            onChange={(e) => onNombreChange(e.target.value)}
+            onChange={(e) => onNombreChange(quitarDigitos(e.target.value))}
             onBlur={onNombreBlur}
             style={nombreError ? { ...inputStyle, ...inputErrorStyle } : inputStyle}
           />

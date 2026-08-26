@@ -36,6 +36,7 @@ interface ApiUsuario {
   id: number;
   correo: string;
   nombre: string;
+  numero?: string | null;
   rol: number;
   estado: string;
 }
@@ -53,12 +54,12 @@ interface AuthEnvelope<T> {
   data: T;
 }
 
-function toAuthUser(u: ApiUsuario, numero = ''): AuthUser {
+function toAuthUser(u: ApiUsuario): AuthUser {
   return {
     id: String(u.id),
     correo: u.correo,
     nombre: u.nombre,
-    numero,
+    numero: u.numero ?? '',
     rol: u.rol as RolId,
   };
 }

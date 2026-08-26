@@ -1,6 +1,6 @@
 import { FormField } from "@/components/shared";
 import { useTiposUsuario } from "../hooks/useTiposUsuario";
-import { COLORS, TIPOS_DOCUMENTO, inputStyle, inputErrorStyle, type FormState } from "../lib/helpers";
+import { COLORS, TIPOS_DOCUMENTO, inputStyle, inputErrorStyle, quitarDigitos, type FormState } from "../lib/helpers";
 
 interface DatosConductorFieldsProps {
   isEdit: boolean;
@@ -24,7 +24,7 @@ export function DatosConductorFields({ isEdit, form, errors, touched, onChange, 
           type="text"
           placeholder="ej. María García López"
           value={form.nombre}
-          onChange={(e) => onChange({ nombre: e.target.value })}
+          onChange={(e) => onChange({ nombre: quitarDigitos(e.target.value) })}
           onBlur={() => onBlur("nombre")}
           style={{ ...inputStyle, ...(err("nombre") ? inputErrorStyle : {}) }}
         />

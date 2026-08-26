@@ -1,7 +1,7 @@
 import type React from "react";
 import { theme } from "@/styles/theme";
 import { getAvatarGradient, getInitials, sanitizeText } from "@/utils/format";
-import { NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMAIL_REGEX } from "@/utils/validation";
+import { NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMAIL_REGEX, quitarDigitos } from "@/utils/validation";
 
 export const COLORS = theme;
 
@@ -19,7 +19,7 @@ export const getRoleAccent = (rol: string) => {
 
 export const avatarColors = getAvatarGradient;
 export const initials = getInitials;
-export { sanitizeText, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMAIL_REGEX };
+export { sanitizeText, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMAIL_REGEX, quitarDigitos };
 
 export const inputStyle: React.CSSProperties = {
   width: "100%",
