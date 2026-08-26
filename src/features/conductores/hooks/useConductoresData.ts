@@ -7,7 +7,7 @@ import { useUsuarios } from "@/features/usuarios";
 
 /** Queries, mutaciones y totales de la página de Conductores. */
 export function useConductoresData() {
-  const { data: conductores = [] } = useConductores();
+  const { data: conductores = [], isLoading } = useConductores();
   const { data: usuarios = [] } = useUsuarios();
   const { data: vehiculos = [] } = useVehiculos();
   const createConductorMutation = useCreateConductor();
@@ -15,12 +15,14 @@ export function useConductoresData() {
   const createVehiculoMutation = useCreateVehiculo();
   const updateVehiculoMutation = useUpdateVehiculo();
 
+  // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
+  // mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación en realidad falla.
   const addConductor = (data: Omit<Conductor, "id">) => createConductorMutation.mutateAsync(data);
   const updateConductor = (id: string, data: Partial<Omit<Conductor, "id">>) =>
-    updateConductorMutation.mutate({ id, data });
-  const addVehiculo = (data: Omit<Vehiculo, "id">) => createVehiculoMutation.mutate(data);
+    updateConductorMutation.mutateAsync({ id, data });
+  const addVehiculo = (data: Omit<Vehiculo, "id">) => createVehiculoMutation.mutateAsync(data);
   const updateVehiculo = (id: string, data: Partial<Omit<Vehiculo, "id">>) =>
-    updateVehiculoMutation.mutate({ id, data });
+    updateVehiculoMutation.mutateAsync({ id, data });
 
   // Cuenta de acceso vinculada (opcional): no todo conductor real tiene una.
   const getUsuario = useCallback((id: string) => usuarios.find((u) => u.id === id), [usuarios]);
@@ -37,6 +39,7 @@ export function useConductoresData() {
     addConductor, updateConductor, addVehiculo, updateVehiculo,
     getUsuario, getVehiculosConductor,
     totalActivos, totalVehiculos, totalConductores, totalCarros, totalMotos,
+    isLoading,
   };
 }
 

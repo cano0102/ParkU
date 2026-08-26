@@ -10,7 +10,7 @@ export function useReservaCelda(
   data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "addReserva" | "updateReserva" | "updateCelda">,
   celdaActiva: Celda | null,
   getOcupante: (celdaId: string) => { controlId: string } | null,
-  updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => void,
+  updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => Promise<unknown>,
   setOpenModal: (m: ModalKind) => void
 ) {
   const [reservaForm, setReservaForm] = useState<ReservaFormState>({
@@ -38,7 +38,7 @@ export function useReservaCelda(
     setOpenModal("reserva");
   }, [setOpenModal]);
 
-  const handleCrearReserva = useCallback(() => {
+  const handleCrearReserva = useCallback(async () => {
     if (!reservaForm.vehiculoId) return setReservaError("Selecciona un vehículo");
     if (!reservaForm.celdaId) return setReservaError("Selecciona una celda");
     if (!reservaForm.fechaReserva) return setReservaError("La fecha es requerida");
@@ -72,7 +72,7 @@ export function useReservaCelda(
       }
 
       const vehiculoReservado = data.vehiculos.find((v) => v.id === reservaForm.vehiculoId);
-      data.addReserva({
+      await data.addReserva({
         tipoReserva: "visitante",
         vehiculoId: reservaForm.vehiculoId,
         celdaId: reservaForm.celdaId,
@@ -83,35 +83,44 @@ export function useReservaCelda(
         horaFin: reservaForm.horaFin,
         estado: "pendiente",
       });
-      data.updateCelda(reservaForm.celdaId, { estado: "reservada" });
+      await data.updateCelda(reservaForm.celdaId, { estado: "reservada" });
       toast.success(`Reserva creada para la celda ${celdaActiva?.numero}`);
       setOpenModal(null);
       setReservaError(null);
       setReservaForm((prev) => ({ ...prev, vehiculoId: "", horaInicio: "08:00", horaFin: "18:00" }));
     } catch (error) {
-      setReservaError("Error al crear la reserva");
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
       console.error(error);
     }
   }, [reservaForm, data, celdaActiva, setOpenModal]);
 
-  const handleCancelarReserva = useCallback(() => {
+  const handleCancelarReserva = useCallback(async () => {
     if (!celdaActiva) return;
     const reserva = data.reservas.find((r) => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa"));
-    if (reserva) data.updateReserva(reserva.id, { estado: "cancelada" });
-    data.updateCelda(celdaActiva.id, { estado: "disponible" });
-    toast.info("Reserva cancelada.");
-    setOpenModal(null);
+    try {
+      if (reserva) await data.updateReserva(reserva.id, { estado: "cancelada" });
+      await data.updateCelda(celdaActiva.id, { estado: "disponible" });
+      toast.info("Reserva cancelada.");
+      setOpenModal(null);
+    } catch (error) {
+      console.error("Error cancelling reserva:", error);
+    }
   }, [celdaActiva, data, setOpenModal]);
 
-  const handleRequestLiberar = useCallback(() => {
+  const handleRequestLiberar = useCallback(async () => {
     if (!celdaActiva) return;
     const ocupante = getOcupante(celdaActiva.id);
-    if (ocupante && ocupante.controlId) {
-      updateControlSalida(ocupante.controlId, { fechaSalida: new Date().toISOString().slice(0, 16), estado: "finalizado" });
+    try {
+      if (ocupante && ocupante.controlId) {
+        await updateControlSalida(ocupante.controlId, { fechaSalida: new Date().toISOString().slice(0, 16), estado: "finalizado" });
+      }
+      await data.updateCelda(celdaActiva.id, { estado: "disponible", ocupada: false });
+      toast.info(`Celda ${celdaActiva.numero} liberada.`);
+      setOpenModal(null);
+    } catch (error) {
+      console.error("Error releasing celda:", error);
     }
-    data.updateCelda(celdaActiva.id, { estado: "disponible", ocupada: false });
-    toast.info(`Celda ${celdaActiva.numero} liberada.`);
-    setOpenModal(null);
   }, [celdaActiva, data, getOcupante, updateControlSalida, setOpenModal]);
 
   return {

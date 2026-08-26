@@ -14,8 +14,8 @@ export function useDashboardData() {
   const [filter, setFilter] = useState<"all" | "car" | "moto">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: parqueaderos = [] } = useParqueaderos();
-  const { data: celdas = [] } = useCeldas();
+  const { data: parqueaderos = [], isLoading: loadingParqueaderos } = useParqueaderos();
+  const { data: celdas = [], isLoading: loadingCeldas } = useCeldas();
   // Solo Admin/Vigilante pueden leer /api/entradas-salidas — para un Conductor
   // esta query falla (403) y queda en `[]`, así que los paneles de movimientos
   // simplemente se ven vacíos en vez de romper el resto del Dashboard.
@@ -24,6 +24,9 @@ export function useDashboardData() {
   const { data: conductores = [] } = useConductores();
   const { data: incidentes = [] } = useIncidentes();
   const { data: reservas = [] } = useReservas();
+  // Solo se espera a parqueaderos/celdas (lo primero que se ve en pantalla): el resto son
+  // datos secundarios de paneles específicos, esperarlos todos solo alargaría la carga inicial.
+  const isLoading = loadingParqueaderos || loadingCeldas;
 
   // Parqueaderos + celdas reales del contexto
   const lots = useMemo<ParkingLot[]>(() => {
@@ -189,6 +192,6 @@ export function useDashboardData() {
     lots, movements, visibleLots, selectedLot, totals,
     incidentesPendientes, reservaCounts, alerts, selectedStats,
     vehiculosActivos, conductoresActivos, vehicleDistribution, conductorDistribution,
-    accessibility, entradas, salidas,
+    accessibility, entradas, salidas, isLoading,
   };
 }

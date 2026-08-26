@@ -1,4 +1,4 @@
-import { Modal } from "@/components/shared";
+import { Modal, LoadingState } from "@/components/shared";
 import { theme } from "@/styles/theme";
 import { useReservasPage } from "./hooks/useReservasPage";
 import { reservasStyles } from "./lib/styles";
@@ -29,22 +29,28 @@ export function Reservas() {
           onClearFilters={p.clearFilters}
         />
 
-        {p.activeFiltersCount > 0 && (
-          <p style={{ fontSize: 11, color: C.textLight }}>
-            Mostrando <strong>{p.filteredReservas.length}</strong> resultado{p.filteredReservas.length !== 1 ? "s" : ""}
-          </p>
-        )}
+        {p.isLoading ? (
+          <LoadingState message="Cargando reservas..." />
+        ) : (
+          <>
+            {p.activeFiltersCount > 0 && (
+              <p style={{ fontSize: 11, color: C.textLight }}>
+                Mostrando <strong>{p.filteredReservas.length}</strong> resultado{p.filteredReservas.length !== 1 ? "s" : ""}
+              </p>
+            )}
 
-        <ReservasTable
-          filteredReservas={p.filteredReservas}
-          totalReservas={p.reservas.length}
-          getVehiculo={p.getVehiculo}
-          getCelda={p.getCelda}
-          getConductorReserva={p.getConductorReserva}
-          getParqueadero={p.getParqueadero}
-          onView={(reserva) => { p.setViewingReserva(reserva); p.setViewOpen(true); }}
-          onDelete={p.handleDelete}
-        />
+            <ReservasTable
+              filteredReservas={p.filteredReservas}
+              totalReservas={p.reservas.length}
+              getVehiculo={p.getVehiculo}
+              getCelda={p.getCelda}
+              getConductorReserva={p.getConductorReserva}
+              getParqueadero={p.getParqueadero}
+              onView={(reserva) => { p.setViewingReserva(reserva); p.setViewOpen(true); }}
+              onDelete={p.handleDelete}
+            />
+          </>
+        )}
       </div>
 
       <Modal open={p.viewOpen} onClose={() => p.setViewOpen(false)} maxWidth={450}>

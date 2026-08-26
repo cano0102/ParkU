@@ -76,15 +76,23 @@ export function useIngresoVehiculo(
     const conductorId = conductorExistente?.id ?? "";
     const fechaEntrada = new Date().toISOString().slice(0, 16);
     const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
-    const vehiculoId = await resolverVehiculo(placa, conductorId, vehiculoTipo, datosVehiculo);
 
-    const reservaPendiente = reservas.find((r) => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
-    if (reservaPendiente) updateReserva(reservaPendiente.id, { estado: "completada" });
+    try {
+      const vehiculoId = await resolverVehiculo(placa, conductorId, vehiculoTipo, datosVehiculo);
 
-    addControlSalida({ vehiculoId, conductorId, parqueaderoId: celda.parqueaderoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
-    updateCelda(celda.id, { estado: "no_disponible", ocupada: true });
-    toast.success(`Vehículo ${placa} registrado.`);
-    return true;
+      const reservaPendiente = reservas.find((r) => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
+      if (reservaPendiente) await updateReserva(reservaPendiente.id, { estado: "completada" });
+
+      await addControlSalida({ vehiculoId, conductorId, parqueaderoId: celda.parqueaderoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
+      await updateCelda(celda.id, { estado: "no_disponible", ocupada: true });
+      toast.success(`Vehículo ${placa} registrado.`);
+      return true;
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error registering vehicle entry:", error);
+      return false;
+    }
   };
 
   const registrarVehiculo = async () => {

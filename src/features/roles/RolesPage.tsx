@@ -1,4 +1,4 @@
-import { Modal } from "@/components/shared";
+import { Modal, LoadingState } from "@/components/shared";
 import { useRolesPage } from "./hooks/useRolesPage";
 import { rolesStyles } from "./lib/styles";
 import { RolesHero } from "./components/RolesHero";
@@ -9,7 +9,7 @@ import { RolViewModal } from "./components/RolViewModal";
 
 export function Roles() {
   const {
-    roles, dialogOpen, setDialogOpen, viewOpen, setViewOpen, editingRol, viewingRol,
+    roles, isLoading, dialogOpen, setDialogOpen, viewOpen, setViewOpen, editingRol, viewingRol,
     search, setSearch, filterEstado, setFilterEstado, formInitial, filteredRoles, stats,
     openCreate, openEdit, openView, handleToggleEstado, handleSave,
   } = useRolesPage();
@@ -29,12 +29,16 @@ export function Roles() {
           onCreate={openCreate}
         />
 
-        <RolesGrid
-          roles={filteredRoles}
-          onView={openView}
-          onEdit={openEdit}
-          onToggleEstado={handleToggleEstado}
-        />
+        {isLoading ? (
+          <LoadingState message="Cargando roles..." />
+        ) : (
+          <RolesGrid
+            roles={filteredRoles}
+            onView={openView}
+            onEdit={openEdit}
+            onToggleEstado={handleToggleEstado}
+          />
+        )}
       </div>
 
       <Modal open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth={780}>

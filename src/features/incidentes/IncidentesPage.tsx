@@ -1,4 +1,4 @@
-import { Modal } from "@/components/shared";
+import { Modal, LoadingState } from "@/components/shared";
 import { theme } from "@/styles/theme";
 import { useIncidentesPage } from "./hooks/useIncidentesPage";
 import { incidentesStyles } from "./lib/styles";
@@ -31,23 +31,29 @@ export function Incidentes() {
           onCreate={p.openCreate}
         />
 
-        {p.activeFiltersCount > 0 && (
-          <p style={{ fontSize: 11, color: C.textLight }}>
-            Mostrando <strong>{p.filteredIncidentes.length}</strong> incidente{p.filteredIncidentes.length !== 1 ? "s" : ""}
-          </p>
-        )}
+        {p.isLoading ? (
+          <LoadingState message="Cargando incidentes..." />
+        ) : (
+          <>
+            {p.activeFiltersCount > 0 && (
+              <p style={{ fontSize: 11, color: C.textLight }}>
+                Mostrando <strong>{p.filteredIncidentes.length}</strong> incidente{p.filteredIncidentes.length !== 1 ? "s" : ""}
+              </p>
+            )}
 
-        <IncidentesGrid
-          incidentes={p.filteredIncidentes}
-          celdaDe={p.celdaDe}
-          vehiculoDe={p.vehiculoDe}
-          nombreUsuarioAsignado={p.nombreUsuarioAsignado}
-          nombreParqueadero={p.nombreParqueadero}
-          onView={p.openView}
-          onEdit={p.openEdit}
-          onDelete={p.handleDelete}
-          onToggleEstado={p.toggleEstado}
-        />
+            <IncidentesGrid
+              incidentes={p.filteredIncidentes}
+              celdaDe={p.celdaDe}
+              vehiculoDe={p.vehiculoDe}
+              nombreUsuarioAsignado={p.nombreUsuarioAsignado}
+              nombreParqueadero={p.nombreParqueadero}
+              onView={p.openView}
+              onEdit={p.openEdit}
+              onDelete={p.handleDelete}
+              onToggleEstado={p.toggleEstado}
+            />
+          </>
+        )}
       </div>
 
       <Modal open={p.dialogOpen} onClose={p.closeForm} maxWidth={640}>

@@ -1,5 +1,5 @@
 import { ShieldCheck, Users, UserCheck, Car as CarIcon, Bike as BikeIcon } from "lucide-react";
-import { Modal } from "@/components/shared";
+import { Modal, LoadingState } from "@/components/shared";
 import { StatsPanel } from "@/components/data";
 import { ConductorFormModal } from "./components/ConductorFormModal";
 import { ConductorDetailModal } from "./components/ConductorDetailModal";
@@ -48,25 +48,29 @@ export function Conductores() {
           onClearFilters={f.clearFilters}
         />
 
-        <ConductoresResults
-          conductores={f.paginatedConductores}
-          viewMode={f.viewMode}
-          currentPage={f.currentPage}
-          totalPages={f.totalPages}
-          itemsPerPage={f.itemsPerPage}
-          totalItems={f.filteredConductores.length}
-          getUsuario={data.getUsuario}
-          getVehiculosConductor={data.getVehiculosConductor}
-          onToggleEstado={handleToggleEstado}
-          onViewVehiculo={openVehiculoView}
-          onViewDetail={openConductorDetail}
-          onEdit={form.openEdit}
-          onPageChange={f.setCurrentPage}
-          onItemsPerPageChange={(n) => {
-            f.setItemsPerPage(n);
-            f.setCurrentPage(1);
-          }}
-        />
+        {data.isLoading ? (
+          <LoadingState message="Cargando conductores..." />
+        ) : (
+          <ConductoresResults
+            conductores={f.paginatedConductores}
+            viewMode={f.viewMode}
+            currentPage={f.currentPage}
+            totalPages={f.totalPages}
+            itemsPerPage={f.itemsPerPage}
+            totalItems={f.filteredConductores.length}
+            getUsuario={data.getUsuario}
+            getVehiculosConductor={data.getVehiculosConductor}
+            onToggleEstado={handleToggleEstado}
+            onViewVehiculo={openVehiculoView}
+            onViewDetail={openConductorDetail}
+            onEdit={form.openEdit}
+            onPageChange={f.setCurrentPage}
+            onItemsPerPageChange={(n) => {
+              f.setItemsPerPage(n);
+              f.setCurrentPage(1);
+            }}
+          />
+        )}
       </div>
 
       {/* Modal de formulario de conductor con vehículo */}

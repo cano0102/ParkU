@@ -19,7 +19,7 @@ export const RolViewModal = memo(({ rol, onClose, onEdit }: RolViewModalProps) =
   const accent = getRolAccent(rol.nombre);
   const activeCount = useMemo(() => countActive(rol.permisos), [rol.permisos]);
   const total = useMemo(() => Object.keys(rol.permisos).length, [rol.permisos]);
-  const protegido = ROLES_PROTEGIDOS.includes(rol.nombre as any);
+  const protegido = (ROLES_PROTEGIDOS as readonly string[]).includes(rol.nombre);
 
   const permisosList = useMemo(
     () => Object.entries(rol.permisos),

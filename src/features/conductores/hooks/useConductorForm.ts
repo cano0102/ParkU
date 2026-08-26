@@ -160,7 +160,7 @@ export function useConductorForm(data: ConductoresData) {
 
     try {
       if (editingConductor) {
-        data.updateConductor(editingConductor.id, conductorData);
+        await data.updateConductor(editingConductor.id, conductorData);
 
         const vehiculoData = {
           conductorId: editingConductor.id,
@@ -179,15 +179,15 @@ export function useConductorForm(data: ConductoresData) {
           ? data.vehiculos.find((v) => v.id === editingVehiculoId)
           : undefined;
         if (existingVehiculo) {
-          data.updateVehiculo(existingVehiculo.id, vehiculoData);
+          await data.updateVehiculo(existingVehiculo.id, vehiculoData);
         } else {
-          data.addVehiculo(vehiculoData);
+          await data.addVehiculo(vehiculoData);
         }
         toast.success("Conductor actualizado correctamente");
       } else {
         const created = await data.addConductor(conductorData);
         if (created?.id) {
-          data.addVehiculo({
+          await data.addVehiculo({
             conductorId: created.id,
             conductorNombre: created.nombre,
             placa: formData.placa.toUpperCase().trim(),
@@ -204,7 +204,9 @@ export function useConductorForm(data: ConductoresData) {
       }
       setDialogOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Error al guardar el conductor");
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts); aquí solo evitamos cerrar el diálogo o
+      // mostrar un falso "éxito" cuando alguno de los pasos en realidad falló.
       console.error("Error saving conductor:", error);
     }
   }, [formData, editingConductor, editingVehiculoId, data, validate]);

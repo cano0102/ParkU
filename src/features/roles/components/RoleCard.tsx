@@ -26,7 +26,7 @@ export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado }: RoleCardP
   const total = useMemo(() => Object.keys(rol.permisos).length, [rol.permisos]);
   const pct = Math.round((activeCount / total) * 100);
 
-  const protegido = ROLES_PROTEGIDOS.includes(rol.nombre as any);
+  const protegido = (ROLES_PROTEGIDOS as readonly string[]).includes(rol.nombre);
   const accent = getRolAccent(rol.nombre);
   const activo = rol.estado === "activo";
 

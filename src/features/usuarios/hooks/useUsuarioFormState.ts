@@ -44,20 +44,20 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
   );
 
   const handleSave = useCallback(
-    (form: FormState) => {
+    async (form: FormState) => {
+      const duplicado = encontrarDuplicado(form, editingUsuario?.id);
+      if (duplicado) {
+        toast.error("Ya existe un usuario registrado con ese correo");
+        return;
+      }
+
+      const rolId = Number(form.rol);
+      const payload = {
+        ...form,
+        rol: esRolId(rolId) ? rolId : ROLES.CONDUCTOR,
+      } as Omit<Usuario, "id">;
+
       try {
-        const duplicado = encontrarDuplicado(form, editingUsuario?.id);
-        if (duplicado) {
-          toast.error("Ya existe un usuario registrado con ese correo");
-          return;
-        }
-
-        const rolId = Number(form.rol);
-        const payload = {
-          ...form,
-          rol: esRolId(rolId) ? rolId : ROLES.CONDUCTOR,
-        } as Omit<Usuario, "id">;
-
         if (editingUsuario) {
           // Corrección: si el campo de contraseña se deja vacío al editar,
           // no debe sobreescribir la contraseña existente (así lo indica
@@ -65,15 +65,17 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
           // la API rechaza un PUT que incluya contraseña (ver services/api/usuarios.ts).
           const { password, ...rest } = payload;
           void password;
-          data.updateUsuario(editingUsuario.id, rest);
+          await data.updateUsuario(editingUsuario.id, rest);
           toast.success("Usuario actualizado correctamente");
         } else {
-          data.addUsuario(payload);
+          await data.addUsuario(payload);
           toast.success("Usuario creado correctamente");
         }
         setDialogOpen(false);
       } catch (error) {
-        toast.error("Error al guardar el usuario");
+        // El toast de error ya lo muestra el manejador centralizado de mutaciones
+        // (services/core/queryFactory.ts); aquí solo evitamos cerrar el diálogo o
+        // mostrar un falso "éxito" cuando la mutación en realidad falló.
         console.error("Error saving user:", error);
       }
     },
@@ -81,16 +83,15 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
   );
 
   const handleToggleEstado = useCallback(
-    (u: Usuario) => {
+    async (u: Usuario) => {
       if (USUARIOS_PROTEGIDOS.includes(u.correo)) {
         toast.error("Este usuario está protegido");
         return;
       }
       try {
-        data.updateUsuario(u.id, { estado: u.estado === "activo" ? "inactivo" : "activo" });
+        await data.updateUsuario(u.id, { estado: u.estado === "activo" ? "inactivo" : "activo" });
         toast.success(`Usuario ${u.estado === "activo" ? "desactivado" : "activado"} correctamente`);
       } catch (error) {
-        toast.error("Error al cambiar el estado");
         console.error("Error toggling user status:", error);
       }
     },

@@ -16,8 +16,22 @@
 import { getToken, getRefreshToken, setToken, clearTokens } from './tokenStorage';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
+const TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
 
 export const AUTH_EXPIRED_EVENT = 'parku:auth-expired';
+
+/** `fetch` con límite de tiempo (`VITE_API_TIMEOUT`): sin esto, una petición
+ *  colgada (backend caído a medias, red intermitente) se queda esperando para
+ *  siempre sin que el usuario vea ningún error ni pueda reintentar. */
+function fetchConTimeout(input: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+}
+
+function esErrorPorTimeout(error: unknown): boolean {
+  return error instanceof DOMException && error.name === 'AbortError';
+}
 
 interface ApiFetchOptions extends Omit<RequestInit, 'body'> {
   /** Se serializa con JSON.stringify; omitir para peticiones sin cuerpo. */
@@ -59,7 +73,7 @@ async function refreshAccessToken(): Promise<string | null> {
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const res = await fetch(`${BASE_URL}/auth/refresh-token`, {
+        const res = await fetchConTimeout(`${BASE_URL}/auth/refresh-token`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken }),
@@ -105,7 +119,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
       const token = getToken();
       if (token) h.Authorization = `Bearer ${token}`;
     }
-    return fetch(`${BASE_URL}${path}`, {
+    return fetchConTimeout(`${BASE_URL}${path}`, {
       ...rest,
       headers: h,
       body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -115,7 +129,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   let res: Response;
   try {
     res = await ejecutar();
-  } catch {
+  } catch (error) {
+    if (esErrorPorTimeout(error)) throw new Error('El servidor tardó demasiado en responder. Intenta de nuevo.');
     throw new Error('No se pudo conectar con el servidor. Revisa tu conexión a internet.');
   }
 
@@ -124,7 +139,8 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     if (nuevoToken) {
       try {
         res = await ejecutar();
-      } catch {
+      } catch (error) {
+        if (esErrorPorTimeout(error)) throw new Error('El servidor tardó demasiado en responder. Intenta de nuevo.');
         throw new Error('No se pudo conectar con el servidor. Revisa tu conexión a internet.');
       }
     } else {

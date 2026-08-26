@@ -48,11 +48,17 @@ export function useModalController(data: ParqueaderosData) {
   /* Ajuste manual de estado de una celda (Administrador/Vigilante): vía de escape fuera del
      flujo normal (estacionar/reservar/liberar), para corregir una celda que quedó atascada en
      un estado por datos inconsistentes, o para ponerla/sacarla de mantenimiento. */
-  const handleSetEstadoCeldaManual = useCallback((estado: Celda["estado"]) => {
+  const handleSetEstadoCeldaManual = useCallback(async (estado: Celda["estado"]) => {
     if (!celdaActiva) return;
-    data.updateCelda(celdaActiva.id, { estado, ocupada: estado === "no_disponible" });
-    toast.success(`Celda ${celdaActiva.numero} marcada como "${estado.replace("_", " ")}"`);
-    setOpenModal(null);
+    try {
+      await data.updateCelda(celdaActiva.id, { estado, ocupada: estado === "no_disponible" });
+      toast.success(`Celda ${celdaActiva.numero} marcada como "${estado.replace("_", " ")}"`);
+      setOpenModal(null);
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error setting celda estado manually:", error);
+    }
   }, [celdaActiva, data]);
 
   return {

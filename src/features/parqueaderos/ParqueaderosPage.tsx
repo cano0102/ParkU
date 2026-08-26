@@ -1,4 +1,5 @@
 import { theme } from "@/styles/theme";
+import { LoadingState } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { parqueaderosStyles } from "./lib/styles";
@@ -50,33 +51,39 @@ export default function Parqueaderos() {
           canAsignacionInteligente={hasPermission("asignaciones")}
         />
 
-        {filters.activeFilters > 0 && (
-          <p style={{ fontSize: 11, color: C.textLight }}>
-            Mostrando <strong>{filters.filteredPqsConCeldas.length}</strong> resultado{filters.filteredPqsConCeldas.length !== 1 ? "s" : ""}
-          </p>
-        )}
+        {data.isLoading ? (
+          <LoadingState message="Cargando parqueaderos..." />
+        ) : (
+          <>
+            {filters.activeFilters > 0 && (
+              <p style={{ fontSize: 11, color: C.textLight }}>
+                Mostrando <strong>{filters.filteredPqsConCeldas.length}</strong> resultado{filters.filteredPqsConCeldas.length !== 1 ? "s" : ""}
+              </p>
+            )}
 
-        {filters.activeTab === "table" && (
-          <ParqueaderosTable
-            parqueaderos={filters.filteredPqsConCeldas}
-            celdas={filters.search.trim() ? filters.filteredCeldas : data.celdas}
-            getOcupante={modal.getOcupante}
-            onEdit={pqFormState.openEdit}
-            onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
-            onCellClick={handleCellClick}
-            cellMatchesSearch={filters.cellMatchesSearch}
-            canManage={hasPermission("celdas")}
-          />
-        )}
+            {filters.activeTab === "table" && (
+              <ParqueaderosTable
+                parqueaderos={filters.filteredPqsConCeldas}
+                celdas={filters.search.trim() ? filters.filteredCeldas : data.celdas}
+                getOcupante={modal.getOcupante}
+                onEdit={pqFormState.openEdit}
+                onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
+                onCellClick={handleCellClick}
+                cellMatchesSearch={filters.cellMatchesSearch}
+                canManage={hasPermission("celdas")}
+              />
+            )}
 
-        {filters.activeTab === "map" && (
-          <ParkingMap
-            parqueaderos={filters.filteredPqsConCeldas}
-            celdas={data.celdas}
-            getOcupante={modal.getOcupante}
-            onCellClick={handleCellClick}
-            cellMatchesSearch={filters.cellMatchesSearch}
-          />
+            {filters.activeTab === "map" && (
+              <ParkingMap
+                parqueaderos={filters.filteredPqsConCeldas}
+                celdas={data.celdas}
+                getOcupante={modal.getOcupante}
+                onCellClick={handleCellClick}
+                cellMatchesSearch={filters.cellMatchesSearch}
+              />
+            )}
+          </>
         )}
       </div>
 

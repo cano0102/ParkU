@@ -29,13 +29,14 @@ export function useConductoresPage() {
   }, []);
 
   const handleToggleEstado = useCallback(
-    (id: string, currentEstado: "activo" | "inactivo") => {
+    async (id: string, currentEstado: "activo" | "inactivo") => {
+      const nuevoEstado = currentEstado === "activo" ? "inactivo" : "activo";
       try {
-        const nuevoEstado = currentEstado === "activo" ? "inactivo" : "activo";
-        data.updateConductor(id, { estado: nuevoEstado });
+        await data.updateConductor(id, { estado: nuevoEstado });
         toast.success(`Conductor ${nuevoEstado === "activo" ? "activado" : "desactivado"}`);
       } catch (error) {
-        toast.error("Error al cambiar el estado");
+        // El toast de error ya lo muestra el manejador centralizado de mutaciones
+        // (services/core/queryFactory.ts).
         console.error("Error toggling status:", error);
       }
     },

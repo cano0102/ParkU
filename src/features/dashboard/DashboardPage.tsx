@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Car, DoorOpen, ParkingCircle, Users } from "lucide-react";
 import { theme } from "@/styles/theme";
+import { LoadingState } from "@/components/shared";
 import { useClock } from "./hooks/useClock";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { Kpi } from "./components/DashboardPrimitives";
@@ -20,6 +21,14 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const now = useClock();
   const d = useDashboardData();
+
+  if (d.isLoading) {
+    return (
+      <div className="dashboard-root">
+        <LoadingState message="Cargando dashboard..." />
+      </div>
+    );
+  }
 
   if (!d.selectedLot) {
     return null;

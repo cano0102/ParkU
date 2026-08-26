@@ -8,14 +8,16 @@ import { PAGE_SIZE } from "../lib/helpers";
 
 /** Datos, filtros, paginación y eliminación del historial de entrada/salida. */
 export function useControlSalidaPage() {
-  const { data: controlesSalida = [] } = useControlSalida();
+  const { data: controlesSalida = [], isLoading } = useControlSalida();
   const { data: vehiculos = [] } = useVehiculos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
   const removeControlSalidaMutation = useRemoveControlSalida();
+  // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
+  // mostrar un toast de "éxito" cuando la mutación en realidad falla.
   const deleteControlSalida = useCallback(
-    (id: string) => removeControlSalidaMutation.mutate(id),
+    (id: string) => removeControlSalidaMutation.mutateAsync(id),
     [removeControlSalidaMutation]
   );
 
@@ -84,11 +86,17 @@ export function useControlSalidaPage() {
 
   const handleDelete = useCallback((control: ControlSalida) => setConfirmDelete(control), []);
 
-  const confirmDeleteAction = useCallback(() => {
+  const confirmDeleteAction = useCallback(async () => {
     if (!confirmDelete) return;
-    deleteControlSalida(confirmDelete.id);
-    toast.success("Registro eliminado correctamente");
-    setConfirmDelete(null);
+    try {
+      await deleteControlSalida(confirmDelete.id);
+      toast.success("Registro eliminado correctamente");
+      setConfirmDelete(null);
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error deleting control de salida:", error);
+    }
   }, [confirmDelete, deleteControlSalida]);
 
   const clearFilters = useCallback(() => {
@@ -108,5 +116,6 @@ export function useControlSalidaPage() {
     filteredControles, paginatedControles,
     currentPage, totalPages, setPage,
     handleDelete, confirmDeleteAction, clearFilters, hasActiveFilters,
+    isLoading,
   };
 }

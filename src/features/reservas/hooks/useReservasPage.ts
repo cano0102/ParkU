@@ -12,15 +12,17 @@ import type { EstadoReserva } from "../lib/constants";
 /** Datos, filtros y eliminación del historial de reservas. */
 export function useReservasPage() {
   const { user } = useAuth();
-  const { data: reservasTodas = [] } = useReservas();
+  const { data: reservasTodas = [], isLoading } = useReservas();
   const { data: vehiculos = [] } = useVehiculos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
   const removeReservaMutation = useRemoveReserva();
   const updateCeldaMutation = useUpdateCelda();
-  const deleteReserva = (id: string) => removeReservaMutation.mutate(id);
-  const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutate({ id, data });
+  // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
+  // mostrar un toast de "éxito" cuando la mutación en realidad falla.
+  const deleteReserva = (id: string) => removeReservaMutation.mutateAsync(id);
+  const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutateAsync({ id, data });
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewingReserva, setViewingReserva] = useState<Reserva | null>(null);
@@ -86,15 +88,21 @@ export function useReservasPage() {
 
   const handleDelete = (reserva: Reserva) => setConfirmDelete(reserva);
 
-  const confirmDeleteAction = () => {
+  const confirmDeleteAction = async () => {
     if (!confirmDelete) return;
-    // Si la reserva seguía activa, libera la celda al eliminar el registro
-    if (confirmDelete.estado === "pendiente" || confirmDelete.estado === "activa") {
-      updateCelda(confirmDelete.celdaId, { estado: "disponible" });
+    try {
+      // Si la reserva seguía activa, libera la celda al eliminar el registro
+      if (confirmDelete.estado === "pendiente" || confirmDelete.estado === "activa") {
+        await updateCelda(confirmDelete.celdaId, { estado: "disponible" });
+      }
+      await deleteReserva(confirmDelete.id);
+      toast.success("Reserva eliminada correctamente");
+      setConfirmDelete(null);
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error deleting reserva:", error);
     }
-    deleteReserva(confirmDelete.id);
-    toast.success("Reserva eliminada correctamente");
-    setConfirmDelete(null);
   };
 
   const activeFiltersCount = [search, filterEstado !== "todos" ? filterEstado : ""].filter(Boolean).length;
@@ -108,6 +116,6 @@ export function useReservasPage() {
     search, setSearch, filterEstado, setFilterEstado, confirmDelete, setConfirmDelete,
     getVehiculo, getCelda, getParqueadero, getConductorReserva,
     counts, filteredReservas, handleDelete, confirmDeleteAction,
-    activeFiltersCount, clearFilters,
+    activeFiltersCount, clearFilters, isLoading,
   };
 }

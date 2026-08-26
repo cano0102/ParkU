@@ -56,22 +56,28 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     setOpenModal("edit");
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     setPqTocado(true);
     const error = validarFormParqueadero(pqForm, parqueaderos, null);
     if (error) return setFormError(error);
     const nombre = normalizarTexto(pqForm.nombre, NOMBRE_PQ_MAX);
-    addParqueadero({
-      nombre, ubicacion: pqForm.ubicacion.trim(), acceso: pqForm.acceso, tipo: pqForm.tipo,
-      capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
-      zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
-      estado: "activo",
-    });
-    toast.success(`Parqueadero "${nombre}" creado.`);
-    setOpenModal(null);
+    try {
+      await addParqueadero({
+        nombre, ubicacion: pqForm.ubicacion.trim(), acceso: pqForm.acceso, tipo: pqForm.tipo,
+        capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
+        zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
+        estado: "activo",
+      });
+      toast.success(`Parqueadero "${nombre}" creado.`);
+      setOpenModal(null);
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error creating parqueadero:", error);
+    }
   };
 
-  const handleEdit = () => {
+  const handleEdit = async () => {
     setPqTocado(true);
     if (!pqEditId) return;
     const actual = parqueaderos.find((p) => p.id === pqEditId);
@@ -80,20 +86,28 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     if (error) return setFormError(error);
     const nombre = normalizarTexto(pqForm.nombre, NOMBRE_PQ_MAX);
 
-    updateParqueadero(pqEditId, {
-      nombre, ubicacion: pqForm.ubicacion.trim(), acceso: pqForm.acceso, tipo: pqForm.tipo,
-      capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
-      zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
-    });
-    toast.success("Parqueadero actualizado.");
-    setOpenModal(null);
-    setPqEditId(null);
+    try {
+      await updateParqueadero(pqEditId, {
+        nombre, ubicacion: pqForm.ubicacion.trim(), acceso: pqForm.acceso, tipo: pqForm.tipo,
+        capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
+        zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
+      });
+      toast.success("Parqueadero actualizado.");
+      setOpenModal(null);
+      setPqEditId(null);
+    } catch (error) {
+      console.error("Error updating parqueadero:", error);
+    }
   };
 
-  const handleToggleEstadoParqueadero = (p: Parqueadero) => {
+  const handleToggleEstadoParqueadero = async (p: Parqueadero) => {
     const nuevoEstado = p.estado === "activo" ? "inactivo" : "activo";
-    updateParqueadero(p.id, { estado: nuevoEstado });
-    toast.success(nuevoEstado === "activo" ? "Parqueadero activado." : "Parqueadero desactivado.");
+    try {
+      await updateParqueadero(p.id, { estado: nuevoEstado });
+      toast.success(nuevoEstado === "activo" ? "Parqueadero activado." : "Parqueadero desactivado.");
+    } catch (error) {
+      console.error("Error toggling parqueadero state:", error);
+    }
   };
 
   return {

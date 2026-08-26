@@ -15,7 +15,7 @@ import type { Incidente } from "@/services/api/incidentes";
 
 /** Queries y mutaciones de todos los dominios que orquesta la página de Parqueaderos. */
 export function useParqueaderosData() {
-  const { data: parqueaderos = [] } = useParqueaderos();
+  const { data: parqueaderos = [], isLoading } = useParqueaderos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
   const { data: vehiculos = [] } = useVehiculos();
@@ -36,12 +36,14 @@ export function useParqueaderosData() {
   const updateReservaMutation = useUpdateReserva();
   const createIncidenteMutation = useCreateIncidente();
 
-  const addParqueadero = (data: Omit<Parqueadero, "id">) => createParqueaderoMutation.mutate(data);
+  // `mutateAsync` (no `.mutate`) en todas: quien llama necesita el `await`/try-catch
+  // para no mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación falla.
+  const addParqueadero = (data: Omit<Parqueadero, "id">) => createParqueaderoMutation.mutateAsync(data);
   const updateParqueadero = (id: string, data: Partial<Omit<Parqueadero, "id">>) =>
-    updateParqueaderoMutation.mutate({ id, data });
-  const addCelda = (data: Omit<Celda, "id">) => createCeldaMutation.mutate(data);
-  const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutate({ id, data });
-  const deleteCelda = (id: string) => removeCeldaMutation.mutate(id);
+    updateParqueaderoMutation.mutateAsync({ id, data });
+  const addCelda = (data: Omit<Celda, "id">) => createCeldaMutation.mutateAsync(data);
+  const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutateAsync({ id, data });
+  const deleteCelda = (id: string) => removeCeldaMutation.mutateAsync(id);
   // resolverConductor/resolverVehiculo necesitan el id real del registro creado
   // antes de seguir (para encadenar el control de salida), así que estas dos sí
   // esperan a que la mutación termine en vez de disparar y olvidar.
@@ -50,21 +52,22 @@ export function useParqueaderosData() {
   const addVehiculo = (data: Omit<Vehiculo, "id">): Promise<string> =>
     createVehiculoMutation.mutateAsync(data).then((v) => v.id);
   const updateVehiculo = (id: string, data: Partial<Omit<Vehiculo, "id">>) =>
-    updateVehiculoMutation.mutate({ id, data });
-  const addControlSalida = (data: Omit<ControlSalida, "id">) => createControlSalidaMutation.mutate(data);
+    updateVehiculoMutation.mutateAsync({ id, data });
+  const addControlSalida = (data: Omit<ControlSalida, "id">) => createControlSalidaMutation.mutateAsync(data);
   const updateControlSalida = (id: string, data: Partial<Omit<ControlSalida, "id">>) =>
-    updateControlSalidaMutation.mutate({ id, data });
-  const addReserva = (data: Omit<Reserva, "id">) => createReservaMutation.mutate(data);
+    updateControlSalidaMutation.mutateAsync({ id, data });
+  const addReserva = (data: Omit<Reserva, "id">) => createReservaMutation.mutateAsync(data);
   const updateReserva = (id: string, data: Partial<Omit<Reserva, "id">>) =>
-    updateReservaMutation.mutate({ id, data });
+    updateReservaMutation.mutateAsync({ id, data });
   const addIncidente = (data: Omit<Incidente, "id" | "fecha">) =>
-    createIncidenteMutation.mutate({ ...data, fecha: new Date().toISOString() });
+    createIncidenteMutation.mutateAsync({ ...data, fecha: new Date().toISOString() });
 
   return {
     parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas,
     addParqueadero, updateParqueadero, addCelda, updateCelda, deleteCelda,
     addConductor, addVehiculo, updateVehiculo,
     addControlSalida, updateControlSalida, addReserva, updateReserva, addIncidente,
+    isLoading,
   };
 }
 

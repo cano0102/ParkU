@@ -1,4 +1,4 @@
-import { ConfirmDialog } from "@/components/shared";
+import { ConfirmDialog, LoadingState } from "@/components/shared";
 import { useControlSalidaPage } from "./hooks/useControlSalidaPage";
 import { controlSalidaStyles } from "./lib/styles";
 import { ControlSalidaHero } from "./components/ControlSalidaHero";
@@ -33,18 +33,22 @@ export function ControlSalidaPage() {
           onClearFilters={p.clearFilters}
         />
 
-        <ControlSalidaTable
-          paginatedControles={p.paginatedControles}
-          filteredCount={p.filteredControles.length}
-          currentPage={p.currentPage}
-          totalPages={p.totalPages}
-          onPageChange={p.setPage}
-          getVehiculo={p.getVehiculo}
-          getCelda={p.getCelda}
-          getUsuarioConductor={p.getUsuarioConductor}
-          getParqueadero={p.getParqueadero}
-          onDelete={p.handleDelete}
-        />
+        {p.isLoading ? (
+          <LoadingState message="Cargando registros..." />
+        ) : (
+          <ControlSalidaTable
+            paginatedControles={p.paginatedControles}
+            filteredCount={p.filteredControles.length}
+            currentPage={p.currentPage}
+            totalPages={p.totalPages}
+            onPageChange={p.setPage}
+            getVehiculo={p.getVehiculo}
+            getCelda={p.getCelda}
+            getUsuarioConductor={p.getUsuarioConductor}
+            getParqueadero={p.getParqueadero}
+            onDelete={p.handleDelete}
+          />
+        )}
       </div>
 
       <ConfirmDialog

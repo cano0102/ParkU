@@ -96,30 +96,40 @@ export function useIncidenteDialogs(data: IncidentesData) {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setFormTouched({ descripcion: true, parqueaderoId: true });
     if (formInvalido) {
       toast.error("Descripción y Parqueadero son obligatorios");
       return;
     }
 
-    if (isEditing && selectedIncidente) {
-      updateIncidente(selectedIncidente.id, { ...formData });
-      toast.success("Incidente actualizado correctamente");
-    } else {
-      addIncidente({ ...formData });
-      toast.success("Incidente registrado correctamente");
+    try {
+      if (isEditing && selectedIncidente) {
+        await updateIncidente(selectedIncidente.id, { ...formData });
+        toast.success("Incidente actualizado correctamente");
+      } else {
+        await addIncidente({ ...formData });
+        toast.success("Incidente registrado correctamente");
+      }
+      closeForm();
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error saving incidente:", error);
     }
-    closeForm();
   };
 
   const handleDelete = (incidente: Incidente) => setConfirmDelete(incidente);
 
-  const confirmDeleteAction = () => {
+  const confirmDeleteAction = async () => {
     if (!confirmDelete) return;
-    deleteIncidente(confirmDelete.id);
-    toast.success("Incidente eliminado");
-    setConfirmDelete(null);
+    try {
+      await deleteIncidente(confirmDelete.id);
+      toast.success("Incidente eliminado");
+      setConfirmDelete(null);
+    } catch (error) {
+      console.error("Error deleting incidente:", error);
+    }
   };
 
   return {

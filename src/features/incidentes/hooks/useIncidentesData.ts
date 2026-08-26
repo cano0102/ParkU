@@ -23,14 +23,16 @@ export function useIncidentesData() {
   // Solo Admin puede listar /api/usuarios — para Vigilante/Conductor queda en
   // [] y el selector de "asignar a" simplemente aparece vacío (ver IncidenteVehiculoAsignadoFields).
   const { data: usuarios = [] } = useUsuarios();
-  const { data: incidentes = [] } = useIncidentes();
+  const { data: incidentes = [], isLoading } = useIncidentes();
   const createIncidenteMutation = useCreateIncidente();
   const updateIncidenteMutation = useUpdateIncidente();
   const removeIncidenteMutation = useRemoveIncidente();
-  const addIncidente = (data: Omit<Incidente, "id" | "fecha">) => createIncidenteMutation.mutate({ ...data, fecha: new Date().toISOString() });
+  // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
+  // mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación en realidad falla.
+  const addIncidente = (data: Omit<Incidente, "id" | "fecha">) => createIncidenteMutation.mutateAsync({ ...data, fecha: new Date().toISOString() });
   const updateIncidente = (id: string, data: Partial<Omit<Incidente, "id">>) =>
-    updateIncidenteMutation.mutate({ id, data });
-  const deleteIncidente = (id: string) => removeIncidenteMutation.mutate(id);
+    updateIncidenteMutation.mutateAsync({ id, data });
+  const deleteIncidente = (id: string) => removeIncidenteMutation.mutateAsync(id);
 
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoIncidente>("todos");
@@ -62,13 +64,18 @@ export function useIncidentesData() {
   const enProceso = incidentes.filter((i) => i.estado === "en_proceso").length;
   const resueltos = incidentes.filter((i) => i.estado === "resuelto").length;
 
-  const toggleEstado = (id: string) => {
+  const toggleEstado = async (id: string) => {
     const incidente = incidentes.find((i) => i.id === id);
-    if (incidente) {
-      updateIncidente(id, {
+    if (!incidente) return;
+    try {
+      await updateIncidente(id, {
         estado: incidente.estado === "resuelto" ? "pendiente" : "resuelto",
       });
       toast.success("Estado del incidente actualizado");
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error toggling incidente estado:", error);
     }
   };
 
@@ -123,6 +130,7 @@ export function useIncidentesData() {
     filteredIncidentes,
     activeFiltersCount,
     clearFilters,
+    isLoading,
   };
 }
 

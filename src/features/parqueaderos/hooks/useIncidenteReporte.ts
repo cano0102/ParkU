@@ -40,7 +40,7 @@ export function useIncidenteReporte(
     setIncidenteTocado(false);
   }, [setOpenModal]);
 
-  const registrarIncidente = useCallback(() => {
+  const registrarIncidente = useCallback(async () => {
     if (!celdaActiva || !ocupanteActivo) return;
     setIncidenteTocado(true);
     const error = validarIncidenteForm(incidenteForm);
@@ -49,22 +49,28 @@ export function useIncidenteReporte(
       return;
     }
 
-    data.addIncidente({
-      descripcion: incidenteForm.descripcion.trim(),
-      parqueaderoId: celdaActiva.parqueaderoId,
-      celdaId: celdaActiva.id,
-      vehiculoId: ocupanteActivo.vehiculo.id,
-      usuarioAsignadoId: "",
-      tipoNovedad: "otro",
-      prioridad: "media",
-      estado: "pendiente",
-      justificacionCierre: "",
-    });
-    setIncidenteFormRaw(emptyIncidenteForm());
-    setIncidenteError(null);
-    setIncidenteTocado(false);
-    setOpenModal(null);
-    toast.success("Incidente registrado correctamente.");
+    try {
+      await data.addIncidente({
+        descripcion: incidenteForm.descripcion.trim(),
+        parqueaderoId: celdaActiva.parqueaderoId,
+        celdaId: celdaActiva.id,
+        vehiculoId: ocupanteActivo.vehiculo.id,
+        usuarioAsignadoId: "",
+        tipoNovedad: "otro",
+        prioridad: "media",
+        estado: "pendiente",
+        justificacionCierre: "",
+      });
+      setIncidenteFormRaw(emptyIncidenteForm());
+      setIncidenteError(null);
+      setIncidenteTocado(false);
+      setOpenModal(null);
+      toast.success("Incidente registrado correctamente.");
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error registering incidente:", error);
+    }
   }, [celdaActiva, ocupanteActivo, incidenteForm, data, setOpenModal]);
 
   return {

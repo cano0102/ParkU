@@ -1,5 +1,5 @@
 import { Shield, UserCheck, Users, UserX } from "lucide-react";
-import { Modal } from "@/components/shared";
+import { Modal, LoadingState } from "@/components/shared";
 import { StatsPanel } from "@/components/data";
 import { COLORS, sanitizeText } from "./lib/helpers";
 import { UsuarioFormModal } from "./components/UsuarioFormModal";
@@ -43,34 +43,40 @@ export default function Usuarios() {
           onCreate={form.openCreate}
         />
 
-        {hasActiveFilters && (
-          <p style={{ fontSize: 11, color: COLORS.textLight }}>
-            Mostrando <strong style={{ color: COLORS.text }}>{f.filtered.length}</strong> resultado
-            {f.filtered.length !== 1 ? "s" : ""}
-            {f.search && (
-              <>
-                {" "}
-                para "<strong>{sanitizeText(f.search)}</strong>"
-              </>
+        {data.isLoading ? (
+          <LoadingState message="Cargando usuarios..." />
+        ) : (
+          <>
+            {hasActiveFilters && (
+              <p style={{ fontSize: 11, color: COLORS.textLight }}>
+                Mostrando <strong style={{ color: COLORS.text }}>{f.filtered.length}</strong> resultado
+                {f.filtered.length !== 1 ? "s" : ""}
+                {f.search && (
+                  <>
+                    {" "}
+                    para "<strong>{sanitizeText(f.search)}</strong>"
+                  </>
+                )}
+              </p>
             )}
-          </p>
-        )}
 
-        <UsuariosResults
-          usuarios={f.paginated}
-          viewMode={f.viewMode}
-          currentPage={f.currentPage}
-          totalPages={f.totalPages}
-          itemsPerPage={f.itemsPerPage}
-          totalItems={f.filtered.length}
-          onToggleEstado={form.handleToggleEstado}
-          onEdit={form.openEdit}
-          onPageChange={f.setCurrentPage}
-          onItemsPerPageChange={(n) => {
-            f.setItemsPerPage(n);
-            f.setCurrentPage(1);
-          }}
-        />
+            <UsuariosResults
+              usuarios={f.paginated}
+              viewMode={f.viewMode}
+              currentPage={f.currentPage}
+              totalPages={f.totalPages}
+              itemsPerPage={f.itemsPerPage}
+              totalItems={f.filtered.length}
+              onToggleEstado={form.handleToggleEstado}
+              onEdit={form.openEdit}
+              onPageChange={f.setCurrentPage}
+              onItemsPerPageChange={(n) => {
+                f.setItemsPerPage(n);
+                f.setCurrentPage(1);
+              }}
+            />
+          </>
+        )}
       </div>
 
       <Modal open={form.dialogOpen} onClose={() => form.setDialogOpen(false)} maxWidth={640}>

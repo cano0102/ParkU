@@ -7,12 +7,14 @@ import { initialPermisos } from "../lib/permisos";
 
 /** Estado y handlers de la página de Roles: filtrado, modales y mutaciones. */
 export function useRolesPage() {
-  const { data: roles = [] } = useRoles();
+  const { data: roles = [], isLoading } = useRoles();
   const createRolMutation = useCreateRol();
   const updateRolMutation = useUpdateRol();
-  const addRol = useCallback((data: Omit<Rol, "id">) => createRolMutation.mutate(data), [createRolMutation]);
+  // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
+  // mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación en realidad falla.
+  const addRol = useCallback((data: Omit<Rol, "id">) => createRolMutation.mutateAsync(data), [createRolMutation]);
   const updateRol = useCallback(
-    (id: string, data: Partial<Rol>) => updateRolMutation.mutate({ id, data }),
+    (id: string, data: Partial<Rol>) => updateRolMutation.mutateAsync({ id, data }),
     [updateRolMutation]
   );
 
@@ -68,14 +70,14 @@ export function useRolesPage() {
   }, []);
 
   const handleToggleEstado = useCallback(
-    (rol: Rol) => {
-      if (ROLES_PROTEGIDOS.includes(rol.nombre as any)) {
+    async (rol: Rol) => {
+      if ((ROLES_PROTEGIDOS as readonly string[]).includes(rol.nombre)) {
         toast.error("Este rol está protegido y no puede deshabilitarse");
         return;
       }
+      const nuevoEstado = rol.estado === "activo" ? "inactivo" : "activo";
       try {
-        const nuevoEstado = rol.estado === "activo" ? "inactivo" : "activo";
-        updateRol(rol.id, {
+        await updateRol(rol.id, {
           nombre: rol.nombre,
           descripcion: rol.descripcion,
           permisos: rol.permisos,
@@ -85,7 +87,8 @@ export function useRolesPage() {
           nuevoEstado === "activo" ? "Rol habilitado correctamente" : "Rol deshabilitado correctamente"
         );
       } catch (error) {
-        toast.error("Error al cambiar el estado del rol");
+        // El toast de error ya lo muestra el manejador centralizado de mutaciones
+        // (services/core/queryFactory.ts).
         console.error("Error toggling role state:", error);
       }
     },
@@ -93,18 +96,17 @@ export function useRolesPage() {
   );
 
   const handleSave = useCallback(
-    (data: FormState) => {
+    async (data: FormState) => {
       try {
         if (editingRol) {
-          updateRol(editingRol.id, data);
+          await updateRol(editingRol.id, data);
           toast.success("Rol actualizado correctamente");
         } else {
-          addRol(data);
+          await addRol(data);
           toast.success("Rol creado correctamente");
         }
         setDialogOpen(false);
       } catch (error) {
-        toast.error("Error al guardar el rol");
         console.error("Error saving role:", error);
       }
     },
@@ -113,6 +115,7 @@ export function useRolesPage() {
 
   return {
     roles,
+    isLoading,
     dialogOpen,
     setDialogOpen,
     viewOpen,
