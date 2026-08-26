@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -18,7 +18,6 @@ export function useRegisterForm() {
 
   const set = (field: keyof FormState, value: string | boolean) => {
     setForm((f) => ({ ...f, [field]: value }));
-    setErrors((e) => ({ ...e, [field]: undefined }));
   };
 
   const setTelefono = (raw: string) => {
@@ -29,9 +28,14 @@ export function useRegisterForm() {
     set("identificacion", raw.replace(/[^0-9]/g, ""));
   };
 
+  // Validación en tiempo real: se recalcula en cada cambio del formulario;
+  // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
+  useEffect(() => {
+    setErrors(validate(form));
+  }, [form]);
+
   const handleBlur = (field: keyof FormState) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors(validate(form));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

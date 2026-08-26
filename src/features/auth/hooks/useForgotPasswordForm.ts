@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useUsuarios } from "@/features/usuarios";
 import { useAuth } from "@/context/AuthContext";
@@ -8,6 +8,11 @@ import { useAuth } from "@/context/AuthContext";
 // sin forma de recuperar su contraseña. Se usa el mismo formato general que Login.
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Referencia estable: evita que `usuarios` cambie de identidad en cada
+// render mientras la query sigue sin datos (lo que rearmaría cualquier
+// efecto/memo que dependiera de ella).
+const EMPTY_USUARIOS: { correo: string }[] = [];
+
 /** Formulario de recuperación: valida el correo contra usuarios reales y genera un enlace
  * de un solo uso (sin servidor de correo propio, se muestra directamente en pantalla). */
 export function useForgotPasswordForm() {
@@ -15,11 +20,13 @@ export function useForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [resetLink, setResetLink] = useState<string | null>(null);
-  const [errors, setErrors] = useState<{ email?: string }>({});
-  const { data: usuarios = [] } = useUsuarios();
+  const [touched, setTouched] = useState(false);
+  const { data: usuarios = EMPTY_USUARIOS } = useUsuarios();
   const { requestPasswordReset } = useAuth();
 
-  const validateForm = (): boolean => {
+  // Validación en tiempo real: se recalcula en cada cambio; la visibilidad
+  // del mensaje se controla con `touched` (ver el componente del formulario).
+  const errors = useMemo((): { email?: string } => {
     const newErrors: { email?: string } = {};
     const trimmed = email.trim().toLowerCase();
 
@@ -35,8 +42,12 @@ export function useForgotPasswordForm() {
       newErrors.email = "No existe una cuenta registrada con este correo";
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return newErrors;
+  }, [email, usuarios]);
+
+  const validateForm = (): boolean => {
+    setTouched(true);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -68,14 +79,14 @@ export function useForgotPasswordForm() {
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setEmail(value);
-    if (errors.email) setErrors({});
+    setEmail(e.target.value);
   };
 
   const handleBlur = () => {
-    if (email.trim()) validateForm();
+    setTouched(true);
   };
 
-  return { email, loading, emailSent, resetLink, errors, handleSubmit, handleEmailChange, handleBlur };
+  const visibleErrors = touched ? errors : {};
+
+  return { email, loading, emailSent, resetLink, errors: visibleErrors, handleSubmit, handleEmailChange, handleBlur };
 }

@@ -38,8 +38,12 @@ export function ResetPasswordForm({ form: f }: ResetPasswordFormProps) {
           confirmPassword={f.confirmPassword}
           showPassword={f.showPassword}
           showConfirmPassword={f.showConfirmPassword}
+          passwordError={f.err("password")}
+          confirmPasswordError={f.err("confirmPassword")}
           onPasswordChange={f.setPassword}
+          onPasswordBlur={() => f.handleBlur("password")}
           onConfirmPasswordChange={f.setConfirmPassword}
+          onConfirmPasswordBlur={() => f.handleBlur("confirmPassword")}
           onToggleShowPassword={() => f.setShowPassword(!f.showPassword)}
           onToggleShowConfirmPassword={() => f.setShowConfirmPassword(!f.showConfirmPassword)}
         />
