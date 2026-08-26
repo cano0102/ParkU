@@ -113,12 +113,24 @@ describe('Register', () => {
     expect(await screen.findByText('Este número ya está registrado')).toBeInTheDocument();
   });
 
-  it('no muestra error de disponibilidad para un correo/número que no están en uso', async () => {
+  it('valida en tiempo real si el documento ya pertenece a un conductor registrado', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+
+    // El conductor id 1 (semilla, appFakeApi.ts) tiene documento CC 2345678901.
+    // El tipo por defecto del formulario ya es CC, así que basta con escribir el número.
+    await user.type(screen.getByLabelText('N.º de identificación'), '2345678901');
+
+    expect(await screen.findByText('Este documento ya está registrado')).toBeInTheDocument();
+  });
+
+  it('no muestra error de disponibilidad para un correo/número/documento que no están en uso', async () => {
     const user = userEvent.setup();
     renderRegister();
 
     await user.type(screen.getByLabelText('Correo Electrónico'), `libre-${Date.now()}@sena.edu.co`);
     await user.type(screen.getByLabelText('Teléfono'), '3009998877');
+    await user.type(screen.getByLabelText('N.º de identificación'), '9999999999');
 
     // Primero confirma que el chequeo en vivo realmente arrancó (el debounce
     // disparó la consulta)...
@@ -132,5 +144,6 @@ describe('Register', () => {
 
     expect(screen.queryByText('Este correo ya está registrado')).not.toBeInTheDocument();
     expect(screen.queryByText('Este número ya está registrado')).not.toBeInTheDocument();
+    expect(screen.queryByText('Este documento ya está registrado')).not.toBeInTheDocument();
   });
 });

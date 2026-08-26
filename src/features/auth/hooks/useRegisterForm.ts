@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { existeCorreo, existeNumero } from "@/services/api/auth";
+import { existeCorreo, existeDocumento, existeNumero } from "@/services/api/auth";
 import { filtrarTelefono, quitarDigitos } from "@/utils/validation";
 import { emptyForm, validate, type FormState, type ValidationErrors } from "../lib/registerForm";
 
@@ -21,11 +21,13 @@ export function useRegisterForm() {
   // Errores de disponibilidad (correo/número ya registrados) — se consultan
   // al backend aparte de `errors` porque requieren una llamada de red, no se
   // pueden derivar solo del `form` como el resto de la validación.
-  const [asyncErrors, setAsyncErrors] = useState<{ correo?: string; numero?: string }>({});
+  const [asyncErrors, setAsyncErrors] = useState<{ correo?: string; numero?: string; identificacion?: string }>({});
   const [checkingCorreo, setCheckingCorreo] = useState(false);
   const [checkingNumero, setCheckingNumero] = useState(false);
+  const [checkingDocumento, setCheckingDocumento] = useState(false);
   const correoCheckId = useRef(0);
   const numeroCheckId = useRef(0);
+  const documentoCheckId = useRef(0);
 
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -37,6 +39,11 @@ export function useRegisterForm() {
     // a pedir tras la próxima pausa (ver el efecto de abajo).
     if (field === "correo" || field === "numero") {
       setAsyncErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+    // tipoDocumento e identificacion comparten un solo chequeo (documento =
+    // tipo + número), así que cualquiera de los dos invalida el resultado.
+    if (field === "tipoDocumento" || field === "identificacion") {
+      setAsyncErrors((prev) => ({ ...prev, identificacion: undefined }));
     }
   };
 
@@ -96,6 +103,24 @@ export function useRegisterForm() {
           .catch(() => {})
           .finally(() => {
             if (id === numeroCheckId.current) setCheckingNumero(false);
+          });
+      }
+
+      // El documento depende de dos campos (tipo + número): cualquiera de
+      // los dos que haya cambiado dispara el chequeo.
+      if ((dirty.identificacion || dirty.tipoDocumento) && !syncErrors.identificacion && form.tipoDocumento) {
+        const id = ++documentoCheckId.current;
+        const tipoDocumento = form.tipoDocumento;
+        const identificacion = form.identificacion.trim();
+        setCheckingDocumento(true);
+        existeDocumento(tipoDocumento, identificacion)
+          .then((existe) => {
+            if (id !== documentoCheckId.current) return;
+            setAsyncErrors((prev) => ({ ...prev, identificacion: existe ? "Este documento ya está registrado" : undefined }));
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (id === documentoCheckId.current) setCheckingDocumento(false);
           });
       }
     }, VALIDATION_DEBOUNCE_MS);
@@ -160,6 +185,7 @@ export function useRegisterForm() {
     if (!touched[field]) return undefined;
     if (field === "correo") return errors.correo ?? asyncErrors.correo;
     if (field === "numero") return errors.numero ?? asyncErrors.numero;
+    if (field === "identificacion") return errors.identificacion ?? asyncErrors.identificacion;
     return errors[field];
   };
 
@@ -177,6 +203,7 @@ export function useRegisterForm() {
     errors,
     checkingCorreo,
     checkingNumero,
+    checkingDocumento,
     handleBlur,
     handleSubmit,
     err,

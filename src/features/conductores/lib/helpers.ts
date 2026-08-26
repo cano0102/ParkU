@@ -1,16 +1,14 @@
 import type React from "react";
 import { Car, Bike, Truck, Bus as BusIcon, Wind, GraduationCap, BookOpen, Briefcase, Handshake, Contact, type LucideIcon } from "lucide-react";
 import { theme } from "@/styles/theme";
-import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos } from "@/utils/validation";
+import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO } from "@/utils/validation";
 import { getAvatarGradient, getInitials, sanitizeText } from "@/utils/format";
 import type { Vehiculo } from "@/services/api/vehiculos";
 
-export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos };
+export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO };
 export { getAvatarGradient, getInitials, sanitizeText };
 
 export const COLORS = theme;
-
-export const TIPOS_DOCUMENTO = ["CC", "CE", "TI", "PASAPORTE", "PEP", "NIT"] as const;
 
 /** Estilo por tipo de usuario (catálogo real `/api/catalogos/tipos-usuario`:
  * Aprendiz, Instructor, Administrativo, Contratista, Visitante). Se indexa

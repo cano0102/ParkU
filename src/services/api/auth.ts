@@ -112,6 +112,21 @@ export async function existeNumero(numero: string): Promise<boolean> {
   return res.existe;
 }
 
+/**
+ * Igual que `existeCorreo`, para el documento de identidad. Solo informativo:
+ * el registro público no crea un Conductor (ver auth.ts#register), así que
+ * este chequeo evita que alguien use un documento que ya pertenece a otra
+ * persona en el sistema, aunque ese documento no quede asociado a la cuenta
+ * recién creada.
+ */
+export async function existeDocumento(tipoDocumento: string, numeroDocumento: string): Promise<boolean> {
+  const res = await apiFetch<{ success: boolean; existe: boolean }>(
+    `/auth/existe-documento?tipoDocumento=${encodeURIComponent(tipoDocumento)}&numeroDocumento=${encodeURIComponent(numeroDocumento.trim())}`,
+    { auth: false }
+  );
+  return res.existe;
+}
+
 export async function logout(): Promise<void> {
   try {
     await apiFetch('/auth/logout', { method: 'POST' });

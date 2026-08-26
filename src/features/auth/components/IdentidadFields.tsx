@@ -1,6 +1,7 @@
 import type { Ref } from "react";
 import { AlertCircle, IdCard } from "lucide-react";
 import { theme } from "@/styles/theme";
+import { TIPOS_DOCUMENTO } from "@/utils/validation";
 
 const COLORS = theme;
 
@@ -11,6 +12,8 @@ interface IdentidadFieldsProps {
   identificacionRef: Ref<HTMLInputElement>;
   identificacionError?: string;
   tipoUsuarioError?: string;
+  /** Hay una consulta en curso a /auth/existe-documento (chequeo de disponibilidad en vivo). */
+  checkingDocumento?: boolean;
   onTipoDocumentoChange: (value: string) => void;
   onIdentificacionChange: (value: string) => void;
   onIdentificacionBlur: () => void;
@@ -21,7 +24,7 @@ interface IdentidadFieldsProps {
 /** Documento (tipo + número) y "¿cómo te identificas?" del formulario de registro. */
 export function IdentidadFields({
   tipoDocumento, identificacion, tipoUsuario, identificacionRef,
-  identificacionError, tipoUsuarioError,
+  identificacionError, tipoUsuarioError, checkingDocumento,
   onTipoDocumentoChange, onIdentificacionChange, onIdentificacionBlur,
   onTipoUsuarioChange, onTipoUsuarioBlur,
 }: IdentidadFieldsProps) {
@@ -42,10 +45,9 @@ export function IdentidadFields({
               fontSize: 14, outline: "none", cursor: "pointer", appearance: "none",
             }}
           >
-            <option value="CC">CC</option>
-            <option value="TI">TI</option>
-            <option value="CE">CE</option>
-            <option value="PPTE">PPTE</option>
+            {TIPOS_DOCUMENTO.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
           </select>
         </div>
         <div>
@@ -74,12 +76,14 @@ export function IdentidadFields({
           </div>
         </div>
       </div>
-      {identificacionError && (
+      {identificacionError ? (
         <p role="alert" style={{ marginTop: -6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
           <AlertCircle size={13} />
           {identificacionError}
         </p>
-      )}
+      ) : checkingDocumento ? (
+        <p style={{ marginTop: -6, fontSize: 12, color: COLORS.textLight }}>Verificando disponibilidad…</p>
+      ) : null}
 
       <div>
         <label htmlFor="register-tipo-usuario" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>

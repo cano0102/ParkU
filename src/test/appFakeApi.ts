@@ -197,6 +197,14 @@ function createAuthBackend() {
       return { success: true, existe } as unknown as R;
     }
 
+    if (method === 'GET' && path.startsWith('/auth/existe-documento')) {
+      const qs = new URLSearchParams(path.split('?')[1] ?? '');
+      const tipoDocumento = qs.get('tipoDocumento') ?? '';
+      const numeroDocumento = qs.get('numeroDocumento') ?? '';
+      const existe = conductoresSeed.some((c) => c.tipo_documento === tipoDocumento && c.numero_documento === numeroDocumento);
+      return { success: true, existe } as unknown as R;
+    }
+
     if (method === 'POST' && path === '/auth/recuperar-password') {
       const account = findAccount(body.correo);
       const token = account ? `reset-${account.id}-${Math.random().toString(36).slice(2)}` : undefined;

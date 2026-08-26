@@ -67,3 +67,7 @@ export const quitarDigitos = (valor: string): string => valor.replace(/[0-9]/g, 
 
 /** Filtra un campo de teléfono a medida que se escribe: solo dígitos y los separadores usuales. */
 export const filtrarTelefono = (valor: string): string => valor.replace(/[^0-9()+\-\s]/g, "");
+
+/** Tipos de documento reales (ENUM `conductor.tipo_documento` en la API) — un
+ *  valor fuera de este set no corresponde a ningún conductor posible. */
+export const TIPOS_DOCUMENTO = ["CC", "CE", "TI", "PASAPORTE", "PEP", "NIT"] as const;
