@@ -180,6 +180,23 @@ describe('Usuarios', () => {
     expect(screen.getByDisplayValue('ana.martinez@sena.edu.co')).toBeInTheDocument();
   });
 
+  it('muestra el teléfono de la cuenta en la tarjeta y lo precarga al editar', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThan(0);
+    });
+
+    // Semilla: el admin (id 1) tiene numero_telefonico '3101234567' (ver appFakeApi.ts).
+    expect(screen.getAllByText('3101234567').length).toBeGreaterThan(0);
+
+    const card = screen.getByText('Administrador ParkU').closest('.u-card') as HTMLElement;
+    await user.click(within(card).getByLabelText('Editar'));
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Editar Usuario' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('3101234567')).toBeInTheDocument();
+  });
+
   it('permite alternar el estado de un usuario no protegido', async () => {
     const user = userEvent.setup();
     renderUsuarios();

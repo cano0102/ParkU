@@ -26,6 +26,7 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
       // contraseña real (ver handleSave, que omite este campo si llega vacío).
       password: "",
       nombre: u.nombre,
+      numero: u.numero,
       rol: String(u.rol),
       estado: u.estado,
     });

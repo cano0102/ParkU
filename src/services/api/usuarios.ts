@@ -1,12 +1,14 @@
 /**
  * Usuarios contra la API real (`/api/usuarios`, solo Admin). El modelo real
- * (`usuario`: id, nombre, correo, contrasena, rol_id, estado ENUM) no tiene
- * columnas `numero`/`foto`/`tipoUsuario`/`tipoDocumento`/`identificacion` —
- * esos datos de persona (documento, tipo, teléfono) viven en la entidad
- * Conductor (`services/api/conductores.ts`), separada de la cuenta de
- * acceso. Por eso el `Usuario` que administra esta pantalla se reduce a
- * credenciales + rol + estado; los campos de documento/contacto se gestionan
- * desde Conductores.
+ * (`usuario`: id, nombre, correo, contrasena, rol_id, estado ENUM,
+ * numero_telefonico) no tiene columnas `foto`/`tipoUsuario`/`tipoDocumento`/
+ * `identificacion` — esos datos de persona (documento, tipo) viven en la
+ * entidad Conductor (`services/api/conductores.ts`), separada de la cuenta
+ * de acceso. `numero_telefonico` sí es de la cuenta (no de la persona:
+ * `conductor.numero_telefonico` es un campo aparte) y por eso sí se maneja
+ * acá. Por eso el `Usuario` que administra esta pantalla se reduce a
+ * credenciales + rol + estado + teléfono de contacto; documento/tipo se
+ * gestionan desde Conductores.
  *
  * `contrasena` nunca viaja en `update()`: la API rechaza un PUT que la
  * incluya (usa `PATCH /:id/contrasena`, ver services/api/auth.ts#changePassword)
@@ -23,6 +25,8 @@ export interface Usuario {
   /** Solo se usa al crear; vacío en las respuestas y al editar. */
   password: string;
   nombre: string;
+  /** Teléfono de contacto de la cuenta (opcional). */
+  numero: string;
   rol: RolId;
   estado: 'activo' | 'inactivo';
 }
@@ -31,6 +35,7 @@ interface ApiUsuario {
   id: number;
   correo: string;
   nombre: string;
+  numero_telefonico?: string | null;
   rol: number;
   estado: string;
 }
@@ -41,6 +46,7 @@ function toFrontend(u: ApiUsuario): Usuario {
     correo: u.correo,
     password: '',
     nombre: u.nombre,
+    numero: u.numero_telefonico ?? '',
     rol: esRolId(u.rol) ? u.rol : ROLES.CONDUCTOR,
     estado: u.estado === 'ACTIVO' ? 'activo' : 'inactivo',
   };
@@ -66,6 +72,7 @@ export async function create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
       correo: data.correo.trim().toLowerCase(),
       contrasena: data.password,
       nombre: data.nombre,
+      numero_telefonico: data.numero.trim() || undefined,
       rol: data.rol,
       estado: data.estado === 'activo',
     },
@@ -77,6 +84,7 @@ export async function update(id: string, data: Partial<Omit<Usuario, 'id'>>): Pr
   const payload: Record<string, unknown> = {};
   if (data.correo !== undefined) payload.correo = data.correo.trim().toLowerCase();
   if (data.nombre !== undefined) payload.nombre = data.nombre;
+  if (data.numero !== undefined) payload.numero_telefonico = data.numero.trim() || null;
   if (data.rol !== undefined) payload.rol = data.rol;
   if (data.estado !== undefined) payload.estado = data.estado === 'activo';
   const updated = await apiFetch<ApiUsuario>(`/usuarios/${id}`, { method: 'PUT', body: payload });

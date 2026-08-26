@@ -36,12 +36,16 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, editing
       <DatosPersonalesFields
         nombre={f.form.nombre}
         correo={f.form.correo}
+        numero={f.form.numero}
         nombreError={f.err("nombre")}
         correoError={f.err("correo")}
+        numeroError={f.err("numero")}
         onNombreChange={(v) => f.set("nombre", v)}
         onNombreBlur={() => f.markTouched("nombre")}
         onCorreoChange={(v) => f.set("correo", v)}
         onCorreoBlur={() => f.markTouched("correo")}
+        onNumeroChange={(v) => f.set("numero", v)}
+        onNumeroBlur={() => f.markTouched("numero")}
       />
 
       <CredencialesAccesoFields

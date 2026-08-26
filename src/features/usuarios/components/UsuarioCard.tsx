@@ -1,4 +1,4 @@
-import { Mail, Shield, Lock, UserCheck, Pencil } from "lucide-react";
+import { Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import type { Usuario } from "@/services/api/usuarios";
@@ -114,6 +114,7 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
       <div style={{ padding: "0 14px 12px", display: "flex", flexDirection: "column", gap: 5 }}>
         {[
           { icon: <Mail size={12} />, text: u.correo },
+          ...(u.numero ? [{ icon: <Phone size={12} />, text: u.numero }] : []),
         ].map((row, i) => (
           <div
             key={i}

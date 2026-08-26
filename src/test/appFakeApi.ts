@@ -21,7 +21,7 @@ export const rolesSeed = [
 ];
 
 export const usuariosSeed = [
-  { id: 1, correo: 'admin@sena.edu.co', contrasena: 'Pass1234', nombre: 'Administrador ParkU', rol: 1, estado: 'ACTIVO' },
+  { id: 1, correo: 'admin@sena.edu.co', contrasena: 'Pass1234', nombre: 'Administrador ParkU', numero_telefonico: '3101234567', rol: 1, estado: 'ACTIVO' },
   { id: 2, correo: 'ana.martinez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Ana Martínez R.', rol: 2, estado: 'ACTIVO' },
   { id: 3, correo: 'pedro.ruiz@sena.edu.co', contrasena: 'Pass1234', nombre: 'Pedro Ruiz G.', rol: 2, estado: 'ACTIVO' },
   { id: 4, correo: 'maria.diaz@ext.com', contrasena: 'Pass1234', nombre: 'María Díaz P.', rol: 3, estado: 'ACTIVO' },
@@ -184,6 +184,17 @@ function createAuthBackend() {
         message: '',
         data: { usuario: { id: Number(u.id), correo: u.correo, nombre: u.nombre, rol: Number(u.rol), estado: 'ACTIVO' } },
       } as unknown as R;
+    }
+
+    if (method === 'GET' && path.startsWith('/auth/existe-correo')) {
+      const correo = new URLSearchParams(path.split('?')[1] ?? '').get('correo') ?? '';
+      return { success: true, existe: !!findAccount(correo) } as unknown as R;
+    }
+
+    if (method === 'GET' && path.startsWith('/auth/existe-numero')) {
+      const numero = new URLSearchParams(path.split('?')[1] ?? '').get('numero') ?? '';
+      const existe = usuariosSeed.some((u) => (u as { numero_telefonico?: string }).numero_telefonico === numero);
+      return { success: true, existe } as unknown as R;
     }
 
     if (method === 'POST' && path === '/auth/recuperar-password') {

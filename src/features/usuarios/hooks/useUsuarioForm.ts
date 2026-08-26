@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Usuario } from "@/services/api/usuarios";
 import {
-  FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, sanitizeText,
+  FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, sanitizeText, validarTelefono,
 } from "../lib/helpers";
 
 interface UseUsuarioFormArgs {
@@ -59,6 +59,19 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
       nextErrors.correo = "Ya existe un usuario registrado con este correo";
     }
 
+    // Teléfono: opcional, pero si se escribe debe tener formato válido y no
+    // estar ya en uso por otra cuenta (chequeo en vivo contra la lista ya
+    // cargada — no hace falta ir al backend, a diferencia del registro
+    // público que no tiene la lista completa disponible).
+    const numero = f.numero.trim();
+    if (numero) {
+      if (!validarTelefono(numero)) {
+        nextErrors.numero = "Ingresa un número de teléfono colombiano válido (10 dígitos)";
+      } else if (usuarios.some((u) => u.id !== editingId && u.numero.trim() === numero)) {
+        nextErrors.numero = "Ya existe una cuenta registrada con este número";
+      }
+    }
+
     // Rol obligatorio
     if (!f.rol) {
       nextErrors.rol = "Debe seleccionar un rol";
@@ -89,7 +102,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
   const handleSubmit = useCallback(() => {
     const nextErrors = validate(form);
     setErrors(nextErrors);
-    setTouched({ nombre: true, correo: true, rol: true, password: true });
+    setTouched({ nombre: true, correo: true, numero: true, rol: true, password: true });
     if (Object.keys(nextErrors).length > 0) {
       toast.error("Revisa los campos marcados en rojo");
       return;

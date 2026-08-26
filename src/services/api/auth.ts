@@ -94,6 +94,24 @@ export async function register(data: RegisterInput): Promise<AuthUser> {
   return login(data.correo, data.password);
 }
 
+/** Chequeo de disponibilidad en vivo del formulario de registro (antes del submit). */
+export async function existeCorreo(correo: string): Promise<boolean> {
+  const res = await apiFetch<{ success: boolean; existe: boolean }>(
+    `/auth/existe-correo?correo=${encodeURIComponent(correo.trim().toLowerCase())}`,
+    { auth: false }
+  );
+  return res.existe;
+}
+
+/** Igual que `existeCorreo`, para el número de teléfono. */
+export async function existeNumero(numero: string): Promise<boolean> {
+  const res = await apiFetch<{ success: boolean; existe: boolean }>(
+    `/auth/existe-numero?numero=${encodeURIComponent(numero.trim())}`,
+    { auth: false }
+  );
+  return res.existe;
+}
+
 export async function logout(): Promise<void> {
   try {
     await apiFetch('/auth/logout', { method: 'POST' });

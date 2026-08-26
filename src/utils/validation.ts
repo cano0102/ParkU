@@ -64,3 +64,6 @@ export const validarTelefono = (valor: string): boolean => {
 
 /** Quita dígitos de un campo de nombre de persona a medida que se escribe (nombres no llevan números). */
 export const quitarDigitos = (valor: string): string => valor.replace(/[0-9]/g, "");
+
+/** Filtra un campo de teléfono a medida que se escribe: solo dígitos y los separadores usuales. */
+export const filtrarTelefono = (valor: string): string => valor.replace(/[^0-9()+\-\s]/g, "");

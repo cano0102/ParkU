@@ -90,4 +90,47 @@ describe('Register', () => {
     );
     expect(mockNavigate).not.toHaveBeenCalled();
   });
+
+  it('valida en tiempo real (sin enviar el formulario) si el correo ya está registrado', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+
+    // admin@sena.edu.co ya existe en la semilla (appFakeApi.ts).
+    await user.type(screen.getByLabelText('Correo Electrónico'), 'admin@sena.edu.co');
+
+    expect(await screen.findByText('Este correo ya está registrado')).toBeInTheDocument();
+    // Todavía no se envió el formulario.
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('valida en tiempo real si el número de teléfono ya está registrado', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+
+    // El admin (id 1) tiene numero_telefonico '3101234567' en la semilla.
+    await user.type(screen.getByLabelText('Teléfono'), '3101234567');
+
+    expect(await screen.findByText('Este número ya está registrado')).toBeInTheDocument();
+  });
+
+  it('no muestra error de disponibilidad para un correo/número que no están en uso', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+
+    await user.type(screen.getByLabelText('Correo Electrónico'), `libre-${Date.now()}@sena.edu.co`);
+    await user.type(screen.getByLabelText('Teléfono'), '3009998877');
+
+    // Primero confirma que el chequeo en vivo realmente arrancó (el debounce
+    // disparó la consulta)...
+    await waitFor(() => expect(screen.queryAllByText('Verificando disponibilidad…').length).toBeGreaterThan(0));
+    // ...y después espera a que termine, antes de afirmar que no quedó
+    // ningún error de disponibilidad.
+    await waitFor(
+      () => expect(screen.queryAllByText('Verificando disponibilidad…').length).toBe(0),
+      { timeout: 2000 }
+    );
+
+    expect(screen.queryByText('Este correo ya está registrado')).not.toBeInTheDocument();
+    expect(screen.queryByText('Este número ya está registrado')).not.toBeInTheDocument();
+  });
 });

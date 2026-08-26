@@ -10,6 +10,10 @@ interface NombreCorreoTelefonoFieldsProps {
   nombreError?: string;
   correoError?: string;
   numeroError?: string;
+  /** Hay una consulta en curso a /auth/existe-correo (chequeo de disponibilidad en vivo). */
+  checkingCorreo?: boolean;
+  /** Ídem, para /auth/existe-numero. */
+  checkingNumero?: boolean;
   onNombreChange: (value: string) => void;
   onNombreBlur: () => void;
   onCorreoChange: (value: string) => void;
@@ -20,7 +24,7 @@ interface NombreCorreoTelefonoFieldsProps {
 
 /** Campos nombre completo, correo y teléfono del formulario de registro. */
 export function NombreCorreoTelefonoFields({
-  nombre, correo, numero, nombreError, correoError, numeroError,
+  nombre, correo, numero, nombreError, correoError, numeroError, checkingCorreo, checkingNumero,
   onNombreChange, onNombreBlur, onCorreoChange, onCorreoBlur, onNumeroChange, onNumeroBlur,
 }: NombreCorreoTelefonoFieldsProps) {
   return (
@@ -80,12 +84,14 @@ export function NombreCorreoTelefonoFields({
             }}
           />
         </div>
-        {correoError && (
+        {correoError ? (
           <p role="alert" style={{ marginTop: 6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
             <AlertCircle size={13} />
             {correoError}
           </p>
-        )}
+        ) : checkingCorreo ? (
+          <p style={{ marginTop: 6, fontSize: 12, color: COLORS.textLight }}>Verificando disponibilidad…</p>
+        ) : null}
       </div>
 
       <div>
@@ -111,12 +117,14 @@ export function NombreCorreoTelefonoFields({
             }}
           />
         </div>
-        {numeroError && (
+        {numeroError ? (
           <p role="alert" style={{ marginTop: 6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
             <AlertCircle size={13} />
             {numeroError}
           </p>
-        )}
+        ) : checkingNumero ? (
+          <p style={{ marginTop: 6, fontSize: 12, color: COLORS.textLight }}>Verificando disponibilidad…</p>
+        ) : null}
       </div>
     </>
   );
