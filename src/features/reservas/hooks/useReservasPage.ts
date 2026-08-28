@@ -125,19 +125,20 @@ export function useReservasPage() {
   );
 
   // Choque de horario: dos reservas de la MISMA celda se solapan si una empieza antes de que
-  // la otra termine y termina después de que la otra empieza. Solo importa contra reservas ya
-  // "activa" (aceptadas) — dos solicitudes "pendiente" pueden competir por la misma franja sin
-  // problema, el conflicto real solo existe si se intenta aceptar ambas.
-  const buscarConflictoHorario = (reserva: Reserva): Reserva | null => {
-    const inicio = new Date(`${reserva.fechaReserva}T${reserva.horaInicio}`).getTime();
-    const fin = new Date(`${reserva.fechaReserva}T${reserva.horaFin}`).getTime();
-    return reservasTodas.find((r) => {
-      if (r.id === reserva.id || r.celdaId !== reserva.celdaId || r.estado !== "activa") return false;
-      const rInicio = new Date(`${r.fechaReserva}T${r.horaInicio}`).getTime();
-      const rFin = new Date(`${r.fechaReserva}T${r.horaFin}`).getTime();
-      return rInicio < fin && rFin > inicio;
-    }) ?? null;
+  // la otra termine y termina después de que la otra empieza.
+  const seSolapan = (a: Reserva, b: Reserva) => {
+    const aInicio = new Date(`${a.fechaReserva}T${a.horaInicio}`).getTime();
+    const aFin = new Date(`${a.fechaReserva}T${a.horaFin}`).getTime();
+    const bInicio = new Date(`${b.fechaReserva}T${b.horaInicio}`).getTime();
+    const bFin = new Date(`${b.fechaReserva}T${b.horaFin}`).getTime();
+    return bInicio < aFin && bFin > aInicio;
   };
+
+  // Contra reservas ya "activa" (aceptadas): esto SÍ bloquea, es un doble-booking real —
+  // dos solicitudes "pendiente" pueden competir por la misma franja sin problema, el
+  // conflicto real solo existe si se intenta aceptar una segunda vez la misma franja.
+  const buscarConflictoHorario = (reserva: Reserva): Reserva | null =>
+    reservasTodas.find((r) => r.id !== reserva.id && r.celdaId === reserva.celdaId && r.estado === "activa" && seSolapan(reserva, r)) ?? null;
 
   const aceptarSolicitud = async (reserva: Reserva) => {
     const conflicto = buscarConflictoHorario(reserva);
@@ -152,7 +153,23 @@ export function useReservasPage() {
     try {
       await updateReserva(reserva.id, { estado: "activa" });
       await updateCelda(reserva.celdaId, { estado: "reservada" });
-      toast.success("Solicitud aceptada — la celda queda reservada.");
+
+      // Otras solicitudes "pendiente" de la MISMA celda que pedían una franja que ahora ya
+      // no está disponible (se solapan con la que se acaba de aceptar) quedan sin sentido —
+      // se rechazan automáticamente en vez de dejarlas colgadas hasta que alguien las gestione
+      // a mano o venzan solas por el auto-vencimiento (ver useReservaAutoExpiry).
+      const otrasEnConflicto = reservasTodas.filter(
+        (r) => r.id !== reserva.id && r.celdaId === reserva.celdaId && r.estado === "pendiente" && seSolapan(reserva, r)
+      );
+      for (const otra of otrasEnConflicto) {
+        await updateReserva(otra.id, { estado: "rechazada" });
+      }
+
+      toast.success(
+        otrasEnConflicto.length > 0
+          ? `Solicitud aceptada — la celda queda reservada. ${otrasEnConflicto.length} solicitud(es) en conflicto se rechazaron automáticamente.`
+          : "Solicitud aceptada — la celda queda reservada."
+      );
     } catch (error) {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
       // (services/core/queryFactory.ts).

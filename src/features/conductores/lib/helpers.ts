@@ -74,6 +74,7 @@ export interface FormState {
   placa: string;
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
+  color: string;
   descripcionVehiculo: string;
 }
 
@@ -94,6 +95,7 @@ export const emptyForm = (): FormState => ({
   placa: "",
   tipoVehiculo: "carro",
   marca: "",
+  color: "",
   descripcionVehiculo: "",
 });
 

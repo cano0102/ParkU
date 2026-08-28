@@ -31,6 +31,18 @@ reservasSeed.push(
     motivo: 'Sin conflicto', fecha_hora_inicio: '2026-09-11T08:00:00.000Z', fecha_hora_fin: '2026-09-11T10:00:00.000Z',
     estado: 'PENDIENTE',
   },
+  // Dos solicitudes pendientes que compiten por la misma celda/franja: al aceptar una,
+  // la otra debe rechazarse automáticamente (no basta con bloquear, hay que resolver).
+  {
+    id: 14, tipo_reserva: 'VEHICULO_SENA', celda_id: 3, conductor_id: 1, vehiculo_id: 1,
+    motivo: 'Se acepta esta', fecha_hora_inicio: '2026-09-12T08:00:00.000Z', fecha_hora_fin: '2026-09-12T10:00:00.000Z',
+    estado: 'PENDIENTE',
+  },
+  {
+    id: 15, tipo_reserva: 'VEHICULO_SENA', celda_id: 3, conductor_id: 2, vehiculo_id: 2,
+    motivo: 'Debe rechazarse sola', fecha_hora_inicio: '2026-09-12T09:00:00.000Z', fecha_hora_fin: '2026-09-12T11:00:00.000Z',
+    estado: 'PENDIENTE',
+  },
 );
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
@@ -51,7 +63,7 @@ describe('useReservasPage — solicitudes pendientes', () => {
     const { result } = renderHook(() => useReservasPage(), { wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.solicitudesPendientes.map((r) => r.id)).toEqual(['11', '12']);
+    expect(result.current.solicitudesPendientes.map((r) => r.id)).toEqual(['11', '12', '14', '15']);
   });
 
   it('rechaza aceptar una solicitud que choca en horario con una reserva ya activa en la misma celda', async () => {
@@ -95,5 +107,21 @@ describe('useReservasPage — solicitudes pendientes', () => {
       expect(result.current.reservas.find((r) => r.id === '11')?.estado).toBe('rechazada');
     });
     expect(result.current.getCelda(solicitud.celdaId)?.estado).toBe(celdaAntes);
+  });
+
+  it('al aceptar una solicitud, rechaza automáticamente otras pendientes de la misma celda que se solapan en horario', async () => {
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const aAceptar = result.current.solicitudesPendientes.find((r) => r.id === '14')!;
+    await act(async () => result.current.aceptarSolicitud(aAceptar));
+
+    await waitFor(() => {
+      expect(result.current.reservas.find((r) => r.id === '14')?.estado).toBe('activa');
+    });
+    await waitFor(() => {
+      expect(result.current.reservas.find((r) => r.id === '15')?.estado).toBe('rechazada');
+    });
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('rechazaron automáticamente'));
   });
 });

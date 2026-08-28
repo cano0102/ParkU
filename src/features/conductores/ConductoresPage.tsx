@@ -65,6 +65,7 @@ export function Conductores() {
             onViewVehiculo={openVehiculoView}
             onViewDetail={openConductorDetail}
             onEdit={form.openEdit}
+            onAgregarVehiculo={agregarVehiculo.abrir}
             onPageChange={f.setCurrentPage}
             onItemsPerPageChange={(n) => {
               f.setItemsPerPage(n);
@@ -143,12 +144,14 @@ export function Conductores() {
             placa={agregarVehiculo.form.placa}
             tipoVehiculo={agregarVehiculo.form.tipoVehiculo}
             marca={agregarVehiculo.form.marca}
+            color={agregarVehiculo.form.color}
             descripcionVehiculo={agregarVehiculo.form.descripcionVehiculo}
             error={agregarVehiculo.error}
             touched={agregarVehiculo.touched}
             onPlacaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, placa: v })}
             onTipoVehiculoChange={(tipo) => agregarVehiculo.setForm({ ...agregarVehiculo.form, tipoVehiculo: tipo })}
             onMarcaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, marca: v })}
+            onColorChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, color: v })}
             onDescripcionChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, descripcionVehiculo: v })}
             onMarkTouched={agregarVehiculo.markTouched}
             onSubmit={agregarVehiculo.guardar}

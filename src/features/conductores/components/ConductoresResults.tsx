@@ -19,6 +19,7 @@ interface ConductoresResultsProps {
   onViewVehiculo: (vehiculo: Vehiculo) => void;
   onViewDetail: (conductor: Conductor) => void;
   onEdit: (conductor: Conductor) => void;
+  onAgregarVehiculo: (conductor: Conductor) => void;
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (n: number) => void;
 }
@@ -26,7 +27,7 @@ interface ConductoresResultsProps {
 /** Estado vacío, o el grid/lista de conductores paginado. */
 export function ConductoresResults({
   conductores, viewMode, currentPage, totalPages, itemsPerPage, totalItems,
-  getUsuario, getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit,
+  getUsuario, getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo,
   onPageChange, onItemsPerPageChange,
 }: ConductoresResultsProps) {
   if (conductores.length === 0) {
@@ -47,7 +48,7 @@ export function ConductoresResults({
 
   const cardHandlers = {
     getUsuario, getVehiculosConductor,
-    onToggleEstado, onViewVehiculo, onViewDetail, onEdit,
+    onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo,
   };
 
   return (

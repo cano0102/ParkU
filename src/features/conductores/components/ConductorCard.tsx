@@ -1,4 +1,4 @@
-import { Pencil, Car, Building2, Accessibility, Eye } from "lucide-react";
+import { Pencil, Car, Plus, Building2, Accessibility, Eye } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import type { Conductor } from "@/services/api/conductores";
@@ -19,10 +19,11 @@ export interface ConductorCardHandlers {
   onViewVehiculo: (v: Vehiculo) => void;
   onViewDetail: (c: Conductor) => void;
   onEdit: (c: Conductor) => void;
+  onAgregarVehiculo: (c: Conductor) => void;
 }
 
 export function renderConductorCard(conductor: Conductor, handlers: ConductorCardHandlers): ReactNode {
-  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit } = handlers;
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo } = handlers;
   const vehiculosCond = getVehiculosConductor(conductor.id);
 
   const [g1, g2] = getAvatarGradient(conductor.nombre);
@@ -116,6 +117,14 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
         <div style={{ display: "flex", gap: 2 }}>
           <button
             className="action-btn"
+            title="Agregar vehículo"
+            onClick={() => onAgregarVehiculo(conductor)}
+            aria-label={`Agregar vehículo a ${sanitizeText(conductor.nombre)}`}
+          >
+            <Plus size={14} />
+          </button>
+          <button
+            className="action-btn"
             title="Ver detalles"
             onClick={() => onViewDetail(conductor)}
             aria-label={`Ver detalles de ${sanitizeText(conductor.nombre)}`}
@@ -137,7 +146,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
 }
 
 export function getConductorColumns(handlers: ConductorCardHandlers): DataListColumn<Conductor>[] {
-  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit } = handlers;
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo } = handlers;
 
   return [
     {
@@ -264,6 +273,15 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
       align: "right",
       render: (conductor) => (
         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+          <button
+            title="Agregar vehículo"
+            onClick={() => onAgregarVehiculo(conductor)}
+            className="action-btn"
+            style={{ width: 26, height: 26, border: `1px solid ${COLORS.border}`, background: COLORS.bg }}
+            aria-label="Agregar vehículo"
+          >
+            <Plus size={12} />
+          </button>
           <button
             title="Ver detalles"
             onClick={() => onViewDetail(conductor)}

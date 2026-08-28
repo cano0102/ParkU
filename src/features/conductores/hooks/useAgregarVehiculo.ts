@@ -11,10 +11,11 @@ interface AgregarVehiculoForm {
   placa: string;
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
+  color: string;
   descripcionVehiculo: string;
 }
 
-const emptyForm = (): AgregarVehiculoForm => ({ placa: "", tipoVehiculo: "carro", marca: "", descripcionVehiculo: "" });
+const emptyForm = (): AgregarVehiculoForm => ({ placa: "", tipoVehiculo: "carro", marca: "", color: "", descripcionVehiculo: "" });
 
 /**
  * Agregar un vehículo MÁS a un conductor que ya existe, sin pasar por su
@@ -73,7 +74,7 @@ export function useAgregarVehiculo(data: Pick<ConductoresData, "vehiculos" | "ad
         marca: sanitizeText(form.marca.trim()),
         linea: "",
         modelo: null,
-        color: "",
+        color: sanitizeText(form.color.trim()),
         descripcion: sanitizeText(form.descripcionVehiculo.trim()),
         estado: "activo",
       });

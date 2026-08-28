@@ -65,6 +65,7 @@ export function useConductorForm(data: ConductoresData) {
         placa: v?.placa || "",
         tipoVehiculo: v?.tipo || "carro",
         marca: v?.marca || "",
+        color: v?.color || "",
         descripcionVehiculo: v?.descripcion || "",
       });
       setFormErrors({});
@@ -170,7 +171,7 @@ export function useConductorForm(data: ConductoresData) {
           marca: sanitizeText(formData.marca.trim()),
           linea: "",
           modelo: null,
-          color: "",
+          color: sanitizeText(formData.color.trim()),
           descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
           estado: "activo" as const,
         };
@@ -195,7 +196,7 @@ export function useConductorForm(data: ConductoresData) {
             marca: sanitizeText(formData.marca.trim()),
             linea: "",
             modelo: null,
-            color: "",
+            color: sanitizeText(formData.color.trim()),
             descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
           });

@@ -8,18 +8,20 @@ interface VehiculoAsociadoFieldsProps {
   placaError?: string;
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
+  color: string;
   descripcionVehiculo: string;
   onPlacaChange: (value: string) => void;
   onPlacaBlur: () => void;
   onTipoVehiculoChange: (tipo: Vehiculo["tipo"]) => void;
   onMarcaChange: (value: string) => void;
+  onColorChange: (value: string) => void;
   onDescripcionChange: (value: string) => void;
 }
 
-/** Sección "Vehículo asociado": placa, tipo, marca y descripción. */
+/** Sección "Vehículo asociado": placa, tipo, marca, color y descripción. */
 export function VehiculoAsociadoFields({
-  placa, placaError, tipoVehiculo, marca, descripcionVehiculo,
-  onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onDescripcionChange,
+  placa, placaError, tipoVehiculo, marca, color, descripcionVehiculo,
+  onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onColorChange, onDescripcionChange,
 }: VehiculoAsociadoFieldsProps) {
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
@@ -76,6 +78,16 @@ export function VehiculoAsociadoFields({
             placeholder="ej. Chevrolet Spark"
             value={marca}
             onChange={(e) => onMarcaChange(e.target.value)}
+            style={inputStyle}
+          />
+        </FormField>
+
+        <FormField label="Color">
+          <input
+            type="text"
+            placeholder="ej. Rojo"
+            value={color}
+            onChange={(e) => onColorChange(e.target.value)}
             style={inputStyle}
           />
         </FormField>

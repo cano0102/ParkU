@@ -8,12 +8,14 @@ interface AgregarVehiculoModalProps {
   placa: string;
   tipoVehiculo: "carro" | "moto" | "bicicleta" | "camion" | "bus";
   marca: string;
+  color: string;
   descripcionVehiculo: string;
   error: string | null;
   touched: boolean;
   onPlacaChange: (v: string) => void;
   onTipoVehiculoChange: (tipo: AgregarVehiculoModalProps["tipoVehiculo"]) => void;
   onMarcaChange: (v: string) => void;
+  onColorChange: (v: string) => void;
   onDescripcionChange: (v: string) => void;
   onMarkTouched: () => void;
   onSubmit: () => void;
@@ -22,8 +24,8 @@ interface AgregarVehiculoModalProps {
 
 /** Agregar un vehículo más a un conductor que ya existe, sin editar el resto de su ficha. */
 export function AgregarVehiculoModal({
-  conductor, placa, tipoVehiculo, marca, descripcionVehiculo, error, touched,
-  onPlacaChange, onTipoVehiculoChange, onMarcaChange, onDescripcionChange, onMarkTouched,
+  conductor, placa, tipoVehiculo, marca, color, descripcionVehiculo, error, touched,
+  onPlacaChange, onTipoVehiculoChange, onMarcaChange, onColorChange, onDescripcionChange, onMarkTouched,
   onSubmit, onCancel,
 }: AgregarVehiculoModalProps) {
   return (
@@ -48,11 +50,13 @@ export function AgregarVehiculoModal({
           placaError={touched ? error ?? undefined : undefined}
           tipoVehiculo={tipoVehiculo}
           marca={marca}
+          color={color}
           descripcionVehiculo={descripcionVehiculo}
           onPlacaChange={onPlacaChange}
           onPlacaBlur={onMarkTouched}
           onTipoVehiculoChange={onTipoVehiculoChange}
           onMarcaChange={onMarcaChange}
+          onColorChange={onColorChange}
           onDescripcionChange={onDescripcionChange}
         />
       </div>
