@@ -4,13 +4,23 @@ import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
-import { createAppBackends, reservasSeed } from '@/test/appFakeApi';
+import { createAppBackends, reservasSeed, vehiculosSeed } from '@/test/appFakeApi';
 import { createTestQueryClient } from '@/test/queryWrapper';
 import { useReservasPage } from './useReservasPage';
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
+
+// Un tercer vehículo (el 1 y el 2 del seed base ya se usan en otros escenarios, y el 1
+// además está "estacionado" en controlSalidaSeed — no sirve para una solicitud que se
+// espera aceptar).
+vehiculosSeed.push({
+  id: 3, placa: 'JKL321', tipo: 'CARRO', marca: 'Mazda', linea: '3', modelo: 2021, color: 'Gris',
+  observaciones: '', estado: true,
+  conductores: [{ id: 3, nombre_apellidos: 'Laura Gómez R.', DetallePropiedad: { es_principal: true } }],
+  conductor_principal_id: 3, conductor_principal_nombre: 'Laura Gómez R.',
+});
 
 // Reserva ya aceptada en la celda 1 (2026-09-10, 08:00-12:00) contra la que se prueban
 // los choques de horario, más dos solicitudes pendientes: una que se solapa con ella
@@ -34,7 +44,7 @@ reservasSeed.push(
   // Dos solicitudes pendientes que compiten por la misma celda/franja: al aceptar una,
   // la otra debe rechazarse automáticamente (no basta con bloquear, hay que resolver).
   {
-    id: 14, tipo_reserva: 'VEHICULO_SENA', celda_id: 3, conductor_id: 1, vehiculo_id: 1,
+    id: 14, tipo_reserva: 'VEHICULO_SENA', celda_id: 3, conductor_id: 3, vehiculo_id: 3,
     motivo: 'Se acepta esta', fecha_hora_inicio: '2026-09-12T08:00:00.000Z', fecha_hora_fin: '2026-09-12T10:00:00.000Z',
     estado: 'PENDIENTE',
   },

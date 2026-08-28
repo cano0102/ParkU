@@ -37,12 +37,12 @@ describe('useReservaAutoExpiry', () => {
     });
   });
 
-  it('completa una reserva activa cuya hora de fin ya pasó y libera la celda', async () => {
+  it('cancela una reserva activa cuya hora de fin ya pasó sin que el vehículo se estacionara, y libera la celda', async () => {
     renderHook(() => useReservaAutoExpiry(), { wrapper: withQueryClient() });
 
     await waitFor(() => {
       const actual = backends.reservas.items.find((r: any) => r.id === 21);
-      expect(actual?.estado).toBe('TERMINADA');
+      expect(actual?.estado).toBe('CANCELADA');
     });
     await waitFor(() => {
       const celda = backends.celdas.items.find((c: any) => c.id === 4);

@@ -6,7 +6,8 @@ import { useReservas, useRemoveReserva, useUpdateReserva } from "./useReservas";
 import type { Reserva } from "@/services/api/reservas";
 import { useUpdateCelda, useCeldas, useParqueaderos } from "@/features/parqueaderos";
 import type { Celda } from "@/services/api/celdas";
-import { useVehiculos, useConductores } from "@/features/conductores";
+import { useVehiculos, useConductores, vehiculoEstaParqueado } from "@/features/conductores";
+import { useControlSalida } from "@/features/controlSalida";
 import type { EstadoReserva } from "../lib/constants";
 
 /** Datos, filtros y eliminación del historial de reservas. */
@@ -17,6 +18,7 @@ export function useReservasPage() {
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
+  const { data: controlesSalida = [] } = useControlSalida();
   const removeReservaMutation = useRemoveReserva();
   const updateCeldaMutation = useUpdateCelda();
   const updateReservaMutation = useUpdateReserva();
@@ -150,6 +152,17 @@ export function useReservasPage() {
       );
       return;
     }
+
+    // El vehículo pudo haberse estacionado en otro lado mientras esta solicitud esperaba
+    // aprobación — eso sí se revalida antes de aceptar (a diferencia de "otra reserva", donde
+    // es normal que el mismo vehículo tenga más de una solicitud pendiente compitiendo a la
+    // vez; la que no se acepte se resuelve más abajo o por conflicto de horario).
+    const vehiculoSolicitud = getVehiculo(reserva.vehiculoId);
+    if (vehiculoSolicitud && vehiculoEstaParqueado(vehiculoSolicitud.id, controlesSalida)) {
+      toast.error(`No se puede aceptar: el vehículo ${vehiculoSolicitud.placa} ya está estacionado en un parqueadero.`);
+      return;
+    }
+
     try {
       await updateReserva(reserva.id, { estado: "activa" });
       await updateCelda(reserva.celdaId, { estado: "reservada" });
@@ -192,7 +205,7 @@ export function useReservasPage() {
     getVehiculo, getCelda, getParqueadero, getConductorReserva,
     counts, filteredReservas, handleDelete, confirmDeleteAction,
     puedeGestionarSolicitudes, solicitudesPendientes, aceptarSolicitud, rechazarSolicitud,
-    miConductorId, celdas, parqueaderos, vehiculos,
+    miConductorId, celdas, parqueaderos, vehiculos, controlesSalida, reservasTodas,
     activeFiltersCount, clearFilters, isLoading,
   };
 }

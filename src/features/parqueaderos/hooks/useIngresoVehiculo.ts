@@ -9,6 +9,8 @@ import {
 } from "../lib/helpers";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
+import { otroVehiculoDelConductorEnUso } from "@/features/conductores";
+import type { Reserva } from "@/services/api/reservas";
 
 const emptyVehiculoForm = (esOficial = false): VehiculoForm => ({ placa: "", conductor: "", esOficial, marca: "", modelo: "", color: "" });
 
@@ -84,6 +86,27 @@ export function useIngresoVehiculo(
     const yaActivo = controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find((v) => v.id === cs.vehiculoId)?.placa === placa);
     if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
 
+    // La celda podría tener una reserva activa (pendiente = admin-direct sin confirmar aún,
+    // o activa = ya aceptada/reservada) — si es así, solo el vehículo reservado puede
+    // estacionarse aquí; cualquier otro vehículo queda bloqueado hasta que esa reserva expire
+    // o se cancele.
+    const reservaDeLaCelda = reservas.find((r) => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
+    const vehiculoExistentePorPlaca = vehiculos.find((v) => v.placa === placa) ?? null;
+    if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId !== vehiculoExistentePorPlaca?.id) {
+      const vehiculoReservado = vehiculos.find((v) => v.id === reservaDeLaCelda.vehiculoId);
+      setPlacaError(`Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${reservaDeLaCelda.horaFin}.`);
+      return false;
+    }
+
+    // Igual que al reservar: mientras el conductor tenga otro vehículo suyo ya estacionado o
+    // con una reserva pendiente/activa en otra celda, no puede usar este para estacionar.
+    if (conductorExistente) {
+      const otroEnUso = otroVehiculoDelConductorEnUso(
+        conductorExistente.id, vehiculoExistentePorPlaca?.id ?? null, vehiculos, controlesSalida, reservas
+      );
+      if (otroEnUso) { setPlacaError(otroEnUso.motivo); return false; }
+    }
+
     const conductorId = conductorExistente?.id ?? "";
     const fechaEntrada = new Date().toISOString().slice(0, 16);
     const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
@@ -91,8 +114,13 @@ export function useIngresoVehiculo(
     try {
       const vehiculoId = await resolverVehiculo(placa, conductorId, vehiculoTipo, datosVehiculo);
 
-      const reservaPendiente = reservas.find((r) => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
-      if (reservaPendiente) await updateReserva(reservaPendiente.id, { estado: "completada" });
+      // Solo se completa la reserva de ESTE vehículo — antes se completaba cualquier reserva
+      // pendiente de la celda sin importar el vehículo, lo que habría marcado como "cumplida"
+      // la reserva de otro vehículo si de alguna forma llegaba a estacionarse aquí (ahora eso
+      // ya está bloqueado más arriba, pero esta comprobación se deja como defensa adicional).
+      if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId === vehiculoId) {
+        await updateReserva(reservaDeLaCelda.id, { estado: "completada" });
+      }
 
       await addControlSalida({ vehiculoId, conductorId, parqueaderoId: celda.parqueaderoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
       await updateCelda(celda.id, { estado: "no_disponible", ocupada: true });
@@ -153,6 +181,27 @@ export function useIngresoVehiculo(
     return conductores.find((c) => c.id === vehiculoEncontrado.conductorId) ?? null;
   }, [vehiculoEncontrado, conductores]);
 
+  /* Chequeo en vivo de "celda reservada para otro vehículo" y "el conductor ya tiene otro
+     vehículo suyo en uso" — igual que placaYaEstacionada, se recalcula con cada tecleo para
+     avisar antes de que el operador intente enviar el formulario. */
+  const motivoBloqueoLive = useMemo((): string | null => {
+    if (!celdaActiva) return null;
+    const reservaDeLaCelda: Reserva | undefined = reservas.find(
+      (r) => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa")
+    );
+    if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId !== vehiculoEncontrado?.id) {
+      const vehiculoReservado = vehiculos.find((v) => v.id === reservaDeLaCelda.vehiculoId);
+      return `Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${reservaDeLaCelda.horaFin}.`;
+    }
+    if (conductorEncontrado) {
+      const otroEnUso = otroVehiculoDelConductorEnUso(
+        conductorEncontrado.id, vehiculoEncontrado?.id ?? null, vehiculos, controlesSalida, reservas
+      );
+      if (otroEnUso) return otroEnUso.motivo;
+    }
+    return null;
+  }, [celdaActiva, reservas, vehiculoEncontrado, vehiculos, conductorEncontrado, controlesSalida]);
+
   const conductorAutoRef = useRef(false);
   useEffect(() => {
     if (conductorEncontrado) {
@@ -198,7 +247,7 @@ export function useIngresoVehiculo(
     ? conductorIdentificado.estado === "activo"
     : validarNombreConductor(vehiculoForm.conductor);
   const parqueaderoIngresoActivo = parqueaderoActivo?.estado === "activo";
-  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo && !placaYaEstacionada;
+  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo && !placaYaEstacionada && !motivoBloqueoLive;
   const ingresoPlacaHint = celdaActiva
     ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + letra final opcional (ABC12D o ABC12)"
       : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
@@ -210,5 +259,6 @@ export function useIngresoVehiculo(
     registrarEnCelda, registrarVehiculo, abrirIngresoOficial, abrirIngresoVisitante,
     conductoresSugeridos, vehiculoEncontrado, conductorEncontrado, conductorIdentificado, vehiculosConductor,
     ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo, placaYaEstacionada,
+    motivoBloqueoLive,
   };
 }

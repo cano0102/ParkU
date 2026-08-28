@@ -4,10 +4,11 @@ import type { Celda } from "@/services/api/celdas";
 import { ReservaFormState } from "../components/modals/ReservaModal";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
+import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
-  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "addReserva" | "updateReserva" | "updateCelda">,
+  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "controlesSalida" | "addReserva" | "updateReserva" | "updateCelda">,
   celdaActiva: Celda | null,
   getOcupante: (celdaId: string) => { controlId: string } | null,
   updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => Promise<unknown>,
@@ -74,17 +75,36 @@ export function useReservaCelda(
       }
 
       const vehiculoReservado = data.vehiculos.find((v) => v.id === reservaForm.vehiculoId);
-      await data.addReserva({
+      if (!vehiculoReservado) { setReservaError("Vehículo no encontrado"); return; }
+
+      // El vehículo (o cualquier otro del mismo conductor) no puede estar ya estacionado ni
+      // tener otra reserva pendiente/activa en otra celda — un conductor solo usa un vehículo
+      // suyo a la vez.
+      const motivoNoDisponible =
+        vehiculoNoDisponible(vehiculoReservado, data.controlesSalida, data.reservas) ??
+        (vehiculoReservado.conductorId
+          ? otroVehiculoDelConductorEnUso(
+              vehiculoReservado.conductorId, vehiculoReservado.id, data.vehiculos, data.controlesSalida, data.reservas
+            )
+          : null);
+      if (motivoNoDisponible) { setReservaError(motivoNoDisponible.motivo); return; }
+
+      // `POST /reservas` siempre crea en estado PENDIENTE (el backend no acepta otro estado
+      // inicial) — como esta reserva la hace directamente un Admin/Vigilante desde el plano
+      // de Parqueaderos (a diferencia de una solicitud de Conductor), se aprueba de inmediato
+      // con un segundo PATCH en vez de dejarla esperando en "Solicitudes pendientes".
+      const creada = await data.addReserva({
         tipoReserva: "visitante",
         vehiculoId: reservaForm.vehiculoId,
         celdaId: reservaForm.celdaId,
-        conductorId: vehiculoReservado?.conductorId ?? "",
+        conductorId: vehiculoReservado.conductorId ?? "",
         motivo: reservaForm.motivo.trim(),
         fechaReserva: reservaForm.fechaReserva,
         horaInicio: reservaForm.horaInicio,
         horaFin: reservaForm.horaFin,
         estado: "pendiente",
       });
+      await data.updateReserva(creada.id, { estado: "activa" });
       await data.updateCelda(reservaForm.celdaId, { estado: "reservada" });
       toast.success(`Reserva creada para la celda ${celdaActiva?.numero}`);
       setOpenModal(null);

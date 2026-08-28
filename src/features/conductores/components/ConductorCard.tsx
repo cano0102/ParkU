@@ -117,11 +117,16 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
         <div style={{ display: "flex", gap: 2 }}>
           <button
             className="action-btn"
-            title="Agregar vehículo"
+            title="Agregar un nuevo vehículo a este conductor"
             onClick={() => onAgregarVehiculo(conductor)}
             aria-label={`Agregar vehículo a ${sanitizeText(conductor.nombre)}`}
+            style={{
+              width: "auto", padding: "0 8px", gap: 4,
+              background: `${COLORS.primary}14`, borderColor: `${COLORS.primary}55`, color: COLORS.primary,
+            }}
           >
             <Plus size={14} />
+            <span style={{ fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>Vehículo</span>
           </button>
           <button
             className="action-btn"
@@ -269,18 +274,22 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
     },
     {
       header: "Acciones",
-      width: "0.7fr",
+      width: "1.1fr",
       align: "right",
       render: (conductor) => (
         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
           <button
-            title="Agregar vehículo"
+            title="Agregar un nuevo vehículo a este conductor"
             onClick={() => onAgregarVehiculo(conductor)}
             className="action-btn"
-            style={{ width: 26, height: 26, border: `1px solid ${COLORS.border}`, background: COLORS.bg }}
-            aria-label="Agregar vehículo"
+            style={{
+              width: "auto", height: 26, padding: "0 8px", gap: 4,
+              border: `1px solid ${COLORS.primary}55`, background: `${COLORS.primary}14`, color: COLORS.primary,
+            }}
+            aria-label={`Agregar vehículo a ${sanitizeText(conductor.nombre)}`}
           >
             <Plus size={12} />
+            <span style={{ fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>Vehículo</span>
           </button>
           <button
             title="Ver detalles"

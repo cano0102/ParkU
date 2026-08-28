@@ -24,7 +24,7 @@ export function Reservas() {
     () => (p.miConductorId ? p.vehiculos.filter((v) => v.conductorId === p.miConductorId) : []),
     [p.vehiculos, p.miConductorId]
   );
-  const solicitud = useSolicitarReserva(misVehiculos, p.celdas, p.parqueaderos);
+  const solicitud = useSolicitarReserva(misVehiculos, p.celdas, p.parqueaderos, p.vehiculos, p.controlesSalida, p.reservasTodas);
 
   return (
     <>

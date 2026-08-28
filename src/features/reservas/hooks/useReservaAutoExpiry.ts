@@ -12,8 +12,11 @@ const CHECK_INTERVAL_MS = 30000;
  *   solicitud ya no tiene sentido (el horario que pedía ya no existe) — se
  *   marca "cancelada". No espera a la hora de fin: una solicitud sin
  *   aprobar no debería seguir viva después de que empezó el horario pedido.
- * - "activa" (ya aceptada) cuya HORA DE FIN ya pasó: si se usó, se completó
- *   de verdad — se marca "completada" y libera la celda.
+ * - "activa" (ya aceptada, celda reservada) cuya HORA DE FIN ya pasó sin que
+ *   el vehículo llegara a estacionarse: se marca "cancelada" y libera la
+ *   celda. Si el vehículo SÍ se estacionó a tiempo, el flujo de ingreso
+ *   (useIngresoVehiculo) ya dejó la reserva en "completada" antes de que
+ *   este chequeo la alcance, así que nunca llega a este punto.
  *
  * Se monta una sola vez a nivel de layout (ver MainLayout) para que corra
  * sin importar qué página esté abierta.
@@ -34,8 +37,7 @@ export function useReservaAutoExpiry() {
         const momentoLimite = new Date(`${reserva.fechaReserva}T${limite}`).getTime();
         if (Number.isNaN(momentoLimite) || momentoLimite >= ahora) continue;
 
-        const estadoFinal = reserva.estado === "pendiente" ? "cancelada" : "completada";
-        updateReservaMutation.mutate({ id: reserva.id, data: { estado: estadoFinal } });
+        updateReservaMutation.mutate({ id: reserva.id, data: { estado: "cancelada" } });
 
         const celda = celdas.find(c => c.id === reserva.celdaId);
         if (celda && celda.estado === "reservada") {

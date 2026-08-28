@@ -41,7 +41,7 @@ afterEach(() => vi.clearAllMocks());
 describe('useSolicitarReserva', () => {
   it('solo ofrece celdas disponibles y del mismo tipo que el vehículo elegido', () => {
     const { result } = renderHook(
-      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro, celdaOcupada, celdaDeMoto], [parqueadero]),
+      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro, celdaOcupada, celdaDeMoto], [parqueadero], [miCarro], [], []),
       { wrapper: withQueryClient() }
     );
 
@@ -54,7 +54,7 @@ describe('useSolicitarReserva', () => {
 
   it('rechaza enviar la solicitud sin celda seleccionada', async () => {
     const { result } = renderHook(
-      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro], [parqueadero]),
+      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro], [parqueadero], [miCarro], [], []),
       { wrapper: withQueryClient() }
     );
 
@@ -73,7 +73,7 @@ describe('useSolicitarReserva', () => {
     });
     const client = createTestQueryClient();
     const { result } = renderHook(
-      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro], [parqueadero]),
+      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro], [parqueadero], [miCarro], [], []),
       { wrapper: withQueryClient(client) }
     );
 

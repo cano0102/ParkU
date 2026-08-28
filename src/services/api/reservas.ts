@@ -156,6 +156,11 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
   if (estado !== undefined) {
     const estadoApi = ESTADOS_GESTIONABLES.includes(estado) ? ESTADO_A_API[estado] : null;
     if (estadoApi) {
+      // Bug confirmado en vivo: `PATCH /:id/estado` sí aplica el cambio (un GET posterior lo
+      // confirma), pero responde el registro con el `estado` de ANTES del cambio, no el nuevo.
+      // No se usa `updated` como fuente de verdad para el estado en ningún sitio de llamada —
+      // todos dependen de la invalidación de la query de reservas (ver queryFactory.ts) para
+      // refrescar con el GET real, así que esta respuesta obsoleta no llega a mostrarse.
       updated = await apiFetch<ApiReserva>(`/reservas/${id}/estado`, { method: 'PATCH', body: { estado: estadoApi } });
     }
   }

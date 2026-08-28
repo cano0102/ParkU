@@ -39,6 +39,9 @@ interface IngresoModalProps {
   vehiculosConductor: Vehiculo[];
   /** true si el parqueadero de la celda activa está desactivado (no acepta nuevos registros). */
   parqueaderoInactivo: boolean;
+  /** Motivo por el que no se puede estacionar este vehículo aquí ahora mismo (celda reservada
+   *  para otro vehículo, o el conductor ya tiene otro vehículo suyo en uso), o null si no aplica. */
+  motivoBloqueoLive: string | null;
   onClose: () => void;
   onOpenScanner: () => void;
   onSubmit: () => void;
@@ -48,7 +51,7 @@ export function IngresoModal({
   open, celdaActiva, vehiculoForm, setVehiculoForm, placaError, onPlacaChange,
   ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, placaYaEstacionada,
   vehiculoEncontrado, conductorEncontrado, conductorIdentificado, conductoresSugeridos, vehiculosConductor,
-  parqueaderoInactivo,
+  parqueaderoInactivo, motivoBloqueoLive,
   onClose, onOpenScanner, onSubmit,
 }: IngresoModalProps) {
   const vehiculoRegistrado = !!vehiculoEncontrado;
@@ -75,6 +78,12 @@ export function IngresoModal({
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, background: C.dangerBg, border: `1px solid ${C.dangerBorder}` }}>
             <AlertTriangle size={15} color={C.danger} />
             <span style={{ fontSize: 12, fontWeight: 700, color: C.danger }}>Este parqueadero está inactivo y no acepta nuevos registros.</span>
+          </div>
+        )}
+        {motivoBloqueoLive && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, background: C.dangerBg, border: `1px solid ${C.dangerBorder}` }}>
+            <AlertTriangle size={15} color={C.danger} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.danger }}>{motivoBloqueoLive}</span>
           </div>
         )}
         <div>

@@ -117,6 +117,7 @@ export default function Parqueaderos() {
         conductoresSugeridos={ingreso.conductoresSugeridos}
         vehiculosConductor={ingreso.vehiculosConductor}
         parqueaderoInactivo={!ingreso.parqueaderoIngresoActivo}
+        motivoBloqueoLive={ingreso.motivoBloqueoLive}
         onClose={() => modal.setOpenModal(null)}
         onOpenScanner={() => scanner.abrirScannerDesde("ingreso")}
         onSubmit={ingreso.registrarVehiculo}
