@@ -13,11 +13,13 @@ import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials, san
 export interface UsuarioCardHandlers {
   onToggleEstado: (u: Usuario) => void;
   onEdit: (u: Usuario) => void;
+  /** Id del único Admin activo que quede (no se puede desactivar), o null si hay más de uno. */
+  idUltimoAdminActivo: string | null;
 }
 
 export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): ReactNode {
-  const { onToggleEstado, onEdit } = handlers;
-  const protegido = USUARIOS_PROTEGIDOS.includes(u.correo);
+  const { onToggleEstado, onEdit, idUltimoAdminActivo } = handlers;
+  const protegido = USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo;
   const activo = u.estado === "activo";
   const rolNombre = nombreDeRol(u.rol);
   const roleStyle = getRoleAccent(rolNombre);
@@ -153,14 +155,14 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
 }
 
 export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn<Usuario>[] {
-  const { onToggleEstado, onEdit } = handlers;
+  const { onToggleEstado, onEdit, idUltimoAdminActivo } = handlers;
 
   return [
     {
       header: "Usuario",
       width: "minmax(200px,2fr)",
       render: (u) => {
-        const protegido = USUARIOS_PROTEGIDOS.includes(u.correo);
+        const protegido = USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo;
         const [c1, c2] = avatarColors(u.nombre);
         const ini = initials(u.nombre);
         return (

@@ -15,12 +15,13 @@ interface UsuariosResultsProps {
   onEdit: (u: Usuario) => void;
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (n: number) => void;
+  idUltimoAdminActivo: string | null;
 }
 
 /** Estado vacío, o el grid/lista de usuarios paginado. */
 export function UsuariosResults({
   usuarios, viewMode, currentPage, totalPages, itemsPerPage, totalItems,
-  onToggleEstado, onEdit, onPageChange, onItemsPerPageChange,
+  onToggleEstado, onEdit, onPageChange, onItemsPerPageChange, idUltimoAdminActivo,
 }: UsuariosResultsProps) {
   if (usuarios.length === 0) {
     return (
@@ -38,7 +39,7 @@ export function UsuariosResults({
     );
   }
 
-  const handlers = { onToggleEstado, onEdit };
+  const handlers = { onToggleEstado, onEdit, idUltimoAdminActivo };
 
   return (
     <>

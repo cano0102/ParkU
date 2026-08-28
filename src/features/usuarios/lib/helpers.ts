@@ -5,7 +5,12 @@ import { NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, TELEFONO_REGEX, EMA
 
 export const COLORS = theme;
 
-export const USUARIOS_PROTEGIDOS = ["admin@sena.edu.co", "superadmin@sena.edu.co"];
+/** La cuenta súper admin real: no se puede editar ni desactivar desde esta pantalla (por
+ *  nadie, ni siquiera otro Admin), y es la única que puede asignarle el rol Administrador
+ *  a alguien más — ver `useUsuarioForm.ts` y `useUsuarioFormState.ts`. */
+export const SUPER_ADMIN_CORREO = "admin@parku.sena.edu.co";
+
+export const USUARIOS_PROTEGIDOS = ["admin@sena.edu.co", "superadmin@sena.edu.co", SUPER_ADMIN_CORREO];
 
 export const getRoleAccent = (rol: string) => {
   switch (rol) {

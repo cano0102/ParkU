@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Usuario } from "@/services/api/usuarios";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import {
-  FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, sanitizeText, validarTelefono,
+  FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, sanitizeText, validarTelefono,
 } from "../lib/helpers";
 
 interface UseUsuarioFormArgs {
@@ -27,8 +29,17 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
     setTouched({});
   }, [initial]);
 
+  // Solo el súper admin real (SUPER_ADMIN_CORREO) puede asignarle el rol Administrador a
+  // alguien — cualquier otro Admin gestionando usuarios ni siquiera ve esa opción en el
+  // selector, así que no puede crear ni promover a otro Admin.
+  const { user } = useAuth();
+  const esSuperAdmin = user?.correo?.trim().toLowerCase() === SUPER_ADMIN_CORREO;
+
   // Solo se muestran roles activos en el selector (corrección: no mostrar roles desactivados)
-  const rolesDisponibles = useMemo(() => roles.filter((r) => r.estado !== "inactivo"), [roles]);
+  const rolesDisponibles = useMemo(() => {
+    const activos = roles.filter((r) => r.estado !== "inactivo");
+    return esSuperAdmin ? activos : activos.filter((r) => r.id !== String(ROLES.ADMIN));
+  }, [roles, esSuperAdmin]);
 
   // Los errores se recalculan en tiempo real vía el `useEffect` sobre `form` (ver más abajo),
   // así que aquí solo hace falta actualizar el valor del campo.
@@ -72,9 +83,13 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
       }
     }
 
-    // Rol obligatorio
+    // Rol obligatorio, y solo el súper admin puede asignar el rol Administrador (defensa
+    // adicional: el selector ya oculta esa opción para cualquier otro usuario, pero esto
+    // cubre el caso de editar a alguien que YA era Admin antes de que existiera esta regla).
     if (!f.rol) {
       nextErrors.rol = "Debe seleccionar un rol";
+    } else if (f.rol === String(ROLES.ADMIN) && !esSuperAdmin) {
+      nextErrors.rol = "Solo el súper administrador puede asignar el rol Administrador";
     }
 
     // Contraseña: obligatoria al crear; si se escribe (crear o editar), validar longitud
@@ -85,7 +100,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
     }
 
     return nextErrors;
-  }, [isEdit, usuarios, editingId]);
+  }, [isEdit, usuarios, editingId, esSuperAdmin]);
 
   // Validación en tiempo real: recalcula los errores en cada cambio del formulario;
   // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).

@@ -69,6 +69,7 @@ export default function Usuarios() {
               totalItems={f.filtered.length}
               onToggleEstado={form.handleToggleEstado}
               onEdit={form.openEdit}
+              idUltimoAdminActivo={data.idUltimoAdminActivo}
               onPageChange={f.setCurrentPage}
               onItemsPerPageChange={(n) => {
                 f.setItemsPerPage(n);

@@ -18,6 +18,10 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
   }, []);
 
   const openEdit = useCallback((u: Usuario) => {
+    if (USUARIOS_PROTEGIDOS.includes(u.correo)) {
+      toast.error("Este usuario está protegido y no se puede editar.");
+      return;
+    }
     setEditingUsuario(u);
     setFormInitial({
       correo: u.correo,
@@ -88,6 +92,17 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
       if (USUARIOS_PROTEGIDOS.includes(u.correo)) {
         toast.error("Este usuario está protegido");
         return;
+      }
+      // El único Admin activo que quede no se puede desactivar — dejaría al sistema sin
+      // nadie que pueda administrarlo. Se revalida en vivo (no es una lista fija de correos
+      // como USUARIOS_PROTEGIDOS): cualquier Admin puede quedar en esta situación según cómo
+      // estén activados/desactivados los demás en este momento.
+      if (u.estado === "activo" && u.rol === ROLES.ADMIN) {
+        const adminsActivos = data.usuarios.filter((x) => x.rol === ROLES.ADMIN && x.estado === "activo");
+        if (adminsActivos.length <= 1) {
+          toast.error("No puedes desactivar al único administrador activo del sistema.");
+          return;
+        }
       }
       try {
         await data.updateUsuario(u.id, { estado: u.estado === "activo" ? "inactivo" : "activo" });

@@ -1,21 +1,32 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { createAppBackends } from '@/test/appFakeApi';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { createAppBackends, usuariosSeed } from '@/test/appFakeApi';
+import { AuthProvider } from '@/context/AuthContext';
 import Usuarios from './UsuariosPage';
-import { createTestQueryClient, withQueryClient } from '@/test/queryWrapper';
+import { createTestQueryClient } from '@/test/queryWrapper';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
+
+// Usuario NO protegido con teléfono propio, para probar edición (el admin de la semilla base
+// ahora está protegido — ver USUARIOS_PROTEGIDOS — y ya no se puede editar).
+usuariosSeed.push({
+  id: 5, correo: 'laura.gomez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Laura Gómez R.',
+  numero_telefonico: '3159876543', rol_id: 2, estado: 'ACTIVO',
+});
+
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 function renderUsuarios() {
   const client = createTestQueryClient();
-  const Wrapper = withQueryClient(client);
   return render(
-    <Wrapper>
-      <Usuarios />
-    </Wrapper>
+    <QueryClientProvider client={client}>
+      <AuthProvider>
+        <Usuarios />
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
@@ -184,17 +195,29 @@ describe('Usuarios', () => {
     const user = userEvent.setup();
     renderUsuarios();
     await waitFor(() => {
-      expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Laura Gómez R.').length).toBeGreaterThan(0);
     });
 
-    // Semilla: el admin (id 1) tiene numero_telefonico '3101234567' (ver appFakeApi.ts).
-    expect(screen.getAllByText('3101234567').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('3159876543').length).toBeGreaterThan(0);
+
+    const card = screen.getByText('Laura Gómez R.').closest('.u-card') as HTMLElement;
+    await user.click(within(card).getByLabelText('Editar'));
+
+    expect(await screen.findByRole('heading', { level: 2, name: 'Editar Usuario' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('3159876543')).toBeInTheDocument();
+  });
+
+  it('no permite editar al usuario protegido (el admin de la semilla)', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThan(0);
+    });
 
     const card = screen.getByText('Administrador ParkU').closest('.u-card') as HTMLElement;
     await user.click(within(card).getByLabelText('Editar'));
 
-    expect(await screen.findByRole('heading', { level: 2, name: 'Editar Usuario' })).toBeInTheDocument();
-    expect(screen.getByDisplayValue('3101234567')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { level: 2, name: 'Editar Usuario' })).not.toBeInTheDocument();
   });
 
   it('permite alternar el estado de un usuario no protegido', async () => {
@@ -211,5 +234,23 @@ describe('Usuarios', () => {
     await waitFor(() => {
       expect(within(card).getByLabelText('Activar usuario')).toBeInTheDocument();
     });
+  });
+
+  it('no permite desactivar al único Administrador activo del sistema', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThan(0);
+    });
+
+    const card = screen.getByText('Administrador ParkU').closest('.u-card') as HTMLElement;
+    const toggle = within(card).getByLabelText('Desactivar usuario');
+    await user.click(toggle);
+
+    // El intento no debe surtir efecto: el toggle sigue mostrando "activo".
+    await waitFor(() => {
+      expect(within(card).getByLabelText('Desactivar usuario')).toBeInTheDocument();
+    });
+    expect(within(card).getByText('Protegido')).toBeInTheDocument();
   });
 });

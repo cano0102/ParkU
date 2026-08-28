@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "./useUsuarios";
 import type { Usuario } from "@/services/api/usuarios";
 import { useRoles } from "@/features/roles";
-import { nombreDeRol } from "@/services/core/roles";
+import { nombreDeRol, ROLES } from "@/services/core/roles";
 
 /** Queries, mutaciones y totales de la página de Usuarios. */
 export function useUsuariosData() {
@@ -20,7 +20,18 @@ export function useUsuariosData() {
   const totalInactivos = useMemo(() => usuarios.filter((u) => u.estado === "inactivo").length, [usuarios]);
   const uniqueRoles = useMemo(() => Array.from(new Set(usuarios.map((u) => nombreDeRol(u.rol)))), [usuarios]);
 
-  return { usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, uniqueRoles, isLoading };
+  // El sistema siempre debe quedar con al menos un Admin activo — si solo queda uno, ese es
+  // el único que no se puede desactivar (evita que el equipo se quede sin nadie que pueda
+  // administrar el sistema). `null` si hay más de un Admin activo (nadie está protegido así).
+  const idUltimoAdminActivo = useMemo(() => {
+    const adminsActivos = usuarios.filter((u) => u.rol === ROLES.ADMIN && u.estado === "activo");
+    return adminsActivos.length === 1 ? adminsActivos[0].id : null;
+  }, [usuarios]);
+
+  return {
+    usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, uniqueRoles,
+    idUltimoAdminActivo, isLoading,
+  };
 }
 
 export type UsuariosData = ReturnType<typeof useUsuariosData>;
