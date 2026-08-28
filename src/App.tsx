@@ -14,9 +14,25 @@ import { RouteFallback } from './routes/RouteFallback';
 // la app bloqueada para seguir probándola. Revisar si se reactiva con una
 // política más fina (p. ej. no reintentar en 4xx) cuando el rate limit del
 // backend deje de ser un problema para las pruebas.
+//
+// `staleTime`/`refetchOnWindowFocus`/`refetchOnReconnect` — con los valores
+// por defecto (staleTime 0, refetch en cada foco de ventana y reconexión),
+// React Query volvía a pedir los mismos datos cada vez que se montaba un
+// componente, se cambiaba de pestaña o volvía la conexión, aunque los datos
+// tuvieran segundos de antigüedad. Sumado a que casi toda página pide varios
+// recursos a la vez (celdas, reservas, vehículos, conductores, parqueaderos)
+// y a que el backend tiene un límite de solicitudes por IP bastante estricto,
+// esto por sí solo alcanza para gatillar el 429 con el uso normal de la app,
+// sin que medie ningún reintento. Con un `staleTime` de 1 minuto los datos ya
+// cacheados se reutilizan en vez de volver a pedirse en cada navegación.
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: { retry: false },
+    queries: {
+      retry: false,
+      staleTime: 60_000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+    },
     mutations: { retry: false },
   },
 });
