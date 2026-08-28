@@ -4,13 +4,14 @@ import { StatsPanel } from "@/components/data";
 import { ConductorFormModal } from "./components/ConductorFormModal";
 import { ConductorDetailModal } from "./components/ConductorDetailModal";
 import { VehiculoView } from "./components/VehiculoView";
+import { AgregarVehiculoModal } from "./components/AgregarVehiculoModal";
 import { ConductoresToolbar } from "./components/ConductoresToolbar";
 import { ConductoresResults } from "./components/ConductoresResults";
 import { conductoresStyles } from "./lib/styles";
 import { useConductoresPage } from "./hooks/useConductoresPage";
 
 export function Conductores() {
-  const { data, filters: f, form, viewVehiculoOpen, setViewVehiculoOpen, viewDetailOpen, setViewDetailOpen,
+  const { data, filters: f, form, agregarVehiculo, viewVehiculoOpen, setViewVehiculoOpen, viewDetailOpen, setViewDetailOpen,
     viewingVehiculo, viewingConductor, openVehiculoView, openConductorDetail, handleToggleEstado } = useConductoresPage();
 
   return (
@@ -125,7 +126,33 @@ export function Conductores() {
               setViewDetailOpen(false);
               openVehiculoView(v);
             }}
+            onAgregarVehiculo={() => {
+              setViewDetailOpen(false);
+              agregarVehiculo.abrir(viewingConductor);
+            }}
             onClose={() => setViewDetailOpen(false)}
+          />
+        )}
+      </Modal>
+
+      {/* Modal de agregar un vehículo más a un conductor existente */}
+      <Modal open={agregarVehiculo.open} onClose={() => agregarVehiculo.setOpen(false)} maxWidth={520}>
+        {agregarVehiculo.conductorActivo && (
+          <AgregarVehiculoModal
+            conductor={agregarVehiculo.conductorActivo}
+            placa={agregarVehiculo.form.placa}
+            tipoVehiculo={agregarVehiculo.form.tipoVehiculo}
+            marca={agregarVehiculo.form.marca}
+            descripcionVehiculo={agregarVehiculo.form.descripcionVehiculo}
+            error={agregarVehiculo.error}
+            touched={agregarVehiculo.touched}
+            onPlacaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, placa: v })}
+            onTipoVehiculoChange={(tipo) => agregarVehiculo.setForm({ ...agregarVehiculo.form, tipoVehiculo: tipo })}
+            onMarcaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, marca: v })}
+            onDescripcionChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, descripcionVehiculo: v })}
+            onMarkTouched={agregarVehiculo.markTouched}
+            onSubmit={agregarVehiculo.guardar}
+            onCancel={() => agregarVehiculo.setOpen(false)}
           />
         )}
       </Modal>

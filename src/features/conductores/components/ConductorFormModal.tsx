@@ -56,7 +56,17 @@ export function ConductorFormModal({
             usuarioIdSeleccionado={formData.usuarioId}
             usuarioSeleccionado={usuarioSeleccionado}
             onSelectUsuario={(id) => {
-              setFormData({ ...formData, usuarioId: id });
+              // Autocompleta con los datos que ya tiene la cuenta (nombre/correo/teléfono)
+              // para no hacer que se vuelvan a escribir a mano — solo pisa un campo si la
+              // cuenta trae valor para él, así no borra algo que el usuario ya haya escrito.
+              const usuario = usuariosFiltrados.find((u) => u.id === id);
+              setFormData({
+                ...formData,
+                usuarioId: id,
+                nombre: usuario?.nombre || formData.nombre,
+                correo: usuario?.correo || formData.correo,
+                numeroTelefonico: usuario?.numero || formData.numeroTelefonico,
+              });
               markTouched("usuarioId");
             }}
           />

@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Pencil, X, Mail, Phone, IdCard, Building2, Accessibility, Car } from "lucide-react";
+import { Pencil, Plus, X, Mail, Phone, IdCard, Building2, Accessibility, Car } from "lucide-react";
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -11,10 +11,11 @@ interface ConductorDetailModalProps {
   vehiculos: Vehiculo[];
   onEdit: () => void;
   onViewVehiculo: (v: Vehiculo) => void;
+  onAgregarVehiculo: () => void;
   onClose: () => void;
 }
 
-export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdit, onViewVehiculo, onClose }: ConductorDetailModalProps) => {
+export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdit, onViewVehiculo, onAgregarVehiculo, onClose }: ConductorDetailModalProps) => {
   const [g1, g2] = getAvatarGradient(conductor.nombre);
   const tipoStyle = getTipoUsuarioStyle(conductor.tipoUsuarioNombre);
   const TipoIcon = tipoStyle.icon;
@@ -135,13 +136,26 @@ export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdi
         ))}
 
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 9, fontWeight: 800, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>
-            Vehículo{vehiculos.length !== 1 ? "s" : ""} ({vehiculos.length})
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <div style={{ fontSize: 9, fontWeight: 800, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: 1 }}>
+              Vehículo{vehiculos.length !== 1 ? "s" : ""} ({vehiculos.length})
+            </div>
+            <button
+              onClick={onAgregarVehiculo}
+              style={{
+                display: "flex", alignItems: "center", gap: 4, border: "none", background: "rgba(57,169,0,.1)",
+                color: COLORS.primary, fontSize: 10.5, fontWeight: 800, padding: "4px 9px", borderRadius: 999,
+                cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <Plus size={11} />
+              Agregar vehículo
+            </button>
           </div>
           {vehiculos.length === 0 ? (
             <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 12, background: "#F8FAFC", border: `1px dashed ${COLORS.border}`, color: COLORS.textMuted, fontSize: 12 }}>
               <Car size={14} />
-              Sin vehículo asignado
+              Sin vehículo asignado — este conductor puede tener varios (carro y moto, por ejemplo).
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

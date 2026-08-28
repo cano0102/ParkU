@@ -5,13 +5,15 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import { useConductoresData } from "./useConductoresData";
 import { useConductoresFilters } from "./useConductoresFilters";
 import { useConductorForm } from "./useConductorForm";
+import { useAgregarVehiculo } from "./useAgregarVehiculo";
 
 /** Compone datos, filtros y formulario de Conductores, y resuelve lo que los cruza:
- * los dos modales de "ver" (vehículo/detalle) y el toggle de estado. */
+ * los dos modales de "ver" (vehículo/detalle), agregar vehículo y el toggle de estado. */
 export function useConductoresPage() {
   const data = useConductoresData();
   const filters = useConductoresFilters(data);
   const form = useConductorForm(data);
+  const agregarVehiculo = useAgregarVehiculo(data);
 
   const [viewVehiculoOpen, setViewVehiculoOpen] = useState(false);
   const [viewDetailOpen, setViewDetailOpen] = useState(false);
@@ -44,7 +46,7 @@ export function useConductoresPage() {
   );
 
   return {
-    data, filters, form,
+    data, filters, form, agregarVehiculo,
     viewVehiculoOpen, setViewVehiculoOpen, viewDetailOpen, setViewDetailOpen,
     viewingVehiculo, viewingConductor,
     openVehiculoView, openConductorDetail, handleToggleEstado,

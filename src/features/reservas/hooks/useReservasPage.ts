@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
-import { useReservas, useRemoveReserva } from "./useReservas";
+import { useReservas, useRemoveReserva, useUpdateReserva } from "./useReservas";
 import type { Reserva } from "@/services/api/reservas";
 import { useUpdateCelda, useCeldas, useParqueaderos } from "@/features/parqueaderos";
 import type { Celda } from "@/services/api/celdas";
@@ -19,10 +19,12 @@ export function useReservasPage() {
   const { data: parqueaderos = [] } = useParqueaderos();
   const removeReservaMutation = useRemoveReserva();
   const updateCeldaMutation = useUpdateCelda();
+  const updateReservaMutation = useUpdateReserva();
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" cuando la mutación en realidad falla.
   const deleteReserva = (id: string) => removeReservaMutation.mutateAsync(id);
   const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutateAsync({ id, data });
+  const updateReserva = (id: string, data: Partial<Omit<Reserva, "id">>) => updateReservaMutation.mutateAsync({ id, data });
 
   const [viewOpen, setViewOpen] = useState(false);
   const [viewingReserva, setViewingReserva] = useState<Reserva | null>(null);
@@ -111,11 +113,69 @@ export function useReservasPage() {
     setFilterEstado("todos");
   };
 
+  // Solo Admin/Vigilante gestionan solicitudes — un Conductor puede solicitar una reserva,
+  // pero no aprobar la suya (ni la de nadie).
+  const puedeGestionarSolicitudes = user?.rol === ROLES.ADMIN || user?.rol === ROLES.VIGILANTE;
+  // Ordenadas por fecha/hora de inicio para atender primero lo más próximo, igual que la tabla.
+  const solicitudesPendientes = useMemo(
+    () => reservasTodas
+      .filter((r) => r.estado === "pendiente")
+      .sort((a, b) => `${a.fechaReserva} ${a.horaInicio}`.localeCompare(`${b.fechaReserva} ${b.horaInicio}`)),
+    [reservasTodas]
+  );
+
+  // Choque de horario: dos reservas de la MISMA celda se solapan si una empieza antes de que
+  // la otra termine y termina después de que la otra empieza. Solo importa contra reservas ya
+  // "activa" (aceptadas) — dos solicitudes "pendiente" pueden competir por la misma franja sin
+  // problema, el conflicto real solo existe si se intenta aceptar ambas.
+  const buscarConflictoHorario = (reserva: Reserva): Reserva | null => {
+    const inicio = new Date(`${reserva.fechaReserva}T${reserva.horaInicio}`).getTime();
+    const fin = new Date(`${reserva.fechaReserva}T${reserva.horaFin}`).getTime();
+    return reservasTodas.find((r) => {
+      if (r.id === reserva.id || r.celdaId !== reserva.celdaId || r.estado !== "activa") return false;
+      const rInicio = new Date(`${r.fechaReserva}T${r.horaInicio}`).getTime();
+      const rFin = new Date(`${r.fechaReserva}T${r.horaFin}`).getTime();
+      return rInicio < fin && rFin > inicio;
+    }) ?? null;
+  };
+
+  const aceptarSolicitud = async (reserva: Reserva) => {
+    const conflicto = buscarConflictoHorario(reserva);
+    if (conflicto) {
+      const vehiculoConflicto = getVehiculo(conflicto.vehiculoId);
+      toast.error(
+        `No se puede aceptar: choca con la reserva de ${vehiculoConflicto?.placa ?? "otro vehículo"} ` +
+        `del ${conflicto.fechaReserva} de ${conflicto.horaInicio} a ${conflicto.horaFin} en la misma celda.`
+      );
+      return;
+    }
+    try {
+      await updateReserva(reserva.id, { estado: "activa" });
+      await updateCelda(reserva.celdaId, { estado: "reservada" });
+      toast.success("Solicitud aceptada — la celda queda reservada.");
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error accepting reserva:", error);
+    }
+  };
+
+  const rechazarSolicitud = async (reserva: Reserva) => {
+    try {
+      await updateReserva(reserva.id, { estado: "rechazada" });
+      toast.success("Solicitud rechazada.");
+    } catch (error) {
+      console.error("Error rejecting reserva:", error);
+    }
+  };
+
   return {
     reservas, viewOpen, setViewOpen, viewingReserva, setViewingReserva,
     search, setSearch, filterEstado, setFilterEstado, confirmDelete, setConfirmDelete,
     getVehiculo, getCelda, getParqueadero, getConductorReserva,
     counts, filteredReservas, handleDelete, confirmDeleteAction,
+    puedeGestionarSolicitudes, solicitudesPendientes, aceptarSolicitud, rechazarSolicitud,
+    miConductorId, celdas, parqueaderos, vehiculos,
     activeFiltersCount, clearFilters, isLoading,
   };
 }

@@ -1,4 +1,4 @@
-import { Car, Bike, Accessibility } from "lucide-react";
+import { Car, Bike, Accessibility, Wind, Truck, Bus as BusIcon } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero, TipoParqueadero, AccesoParqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -63,9 +63,13 @@ export const CELDA_CONFIG = {
   inactiva:      { bg:"#F1F5F9", border:"#CBD5E1", text:"#475569", label:"Inactiva",      dotColor:"#94A3B8", mapFill:"#1c1f24", mapStroke:"#64748B" },
 } as const;
 
-/* Configuración visual por TIPO DE VEHÍCULO de la celda (carro / moto / movilidad reducida).
-   Esto es independiente del estado (disponible/ocupada/etc.) y se usa para que, tanto en el
-   plano como en la lista, sea inmediato distinguir qué celdas son de carro y cuáles de moto. */
+/* Configuración visual por TIPO DE VEHÍCULO de la celda. `carro`/`moto`/`bicicleta`/`camion`/
+   `bus` son los 5 valores reales de `Celda.tipo` en la API (antes solo estaban carro/moto
+   mapeados aquí — una celda real de tipo "bicicleta", p. ej., cae al fallback de `carro` en
+   getTipoCeldaConfig() y se ve/cuenta como si fuera de carro en todo el módulo: plano, tabla,
+   tooltip, leyenda). `movilidad reducida` no es un `Celda.tipo` real (esa distinción vive en
+   `Celda.usabilidad`) — se mantiene como bucket sintético para el chip de composición del
+   plano (ver ParkingLot.tsx), que sí arma esa categoría a mano desde `usabilidad`. */
 export const TIPO_CELDA_CONFIG = {
   carro: {
     label: "Carro",
@@ -82,6 +86,30 @@ export const TIPO_CELDA_CONFIG = {
     accent: "#F97316",      // naranja
     accentSoft: "#FFEDD5",
     accentDark: "#C2410C",
+  },
+  bicicleta: {
+    label: "Bicicleta",
+    shortLabel: "Bici",
+    icon: Wind,
+    accent: "#10B981",      // verde
+    accentSoft: "#D1FAE5",
+    accentDark: "#047857",
+  },
+  camion: {
+    label: "Camión",
+    shortLabel: "Camión",
+    icon: Truck,
+    accent: "#8B5CF6",      // violeta
+    accentSoft: "#EDE9FE",
+    accentDark: "#6D28D9",
+  },
+  bus: {
+    label: "Bus",
+    shortLabel: "Bus",
+    icon: BusIcon,
+    accent: "#EF4444",      // rojo
+    accentSoft: "#FEE2E2",
+    accentDark: "#B91C1C",
   },
   "movilidad reducida": {
     label: "Movilidad Reducida",

@@ -5,6 +5,7 @@ import type { Parqueadero } from "@/services/api/parqueaderos";
 import {
   type VehiculoForm,
   normalizarTexto, validarPlacaColombiana, validarPlacaPorTipo, validarNombreConductor, tipoVehiculoDesdePlaca,
+  getTipoCeldaConfig,
 } from "../lib/helpers";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
@@ -69,6 +70,16 @@ export function useIngresoVehiculo(
     const tipoPlaca = tipoVehiculoDesdePlaca(placa);
     if (celda.tipo === "carro" && tipoPlaca !== "carro") { setPlacaError("Esta celda es para automóviles. La placa ingresada tiene formato de moto (ABC12D / ABC12)."); return false; }
     if (celda.tipo === "moto" && tipoPlaca !== "moto") { setPlacaError("Esta celda es para motocicletas. La placa ingresada tiene formato de carro (ABC123)."); return false; }
+    // Celdas de bicicleta/camión/bus no tienen convención de placa propia que validar contra
+    // el formato en sí, pero si la placa SÍ tiene formato reconocible de carro o moto, es
+    // justamente el vehículo equivocado para una celda de este tipo (antes esto pasaba sin
+    // aviso: un carro/moto se dejaba registrar igual en una celda exclusiva para bicicletas).
+    if (celda.tipo !== "carro" && celda.tipo !== "moto" && tipoPlaca) {
+      const etiquetaCelda = getTipoCeldaConfig(celda.tipo).label.toLowerCase();
+      const etiquetaPlaca = tipoPlaca === "moto" ? "motocicletas" : "automóviles";
+      setPlacaError(`Esta celda es exclusiva para ${etiquetaCelda}, no para ${etiquetaPlaca}.`);
+      return false;
+    }
 
     const yaActivo = controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find((v) => v.id === cs.vehiculoId)?.placa === placa);
     if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
@@ -174,7 +185,13 @@ export function useIngresoVehiculo(
      (o, si ya es un conductor real identificado —por placa o por nombre exacto—, ese nombre ya
      es válido de por sí, aunque no cumpla el formato "nombre apellido" del validador genérico:
      el módulo Conductores permite nombres como "Carlos López M.", con inicial abreviada). */
-  const ingresoPlacaOk = celdaActiva ? validarPlacaPorTipo(vehiculoForm.placa, celdaActiva.tipo === "moto" ? "moto" : "carro") : false;
+  // Las placas colombianas solo tienen convención para carro o moto — una celda de
+  // bicicleta/camión/bus no tiene un formato de placa que validar contra, así que este
+  // flujo (registro por placa) simplemente no aplica para ese tipo de celda (antes caía al
+  // formato de "carro" por defecto y dejaba pasar cualquier carro, sin avisar del todo).
+  const ingresoPlacaOk = celdaActiva && (celdaActiva.tipo === "carro" || celdaActiva.tipo === "moto")
+    ? validarPlacaPorTipo(vehiculoForm.placa, celdaActiva.tipo)
+    : false;
   // "Inactivo" debe bloquear de verdad: un conductor desactivado no es un nombre válido
   // para registrar, aunque el resto de su ficha (placa, nombre) sea correcto.
   const ingresoConductorOk = conductorIdentificado
@@ -185,7 +202,7 @@ export function useIngresoVehiculo(
   const ingresoPlacaHint = celdaActiva
     ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + letra final opcional (ABC12D o ABC12)"
       : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
-        : "Formato: ABC123 (carro) o ABC12D / ABC12 (moto)")
+        : `Esta celda es exclusiva para ${getTipoCeldaConfig(celdaActiva.tipo).label.toLowerCase()} y no admite registro por placa de carro o moto.`)
     : "";
 
   return {

@@ -1,14 +1,16 @@
-import { Calendar, CheckCircle2, Clock3, Shield, XCircle } from "lucide-react";
+import { Calendar, CheckCircle2, Clock3, Plus, Shield, XCircle } from "lucide-react";
 import type { EstadoReserva } from "../lib/constants";
 
 interface ReservasHeroProps {
   counts: { pendiente: number; activa: number; completada: number; cancelada: number };
   filterEstado: "todos" | EstadoReserva;
   onFilterEstadoChange: (estado: "todos" | EstadoReserva) => void;
+  /** Solo se pasa para el rol Comunidad SENA: Admin/Vigilante siguen creando desde Parqueaderos. */
+  onSolicitarReserva?: () => void;
 }
 
 /** Banner superior de Reservas: las pastillas de estado también filtran al hacer clic. */
-export function ReservasHero({ counts, filterEstado, onFilterEstadoChange }: ReservasHeroProps) {
+export function ReservasHero({ counts, filterEstado, onFilterEstadoChange, onSolicitarReserva }: ReservasHeroProps) {
   const stats = [
     { label: "Pendientes", value: counts.pendiente, estado: "pendiente" as const, icon: Clock3 },
     { label: "Activas", value: counts.activa, estado: "activa" as const, icon: CheckCircle2 },
@@ -39,8 +41,22 @@ export function ReservasHero({ counts, filterEstado, onFilterEstadoChange }: Res
             Gestión de Reservas
           </h1>
           <p style={{ fontSize: 12, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
-            Historial de reservas de celdas. Para crear o cancelar una reserva, hazlo desde la celda en el módulo de Parqueaderos.
+            {onSolicitarReserva
+              ? "Solicita una celda; queda pendiente hasta que un administrador o vigilante la acepte."
+              : "Historial de reservas de celdas. Para crear o cancelar una reserva, hazlo desde la celda en el módulo de Parqueaderos."}
           </p>
+          {onSolicitarReserva && (
+            <button
+              onClick={onSolicitarReserva}
+              style={{
+                marginTop: 12, display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", borderRadius: 11,
+                border: "1px solid rgba(255,255,255,.3)", background: "rgba(255,255,255,.15)", color: "#fff",
+                fontSize: 12.5, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <Plus size={14} /> Solicitar reserva
+            </button>
+          )}
         </div>
 
         <div className="reservas-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280, maxWidth: 420 }}>

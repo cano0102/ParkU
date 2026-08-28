@@ -1,4 +1,4 @@
-import { Eye as EyeIcon, EyeOff, KeyRound } from "lucide-react";
+import { Eye as EyeIcon, EyeOff, Info, KeyRound } from "lucide-react";
 import { FormField } from "@/components/shared";
 import {
   COLORS, PASSWORD_MAX, PASSWORD_MIN,
@@ -37,31 +37,45 @@ export function CredencialesAccesoFields({
         </p>
       </div>
       <div className="uf-modal-grid" style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <FormField label="Contraseña" hint={isEdit ? "vacío = sin cambios" : `mín. ${PASSWORD_MIN} caracteres`} error={passwordError}>
-          <div style={{ position: "relative" }}>
-            <KeyRound size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
-            <input
-              type={showPass ? "text" : "password"}
-              placeholder="••••••••"
-              value={password}
-              maxLength={PASSWORD_MAX}
-              onChange={(e) => onPasswordChange(e.target.value)}
-              onBlur={onPasswordBlur}
-              style={passwordError ? { ...inputIconStyle, ...inputErrorStyle, paddingRight: 38 } : { ...inputIconStyle, paddingRight: 38 }}
-            />
-            <button
-              type="button"
-              onClick={onToggleShowPass}
-              style={{
-                position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-                background: "none", border: "none", cursor: "pointer", color: iconColor, display: "flex", alignItems: "center",
-              }}
-              aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
-            >
-              {showPass ? <EyeOff size={14} /> : <EyeIcon size={14} />}
-            </button>
+        {isEdit ? (
+          // La API real no tiene forma de que un Admin restablezca la contraseña de otro
+          // usuario sin conocerla (no hay endpoint para eso) — antes se mostraba este campo
+          // igual, con el hint "vacío = sin cambios", pero cualquier valor que se escribiera
+          // se descartaba en silencio al guardar y el formulario avisaba "éxito" de todos
+          // modos. Se reemplaza por una nota explícita para no prometer algo que no pasa.
+          <div style={{ gridColumn: "1 / -1", display: "flex", alignItems: "flex-start", gap: 8, padding: "10px 12px", borderRadius: 11, background: "#EFF6FF", border: "1px solid #BFDBFE" }}>
+            <Info size={14} color="#1D4ED8" style={{ flexShrink: 0, marginTop: 1 }} />
+            <p style={{ fontSize: 11.5, color: "#1E3A8A", lineHeight: 1.5, margin: 0 }}>
+              La contraseña de otro usuario no se puede cambiar desde aquí. Pide a la persona que la actualice desde su Perfil, o usa "¿Olvidaste tu contraseña?" en el login.
+            </p>
           </div>
-        </FormField>
+        ) : (
+          <FormField label="Contraseña" hint={`mín. ${PASSWORD_MIN} caracteres`} error={passwordError}>
+            <div style={{ position: "relative" }}>
+              <KeyRound size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                maxLength={PASSWORD_MAX}
+                onChange={(e) => onPasswordChange(e.target.value)}
+                onBlur={onPasswordBlur}
+                style={passwordError ? { ...inputIconStyle, ...inputErrorStyle, paddingRight: 38 } : { ...inputIconStyle, paddingRight: 38 }}
+              />
+              <button
+                type="button"
+                onClick={onToggleShowPass}
+                style={{
+                  position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
+                  background: "none", border: "none", cursor: "pointer", color: iconColor, display: "flex", alignItems: "center",
+                }}
+                aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+              >
+                {showPass ? <EyeOff size={14} /> : <EyeIcon size={14} />}
+              </button>
+            </div>
+          </FormField>
+        )}
 
         <FormField label="Rol del sistema" error={rolError}>
           <select

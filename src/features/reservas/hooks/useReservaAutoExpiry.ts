@@ -23,7 +23,10 @@ export function useReservaAutoExpiry() {
         const fin = new Date(`${reserva.fechaReserva}T${reserva.horaFin}`).getTime();
         if (Number.isNaN(fin) || fin >= ahora) continue;
 
-        updateReservaMutation.mutate({ id: reserva.id, data: { estado: "completada" } });
+        // Una solicitud que nadie aceptó y cuyo horario ya pasó no "se completó" (nunca llegó
+        // a ocurrir) — se marca rechazada. Una ya aceptada ("activa") sí se da por completada.
+        const estadoFinal = reserva.estado === "pendiente" ? "rechazada" : "completada";
+        updateReservaMutation.mutate({ id: reserva.id, data: { estado: estadoFinal } });
 
         const celda = celdas.find(c => c.id === reserva.celdaId);
         if (celda && celda.estado === "reservada") {
