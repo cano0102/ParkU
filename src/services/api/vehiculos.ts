@@ -122,3 +122,23 @@ export async function update(id: string, data: Partial<Omit<Vehiculo, 'id'>>): P
 export async function remove(id: string): Promise<void> {
   await apiFetch<void>(`/vehiculos/${id}`, { method: 'DELETE' });
 }
+
+/**
+ * Vincula un conductor adicional como copropietario de un vehículo ya existente — un mismo
+ * vehículo puede tener más de un dueño (p. ej. una pareja o una familia compartiendo un
+ * carro), sin reemplazar al propietario principal fijado al crearlo.
+ */
+export async function agregarPropietario(vehiculoId: string, conductorId: string): Promise<Vehiculo> {
+  const updated = await apiFetch<ApiVehiculo>(`/vehiculos/${vehiculoId}/conductores`, {
+    method: 'POST',
+    body: { conductor_id: Number(conductorId) },
+  });
+  return toFrontend(updated);
+}
+
+/** Desvincula a un conductor como copropietario de un vehículo (no permite quitar al
+ *  principal ni dejar el vehículo sin ningún propietario — el backend lo valida). */
+export async function quitarPropietario(vehiculoId: string, conductorId: string): Promise<Vehiculo> {
+  const updated = await apiFetch<ApiVehiculo>(`/vehiculos/${vehiculoId}/conductores/${conductorId}`, { method: 'DELETE' });
+  return toFrontend(updated);
+}

@@ -1,5 +1,7 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import * as celdasService from '@/services/api/celdas';
-import type { Celda } from '@/services/api/celdas';
+import type { Celda, MotivoDisponibilidad } from '@/services/api/celdas';
 import { createQueryHooks } from '@/services/core/queryFactory';
 
 export type { Celda };
@@ -10,3 +12,16 @@ export const useCeldas = hooks.useList;
 export const useCreateCelda = hooks.useCreate;
 export const useUpdateCelda = hooks.useUpdate;
 export const useRemoveCelda = hooks.useRemove;
+
+/** Único hook que de verdad cambia `estado` en el backend real — ver el porqué en
+ *  `cambiarDisponibilidad` (services/api/celdas.ts). Solo para el ajuste manual de un
+ *  Admin/Vigilante (mantenimiento, inactivar, reactivar, corregir una celda atascada). */
+export function useCambiarDisponibilidadCelda() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, estado, motivo, observacion }: { id: string; estado: Celda['estado']; motivo: MotivoDisponibilidad; observacion?: string }) =>
+      celdasService.cambiarDisponibilidad(id, estado, motivo, observacion),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: hooks.queryKey }),
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'No se pudo cambiar el estado de la celda.'),
+  });
+}

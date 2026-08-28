@@ -47,11 +47,16 @@ export function useModalController(data: ParqueaderosData) {
 
   /* Ajuste manual de estado de una celda (Administrador/Vigilante): vía de escape fuera del
      flujo normal (estacionar/reservar/liberar), para corregir una celda que quedó atascada en
-     un estado por datos inconsistentes, o para ponerla/sacarla de mantenimiento. */
+     un estado por datos inconsistentes, o para ponerla/sacarla de mantenimiento. A diferencia
+     del resto de cambios de celda (que el backend mueve solo vía trigger al aceptar una
+     reserva o registrar un ingreso/salida), este SÍ necesita el canal dedicado
+     `cambiarDisponibilidadCelda` — es el único que de verdad aplica el `estado` cuando no hay
+     ninguna reserva/ingreso real detrás, y exige un motivo. */
   const handleSetEstadoCeldaManual = useCallback(async (estado: Celda["estado"]) => {
     if (!celdaActiva) return;
     try {
-      await data.updateCelda(celdaActiva.id, { estado, ocupada: estado === "no_disponible" });
+      const motivo = estado === "mantenimiento" ? "mantenimiento" : "error_asignacion";
+      await data.cambiarDisponibilidadCelda(celdaActiva.id, estado, motivo);
       toast.success(`Celda ${celdaActiva.numero} marcada como "${estado.replace("_", " ")}"`);
       setOpenModal(null);
     } catch (error) {

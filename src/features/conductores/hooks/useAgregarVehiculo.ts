@@ -17,23 +17,37 @@ interface AgregarVehiculoForm {
 
 const emptyForm = (): AgregarVehiculoForm => ({ placa: "", tipoVehiculo: "carro", marca: "", color: "", descripcionVehiculo: "" });
 
+export type ModoAgregarVehiculo = "nuevo" | "existente";
+
 /**
  * Agregar un vehículo MÁS a un conductor que ya existe, sin pasar por su
  * ficha completa. Antes la única forma de que un conductor terminara con más
  * de un vehículo era registrando una placa nueva desde el ingreso en
  * Parqueaderos (`useIngresoVehiculo`) — un conductor real puede tener carro Y
  * moto, y eso debería poder registrarse directo desde Conductores.
+ *
+ * También cubre el otro caso: vincular un vehículo YA EXISTENTE (de otro
+ * conductor) como copropietario de este — un vehículo puede tener más de un
+ * dueño (p. ej. una pareja compartiendo un carro).
  */
-export function useAgregarVehiculo(data: Pick<ConductoresData, "vehiculos" | "addVehiculo">) {
+export function useAgregarVehiculo(
+  data: Pick<ConductoresData, "vehiculos" | "addVehiculo"> & { agregarPropietario: (vehiculoId: string, conductorId: string) => Promise<unknown> }
+) {
   const [open, setOpen] = useState(false);
   const [conductorActivo, setConductorActivo] = useState<Conductor | null>(null);
+  const [modo, setModo] = useState<ModoAgregarVehiculo>("nuevo");
   const [form, setForm] = useState<AgregarVehiculoForm>(emptyForm());
   const [touched, setTouched] = useState(false);
+  const [busquedaExistente, setBusquedaExistente] = useState("");
+  const [vehiculoExistenteId, setVehiculoExistenteId] = useState("");
 
   const abrir = useCallback((conductor: Conductor) => {
     setConductorActivo(conductor);
+    setModo("nuevo");
     setForm(emptyForm());
     setTouched(false);
+    setBusquedaExistente("");
+    setVehiculoExistenteId("");
     setOpen(true);
   }, []);
 
@@ -56,14 +70,39 @@ export function useAgregarVehiculo(data: Pick<ConductoresData, "vehiculos" | "ad
 
   // Validación en tiempo real, igual que el resto de formularios de la app:
   // se recalcula en cada cambio, pero solo se muestra tras el primer intento.
-  const error = touched ? validar(form) : null;
+  const error = modo === "nuevo" && touched ? validar(form) : null;
 
   const markTouched = useCallback(() => setTouched(true), []);
 
+  // Vehículos que este conductor todavía NO tiene vinculados (ni como principal ni como
+  // copropietario) — a esos es a los que tiene sentido ofrecerle vincularse como copropietario.
+  const vehiculosVinculables = useMemo(() => {
+    if (!conductorActivo) return [];
+    const q = busquedaExistente.trim().toLowerCase();
+    return data.vehiculos.filter((v) => {
+      if (v.conductorId === conductorActivo.id) return false;
+      if (!q) return true;
+      return v.placa.toLowerCase().includes(q) || v.marca.toLowerCase().includes(q) || v.conductorNombre.toLowerCase().includes(q);
+    });
+  }, [data.vehiculos, conductorActivo, busquedaExistente]);
+
   const guardar = useCallback(async () => {
+    if (!conductorActivo) return;
+
+    if (modo === "existente") {
+      if (!vehiculoExistenteId) { toast.error("Selecciona un vehículo para vincular"); return; }
+      try {
+        await data.agregarPropietario(vehiculoExistenteId, conductorActivo.id);
+        toast.success(`Vehículo vinculado a ${conductorActivo.nombre} como copropietario`);
+        setOpen(false);
+      } catch (error) {
+        console.error("Error linking copropietario:", error);
+      }
+      return;
+    }
+
     setTouched(true);
     if (validar(form)) return;
-    if (!conductorActivo) return;
 
     try {
       await data.addVehiculo({
@@ -85,10 +124,11 @@ export function useAgregarVehiculo(data: Pick<ConductoresData, "vehiculos" | "ad
       // (services/core/queryFactory.ts).
       console.error("Error adding vehiculo:", error);
     }
-  }, [form, conductorActivo, data, validar]);
+  }, [form, conductorActivo, data, validar, modo, vehiculoExistenteId]);
 
   return {
-    open, setOpen, conductorActivo, form, setForm,
+    open, setOpen, conductorActivo, modo, setModo, form, setForm,
     error, touched, markTouched, abrir, guardar,
+    busquedaExistente, setBusquedaExistente, vehiculoExistenteId, setVehiculoExistenteId, vehiculosVinculables,
   };
 }

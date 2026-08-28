@@ -141,6 +141,8 @@ export function Conductores() {
         {agregarVehiculo.conductorActivo && (
           <AgregarVehiculoModal
             conductor={agregarVehiculo.conductorActivo}
+            modo={agregarVehiculo.modo}
+            onModoChange={agregarVehiculo.setModo}
             placa={agregarVehiculo.form.placa}
             tipoVehiculo={agregarVehiculo.form.tipoVehiculo}
             marca={agregarVehiculo.form.marca}
@@ -154,6 +156,11 @@ export function Conductores() {
             onColorChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, color: v })}
             onDescripcionChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, descripcionVehiculo: v })}
             onMarkTouched={agregarVehiculo.markTouched}
+            busquedaExistente={agregarVehiculo.busquedaExistente}
+            onBusquedaExistenteChange={agregarVehiculo.setBusquedaExistente}
+            vehiculoExistenteId={agregarVehiculo.vehiculoExistenteId}
+            onVehiculoExistenteIdChange={agregarVehiculo.setVehiculoExistenteId}
+            vehiculosVinculables={agregarVehiculo.vehiculosVinculables}
             onSubmit={agregarVehiculo.guardar}
             onCancel={() => agregarVehiculo.setOpen(false)}
           />

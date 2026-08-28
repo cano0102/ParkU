@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from "react";
 import { useConductores, useCreateConductor, useUpdateConductor } from "./useConductores";
 import type { Conductor } from "@/services/api/conductores";
-import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "./useVehiculos";
+import { useVehiculos, useCreateVehiculo, useUpdateVehiculo, useAgregarPropietarioVehiculo } from "./useVehiculos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { useUsuarios } from "@/features/usuarios";
 
@@ -14,6 +14,7 @@ export function useConductoresData() {
   const updateConductorMutation = useUpdateConductor();
   const createVehiculoMutation = useCreateVehiculo();
   const updateVehiculoMutation = useUpdateVehiculo();
+  const agregarPropietarioMutation = useAgregarPropietarioVehiculo();
 
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación en realidad falla.
@@ -23,6 +24,8 @@ export function useConductoresData() {
   const addVehiculo = (data: Omit<Vehiculo, "id">) => createVehiculoMutation.mutateAsync(data);
   const updateVehiculo = (id: string, data: Partial<Omit<Vehiculo, "id">>) =>
     updateVehiculoMutation.mutateAsync({ id, data });
+  const agregarPropietario = (vehiculoId: string, conductorId: string) =>
+    agregarPropietarioMutation.mutateAsync({ vehiculoId, conductorId });
 
   // Cuenta de acceso vinculada (opcional): no todo conductor real tiene una.
   const getUsuario = useCallback((id: string) => usuarios.find((u) => u.id === id), [usuarios]);
@@ -36,7 +39,7 @@ export function useConductoresData() {
 
   return {
     conductores, usuarios, vehiculos,
-    addConductor, updateConductor, addVehiculo, updateVehiculo,
+    addConductor, updateConductor, addVehiculo, updateVehiculo, agregarPropietario,
     getUsuario, getVehiculosConductor,
     totalActivos, totalVehiculos, totalConductores, totalCarros, totalMotos,
     isLoading,

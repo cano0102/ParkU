@@ -93,11 +93,49 @@ export async function create(data: Omit<Celda, 'id'>): Promise<Celda> {
 }
 
 export async function update(id: string, data: Partial<Omit<Celda, 'id'>>): Promise<Celda> {
-  // El estado de una celda se cambia normalmente por PUT/:id; el endpoint
-  // /disponibilidad (con motivo) existe pero es para el flujo de
-  // mantenimiento dedicado, que esta pantalla no usa todavía.
+  // Confirmado leyendo el backend real: `PUT /celdas/:id` IGNORA a propósito el campo
+  // `estado` (su propio swagger lo documenta como "solo lectura aquí" — ver
+  // cambiarDisponibilidad más abajo para el único canal que sí lo aplica). El resto de campos
+  // (numero, tipo, usabilidad, observaciones) sí se actualizan por esta vía normal. Los
+  // llamadores que solo cambian `estado` (p. ej. tras aceptar/cancelar una reserva o
+  // registrar un ingreso/salida) siguen pasando por aquí a propósito: ese `estado` real ya lo
+  // mueve un trigger de base de datos del lado del backend, y esta llamada solo sirve para
+  // invalidar la query de celdas y refrescar la UI con el valor que puso el trigger.
   const updated = await apiFetch<ApiCelda>(`/celdas/${id}`, { method: 'PUT', body: toApiPayload(data) });
   return toFrontend(updated);
+}
+
+/** Motivo obligatorio que exige el backend para un cambio manual de disponibilidad. */
+export type MotivoDisponibilidad =
+  | 'mantenimiento' | 'danio' | 'error_asignacion' | 'ajuste_operativo' | 'otro';
+
+const MOTIVO_A_API: Record<MotivoDisponibilidad, string> = {
+  mantenimiento: 'MANTENIMIENTO', danio: 'DANIO', error_asignacion: 'ERROR_ASIGNACION',
+  ajuste_operativo: 'AJUSTE_OPERATIVO', otro: 'OTRO',
+};
+
+/**
+ * Cambia manualmente el estado de una celda (mantenimiento, inactivar, reactivar, corregir
+ * una celda atascada) — a diferencia de `update()`, esto SÍ aplica el `estado`: es el único
+ * canal real para hacerlo, vía `PUT /celdas/:id/disponibilidad` (exige `motivo` y queda
+ * registrado en el historial de disponibilidad del backend). No usar esto para lo que ya
+ * resuelve solo un trigger de la base de datos (aceptar/cancelar una reserva, registrar un
+ * ingreso/salida) — solo para un ajuste manual real hecho por un Admin/Vigilante.
+ */
+export async function cambiarDisponibilidad(
+  id: string,
+  estado: EstadoCelda,
+  motivo: MotivoDisponibilidad,
+  observacion?: string
+): Promise<Celda> {
+  // Mismo bug confirmado en vivo que el resto de creaciones/actualizaciones de este backend:
+  // el PUT aplica el cambio de verdad, pero responde `null` en el body en vez del registro
+  // actualizado — se recupera con un GET directo por id si no lo trae.
+  const updated = await apiFetch<ApiCelda | null>(`/celdas/${id}/disponibilidad`, {
+    method: 'PUT',
+    body: { estado: ESTADO_A_API[estado], motivo: MOTIVO_A_API[motivo], observacion: observacion?.trim() || undefined },
+  });
+  return toFrontend(updated ?? await apiFetch<ApiCelda>(`/celdas/${id}`));
 }
 
 export async function remove(id: string): Promise<void> {

@@ -21,8 +21,12 @@ const vehiculoExistente: Vehiculo = {
   marca: '', linea: '', modelo: null, color: '', descripcion: '', estado: 'activo',
 };
 
-function buildData(vehiculos: Vehiculo[] = [], addVehiculo = vi.fn().mockResolvedValue({ ...vehiculoExistente, id: 'v2' })) {
-  return { vehiculos, addVehiculo };
+function buildData(
+  vehiculos: Vehiculo[] = [],
+  addVehiculo = vi.fn().mockResolvedValue({ ...vehiculoExistente, id: 'v2' }),
+  agregarPropietario = vi.fn().mockResolvedValue(vehiculoExistente),
+) {
+  return { vehiculos, addVehiculo, agregarPropietario };
 }
 
 afterEach(() => vi.clearAllMocks());
@@ -77,5 +81,23 @@ describe('useAgregarVehiculo', () => {
 
     act(() => result.current.markTouched());
     expect(result.current.error).toBe('La placa es obligatoria');
+  });
+
+  it('vincula un vehículo existente de otro conductor como copropietario, sin crear uno nuevo', async () => {
+    const otroVehiculo: Vehiculo = { ...vehiculoExistente, id: 'v9', conductorId: '2', conductorNombre: 'Mariana López', placa: 'DEF456' };
+    const data = buildData([vehiculoExistente, otroVehiculo]);
+    const { result } = renderHook(() => useAgregarVehiculo(data));
+
+    act(() => result.current.abrir(conductor));
+    act(() => result.current.setModo('existente'));
+    // Solo ofrece vehículos que este conductor todavía no tiene (excluye el que ya es suyo).
+    expect(result.current.vehiculosVinculables.map((v) => v.id)).toEqual(['v9']);
+
+    act(() => result.current.setVehiculoExistenteId('v9'));
+    await act(async () => result.current.guardar());
+
+    expect(data.agregarPropietario).toHaveBeenCalledWith('v9', '1');
+    expect(data.addVehiculo).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
   });
 });

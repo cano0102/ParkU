@@ -1,7 +1,7 @@
 import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero } from "./useParqueaderos";
 import type { Parqueadero } from "@/services/api/parqueaderos";
-import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda } from "./useCeldas";
-import type { Celda } from "@/services/api/celdas";
+import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda, useCambiarDisponibilidadCelda } from "./useCeldas";
+import type { Celda, MotivoDisponibilidad } from "@/services/api/celdas";
 import { useConductores, useCreateConductor } from "@/features/conductores";
 import type { Conductor } from "@/services/api/conductores";
 import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "@/features/conductores";
@@ -27,6 +27,7 @@ export function useParqueaderosData() {
   const createCeldaMutation = useCreateCelda();
   const updateCeldaMutation = useUpdateCelda();
   const removeCeldaMutation = useRemoveCelda();
+  const cambiarDisponibilidadCeldaMutation = useCambiarDisponibilidadCelda();
   const createConductorMutation = useCreateConductor();
   const createVehiculoMutation = useCreateVehiculo();
   const updateVehiculoMutation = useUpdateVehiculo();
@@ -44,6 +45,8 @@ export function useParqueaderosData() {
   const addCelda = (data: Omit<Celda, "id">) => createCeldaMutation.mutateAsync(data);
   const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutateAsync({ id, data });
   const deleteCelda = (id: string) => removeCeldaMutation.mutateAsync(id);
+  const cambiarDisponibilidadCelda = (id: string, estado: Celda["estado"], motivo: MotivoDisponibilidad, observacion?: string) =>
+    cambiarDisponibilidadCeldaMutation.mutateAsync({ id, estado, motivo, observacion });
   // resolverConductor/resolverVehiculo necesitan el id real del registro creado
   // antes de seguir (para encadenar el control de salida), así que estas dos sí
   // esperan a que la mutación termine en vez de disparar y olvidar.
@@ -64,7 +67,7 @@ export function useParqueaderosData() {
 
   return {
     parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas,
-    addParqueadero, updateParqueadero, addCelda, updateCelda, deleteCelda,
+    addParqueadero, updateParqueadero, addCelda, updateCelda, deleteCelda, cambiarDisponibilidadCelda,
     addConductor, addVehiculo, updateVehiculo,
     addControlSalida, updateControlSalida, addReserva, updateReserva, addIncidente,
     isLoading,
