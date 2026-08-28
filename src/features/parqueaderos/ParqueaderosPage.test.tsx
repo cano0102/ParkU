@@ -10,7 +10,16 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ROLES } from '@/services/core/roles';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
+vi.mock('@/services/core/http', () => ({
+  apiFetch: apiFetchMock,
+  AUTH_EXPIRED_EVENT: 'parku:auth-expired',
+  crearConRespaldo: async (path: string, body: unknown, fetchTodosCrudo: () => Promise<any[]>) => {
+    const creado = await apiFetchMock(path, { method: 'POST', body });
+    if (creado) return creado;
+    const todos = await fetchTodosCrudo();
+    return todos.reduce((max: any, item: any) => (item.id > max.id ? item : max));
+  },
+}));
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 // Este archivo cubre la vista de Admin/Vigilante (crear/editar parqueadero, liberar celda,

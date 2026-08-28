@@ -11,8 +11,8 @@ export interface DataGridProps<T> {
 
 /**
  * Contenedor de cuadrícula genérico: solo resuelve el layout y el `key` de
- * cada item. El contenido de la tarjeta es responsabilidad de cada dominio
- * vía `renderCard` (render-prop), tal como pedía el diseño original — el
+ * cada item El contenido de la tarjeta es responsabilidad de cada dominio
+ * vía `ren.derCard` (render-prop), tal como pedía el diseño original — el
  * grid en sí no necesita saber nada de avatares, badges o acciones.
  *
  * Colapsa a una sola columna en pantallas angostas (antes esto solo lo tenía

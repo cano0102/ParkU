@@ -13,7 +13,7 @@
  * (`fecha_hora_inicio`/`fecha_hora_fin`) — la combinación/separación vive
  * aquí para no tocar los formularios existentes.
  */
-import { apiFetch } from '../core/http';
+import { apiFetch, crearConRespaldo } from '../core/http';
 
 export type TipoReserva = 'vehiculo_sena' | 'movilidad_reducida' | 'visitante';
 export type EstadoReserva = 'pendiente' | 'activa' | 'rechazada' | 'completada' | 'cancelada';
@@ -90,6 +90,18 @@ export async function getAll(): Promise<Reserva[]> {
   return rows.map(toFrontend);
 }
 
+/**
+ * Reservas de un vehículo puntual. A diferencia de `getAll` (solo Admin/
+ * Vigilante, `GET /reservas` responde 403 para un Conductor), esta ruta sí
+ * la puede consultar cualquier usuario autenticado — es lo que usa el
+ * Dashboard simplificado del rol Comunidad SENA para mostrar sus reservas
+ * sin necesitar el listado completo.
+ */
+export async function getByVehiculo(vehiculoId: string): Promise<Reserva[]> {
+  const rows = await apiFetch<ApiReserva[]>(`/reservas/vehiculo/${vehiculoId}`);
+  return rows.map(toFrontend);
+}
+
 export async function getById(id: string): Promise<Reserva | undefined> {
   try {
     return toFrontend(await apiFetch<ApiReserva>(`/reservas/${id}`));
@@ -99,9 +111,12 @@ export async function getById(id: string): Promise<Reserva | undefined> {
 }
 
 export async function create(data: Omit<Reserva, 'id'>): Promise<Reserva> {
-  const created = await apiFetch<ApiReserva>('/reservas', {
-    method: 'POST',
-    body: {
+  // `POST /reservas` crea el registro pero responde `null` en el body (bug
+  // confirmado en vivo del backend) — `crearConRespaldo` recupera el
+  // registro creado con un GET a la lista si el POST no lo trae.
+  const created = await crearConRespaldo<ApiReserva>(
+    '/reservas',
+    {
       tipo_reserva: data.tipoReserva.toUpperCase(),
       celda_id: Number(data.celdaId),
       conductor_id: data.conductorId ? Number(data.conductorId) : undefined,
@@ -110,7 +125,8 @@ export async function create(data: Omit<Reserva, 'id'>): Promise<Reserva> {
       fecha_hora_inicio: combinarFechaHora(data.fechaReserva, data.horaInicio),
       fecha_hora_fin: combinarFechaHora(data.fechaReserva, data.horaFin),
     },
-  });
+    () => apiFetch<ApiReserva[]>('/reservas'),
+  );
   return toFrontend(created);
 }
 

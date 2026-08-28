@@ -159,3 +159,30 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
 
   return parsedBody as T;
 }
+
+/**
+ * Compensa un bug confirmado del backend real: `POST` en `/reservas`,
+ * `/celdas`, `/vehiculos`, `/novedades` y `/parqueaderos` crea el registro
+ * correctamente (queda en la base de datos) pero responde `null` en el body
+ * en vez del objeto creado — sin esto, cada creación en esos 5 dominios
+ * lanzaba un `TypeError` al intentar leer campos de `null` y el usuario veía
+ * un error aunque el registro sí se hubiera guardado.
+ *
+ * Si el POST no trae el objeto creado, se recupera con un `GET` de la lista
+ * completa y se toma el de mayor `id` (asume ids autoincrementales; no
+ * blinda contra otra creación concurrente en el mismo instante, un riesgo
+ * aceptable para el volumen de uso de esta app).
+ */
+export async function crearConRespaldo<T extends { id: number }>(
+  path: string,
+  body: unknown,
+  fetchTodosCrudo: () => Promise<T[]>,
+): Promise<T> {
+  const creado = await apiFetch<T | null>(path, { method: 'POST', body });
+  if (creado) return creado;
+  const todos = await fetchTodosCrudo();
+  if (todos.length === 0) {
+    throw new Error('El registro se creó pero no se pudo recuperar. Actualiza la página.');
+  }
+  return todos.reduce((max, item) => (item.id > max.id ? item : max));
+}

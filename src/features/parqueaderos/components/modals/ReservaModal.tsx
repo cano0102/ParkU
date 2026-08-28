@@ -18,6 +18,8 @@ export interface ReservaFormState {
   fechaReserva: string;
   horaInicio: string;
   horaFin: string;
+  /** Motivo/justificación de la reserva — se envía a la API pero antes no tenía campo en el formulario. */
+  motivo: string;
   estado: "pendiente" | "activa" | "completada" | "cancelada";
 }
 
@@ -246,6 +248,24 @@ export function ReservaModal({
               {horarioInvalido && (
                 <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>La hora de fin debe ser posterior a la de inicio.</p>
               )}
+            </div>
+
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label htmlFor="motivoReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+                Motivo / Justificación
+              </label>
+              <textarea
+                id="motivoReserva"
+                value={reservaForm.motivo}
+                onChange={(e) => setReservaForm(prev => ({ ...prev, motivo: e.target.value }))}
+                placeholder="Ej. Reserva para gira institucional, visita programada, movilidad reducida..."
+                rows={2}
+                style={{
+                  width: "100%", padding: "11px 14px", borderRadius: 11, resize: "vertical",
+                  border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
+                  fontFamily: "inherit", background: "#F8FAFC",
+                }}
+              />
             </div>
 
             <div style={{ gridColumn: "1 / -1" }}>

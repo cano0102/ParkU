@@ -9,7 +9,16 @@ import { createTestQueryClient } from '@/test/queryWrapper';
 import { AuthProvider } from '@/context/AuthContext';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
+vi.mock('@/services/core/http', () => ({
+  apiFetch: apiFetchMock,
+  AUTH_EXPIRED_EVENT: 'parku:auth-expired',
+  crearConRespaldo: async (path: string, body: unknown, fetchTodosCrudo: () => Promise<any[]>) => {
+    const creado = await apiFetchMock(path, { method: 'POST', body });
+    if (creado) return creado;
+    const todos = await fetchTodosCrudo();
+    return todos.reduce((max: any, item: any) => (item.id > max.id ? item : max));
+  },
+}));
 
 const vehiculos = createFakeRestBackend('/vehiculos', [
   { id: 1, placa: 'ABC123', tipo: 'CARRO', marca: 'Chevrolet', linea: 'Spark', modelo: 2020, color: 'Rojo', observaciones: null, estado: true, conductores: [{ id: 1, nombre_apellidos: 'Conductor Uno', DetallePropiedad: { es_principal: true } }], conductor_principal_id: 1, conductor_principal_nombre: 'Conductor Uno' },

@@ -20,11 +20,15 @@ export const rolesSeed = [
   { id: 3, nombre: 'Comunidad SENA', descripcion: 'Acceso básico', estado: true },
 ];
 
+// `rol_id`: nombre real de la columna en `/usuarios` (confirmado en vivo —
+// `toFrontend` de services/api/usuarios.ts la lee así). El endpoint de login
+// sí anida el rol como `rol` en su respuesta (confirmado en vivo también);
+// `createAuthBackend` traduce el nombre al construir esa respuesta.
 export const usuariosSeed = [
-  { id: 1, correo: 'admin@sena.edu.co', contrasena: 'Pass1234', nombre: 'Administrador ParkU', numero_telefonico: '3101234567', rol: 1, estado: 'ACTIVO' },
-  { id: 2, correo: 'ana.martinez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Ana Martínez R.', rol: 2, estado: 'ACTIVO' },
-  { id: 3, correo: 'pedro.ruiz@sena.edu.co', contrasena: 'Pass1234', nombre: 'Pedro Ruiz G.', rol: 2, estado: 'ACTIVO' },
-  { id: 4, correo: 'maria.diaz@ext.com', contrasena: 'Pass1234', nombre: 'María Díaz P.', rol: 3, estado: 'ACTIVO' },
+  { id: 1, correo: 'admin@sena.edu.co', contrasena: 'Pass1234', nombre: 'Administrador ParkU', numero_telefonico: '3101234567', rol_id: 1, estado: 'ACTIVO' },
+  { id: 2, correo: 'ana.martinez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Ana Martínez R.', rol_id: 2, estado: 'ACTIVO' },
+  { id: 3, correo: 'pedro.ruiz@sena.edu.co', contrasena: 'Pass1234', nombre: 'Pedro Ruiz G.', rol_id: 2, estado: 'ACTIVO' },
+  { id: 4, correo: 'maria.diaz@ext.com', contrasena: 'Pass1234', nombre: 'María Díaz P.', rol_id: 3, estado: 'ACTIVO' },
 ];
 
 export const conductoresSeed = [
@@ -145,7 +149,7 @@ function createAuthBackend() {
         success: true,
         message: 'Login exitoso',
         data: {
-          user: { id: account.id, correo: account.correo, nombre: account.nombre, rol: account.rol, estado: account.estado },
+          user: { id: account.id, correo: account.correo, nombre: account.nombre, rol: account.rol_id, estado: account.estado },
           token: `fake-token-${account.id}`,
           refreshToken: `fake-refresh-${account.id}`,
           expiresIn: '7d',
@@ -163,7 +167,8 @@ function createAuthBackend() {
         correo: body.correo,
         contrasena: body.contrasena,
         nombre: body.nombre,
-        rol: ROLES.CONDUCTOR,
+        numero_telefonico: body.numero ?? null,
+        rol_id: ROLES.CONDUCTOR,
         estado: 'ACTIVO',
       });
       return { success: true, message: 'Registro exitoso', data: {} } as unknown as R;
@@ -288,6 +293,9 @@ export function createAppBackends() {
   });
   const reservas = createFakeRestBackend('/reservas', reservasSeed, {
     actions: [{
+      method: 'GET', pattern: /^\/vehiculo\/(\d+)$/,
+      handle: (m, _body, items) => items.filter((i: any) => i.vehiculo_id === Number(m[1])),
+    }, {
       method: 'PATCH', pattern: /^\/(\d+)\/estado$/,
       handle: (m, body, items) => {
         const idx = items.findIndex((i) => i.id === Number(m[1]));

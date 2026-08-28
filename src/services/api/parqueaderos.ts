@@ -7,7 +7,7 @@
  * en `features/parqueaderos/hooks/useParqueaderosData.ts` agrupando
  * `GET /api/celdas` por parqueadero+tipo, no aquí.
  */
-import { apiFetch } from '../core/http';
+import { apiFetch, crearConRespaldo } from '../core/http';
 
 export type TipoParqueadero = 'general' | 'docentes' | 'administrativos' | 'aprendices' | 'visitantes' | 'motos' | 'vehiculo_sena';
 export type AccesoParqueadero = 'regional' | 'avenida_boyaca';
@@ -88,7 +88,10 @@ export async function getById(id: string): Promise<Parqueadero | undefined> {
 }
 
 export async function create(data: Omit<Parqueadero, 'id'>): Promise<Parqueadero> {
-  const created = await apiFetch<ApiParqueadero>('/parqueaderos', { method: 'POST', body: toApiPayload(data) });
+  // `POST /parqueaderos` crea el registro pero responde `null` en el body
+  // (bug confirmado en vivo del backend) — `crearConRespaldo` lo recupera
+  // con un GET a la lista si el POST no lo trae.
+  const created = await crearConRespaldo<ApiParqueadero>('/parqueaderos', toApiPayload(data), () => apiFetch<ApiParqueadero[]>('/parqueaderos'));
   return toFrontend(created);
 }
 

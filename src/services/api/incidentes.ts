@@ -12,7 +12,7 @@
  * esta integración no cubre todavía. `vehiculo`/`asignadoA` pasan de texto
  * libre a FKs reales (`vehiculoId`, `usuarioAsignadoId`).
  */
-import { apiFetch } from '../core/http';
+import { apiFetch, crearConRespaldo } from '../core/http';
 
 export type TipoNovedad = 'danio' | 'accidente' | 'mal_estacionamiento' | 'queja' | 'otro';
 export type PrioridadNovedad = 'baja' | 'media' | 'alta' | 'critica';
@@ -100,7 +100,10 @@ export async function getById(id: string): Promise<Incidente | undefined> {
 }
 
 export async function create(data: Omit<Incidente, 'id'>): Promise<Incidente> {
-  const created = await apiFetch<ApiNovedad>('/novedades', { method: 'POST', body: toApiPayload(data) });
+  // `POST /novedades` crea el registro pero responde `null` en el body (bug
+  // confirmado en vivo del backend) — `crearConRespaldo` lo recupera con un
+  // GET a la lista si el POST no lo trae.
+  const created = await crearConRespaldo<ApiNovedad>('/novedades', toApiPayload(data), () => apiFetch<ApiNovedad[]>('/novedades'));
   return toFrontend(created);
 }
 

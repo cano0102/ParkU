@@ -9,7 +9,7 @@
  * en el modelo real: el mock los mezclaba en un solo `tipo` con el valor
  * especial `"movilidad reducida"`.
  */
-import { apiFetch } from '../core/http';
+import { apiFetch, crearConRespaldo } from '../core/http';
 
 export type TipoCelda = 'carro' | 'moto' | 'bicicleta' | 'camion' | 'bus';
 export type UsabilidadCelda = 'general' | 'ejecutivo' | 'movilidad_reducida' | 'vehiculo_sena';
@@ -85,7 +85,10 @@ export async function getById(id: string): Promise<Celda | undefined> {
 }
 
 export async function create(data: Omit<Celda, 'id'>): Promise<Celda> {
-  const created = await apiFetch<ApiCelda>('/celdas', { method: 'POST', body: toApiPayload(data) });
+  // `POST /celdas` crea el registro pero responde `null` en el body (bug
+  // confirmado en vivo del backend) — `crearConRespaldo` lo recupera con un
+  // GET a la lista si el POST no lo trae.
+  const created = await crearConRespaldo<ApiCelda>('/celdas', toApiPayload(data), () => apiFetch<ApiCelda[]>('/celdas'));
   return toFrontend(created);
 }
 

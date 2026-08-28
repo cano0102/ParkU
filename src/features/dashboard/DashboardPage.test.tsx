@@ -6,9 +6,10 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createAppBackends } from '@/test/appFakeApi';
 import Dashboard from './DashboardPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
+import { AuthProvider } from '@/context/AuthContext';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 function renderDashboard() {
@@ -16,7 +17,9 @@ function renderDashboard() {
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
-        <Dashboard />
+        <AuthProvider>
+          <Dashboard />
+        </AuthProvider>
       </QueryClientProvider>
     </MemoryRouter>,
   );

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Car, DoorOpen, ParkingCircle, Users } from "lucide-react";
 import { theme } from "@/styles/theme";
 import { LoadingState } from "@/components/shared";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { useClock } from "./hooks/useClock";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { Kpi } from "./components/DashboardPrimitives";
@@ -14,13 +16,25 @@ import { OcupacionPanel } from "./components/OcupacionPanel";
 import { DistribucionPanel } from "./components/DistribucionPanel";
 import { MovimientosPanel } from "./components/MovimientosPanel";
 import { ReservasIncidentesPanel } from "./components/ReservasIncidentesPanel";
+import ConductorDashboard from "./components/ConductorDashboard";
 
 const COLORS = theme;
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const now = useClock();
+  const { user } = useAuth();
+  const esComunidadSena = user?.rol === ROLES.CONDUCTOR;
   const d = useDashboardData();
+
+  // El rol Comunidad SENA (Conductor) no tiene permiso en la API real para
+  // consultar entradas-salidas/reservas completas/novedades (403 confirmado
+  // en vivo) — el Dashboard completo de abajo depende de esos datos, así que
+  // para este rol se muestra una versión reducida con solo lo que le sirve:
+  // su celda asignada (si aplica), sus vehículos y sus reservas.
+  if (esComunidadSena) {
+    return <ConductorDashboard />;
+  }
 
   if (d.isLoading) {
     return (

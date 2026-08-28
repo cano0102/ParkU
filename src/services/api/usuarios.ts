@@ -36,7 +36,10 @@ interface ApiUsuario {
   correo: string;
   nombre: string;
   numero_telefonico?: string | null;
-  rol: number;
+  /** La API real nombra esta columna `rol_id` (confirmado en vivo) — antes se
+   *  leía `rol` (inexistente en la respuesta real), así que todo usuario
+   *  caía siempre al rol por defecto sin importar el suyo real. */
+  rol_id: number;
   estado: string;
 }
 
@@ -47,7 +50,7 @@ function toFrontend(u: ApiUsuario): Usuario {
     password: '',
     nombre: u.nombre,
     numero: u.numero_telefonico ?? '',
-    rol: esRolId(u.rol) ? u.rol : ROLES.CONDUCTOR,
+    rol: esRolId(u.rol_id) ? u.rol_id : ROLES.CONDUCTOR,
     estado: u.estado === 'ACTIVO' ? 'activo' : 'inactivo',
   };
 }
@@ -74,7 +77,10 @@ export async function create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
       nombre: data.nombre,
       numero_telefonico: data.numero.trim() || undefined,
       rol: data.rol,
-      estado: data.estado === 'activo',
+      // La API espera el ENUM en mayúsculas ("ACTIVO"/"INACTIVO"), no un
+      // booleano — confirmado en vivo: enviar `true`/`false` aquí hace que
+      // el backend responda 500 en cada creación.
+      estado: data.estado === 'activo' ? 'ACTIVO' : 'INACTIVO',
     },
   });
   return toFrontend(created);
@@ -86,7 +92,9 @@ export async function update(id: string, data: Partial<Omit<Usuario, 'id'>>): Pr
   if (data.nombre !== undefined) payload.nombre = data.nombre;
   if (data.numero !== undefined) payload.numero_telefonico = data.numero.trim() || null;
   if (data.rol !== undefined) payload.rol = data.rol;
-  if (data.estado !== undefined) payload.estado = data.estado === 'activo';
+  // Mismo caso que en `create`: el backend exige el ENUM en mayúsculas, un
+  // booleano hace que la actualización falle con 500 (bug reproducido en vivo).
+  if (data.estado !== undefined) payload.estado = data.estado === 'activo' ? 'ACTIVO' : 'INACTIVO';
   const updated = await apiFetch<ApiUsuario>(`/usuarios/${id}`, { method: 'PUT', body: payload });
   return toFrontend(updated);
 }

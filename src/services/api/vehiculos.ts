@@ -11,7 +11,7 @@
  * estacionado ahora" vive en `/api/entradas-salidas` (ver
  * services/api/controlSalida.ts), no en el vehículo.
  */
-import { apiFetch } from '../core/http';
+import { apiFetch, crearConRespaldo } from '../core/http';
 
 export interface Vehiculo {
   id: string;
@@ -103,7 +103,10 @@ export async function getById(id: string): Promise<Vehiculo | undefined> {
 }
 
 export async function create(data: Omit<Vehiculo, 'id'>): Promise<Vehiculo> {
-  const created = await apiFetch<ApiVehiculo>('/vehiculos', { method: 'POST', body: toApiPayload(data) });
+  // `POST /vehiculos` crea el registro pero responde `null` en el body (bug
+  // confirmado en vivo del backend) — `crearConRespaldo` lo recupera con un
+  // GET a la lista si el POST no lo trae.
+  const created = await crearConRespaldo<ApiVehiculo>('/vehiculos', toApiPayload(data), () => apiFetch<ApiVehiculo[]>('/vehiculos'));
   return toFrontend(created);
 }
 

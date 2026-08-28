@@ -5,7 +5,15 @@ import * as reservas from './reservas';
 import type { Reserva } from './reservas';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('../core/http', () => ({ apiFetch: apiFetchMock }));
+vi.mock('../core/http', () => ({
+  apiFetch: apiFetchMock,
+  crearConRespaldo: async (path: string, body: unknown, fetchTodosCrudo: () => Promise<any[]>) => {
+    const creado = await apiFetchMock(path, { method: 'POST', body });
+    if (creado) return creado;
+    const todos = await fetchTodosCrudo();
+    return todos.reduce((max: any, item: any) => (item.id > max.id ? item : max));
+  },
+}));
 
 const backend = createFakeRestBackend('/reservas', [], {
   actions: [

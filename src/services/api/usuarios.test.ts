@@ -8,7 +8,7 @@ const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('../core/http', () => ({ apiFetch: apiFetchMock }));
 
 const seed = [
-  { id: 1, correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', rol: 1, estado: 'ACTIVO' },
+  { id: 1, correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', rol_id: 1, estado: 'ACTIVO' },
 ];
 const backend = createFakeRestBackend('/usuarios', seed);
 apiFetchMock.mockImplementation(backend.apiFetch);

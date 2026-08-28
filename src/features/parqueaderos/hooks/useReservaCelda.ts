@@ -20,6 +20,7 @@ export function useReservaCelda(
     fechaReserva: new Date().toISOString().split("T")[0],
     horaInicio: "08:00",
     horaFin: "18:00",
+    motivo: "",
     estado: "pendiente",
   });
   const [reservaError, setReservaError] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export function useReservaCelda(
       fechaReserva: new Date().toISOString().split("T")[0],
       horaInicio: "08:00",
       horaFin: "18:00",
+      motivo: "",
       estado: "pendiente",
     }));
     setReservaError(null);
@@ -77,7 +79,7 @@ export function useReservaCelda(
         vehiculoId: reservaForm.vehiculoId,
         celdaId: reservaForm.celdaId,
         conductorId: vehiculoReservado?.conductorId ?? "",
-        motivo: "",
+        motivo: reservaForm.motivo.trim(),
         fechaReserva: reservaForm.fechaReserva,
         horaInicio: reservaForm.horaInicio,
         horaFin: reservaForm.horaFin,
@@ -87,7 +89,7 @@ export function useReservaCelda(
       toast.success(`Reserva creada para la celda ${celdaActiva?.numero}`);
       setOpenModal(null);
       setReservaError(null);
-      setReservaForm((prev) => ({ ...prev, vehiculoId: "", horaInicio: "08:00", horaFin: "18:00" }));
+      setReservaForm((prev) => ({ ...prev, vehiculoId: "", horaInicio: "08:00", horaFin: "18:00", motivo: "" }));
     } catch (error) {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
       // (services/core/queryFactory.ts).
