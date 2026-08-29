@@ -11,6 +11,7 @@ import { useIngresoVehiculo } from "./useIngresoVehiculo";
 import { useOcrScanner } from "./useOcrScanner";
 import { useReservaCelda } from "./useReservaCelda";
 import { useIncidenteReporte } from "./useIncidenteReporte";
+import { useConductoresData, useConductorForm, useAgregarVehiculo } from "@/features/conductores";
 
 /** Compone todos los hooks de dominio de la página de Parqueaderos y orquesta lo que los cruza
  * (abrir una celda, mantener las estadísticas frescas mientras pasa el tiempo). */
@@ -25,6 +26,32 @@ export function useParqueaderosPage() {
   const scanner = useOcrScanner(modal.celdaActiva, ingreso.setVehiculoForm, modal.openModal, modal.setOpenModal, ingreso.registrarEnCelda);
   const reserva = useReservaCelda(data, modal.celdaActiva, modal.getOcupante, data.updateControlSalida, modal.setOpenModal);
   const incidente = useIncidenteReporte(data, modal.celdaActiva, modal.ocupanteActivo, modal.setOpenModal);
+
+  // Sub-pasos "Crear conductor" / "Crear vehículo" del asistente de Estacionar Vehículo:
+  // mismos hooks que ya usa la pantalla de Conductores (fetch ya cacheado por React Query,
+  // no hay llamada de red duplicada), con un callback que selecciona lo recién creado en el
+  // asistente y vuelve al modal de ingreso, sin perder la celda ni el resto del formulario.
+  const conductoresData = useConductoresData();
+  const conductorForm = useConductorForm(conductoresData, (conductor, vehiculo) => {
+    ingreso.seleccionarConductor(conductor);
+    ingreso.seleccionarVehiculo(vehiculo);
+    modal.setOpenModal("ingreso");
+  });
+  const agregarVehiculo = useAgregarVehiculo(conductoresData, (vehiculo) => {
+    ingreso.seleccionarVehiculo(vehiculo);
+    modal.setOpenModal("ingreso");
+  });
+
+  const abrirCrearConductor = useCallback(() => {
+    conductorForm.openCreate();
+    modal.setOpenModal("crearConductor");
+  }, [conductorForm, modal]);
+
+  const abrirCrearVehiculo = useCallback(() => {
+    if (!ingreso.conductorIdentificado) return;
+    agregarVehiculo.abrir(ingreso.conductorIdentificado);
+    modal.setOpenModal("crearVehiculo");
+  }, [agregarVehiculo, ingreso.conductorIdentificado, modal]);
 
   // Las celdas no cambian con el paso del tiempo por sí solas, pero una reserva que ya venció
   // sí debería reflejarse en la UI aunque nadie interactúe con la página; este tick fuerza un
@@ -69,5 +96,8 @@ export function useParqueaderosPage() {
     }
   }, [modal, ingreso, hasPermission]);
 
-  return { navigate, hasPermission, data, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick };
+  return {
+    navigate, hasPermission, data, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick,
+    conductorForm, agregarVehiculo, abrirCrearConductor, abrirCrearVehiculo,
+  };
 }

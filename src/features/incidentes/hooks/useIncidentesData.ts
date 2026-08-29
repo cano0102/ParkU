@@ -47,6 +47,12 @@ export function useIncidentesData() {
   const celdaDe = (id?: string) => (id ? celdaPorId.get(id) : undefined);
   const vehiculoDe = (id?: string) => (id ? vehiculoPorId.get(id) : undefined);
   const nombreUsuarioAsignado = (id?: string) => (id ? usuarioPorId.get(id)?.nombre : undefined);
+  // Trazabilidad del incidente hacia la persona: novedad -> vehiculo_id -> conductor_principal
+  // (no hay FK directa novedad->conductor, ver services/api/incidentes.ts).
+  const conductorDe = (vehiculoId?: string) => {
+    const veh = vehiculoDe(vehiculoId);
+    return veh?.conductorId ? conductores.find((c) => c.id === veh.conductorId) : undefined;
+  };
 
   // Quién ocupa una celda AHORA: se deriva del registro de entrada/salida abierto
   // (ver services/api/controlSalida.ts) — el vehículo ya no guarda su propia celda.
@@ -121,6 +127,7 @@ export function useIncidentesData() {
     nombreParqueadero,
     celdaDe,
     vehiculoDe,
+    conductorDe,
     nombreUsuarioAsignado,
     ocupanteDeCelda,
     pendientes,

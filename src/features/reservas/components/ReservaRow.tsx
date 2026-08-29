@@ -17,12 +17,15 @@ interface ReservaRowProps {
   celda: Celda | undefined;
   usuario: Conductor | null | undefined;
   parqueadero: Parqueadero | undefined;
+  /** Solo Admin puede eliminar reservas — las demás cuentas ya reciben 403 del backend
+   *  si lo intentan, así que el botón ni se muestra para ellas. */
+  canDelete: boolean;
   onView: () => void;
   onDelete: () => void;
 }
 
 /** Una fila de la tabla de reservas: vehículo, conductor, ubicación, horario, fecha, estado y acciones. */
-export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, onView, onDelete }: ReservaRowProps) {
+export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, canDelete, onView, onDelete }: ReservaRowProps) {
   const cfg = ESTADO_CONFIG[reserva.estado];
   const esPasada = reserva.fechaReserva < todayStr() && !["completada", "cancelada", "rechazada"].includes(reserva.estado);
 
@@ -111,15 +114,17 @@ export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, onV
         >
           <Eye size={13} />
         </button>
-        <button
-          className="action-btn"
-          title="Eliminar"
-          aria-label="Eliminar reserva"
-          onClick={onDelete}
-          style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
-        >
-          <Trash2 size={13} />
-        </button>
+        {canDelete && (
+          <button
+            className="action-btn"
+            title="Eliminar"
+            aria-label="Eliminar reserva"
+            onClick={onDelete}
+            style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <Trash2 size={13} />
+          </button>
+        )}
       </div>
     </div>
   );

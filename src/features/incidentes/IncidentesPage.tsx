@@ -86,6 +86,8 @@ export function Incidentes() {
             incidente={p.selectedIncidente}
             celda={p.celdaDe(p.selectedIncidente.celdaId)}
             vehiculoPlaca={p.vehiculoDe(p.selectedIncidente.vehiculoId)?.placa}
+            conductorNombre={p.conductorDe(p.selectedIncidente.vehiculoId)?.nombre}
+            conductorDocumento={p.conductorDe(p.selectedIncidente.vehiculoId)?.numeroDocumento}
             asignadoNombre={p.nombreUsuarioAsignado(p.selectedIncidente.usuarioAsignadoId)}
             nombreParqueadero={p.nombreParqueadero(p.selectedIncidente.parqueaderoId)}
             onClose={() => p.setViewOpen(false)}

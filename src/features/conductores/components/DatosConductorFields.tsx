@@ -5,7 +5,7 @@ import { COLORS, TIPOS_DOCUMENTO, inputStyle, inputErrorStyle, quitarDigitos, ty
 interface DatosConductorFieldsProps {
   isEdit: boolean;
   form: FormState;
-  errors: { nombre?: string; numeroDocumento?: string; tipoUsuarioId?: string; centroFormacion?: string };
+  errors: { nombre?: string; numeroDocumento?: string; tipoUsuarioId?: string };
   touched: Record<string, boolean>;
   onChange: (patch: Partial<FormState>) => void;
   onBlur: (field: string) => void;
@@ -113,14 +113,13 @@ export function DatosConductorFields({ isEdit, form, errors, touched, onChange, 
         </FormField>
       )}
 
-      <FormField label="Centro de formación *" error={err("centroFormacion")} style={{ gridColumn: isEdit ? "1 / -1" : undefined }}>
+      <FormField label="Centro de formación (opcional)" style={{ gridColumn: isEdit ? "1 / -1" : undefined }}>
         <input
           type="text"
           placeholder="ej. Centro de Tecnología"
           value={form.centroFormacion}
           onChange={(e) => onChange({ centroFormacion: e.target.value })}
-          onBlur={() => onBlur("centroFormacion")}
-          style={{ ...inputStyle, ...(err("centroFormacion") ? inputErrorStyle : {}) }}
+          style={{ ...inputStyle }}
         />
       </FormField>
 

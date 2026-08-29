@@ -29,6 +29,8 @@ export interface Reserva {
   horaInicio: string;
   horaFin: string;
   estado: EstadoReserva;
+  /** Motivo obligatorio escrito al rechazar — vacío mientras nunca haya sido rechazada. */
+  motivoRechazo: string;
 }
 
 const ESTADO_DESDE_API: Record<string, EstadoReserva> = {
@@ -52,6 +54,7 @@ interface ApiReserva {
   fecha_hora_inicio: string;
   fecha_hora_fin: string;
   estado: string;
+  motivo_rechazo?: string | null;
 }
 
 function partirFechaHora(iso: string): { fecha: string; hora: string } {
@@ -82,6 +85,7 @@ function toFrontend(r: ApiReserva): Reserva {
     horaInicio: inicio.hora,
     horaFin: fin.hora,
     estado: ESTADO_DESDE_API[r.estado] ?? 'pendiente',
+    motivoRechazo: r.motivo_rechazo ?? '',
   };
 }
 
@@ -161,7 +165,10 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
       // No se usa `updated` como fuente de verdad para el estado en ningún sitio de llamada —
       // todos dependen de la invalidación de la query de reservas (ver queryFactory.ts) para
       // refrescar con el GET real, así que esta respuesta obsoleta no llega a mostrarse.
-      updated = await apiFetch<ApiReserva>(`/reservas/${id}/estado`, { method: 'PATCH', body: { estado: estadoApi } });
+      updated = await apiFetch<ApiReserva>(`/reservas/${id}/estado`, {
+        method: 'PATCH',
+        body: { estado: estadoApi, motivoRechazo: estado === 'rechazada' ? data.motivoRechazo : undefined },
+      });
     }
   }
   return toFrontend(updated ?? await apiFetch<ApiReserva>(`/reservas/${id}`));

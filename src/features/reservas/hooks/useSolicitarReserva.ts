@@ -110,6 +110,7 @@ export function useSolicitarReserva(
         celdaId: form.celdaId,
         conductorId: vehiculoSeleccionado?.conductorId ?? "",
         motivo: form.motivo.trim(),
+        motivoRechazo: "",
         fechaReserva: form.fechaReserva,
         horaInicio: form.horaInicio,
         horaFin: form.horaFin,

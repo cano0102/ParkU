@@ -43,49 +43,75 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
           <label style={labelStyle}>Ubicación *</label>
           <input value={pqForm.ubicacion} maxLength={UBICACION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, ubicacion: e.target.value }))} placeholder="Ej: Acceso Regional - Torre Sur" style={fieldStyle} />
         </div>
-        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {isEdit ? (
+          <>
+            <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Acceso</label>
+                <select value={pqForm.acceso} onChange={e => setPqForm(p => ({ ...p, acceso: e.target.value as FormParqueadero["acceso"] }))} style={fieldStyle}>
+                  {ACCESOS_PARQUEADERO.map(a => <option key={a} value={a}>{a === "regional" ? "Regional" : "Avenida Boyacá"}</option>)}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Categoría</label>
+                <select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value as FormParqueadero["tipo"] }))} style={fieldStyle}>
+                  {TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{capitalizar(t.replace("_", " "))}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Zona</label>
+                <input value={pqForm.zona} onChange={e => setPqForm(p => ({ ...p, zona: e.target.value }))} placeholder="Ej: Torre Sur" style={fieldStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Piso</label>
+                <input value={pqForm.piso} onChange={e => setPqForm(p => ({ ...p, piso: e.target.value }))} placeholder="Ej: Nivel 1" style={fieldStyle} />
+              </div>
+            </div>
+            <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={labelStyle}>Hora apertura</label>
+                <input type="time" value={pqForm.horaInicio} onChange={e => setPqForm(p => ({ ...p, horaInicio: e.target.value }))} style={fieldStyle} />
+              </div>
+              <div>
+                <label style={labelStyle}>Hora cierre</label>
+                <input type="time" value={pqForm.horaFin} onChange={e => setPqForm(p => ({ ...p, horaFin: e.target.value }))} style={fieldStyle} />
+              </div>
+            </div>
+            <div>
+              <label style={labelStyle}>Capacidad máxima *</label>
+              <input type="number" min={1} max={500} value={pqForm.capacidadMaxima} onChange={e => setPqForm(p => ({ ...p, capacidadMaxima: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+              <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Las celdas se administran por separado desde la pantalla de Celdas.</p>
+            </div>
+            <div>
+              <label style={labelStyle}>Descripción</label>
+              <input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={fieldStyle} />
+            </div>
+          </>
+        ) : (
           <div>
-            <label style={labelStyle}>Acceso</label>
-            <select value={pqForm.acceso} onChange={e => setPqForm(p => ({ ...p, acceso: e.target.value as FormParqueadero["acceso"] }))} style={fieldStyle}>
-              {ACCESOS_PARQUEADERO.map(a => <option key={a} value={a}>{a === "regional" ? "Regional" : "Avenida Boyacá"}</option>)}
-            </select>
+            <p style={{ fontSize: 11, color: C.textLight, marginBottom: 10 }}>
+              Acceso, categoría, zona, piso, horarios y descripción quedan con un valor por
+              defecto — puedes ajustarlos después editando el parqueadero. Indica cuántas celdas
+              generar de una vez (podés agregar más luego desde Celdas):
+            </p>
+            <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={labelStyle} htmlFor="pq-celdas-carro">Celdas de carro</label>
+                <input id="pq-celdas-carro" type="number" min={0} max={200} value={pqForm.celdasCarros} onChange={e => setPqForm(p => ({ ...p, celdasCarros: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+              </div>
+              <div>
+                <label style={labelStyle} htmlFor="pq-celdas-moto">Celdas de moto</label>
+                <input id="pq-celdas-moto" type="number" min={0} max={200} value={pqForm.celdasMotos} onChange={e => setPqForm(p => ({ ...p, celdasMotos: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+              </div>
+              <div>
+                <label style={labelStyle} htmlFor="pq-celdas-pmr">Movilidad reducida</label>
+                <input id="pq-celdas-pmr" type="number" min={0} max={200} value={pqForm.celdasMovilidadReducida} onChange={e => setPqForm(p => ({ ...p, celdasMovilidadReducida: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+              </div>
+            </div>
           </div>
-          <div>
-            <label style={labelStyle}>Categoría</label>
-            <select value={pqForm.tipo} onChange={e => setPqForm(p => ({ ...p, tipo: e.target.value as FormParqueadero["tipo"] }))} style={fieldStyle}>
-              {TIPOS_PARQUEADERO.map(t => <option key={t} value={t}>{capitalizar(t.replace("_", " "))}</option>)}
-            </select>
-          </div>
-        </div>
-        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <label style={labelStyle}>Zona</label>
-            <input value={pqForm.zona} onChange={e => setPqForm(p => ({ ...p, zona: e.target.value }))} placeholder="Ej: Torre Sur" style={fieldStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Piso</label>
-            <input value={pqForm.piso} onChange={e => setPqForm(p => ({ ...p, piso: e.target.value }))} placeholder="Ej: Nivel 1" style={fieldStyle} />
-          </div>
-        </div>
-        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <label style={labelStyle}>Hora apertura</label>
-            <input type="time" value={pqForm.horaInicio} onChange={e => setPqForm(p => ({ ...p, horaInicio: e.target.value }))} style={fieldStyle} />
-          </div>
-          <div>
-            <label style={labelStyle}>Hora cierre</label>
-            <input type="time" value={pqForm.horaFin} onChange={e => setPqForm(p => ({ ...p, horaFin: e.target.value }))} style={fieldStyle} />
-          </div>
-        </div>
-        <div>
-          <label style={labelStyle}>Capacidad máxima *</label>
-          <input type="number" min={1} max={500} value={pqForm.capacidadMaxima} onChange={e => setPqForm(p => ({ ...p, capacidadMaxima: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
-          <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Las celdas se crean por separado desde la pantalla de Celdas.</p>
-        </div>
-        <div>
-          <label style={labelStyle}>Descripción</label>
-          <input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={fieldStyle} />
-        </div>
+        )}
       </EntityFormModal>
     </Modal>
   );

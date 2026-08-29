@@ -11,6 +11,10 @@ interface IncidenteViewModalProps {
   incidente: Incidente;
   celda: Celda | undefined;
   vehiculoPlaca?: string;
+  /** Conductor dueño del vehículo (vehiculo -> conductor_principal), para no perder la
+   *  trazabilidad hacia la persona aunque `novedad` no tenga un conductor_id directo. */
+  conductorNombre?: string;
+  conductorDocumento?: string;
   asignadoNombre?: string;
   nombreParqueadero: string;
   onClose: () => void;
@@ -18,7 +22,7 @@ interface IncidenteViewModalProps {
 }
 
 /** Vista de solo lectura del detalle de un incidente. */
-export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
+export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
   const navigate = useNavigate();
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
@@ -36,6 +40,9 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, asignadoNo
       : []),
     { label: "Fecha y hora", value: fecha.toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" }), icon: Clock, onClick: undefined },
     ...(vehiculoPlaca ? [{ label: "Vehículo", value: vehiculoPlaca, icon: Car, onClick: undefined }] : []),
+    ...(conductorNombre
+      ? [{ label: "Conductor", value: conductorDocumento ? `${conductorNombre} · ${conductorDocumento}` : conductorNombre, icon: User, onClick: undefined }]
+      : []),
     ...(asignadoNombre ? [{ label: "Asignado a", value: asignadoNombre, icon: User, onClick: undefined }] : []),
   ];
 

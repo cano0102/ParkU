@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
+import type { Vehiculo } from "@/services/api/vehiculos";
+import type { Conductor } from "@/services/api/conductores";
 import {
   type VehiculoForm,
   normalizarTexto, validarPlacaColombiana, validarPlacaPorTipo, validarNombreConductor, tipoVehiculoDesdePlaca,
@@ -14,14 +16,15 @@ import type { Reserva } from "@/services/api/reservas";
 
 const emptyVehiculoForm = (esOficial = false): VehiculoForm => ({ placa: "", conductor: "", esOficial, marca: "", modelo: "", color: "" });
 
-/** Formulario de registro/estacionamiento de un vehículo en una celda: identificación de
- * conductor/vehículo (con autocompletado), validación en vivo y el registro final.
- *
- * A diferencia del mock, ya no crea un Conductor nuevo con solo un nombre: la API real exige
- * documento y tipo de usuario para un Conductor (ver services/api/conductores.ts), datos que
- * este formulario de portería no recoge. Si el nombre escrito no coincide con un conductor ya
- * registrado, el ingreso se registra igual pero sin conductor vinculado (el vigilante puede
- * completar la ficha después desde Conductores). */
+/** Formulario de registro/estacionamiento de un vehículo en una celda: búsqueda estructurada
+ * de conductor (documento/nombre/correo) → selección de uno de sus vehículos ya registrados
+ * (o creación inline de cualquiera de los dos, sin perder el paso en el que iba) → registro
+ * final en la celda ya elegida. `registrarEnCelda` sigue siendo el motor de validación/registro
+ * compartido con el escáner OCR y la Asignación Inteligente (`useOcrScanner.ts`), que siguen
+ * identificando por placa/nombre en texto libre — para esos dos, si el nombre detectado no
+ * coincide con un conductor ya registrado, el ingreso se registra igual pero sin conductor
+ * vinculado (el vigilante puede completarlo después desde Conductores); el asistente de este
+ * hook, en cambio, exige un conductor real antes de permitir el registro. */
 export function useIngresoVehiculo(
   data: ParqueaderosData,
   celdaActiva: Celda | null,
@@ -32,6 +35,13 @@ export function useIngresoVehiculo(
 
   const [vehiculoForm, setVehiculoForm] = useState<VehiculoForm>(emptyVehiculoForm());
   const [placaError, setPlacaError] = useState<string | null>(null);
+  // Id del conductor elegido explícitamente desde el buscador estructurado (documento/nombre/
+  // correo) o creado en el momento — a diferencia de `vehiculoForm.conductor` (un nombre en
+  // texto libre, compartido con el OCR), este id no es ambiguo aunque existan dos conductores
+  // con el mismo nombre. Se usa como fuente de verdad preferente en `conductorIdentificado` y
+  // se manda tal cual al registrar, en vez de volver a resolverlo por nombre.
+  const [conductorSeleccionadoId, setConductorSeleccionadoId] = useState<string | null>(null);
+  const [conductorQuery, setConductorQuery] = useState("");
 
   const resolverVehiculo = async (
     placa: string, conductorId: string, tipo: "carro" | "moto",
@@ -50,16 +60,23 @@ export function useIngresoVehiculo(
 
   const registrarEnCelda = async (
     celda: Celda, placaRaw: string, conductorRaw: string, _esOficial: boolean,
-    datosVehiculo?: { marca?: string; modelo?: string; color?: string }
+    datosVehiculo?: { marca?: string; modelo?: string; color?: string },
+    conductorIdExplicito?: string
   ): Promise<boolean> => {
     const placa = placaRaw.trim().toUpperCase();
     const conductorNombre = normalizarTexto(conductorRaw, 60);
     if (!placa || !conductorNombre) { setPlacaError("Completa todos los campos."); return false; }
     if (!validarPlacaColombiana(placa)) { setPlacaError("Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto)."); return false; }
+    // Cuando el asistente de búsqueda estructurada ya identificó un conductor puntual (por
+    // documento/nombre/correo o recién creado), se resuelve por su id — evita el caso
+    // ambiguo de dos conductores con el mismo nombre. El OCR y la Asignación Inteligente
+    // no mandan este id (siguen resolviendo por nombre, igual que siempre).
     // Un conductor ya registrado en el módulo Conductores es válido de por sí, aunque su
     // nombre no cumpla el formato "nombre apellido" del validador genérico (p. ej. "Carlos
     // López M.", con inicial abreviada). El validador de formato solo aplica a nombres nuevos.
-    const conductorExistente = conductores.find((c) => c.nombre.trim().toLowerCase() === conductorNombre.toLowerCase());
+    const conductorExistente = conductorIdExplicito
+      ? conductores.find((c) => c.id === conductorIdExplicito)
+      : conductores.find((c) => c.nombre.trim().toLowerCase() === conductorNombre.toLowerCase());
     if (!conductorExistente && !validarNombreConductor(conductorNombre)) { setPlacaError("Ingresa el nombre completo del conductor (nombre y apellido)."); return false; }
     // Un conductor desactivado no puede seguir estacionando vehículos: "inactivo" debe
     // bloquear de verdad, no solo dejar de aparecer en las sugerencias.
@@ -138,13 +155,42 @@ export function useIngresoVehiculo(
     if (!celdaActiva) return;
     if (await registrarEnCelda(celdaActiva, vehiculoForm.placa, vehiculoForm.conductor, vehiculoForm.esOficial, {
       marca: vehiculoForm.marca, modelo: vehiculoForm.modelo, color: vehiculoForm.color,
-    })) {
+    }, conductorSeleccionadoId ?? undefined)) {
       setOpenModal(null);
     }
   };
 
-  const abrirIngresoOficial = () => { setVehiculoForm(emptyVehiculoForm(true)); setOpenModal("ingreso"); };
-  const abrirIngresoVisitante = () => { setVehiculoForm(emptyVehiculoForm(false)); setOpenModal("ingreso"); };
+  const resetWizardConductor = () => {
+    setConductorSeleccionadoId(null);
+    setConductorQuery("");
+  };
+
+  const abrirIngresoOficial = () => { setVehiculoForm(emptyVehiculoForm(true)); resetWizardConductor(); setOpenModal("ingreso"); };
+  const abrirIngresoVisitante = () => { setVehiculoForm(emptyVehiculoForm(false)); resetWizardConductor(); setOpenModal("ingreso"); };
+
+  /** Selección estructurada del conductor (buscador por documento/nombre/correo, o recién
+   *  creado inline) — a diferencia de escribir un nombre libre, deja el id sin ambigüedad y
+   *  limpia cualquier vehículo/placa que hubiera quedado de una selección anterior. */
+  const seleccionarConductor = (c: Conductor) => {
+    setConductorSeleccionadoId(c.id);
+    setConductorQuery("");
+    setPlacaError(null);
+    setVehiculoForm((prev) => ({ ...prev, conductor: c.nombre, placa: "", marca: "", modelo: "", color: "" }));
+  };
+
+  /** Vuelve al paso de búsqueda de conductor (botón "Cambiar"), sin cerrar el asistente. */
+  const cambiarConductor = () => {
+    setConductorSeleccionadoId(null);
+    setConductorQuery("");
+    setPlacaError(null);
+    setVehiculoForm((prev) => ({ ...prev, conductor: "", placa: "", marca: "", modelo: "", color: "" }));
+  };
+
+  /** Selección de uno de los vehículos ya registrados del conductor identificado. */
+  const seleccionarVehiculo = (v: Vehiculo) => {
+    setPlacaError(null);
+    setVehiculoForm((prev) => ({ ...prev, placa: v.placa }));
+  };
 
   /* Sugerencias del campo Conductor: nombres de conductores reales ya registrados en el
      módulo Conductores (en vez de la lista genérica de ejemplo), para que el operador
@@ -181,6 +227,23 @@ export function useIngresoVehiculo(
     return conductores.find((c) => c.id === vehiculoEncontrado.conductorId) ?? null;
   }, [vehiculoEncontrado, conductores]);
 
+  /* Conductor "identificado" para todo el resto del formulario, en orden de prioridad:
+     1) elegido explícitamente en el buscador estructurado (conductorSeleccionadoId) — el
+        único caso sin ambigüedad aunque haya dos conductores con el mismo nombre;
+     2) resuelto por la placa ya registrada (conductorEncontrado);
+     3) coincidencia exacta de nombre en texto libre (compatibilidad con el OCR, que solo
+        rellena `vehiculoForm.conductor` con el nombre detectado, sin id). */
+  const conductorIdentificado = useMemo(() => {
+    if (conductorSeleccionadoId) {
+      const c = conductores.find((c) => c.id === conductorSeleccionadoId);
+      if (c) return c;
+    }
+    if (conductorEncontrado) return conductorEncontrado;
+    const nombre = vehiculoForm.conductor.trim().toLowerCase();
+    if (!nombre) return null;
+    return conductores.find((c) => c.nombre.trim().toLowerCase() === nombre) ?? null;
+  }, [conductorSeleccionadoId, conductorEncontrado, vehiculoForm.conductor, conductores]);
+
   /* Chequeo en vivo de "celda reservada para otro vehículo" y "el conductor ya tiene otro
      vehículo suyo en uso" — igual que placaYaEstacionada, se recalcula con cada tecleo para
      avisar antes de que el operador intente enviar el formulario. */
@@ -193,14 +256,19 @@ export function useIngresoVehiculo(
       const vehiculoReservado = vehiculos.find((v) => v.id === reservaDeLaCelda.vehiculoId);
       return `Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${reservaDeLaCelda.horaFin}.`;
     }
-    if (conductorEncontrado) {
+    // `conductorIdentificado` (no solo `conductorEncontrado`, que depende de que la placa YA
+    // coincida con un vehículo existente) para que este aviso también salga cuando el
+    // conductor ya fue elegido en el buscador estructurado pero todavía no se eligió/escribió
+    // una placa: si ese conductor ya tiene otro vehículo en uso en otra celda, se avisa antes
+    // de que intente registrar uno nuevo.
+    if (conductorIdentificado) {
       const otroEnUso = otroVehiculoDelConductorEnUso(
-        conductorEncontrado.id, vehiculoEncontrado?.id ?? null, vehiculos, controlesSalida, reservas
+        conductorIdentificado.id, vehiculoEncontrado?.id ?? null, vehiculos, controlesSalida, reservas
       );
       if (otroEnUso) return otroEnUso.motivo;
     }
     return null;
-  }, [celdaActiva, reservas, vehiculoEncontrado, vehiculos, conductorEncontrado, controlesSalida]);
+  }, [celdaActiva, reservas, vehiculoEncontrado, vehiculos, conductorIdentificado, controlesSalida]);
 
   const conductorAutoRef = useRef(false);
   useEffect(() => {
@@ -212,17 +280,6 @@ export function useIngresoVehiculo(
       setVehiculoForm((prev) => (prev.conductor ? { ...prev, conductor: "" } : prev));
     }
   }, [conductorEncontrado]);
-
-  /* Reconoce al conductor no solo por la placa (conductorEncontrado) sino también cuando el
-     operador escribe/elige el nombre exacto de alguien ya registrado en el módulo Conductores
-     (p. ej. trae un vehículo nuevo, distinto a los que ya tiene a su nombre). Con cualquiera de
-     las dos vías se le puede mostrar toda su flota ya registrada, no solo la placa actual. */
-  const conductorIdentificado = useMemo(() => {
-    if (conductorEncontrado) return conductorEncontrado;
-    const nombre = vehiculoForm.conductor.trim().toLowerCase();
-    if (!nombre) return null;
-    return conductores.find((c) => c.nombre.trim().toLowerCase() === nombre) ?? null;
-  }, [conductorEncontrado, vehiculoForm.conductor, conductores]);
 
   const vehiculosConductor = useMemo(() => {
     if (!conductorIdentificado) return [];
@@ -241,13 +298,17 @@ export function useIngresoVehiculo(
   const ingresoPlacaOk = celdaActiva && (celdaActiva.tipo === "carro" || celdaActiva.tipo === "moto")
     ? validarPlacaPorTipo(vehiculoForm.placa, celdaActiva.tipo)
     : false;
-  // "Inactivo" debe bloquear de verdad: un conductor desactivado no es un nombre válido
-  // para registrar, aunque el resto de su ficha (placa, nombre) sea correcto.
-  const ingresoConductorOk = conductorIdentificado
-    ? conductorIdentificado.estado === "activo"
-    : validarNombreConductor(vehiculoForm.conductor);
+  // El asistente exige un conductor REAL (elegido en el buscador, resuelto por placa, o
+  // recién creado) — ya no basta con escribir un nombre con formato "nombre apellido" sin
+  // que exista de verdad: eso dejaba vehículos huérfanos, sin conductor vinculado en la BD.
+  // "Inactivo" también bloquea de verdad: un conductor desactivado no puede registrar.
+  const ingresoConductorOk = !!conductorIdentificado && conductorIdentificado.estado === "activo";
+  // Cuando la placa no coincide con ningún vehículo ya registrado (un vehículo nuevo,
+  // típicamente detectado por el escáner OCR), marca y color pasan a ser obligatorios aquí
+  // también — mismo criterio que ya aplica al crear un vehículo desde Conductores.
+  const datosVehiculoNuevoOk = !!vehiculoEncontrado || (vehiculoForm.marca.trim() !== "" && vehiculoForm.color.trim() !== "");
   const parqueaderoIngresoActivo = parqueaderoActivo?.estado === "activo";
-  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo && !placaYaEstacionada && !motivoBloqueoLive;
+  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo && !placaYaEstacionada && !motivoBloqueoLive && datosVehiculoNuevoOk;
   const ingresoPlacaHint = celdaActiva
     ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + letra final opcional (ABC12D o ABC12)"
       : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
@@ -260,5 +321,6 @@ export function useIngresoVehiculo(
     conductoresSugeridos, vehiculoEncontrado, conductorEncontrado, conductorIdentificado, vehiculosConductor,
     ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo, placaYaEstacionada,
     motivoBloqueoLive,
+    conductorQuery, setConductorQuery, seleccionarConductor, cambiarConductor, seleccionarVehiculo,
   };
 }

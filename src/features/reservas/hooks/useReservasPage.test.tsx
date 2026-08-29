@@ -111,12 +111,28 @@ describe('useReservasPage — solicitudes pendientes', () => {
 
     const solicitud = result.current.solicitudesPendientes.find((r) => r.id === '11')!;
     const celdaAntes = result.current.getCelda(solicitud.celdaId)?.estado;
-    await act(async () => result.current.rechazarSolicitud(solicitud));
+    act(() => result.current.handleRechazar(solicitud));
+    await act(async () => result.current.confirmRechazarAction('No hay disponibilidad en ese horario.'));
 
     await waitFor(() => {
       expect(result.current.reservas.find((r) => r.id === '11')?.estado).toBe('rechazada');
     });
+    expect(result.current.reservas.find((r) => r.id === '11')?.motivoRechazo).toBe('No hay disponibilidad en ese horario.');
     expect(result.current.getCelda(solicitud.celdaId)?.estado).toBe(celdaAntes);
+  });
+
+  it('exige un motivo (el hook no envía nada si el motivo llega vacío)', async () => {
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const solicitud = result.current.solicitudesPendientes[0];
+    const estadoAntes = result.current.reservas.find((r) => r.id === solicitud.id)?.estado;
+    act(() => result.current.handleRechazar(solicitud));
+    // El propio backend (real o fake) rechaza un motivo vacío — se propaga como error de mutación.
+    await act(async () => result.current.confirmRechazarAction(''));
+
+    // El estado no cambió: el rechazo nunca se confirmó.
+    expect(result.current.reservas.find((r) => r.id === solicitud.id)?.estado).toBe(estadoAntes);
   });
 
   it('al aceptar una solicitud, rechaza automáticamente otras pendientes de la misma celda que se solapan en horario', async () => {

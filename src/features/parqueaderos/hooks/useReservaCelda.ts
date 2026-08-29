@@ -99,6 +99,7 @@ export function useReservaCelda(
         celdaId: reservaForm.celdaId,
         conductorId: vehiculoReservado.conductorId ?? "",
         motivo: reservaForm.motivo.trim(),
+        motivoRechazo: "",
         fechaReserva: reservaForm.fechaReserva,
         horaInicio: reservaForm.horaInicio,
         horaFin: reservaForm.horaFin,

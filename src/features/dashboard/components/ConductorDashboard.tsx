@@ -131,13 +131,17 @@ export default function ConductorDashboard() {
           <div className="space-y-2.5">
             {d.misReservas.slice(0, 5).map((r) => {
               const estado = ESTADO_RESERVA_LABEL[r.estado] ?? ESTADO_RESERVA_LABEL.pendiente;
+              const vehiculo = d.misVehiculos.find((v) => v.id === r.vehiculoId);
               return (
                 <div key={r.id} className="flex items-center justify-between gap-3 rounded-xl border border-[#E2E8F0] p-3.5">
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-[#1a1a2e]">
-                      {r.fechaReserva} · {r.horaInicio} – {r.horaFin}
+                      {vehiculo ? `${vehiculo.placa} · ` : ""}{r.fechaReserva} · {r.horaInicio} – {r.horaFin}
                     </p>
                     {r.motivo && <p className="text-xs text-[#64748B] truncate mt-0.5">{r.motivo}</p>}
+                    {r.estado === "rechazada" && r.motivoRechazo && (
+                      <p className="text-xs text-red-600 truncate mt-0.5">Motivo del rechazo: {r.motivoRechazo}</p>
+                    )}
                   </div>
                   <span
                     className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"

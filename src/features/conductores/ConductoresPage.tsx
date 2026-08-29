@@ -148,7 +148,7 @@ export function Conductores() {
             marca={agregarVehiculo.form.marca}
             color={agregarVehiculo.form.color}
             descripcionVehiculo={agregarVehiculo.form.descripcionVehiculo}
-            error={agregarVehiculo.error}
+            errors={agregarVehiculo.errors}
             touched={agregarVehiculo.touched}
             onPlacaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, placa: v })}
             onTipoVehiculoChange={(tipo) => agregarVehiculo.setForm({ ...agregarVehiculo.form, tipoVehiculo: tipo })}

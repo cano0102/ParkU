@@ -4,12 +4,26 @@ import type { Conductor } from "@/services/api/conductores";
 import { useVehiculos, useCreateVehiculo, useUpdateVehiculo, useAgregarPropietarioVehiculo } from "./useVehiculos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { useUsuarios } from "@/features/usuarios";
+import type { Usuario } from "@/services/api/usuarios";
+
+// Referencias ESTABLES para cuando la query todavía no resolvió: `data: x = []` con un
+// literal inline crea un array NUEVO en cada render mientras `data` sigue `undefined`, lo que
+// rompe la memoización de cualquier `useMemo`/`useCallback` que dependa de ese valor (aquí,
+// `placasOcupadas`/`validate` en useConductorForm.ts) — eso deja un `useEffect` reejecutándose
+// en un bucle infinito (formData→validate→setFormErrors→render→validate de nuevo) que además
+// nunca deja que la promesa de la consulta real llegue a resolver (confirmado: reproducible
+// también renderizando <Conductores/> tal cual, sin pasar por Parqueaderos — no es un bug
+// introducido por el asistente de "Estacionar Vehículo", solo el primer lugar que lo hizo
+// notorio, porque ConductoresPage.test.tsx tiene sus pruebas en `.skip`).
+const EMPTY_CONDUCTORES: Conductor[] = [];
+const EMPTY_USUARIOS: Usuario[] = [];
+const EMPTY_VEHICULOS: Vehiculo[] = [];
 
 /** Queries, mutaciones y totales de la página de Conductores. */
 export function useConductoresData() {
-  const { data: conductores = [], isLoading } = useConductores();
-  const { data: usuarios = [] } = useUsuarios();
-  const { data: vehiculos = [] } = useVehiculos();
+  const { data: conductores = EMPTY_CONDUCTORES, isLoading } = useConductores();
+  const { data: usuarios = EMPTY_USUARIOS } = useUsuarios();
+  const { data: vehiculos = EMPTY_VEHICULOS } = useVehiculos();
   const createConductorMutation = useCreateConductor();
   const updateConductorMutation = useUpdateConductor();
   const createVehiculoMutation = useCreateVehiculo();

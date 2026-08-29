@@ -103,6 +103,7 @@ export interface FormErrors {
   nombre?: string;
   numeroDocumento?: string;
   tipoUsuarioId?: string;
-  centroFormacion?: string;
   placa?: string;
+  marca?: string;
+  color?: string;
 }

@@ -14,7 +14,7 @@ interface AgregarVehiculoModalProps {
   marca: string;
   color: string;
   descripcionVehiculo: string;
-  error: string | null;
+  errors: { placa?: string; marca?: string; color?: string };
   touched: boolean;
   onPlacaChange: (v: string) => void;
   onTipoVehiculoChange: (tipo: AgregarVehiculoModalProps["tipoVehiculo"]) => void;
@@ -34,7 +34,7 @@ interface AgregarVehiculoModalProps {
 /** Agregar un vehículo a un conductor que ya existe: uno NUEVO, o vincular uno YA EXISTENTE
  *  (de otro conductor) como copropietario — un vehículo puede tener más de un dueño. */
 export function AgregarVehiculoModal({
-  conductor, modo, onModoChange, placa, tipoVehiculo, marca, color, descripcionVehiculo, error, touched,
+  conductor, modo, onModoChange, placa, tipoVehiculo, marca, color, descripcionVehiculo, errors, touched,
   onPlacaChange, onTipoVehiculoChange, onMarcaChange, onColorChange, onDescripcionChange, onMarkTouched,
   busquedaExistente, onBusquedaExistenteChange, vehiculoExistenteId, onVehiculoExistenteIdChange, vehiculosVinculables,
   onSubmit, onCancel,
@@ -79,16 +79,20 @@ export function AgregarVehiculoModal({
         {modo === "nuevo" ? (
           <VehiculoAsociadoFields
             placa={placa}
-            placaError={touched ? error ?? undefined : undefined}
+            placaError={touched ? errors.placa : undefined}
             tipoVehiculo={tipoVehiculo}
             marca={marca}
+            marcaError={touched ? errors.marca : undefined}
             color={color}
+            colorError={touched ? errors.color : undefined}
             descripcionVehiculo={descripcionVehiculo}
             onPlacaChange={onPlacaChange}
             onPlacaBlur={onMarkTouched}
             onTipoVehiculoChange={onTipoVehiculoChange}
             onMarcaChange={onMarcaChange}
+            onMarcaBlur={onMarkTouched}
             onColorChange={onColorChange}
+            onColorBlur={onMarkTouched}
             onDescripcionChange={onDescripcionChange}
           />
         ) : (

@@ -33,6 +33,7 @@ export function useReservasPage() {
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoReserva>("todos");
   const [confirmDelete, setConfirmDelete] = useState<Reserva | null>(null);
+  const [confirmRechazar, setConfirmRechazar] = useState<Reserva | null>(null);
 
   const getVehiculo = (id: string) => vehiculos.find((v) => v.id === id);
   const getCelda = (id: string) => celdas.find((c) => c.id === id);
@@ -175,7 +176,10 @@ export function useReservasPage() {
         (r) => r.id !== reserva.id && r.celdaId === reserva.celdaId && r.estado === "pendiente" && seSolapan(reserva, r)
       );
       for (const otra of otrasEnConflicto) {
-        await updateReserva(otra.id, { estado: "rechazada" });
+        await updateReserva(otra.id, {
+          estado: "rechazada",
+          motivoRechazo: "Rechazada automáticamente: la celda quedó ocupada por otra reserva aceptada en el mismo horario.",
+        });
       }
 
       toast.success(
@@ -190,11 +194,19 @@ export function useReservasPage() {
     }
   };
 
-  const rechazarSolicitud = async (reserva: Reserva) => {
+  // Rechazar exige un motivo (obligatorio en el backend) — `handleRechazar` solo abre el
+  // modal de confirmación; `confirmRechazarAction` es la que realmente envía el motivo.
+  const handleRechazar = (reserva: Reserva) => setConfirmRechazar(reserva);
+
+  const confirmRechazarAction = async (motivo: string) => {
+    if (!confirmRechazar) return;
     try {
-      await updateReserva(reserva.id, { estado: "rechazada" });
+      await updateReserva(confirmRechazar.id, { estado: "rechazada", motivoRechazo: motivo });
       toast.success("Solicitud rechazada.");
+      setConfirmRechazar(null);
     } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
       console.error("Error rejecting reserva:", error);
     }
   };
@@ -202,9 +214,10 @@ export function useReservasPage() {
   return {
     reservas, viewOpen, setViewOpen, viewingReserva, setViewingReserva,
     search, setSearch, filterEstado, setFilterEstado, confirmDelete, setConfirmDelete,
+    confirmRechazar, setConfirmRechazar,
     getVehiculo, getCelda, getParqueadero, getConductorReserva,
     counts, filteredReservas, handleDelete, confirmDeleteAction,
-    puedeGestionarSolicitudes, solicitudesPendientes, aceptarSolicitud, rechazarSolicitud,
+    puedeGestionarSolicitudes, solicitudesPendientes, aceptarSolicitud, handleRechazar, confirmRechazarAction,
     miConductorId, celdas, parqueaderos, vehiculos, controlesSalida, reservasTodas,
     activeFiltersCount, clearFilters, isLoading,
   };

@@ -39,7 +39,7 @@ describe('useAgregarVehiculo', () => {
     act(() => result.current.abrir(conductor));
     expect(result.current.conductorActivo).toEqual(conductor);
 
-    act(() => result.current.setForm({ ...result.current.form, placa: 'XYZ12D', tipoVehiculo: 'moto' }));
+    act(() => result.current.setForm({ ...result.current.form, placa: 'XYZ12D', tipoVehiculo: 'moto', marca: 'Yamaha', color: 'Negro' }));
     await act(async () => result.current.guardar());
 
     expect(data.addVehiculo).toHaveBeenCalledWith(expect.objectContaining({
@@ -53,10 +53,10 @@ describe('useAgregarVehiculo', () => {
     const { result } = renderHook(() => useAgregarVehiculo(data));
 
     act(() => result.current.abrir(conductor));
-    act(() => result.current.setForm({ ...result.current.form, placa: 'ABC123' }));
+    act(() => result.current.setForm({ ...result.current.form, placa: 'ABC123', marca: 'Chevrolet', color: 'Rojo' }));
     await act(async () => result.current.guardar());
 
-    expect(result.current.error).toBe('Esta placa ya está registrada en otro vehículo');
+    expect(result.current.errors.placa).toBe('Esta placa ya está registrada en otro vehículo');
     expect(data.addVehiculo).not.toHaveBeenCalled();
   });
 
@@ -65,10 +65,23 @@ describe('useAgregarVehiculo', () => {
     const { result } = renderHook(() => useAgregarVehiculo(data));
 
     act(() => result.current.abrir(conductor));
-    act(() => result.current.setForm({ ...result.current.form, placa: 'ABC123', tipoVehiculo: 'moto' }));
+    act(() => result.current.setForm({ ...result.current.form, placa: 'ABC123', tipoVehiculo: 'moto', marca: 'Chevrolet', color: 'Rojo' }));
     await act(async () => result.current.guardar());
 
-    expect(result.current.error).toMatch(/moto/);
+    expect(result.current.errors.placa).toMatch(/moto/);
+    expect(data.addVehiculo).not.toHaveBeenCalled();
+  });
+
+  it('exige marca y color al agregar un vehículo nuevo', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useAgregarVehiculo(data));
+
+    act(() => result.current.abrir(conductor));
+    act(() => result.current.setForm({ ...result.current.form, placa: 'ABC123' }));
+    await act(async () => result.current.guardar());
+
+    expect(result.current.errors.marca).toBe('La marca es obligatoria');
+    expect(result.current.errors.color).toBe('El color es obligatorio');
     expect(data.addVehiculo).not.toHaveBeenCalled();
   });
 
@@ -77,10 +90,10 @@ describe('useAgregarVehiculo', () => {
     const { result } = renderHook(() => useAgregarVehiculo(data));
 
     act(() => result.current.abrir(conductor));
-    expect(result.current.error).toBeNull();
+    expect(result.current.errors).toEqual({});
 
     act(() => result.current.markTouched());
-    expect(result.current.error).toBe('La placa es obligatoria');
+    expect(result.current.errors.placa).toBe('La placa es obligatoria');
   });
 
   it('vincula un vehículo existente de otro conductor como copropietario, sin crear uno nuevo', async () => {

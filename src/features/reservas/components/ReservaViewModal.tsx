@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Calendar, Car, Clock, MapPin, UserCircle2, X } from "lucide-react";
+import { Ban, Calendar, Car, Clock, MapPin, UserCircle2, X } from "lucide-react";
 import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -107,6 +107,26 @@ export function ReservaViewModal({ reserva, vehiculo, celda, usuario, parqueader
             </div>
           </div>
         ))}
+
+        {reserva.estado === "rechazada" && reserva.motivoRechazo && (
+          <div
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 10,
+              padding: "10px 12px", borderRadius: 12,
+              background: "#FEF2F2", border: `1px solid #FECACA`,
+            }}
+          >
+            <Ban size={14} color={C.danger} style={{ marginTop: 1 }} />
+            <div>
+              <div style={{ fontSize: 9, fontWeight: 700, color: C.danger, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                Motivo del rechazo
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: C.text }}>
+                {reserva.motivoRechazo}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -261,7 +261,39 @@ export function createAppBackends() {
       },
     }],
   });
-  const celdas = createFakeRestBackend('/celdas', celdasSeed);
+  const celdas = createFakeRestBackend('/celdas', celdasSeed, {
+    actions: [{
+      method: 'POST', pattern: /^\/parqueadero\/(\d+)\/generar-lote$/,
+      handle: (m, body, items) => {
+        const parqueaderoId = Number(m[1]);
+        const b = body as { carros?: number; motos?: number; movilidadReducida?: number };
+        const config: [string, string, string, number][] = [
+          ['C-', 'CARRO', 'GENERAL', b.carros ?? 0],
+          ['M-', 'MOTO', 'GENERAL', b.motos ?? 0],
+          ['PMR-', 'CARRO', 'MOVILIDAD_REDUCIDA', b.movilidadReducida ?? 0],
+        ];
+        const creadas: unknown[] = [];
+        for (const [prefijo, tipo, usabilidad, cantidad] of config) {
+          const usados = items
+            .filter((i: any) => i.parqueadero === parqueaderoId && String(i.numero).startsWith(prefijo))
+            .map((i: any) => parseInt(String(i.numero).slice(prefijo.length), 10))
+            .filter((n) => !Number.isNaN(n));
+          let siguiente = (usados.length ? Math.max(...usados) : 0) + 1;
+          for (let i = 0; i < cantidad; i++) {
+            const nextId = items.reduce((max, it) => Math.max(max, it.id), 0) + 1;
+            const nueva = {
+              id: nextId, parqueadero: parqueaderoId, numero: `${prefijo}${String(siguiente).padStart(3, '0')}`,
+              tipo, usabilidad, estado: 'DISPONIBLE', observaciones: null,
+            };
+            items.push(nueva);
+            creadas.push(nueva);
+            siguiente++;
+          }
+        }
+        return creadas;
+      },
+    }],
+  });
   const controlSalida = createFakeRestBackend('/entradas-salidas', controlSalidaSeed, {
     actions: [
       {
@@ -300,7 +332,14 @@ export function createAppBackends() {
       handle: (m, body, items) => {
         const idx = items.findIndex((i) => i.id === Number(m[1]));
         if (idx === -1) throw new Error('404');
-        items[idx] = { ...items[idx], estado: (body as any).estado };
+        const b = body as any;
+        if (b.estado === 'RECHAZADA' && !b.motivoRechazo?.trim()) {
+          throw new Error('motivoRechazo es obligatorio al rechazar una reserva');
+        }
+        items[idx] = {
+          ...items[idx], estado: b.estado,
+          ...(b.motivoRechazo !== undefined ? { motivo_rechazo: b.motivoRechazo } : {}),
+        };
         return items[idx];
       },
     }],

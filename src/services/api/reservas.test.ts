@@ -24,7 +24,8 @@ const backend = createFakeRestBackend('/reservas', [], {
         const id = Number(m[1]);
         const idx = items.findIndex((i) => i.id === id);
         if (idx === -1) throw new Error('404');
-        items[idx] = { ...items[idx], estado: (body as any).estado };
+        const b = body as any;
+        items[idx] = { ...items[idx], estado: b.estado, ...(b.motivoRechazo !== undefined ? { motivo_rechazo: b.motivoRechazo } : {}) };
         return items[idx];
       },
     },
@@ -40,7 +41,7 @@ describe('services/reservas', () => {
 
   it('combina fecha + hora en fecha_hora_inicio/fin al crear, y los separa de vuelta al leer', async () => {
     const creada = await reservas.create({
-      tipoReserva: 'visitante', vehiculoId: '1', celdaId: '1', conductorId: '1', motivo: '',
+      tipoReserva: 'visitante', vehiculoId: '1', celdaId: '1', conductorId: '1', motivo: '', motivoRechazo: '',
       fechaReserva: '2030-01-01', horaInicio: '08:00', horaFin: '10:00', estado: 'pendiente',
     });
     expect(creada.fechaReserva).toBe('2030-01-01');
@@ -52,12 +53,25 @@ describe('services/reservas', () => {
 
   it('cambiar a un estado gestionable usa PATCH /:id/estado', async () => {
     const creada = await reservas.create({
-      tipoReserva: 'visitante', vehiculoId: '1', celdaId: '1', conductorId: '1', motivo: '',
+      tipoReserva: 'visitante', vehiculoId: '1', celdaId: '1', conductorId: '1', motivo: '', motivoRechazo: '',
       fechaReserva: '2030-01-01', horaInicio: '08:00', horaFin: '10:00', estado: 'pendiente',
     });
     const actualizada = await reservas.update(creada.id, { estado: 'activa' });
     expect(actualizada.estado).toBe('activa');
     expect(apiFetchMock.mock.calls.some(([path, opts]) => path === `/reservas/${creada.id}/estado` && (opts as any)?.method === 'PATCH')).toBe(true);
+  });
+
+  it('rechazar envía motivoRechazo en el body del PATCH /:id/estado y lo devuelve al leer', async () => {
+    const creada = await reservas.create({
+      tipoReserva: 'visitante', vehiculoId: '1', celdaId: '1', conductorId: '1', motivo: '', motivoRechazo: '',
+      fechaReserva: '2030-01-01', horaInicio: '08:00', horaFin: '10:00', estado: 'pendiente',
+    });
+    const actualizada = await reservas.update(creada.id, { estado: 'rechazada', motivoRechazo: 'La celda ya fue asignada a otro vehículo.' });
+
+    expect(actualizada.estado).toBe('rechazada');
+    expect(actualizada.motivoRechazo).toBe('La celda ya fue asignada a otro vehículo.');
+    const call = apiFetchMock.mock.calls.find(([path, opts]) => path === `/reservas/${creada.id}/estado` && (opts as any)?.method === 'PATCH');
+    expect((call?.[1] as any).body.motivoRechazo).toBe('La celda ya fue asignada a otro vehículo.');
   });
 });
 
@@ -70,6 +84,7 @@ describeCrudContract<Reserva>(
     celdaId: '1',
     conductorId: '1',
     motivo: '',
+    motivoRechazo: '',
     fechaReserva: '2030-01-01',
     horaInicio: '08:00',
     horaFin: '10:00',

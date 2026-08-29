@@ -29,6 +29,12 @@ export interface FormParqueadero {
   zona: string;
   piso: string;
   descripcion: string;
+  /** Solo se usan al CREAR (el formulario de edición no los muestra — ver
+   *  ParqueaderoFormModal.tsx): cantidad de celdas a generar automáticamente
+   *  por tipo, vía POST /celdas/parqueadero/:id/generar-lote. */
+  celdasCarros: number;
+  celdasMotos: number;
+  celdasMovilidadReducida: number;
 }
 
 export interface VehiculoForm {
@@ -216,18 +222,30 @@ export const DESCRIPCION_PQ_MAX = 200;
 
 /** Valida el formulario de creación/edición de un parqueadero.
  *  `excludeId` es el id del parqueadero que se está editando (para no chocar consigo mismo),
- *  o null cuando se está creando uno nuevo. Devuelve el mensaje de error o null si es válido. */
+ *  o null cuando se está creando uno nuevo — eso también decide qué se valida: al crear no
+ *  se piden horarios (quedan con su valor por defecto, editables después) y en cambio se
+ *  exige al menos una celda para generar; al editar es al revés.
+ *  Devuelve el mensaje de error o null si es válido. */
 export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parqueadero[], excludeId: string | null): string | null {
+  const esCreacion = excludeId === null;
   const nombre = normalizarTexto(form.nombre, NOMBRE_PQ_MAX);
   const ubicacion = form.ubicacion.trim();
   if (!nombre) return "El nombre es obligatorio.";
   if (nombre.length < 3) return "El nombre debe tener al menos 3 caracteres.";
   if (!ubicacion) return "La ubicación es obligatoria.";
   if (parqueaderos.some(p => p.id !== excludeId && p.nombre.trim().toLowerCase() === nombre.toLowerCase())) return `Ya existe un parqueadero llamado "${nombre}".`;
+  if (ubicacion.length > UBICACION_PQ_MAX) return `La ubicación no puede superar ${UBICACION_PQ_MAX} caracteres.`;
+
+  if (esCreacion) {
+    if (form.celdasCarros + form.celdasMotos + form.celdasMovilidadReducida <= 0) {
+      return "Debes indicar al menos una celda (carro, moto o movilidad reducida) para generar.";
+    }
+    return null;
+  }
+
   if (!form.horaInicio || !form.horaFin) return "Debes definir la hora de apertura y de cierre.";
   if (horaAMinutos(form.horaFin) <= horaAMinutos(form.horaInicio)) return "La hora de cierre debe ser posterior a la hora de apertura.";
   if (form.capacidadMaxima <= 0) return "La capacidad máxima debe ser mayor a cero.";
-  if (ubicacion.length > UBICACION_PQ_MAX) return `La ubicación no puede superar ${UBICACION_PQ_MAX} caracteres.`;
   if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
   return null;
 }
@@ -261,6 +279,23 @@ export function extraerDatosDocumento(texto:string){
   const color = extraerCampoPorEtiqueta(lineas, /^COLOR\b/i);
   return { placa, conductor:normalizarTexto(conductor,60), marca, modelo, color, textoCompleto:limpio };
 }
+
+/* ============================================================
+   HORARIO GLOBAL DE OPERACIÓN
+============================================================ */
+/* Espejo del mismo horario que ya valida el backend (04:00–21:00) en
+   Api-ParkU/src/config/horarioOperacion.js — repos separados, sin paquete
+   compartido, así que se duplica acá solo para el indicador visual (el
+   backend es quien realmente bloquea crear reservas/ingresos fuera de esta
+   ventana; acá solo se usa para marcar celdas que quedaron ocupadas
+   después de que cerró la ventana). */
+export const HORA_OPERACION_INICIO = "04:00";
+export const HORA_OPERACION_FIN = "21:00";
+
+export const estaFueraDeHorarioOperacion = (fecha: Date = new Date()): boolean => {
+  const hhmm = `${String(fecha.getHours()).padStart(2, "0")}:${String(fecha.getMinutes()).padStart(2, "0")}`;
+  return hhmm < HORA_OPERACION_INICIO || hhmm > HORA_OPERACION_FIN;
+};
 
 /* ============================================================
    DERIVAR OCUPANTE DE UNA CELDA

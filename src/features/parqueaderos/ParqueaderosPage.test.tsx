@@ -154,16 +154,42 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     await user.click(screen.getByRole('button', { name: /Nuevo Parqueadero/i }));
     const dialog = await screen.findByRole('dialog');
 
-    // El formulario simplificado ya no pide bloque/celdas por tipo (ver
-    // services/api/parqueaderos.ts): nombre + ubicación son sus dos textbox.
+    // El formulario simplificado de creación ya no pide acceso/zona/piso/horarios
+    // (quedan con un valor por defecto, editables después) — en su lugar pide
+    // cuántas celdas generar por tipo (ver ParqueaderoFormModal.tsx).
     const [nombreInput, ubicacionInput] = within(dialog).getAllByRole('textbox');
     await user.type(nombreInput, 'PQ-Test Nuevo');
     await user.type(ubicacionInput, 'Acceso de prueba');
+    await user.type(within(dialog).getByLabelText('Celdas de carro'), '2');
 
     await user.click(within(dialog).getByRole('button', { name: 'Crear Parqueadero' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(await screen.findByText('PQ-Test Nuevo')).toBeInTheDocument();
+
+    // Las 2 celdas de carro pedidas se generaron solas en el backend (numeración
+    // automática C-001/C-002) — se ven al expandir el parqueadero recién creado.
+    await user.click(screen.getByText('PQ-Test Nuevo'));
+    expect(await screen.findByText('C-001')).toBeInTheDocument();
+    expect(screen.getByText('C-002')).toBeInTheDocument();
+  });
+
+  it('sin indicar ninguna celda, el formulario de creación no envía y muestra el error', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+
+    await user.click(screen.getByRole('button', { name: /Nuevo Parqueadero/i }));
+    const dialog = await screen.findByRole('dialog');
+
+    const [nombreInput, ubicacionInput] = within(dialog).getAllByRole('textbox');
+    await user.type(nombreInput, 'PQ-Sin Celdas');
+    await user.type(ubicacionInput, 'Acceso de prueba');
+
+    await user.click(within(dialog).getByRole('button', { name: 'Crear Parqueadero' }));
+
+    expect(await screen.findByText(/Debes indicar al menos una celda/)).toBeInTheDocument();
+    expect(screen.queryByText('PQ-Sin Celdas')).not.toBeInTheDocument();
   });
 
   it('el botón "Asignación Inteligente" abre el modal correspondiente', async () => {
@@ -178,5 +204,38 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     expect(
       within(dialog).getByText(/El sistema buscará la celda óptima libre/i)
     ).toBeInTheDocument();
+  });
+
+  it('asistente de "Estacionar Vehículo": buscar conductor por nombre, elegir su vehículo y registrar el ingreso', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+
+    // Celda semilla C-002 del parqueadero 1 (id 2) está disponible — su conductor
+    // (Pedro Ruiz G., seed conductor 2) no tiene ningún vehículo estacionado todavía.
+    // Nota: la placa semilla de su vehículo (DEF456) tiene formato de carro aunque el
+    // vehículo esté marcado como moto (dato de prueba heredado, no realista) — se usa
+    // una celda de carro para que la validación de formato de placa no bloquee el flujo.
+    await user.click(screen.getByText('PQ-1 Torre A'));
+    const celdaC002 = await screen.findByText('C-002');
+    await user.click(celdaC002.closest('button') as HTMLButtonElement);
+
+    const infoDialog = await screen.findByRole('dialog');
+    await user.click(within(infoDialog).getByRole('button', { name: 'Estacionar Vehículo' }));
+
+    const ingresoDialog = await screen.findByRole('dialog');
+    expect(within(ingresoDialog).getByRole('heading', { name: 'Registrar Vehículo' })).toBeInTheDocument();
+
+    // Paso 1: buscar conductor — el campo vacío no debe mostrar ningún resultado.
+    expect(within(ingresoDialog).queryByText('Pedro Ruiz G.')).not.toBeInTheDocument();
+    await user.type(within(ingresoDialog).getByPlaceholderText('Busca por documento, nombre o correo...'), 'Pedro');
+    await user.click(await within(ingresoDialog).findByText('Pedro Ruiz G.'));
+
+    // Paso 2: su vehículo ya registrado (DEF456) aparece para elegir.
+    await user.click(within(ingresoDialog).getByText('DEF456'));
+
+    await user.click(within(ingresoDialog).getByRole('button', { name: 'Registrar Vehículo' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 });

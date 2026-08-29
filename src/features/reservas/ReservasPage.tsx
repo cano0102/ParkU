@@ -11,6 +11,7 @@ import { ReservasToolbar } from "./components/ReservasToolbar";
 import { ReservasTable } from "./components/ReservasTable";
 import { ReservaViewModal } from "./components/ReservaViewModal";
 import { ConfirmDeleteReservaModal } from "./components/ConfirmDeleteReservaModal";
+import { ConfirmRechazarReservaModal } from "./components/ConfirmRechazarReservaModal";
 import { SolicitudesPendientesPanel } from "./components/SolicitudesPendientesPanel";
 import { SolicitarReservaModal } from "./components/SolicitarReservaModal";
 
@@ -20,6 +21,9 @@ export function Reservas() {
   const p = useReservasPage();
   const { user } = useAuth();
   const esComunidadSena = user?.rol === ROLES.CONDUCTOR;
+  // El backend ya rechaza DELETE /reservas/:id con 403 para cualquiera que no
+  // sea Admin (rol 1) — el botón ni se muestra para los demás roles.
+  const puedeEliminarReserva = user?.rol === ROLES.ADMIN;
   const misVehiculos = useMemo(
     () => (p.miConductorId ? p.vehiculos.filter((v) => v.conductorId === p.miConductorId) : []),
     [p.vehiculos, p.miConductorId]
@@ -46,7 +50,7 @@ export function Reservas() {
             getParqueadero={p.getParqueadero}
             getConductorReserva={p.getConductorReserva}
             onAceptar={p.aceptarSolicitud}
-            onRechazar={p.rechazarSolicitud}
+            onRechazar={p.handleRechazar}
           />
         )}
 
@@ -76,6 +80,7 @@ export function Reservas() {
               getCelda={p.getCelda}
               getConductorReserva={p.getConductorReserva}
               getParqueadero={p.getParqueadero}
+              canDelete={puedeEliminarReserva}
               onView={(reserva) => { p.setViewingReserva(reserva); p.setViewOpen(true); }}
               onDelete={p.handleDelete}
             />
@@ -106,6 +111,17 @@ export function Reservas() {
             fecha={p.confirmDelete.fechaReserva}
             onCancel={() => p.setConfirmDelete(null)}
             onConfirm={p.confirmDeleteAction}
+          />
+        )}
+      </Modal>
+
+      <Modal open={!!p.confirmRechazar} onClose={() => p.setConfirmRechazar(null)} maxWidth={420}>
+        {p.confirmRechazar && (
+          <ConfirmRechazarReservaModal
+            placa={p.getVehiculo(p.confirmRechazar.vehiculoId)?.placa || "—"}
+            fecha={p.confirmRechazar.fechaReserva}
+            onCancel={() => p.setConfirmRechazar(null)}
+            onConfirm={p.confirmRechazarAction}
           />
         )}
       </Modal>

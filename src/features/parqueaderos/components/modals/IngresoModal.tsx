@@ -1,4 +1,4 @@
-import { AlertTriangle, Camera, Car, ChevronRight, UserCheck } from "lucide-react";
+import { AlertTriangle, Camera, Car, ChevronRight, IdCard, Plus, UserCheck, UserPlus } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -6,6 +6,7 @@ import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { ModalHeader } from "@/components/shared";
 import { VehiculoForm } from "../../lib/helpers";
+import { ConductorSearchField } from "@/features/conductores";
 
 const C = theme;
 
@@ -22,20 +23,31 @@ interface IngresoModalProps {
   placaError: string | null;
   onPlacaChange: () => void;
   ingresoPlacaOk: boolean;
-  ingresoConductorOk: boolean;
   ingresoValid: boolean;
   ingresoPlacaHint: string;
   /** true si la placa escrita ya está estacionada en otra celda distinta a la activa. */
   placaYaEstacionada: boolean;
   /** Vehículo ya registrado en el sistema con esa placa, si existe. */
   vehiculoEncontrado: Vehiculo | null;
-  /** Conductor asociado a ese vehículo, si el vehículo existe y tiene uno vinculado. */
-  conductorEncontrado: Conductor | null;
-  /** Conductor identificado por placa o por nombre exacto, activo o no (para avisar si está inactivo). */
+  /** Conductor identificado (buscador estructurado, placa, o nombre exacto por OCR), activo o
+   *  no (para avisar si está inactivo). */
   conductorIdentificado: Conductor | null;
-  /** Nombres de conductores activos ya registrados en el módulo Conductores, para sugerirlos. */
-  conductoresSugeridos: string[];
-  /** Vehículos ya registrados a nombre del conductor identificado (por placa o por nombre). */
+  /** Lista completa de conductores, para el buscador por documento/nombre/correo. */
+  conductores: Conductor[];
+  /** Texto del buscador de conductor (paso 1 del asistente) — independiente del nombre ya
+   *  confirmado en `vehiculoForm.conductor`. */
+  conductorQuery: string;
+  onConductorQueryChange: (value: string) => void;
+  onSelectConductor: (conductor: Conductor) => void;
+  /** Vuelve al paso de búsqueda de conductor (botón "Cambiar"). */
+  onCambiarConductor: () => void;
+  /** Abre el formulario completo de alta de conductor (con su primer vehículo). */
+  onCrearConductor: () => void;
+  /** Abre el formulario de alta de un vehículo nuevo para el conductor ya identificado. */
+  onCrearVehiculo: () => void;
+  /** Selecciona uno de los vehículos ya registrados del conductor identificado. */
+  onSelectVehiculo: (vehiculo: Vehiculo) => void;
+  /** Vehículos ya registrados a nombre del conductor identificado. */
   vehiculosConductor: Vehiculo[];
   /** true si el parqueadero de la celda activa está desactivado (no acepta nuevos registros). */
   parqueaderoInactivo: boolean;
@@ -49,27 +61,24 @@ interface IngresoModalProps {
 
 export function IngresoModal({
   open, celdaActiva, vehiculoForm, setVehiculoForm, placaError, onPlacaChange,
-  ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, placaYaEstacionada,
-  vehiculoEncontrado, conductorEncontrado, conductorIdentificado, conductoresSugeridos, vehiculosConductor,
+  ingresoPlacaOk, ingresoValid, ingresoPlacaHint, placaYaEstacionada,
+  vehiculoEncontrado, conductorIdentificado, conductores, conductorQuery, onConductorQueryChange,
+  onSelectConductor, onCambiarConductor, onCrearConductor, onCrearVehiculo, onSelectVehiculo, vehiculosConductor,
   parqueaderoInactivo, motivoBloqueoLive,
   onClose, onOpenScanner, onSubmit,
 }: IngresoModalProps) {
-  const vehiculoRegistrado = !!vehiculoEncontrado;
-  const conductorAsociado = conductorEncontrado?.nombre ?? null;
   const conductorInactivo = conductorIdentificado?.estado === "inactivo";
   const datosVehiculoEnFicha = vehiculoEncontrado
     ? [vehiculoEncontrado.marca, vehiculoEncontrado.modelo, vehiculoEncontrado.color].filter(Boolean)
     : [];
-  /* Su flota ya conocida, sin repetir la placa que se está tecleando ahora mismo (esa ya
-     se muestra en la sección "Datos del vehículo" de más abajo). */
+  /* Su flota ya conocida, sin repetir la placa que ya está seleccionada ahora mismo. */
   const placaActual = vehiculoForm.placa.trim().toUpperCase();
   const otrosVehiculos = vehiculosConductor.filter(v => v.placa !== placaActual);
-  const nombreConductorMostrado = conductorAsociado || vehiculoForm.conductor.trim();
-  /* Si ya sabemos qué vehículos tiene este conductor y todavía no se eligió ninguna placa,
-     no tiene sentido pedirle que rellene marca/modelo/color como si fuera un vehículo nuevo:
-     mejor que elija una de la lista de arriba. Esos campos solo reaparecen si escribe una
-     placa que de verdad no está entre las suyas (un vehículo adicional genuino). */
-  const puedeElegirDeLaLista = otrosVehiculos.length > 0 && !placaActual;
+  /* El bloque de "Datos del vehículo" (marca/modelo/color escritos a mano) solo tiene sentido
+     como respaldo del escáner OCR: una placa ya tecleada/detectada que no coincide con ningún
+     vehículo del conductor identificado. El alta estructurada de un vehículo nuevo pasa por
+     "Agregar vehículo nuevo" (onCrearVehiculo), que sí exige marca y color. */
+  const mostrarDatosVehiculoManual = !!placaActual && !vehiculoEncontrado;
   return (
     <Modal open={open} onClose={onClose}>
       <ModalHeader eyebrow={`Celda ${celdaActiva?.numero ?? ""}`} title="Registrar Vehículo" icon={<Car size={18} color={C.primary} />} onClose={onClose} />
@@ -110,84 +119,90 @@ export function IngresoModal({
         </div>
         <div>
           <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Conductor *</label>
-          {conductorAsociado ? (
+          {conductorIdentificado ? (
             <>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 10, background: conductorInactivo ? C.dangerBg : C.primaryPale, border: `1px solid ${conductorInactivo ? C.dangerBorder : C.primaryBorder}`, marginBottom: 8 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 10, background: conductorInactivo ? C.dangerBg : C.primaryPale, border: `1px solid ${conductorInactivo ? C.dangerBorder : C.primaryBorder}` }}>
                 {conductorInactivo ? <AlertTriangle size={14} color={C.danger} /> : <UserCheck size={14} color={C.primaryDark} />}
-                <span style={{ fontSize: 11, fontWeight: 800, color: conductorInactivo ? C.danger : C.primaryDark }}>
-                  {conductorInactivo ? "Conductor inactivo: no puede registrar vehículos" : "Vehículo ya registrado"}
-                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 12, fontWeight: 800, color: conductorInactivo ? C.danger : C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{conductorIdentificado.nombre}</p>
+                  <p style={{ fontSize: 10, color: conductorInactivo ? C.danger : C.textLight, display: "flex", alignItems: "center", gap: 4 }}>
+                    <IdCard size={10} /> {conductorIdentificado.numeroDocumento}
+                  </p>
+                </div>
+                <button type="button" onClick={onCambiarConductor} style={{ padding: "5px 10px", borderRadius: 8, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cambiar</button>
               </div>
-              <input
-                value={conductorAsociado}
-                readOnly
-                style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F1F5F9", color: C.text, cursor: "not-allowed" }}
-              />
-              {conductorInactivo && <p style={{ fontSize: 10, color: C.danger, marginTop: 6, fontWeight: 600 }}>Actívalo en el módulo Conductores para poder estacionar este vehículo.</p>}
+              {conductorInactivo && <p style={{ fontSize: 10, color: C.danger, marginTop: 6, fontWeight: 600 }}>Este conductor está inactivo y no puede registrar vehículos. Actívalo en el módulo Conductores.</p>}
             </>
           ) : (
             <>
-              <input list="drivers" value={vehiculoForm.conductor} onChange={e => setVehiculoForm(p => ({ ...p, conductor: e.target.value }))} placeholder="Busca un conductor registrado o escribe uno nuevo" style={{ width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${vehiculoForm.conductor && !ingresoConductorOk ? C.danger : C.border}`, fontSize: 13, fontFamily: "inherit", background: "#F8FAFC" }} />
-              <datalist id="drivers">{conductoresSugeridos.map(c => <option key={c} value={c} />)}</datalist>
-              {conductorInactivo && <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>Este conductor está inactivo y no puede registrar vehículos. Actívalo en el módulo Conductores.</p>}
-              {!conductorInactivo && vehiculoForm.conductor && !ingresoConductorOk && <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>Ingresa nombre y apellido del conductor.</p>}
-              {!conductorInactivo && !vehiculoForm.conductor && vehiculoRegistrado && <p style={{ fontSize: 11, color: C.warning, marginTop: 6, fontWeight: 700 }}>Este vehículo ya está registrado pero sin conductor asociado. Ingresa su nombre para completarlo.</p>}
-              {!conductorInactivo && !vehiculoForm.conductor && !vehiculoRegistrado && ingresoPlacaOk && <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Placa no encontrada: se registrará como un vehículo nuevo.</p>}
+              <ConductorSearchField
+                conductores={conductores}
+                query={conductorQuery}
+                onQueryChange={onConductorQueryChange}
+                onSelect={onSelectConductor}
+                placeholder="Busca por documento, nombre o correo..."
+              />
+              <button type="button" onClick={onCrearConductor} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8, padding: "8px 12px", borderRadius: 10, border: `1px dashed ${C.border}`, background: "transparent", color: C.primaryDark, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+                <UserPlus size={14} /> Crear conductor nuevo
+              </button>
+              {vehiculoForm.conductor && (
+                <p style={{ fontSize: 10, color: C.warning, marginTop: 6, fontWeight: 600 }}>
+                  No se encontró un conductor registrado como "{vehiculoForm.conductor}". Búscalo arriba por documento o correo, o créalo.
+                </p>
+              )}
             </>
           )}
         </div>
-        {otrosVehiculos.length > 0 && (
+        {conductorIdentificado && !conductorInactivo && (
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-              Vehículos ya registrados de {nombreConductorMostrado}
-            </label>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {otrosVehiculos.map(v => (
-                <button
-                  key={v.id}
-                  type="button"
-                  onClick={() => { onPlacaChange(); setVehiculoForm(p => ({ ...p, placa: v.placa })); }}
-                  style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 9, border: `1px solid ${C.border}`, background: "#F8FAFC", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "#F8FAFC")}
-                >
-                  <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 12, color: C.text }}>{v.placa}</span>
-                  <span style={{ fontSize: 10, color: C.textLight, textTransform: "capitalize" }}>{v.tipo}</span>
-                  <span style={{ fontSize: 11, color: C.textLight, flex: 1, textAlign: "right" }}>
-                    {[v.marca, v.modelo].filter(Boolean).join(" ") || "Sin datos"}{v.color ? ` · ${v.color}` : ""}
-                  </span>
-                  <ChevronRight size={13} color={C.textLight} />
-                </button>
-              ))}
-            </div>
-            {puedeElegirDeLaLista && (
-              <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Toca una placa para usarla, o escribe una nueva arriba si trae otro vehículo.</p>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Vehículo *</label>
+            {otrosVehiculos.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 8 }}>
+                {otrosVehiculos.map(v => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => { onPlacaChange(); onSelectVehiculo(v); }}
+                    style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 10px", borderRadius: 9, border: `1px solid ${C.border}`, background: "#F8FAFC", cursor: "pointer", fontFamily: "inherit", width: "100%", textAlign: "left" }}
+                    onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")}
+                    onMouseLeave={e => (e.currentTarget.style.background = "#F8FAFC")}
+                  >
+                    <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 12, color: C.text }}>{v.placa}</span>
+                    <span style={{ fontSize: 10, color: C.textLight, textTransform: "capitalize" }}>{v.tipo}</span>
+                    <span style={{ fontSize: 11, color: C.textLight, flex: 1, textAlign: "right" }}>
+                      {[v.marca, v.modelo].filter(Boolean).join(" ") || "Sin datos"}{v.color ? ` · ${v.color}` : ""}
+                    </span>
+                    <ChevronRight size={13} color={C.textLight} />
+                  </button>
+                ))}
+              </div>
             )}
+            {vehiculoEncontrado && placaActual && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 12px", borderRadius: 10, background: C.primaryPale, border: `1px solid ${C.primaryBorder}`, marginBottom: 8 }}>
+                <Car size={14} color={C.primaryDark} />
+                <span style={{ fontSize: 12, fontWeight: 800, color: C.primaryDark, fontFamily: "monospace" }}>{vehiculoEncontrado.placa}</span>
+                <span style={{ fontSize: 11, color: C.primaryDark, flex: 1 }}>{datosVehiculoEnFicha.join(" · ") || "Sin marca/color registrados"}</span>
+              </div>
+            )}
+            {otrosVehiculos.length === 0 && !vehiculoEncontrado && (
+              <p style={{ fontSize: 11, color: C.textLight, marginBottom: 8 }}>{conductorIdentificado.nombre} no tiene vehículos registrados todavía.</p>
+            )}
+            <button type="button" onClick={onCrearVehiculo} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, border: `1px dashed ${C.border}`, background: "transparent", color: C.primaryDark, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
+              <Plus size={14} /> Agregar vehículo nuevo
+            </button>
           </div>
         )}
-        {!puedeElegirDeLaLista && (
+        {mostrarDatosVehiculoManual && (
           <div>
-            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Datos del vehículo</label>
-            {vehiculoEncontrado ? (
-              datosVehiculoEnFicha.length > 0 ? (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {vehiculoEncontrado.marca && <span style={{ padding: "5px 10px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 700, color: C.text }}>{vehiculoEncontrado.marca}</span>}
-                  {vehiculoEncontrado.modelo && <span style={{ padding: "5px 10px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 700, color: C.text }}>{vehiculoEncontrado.modelo}</span>}
-                  {vehiculoEncontrado.color && <span style={{ padding: "5px 10px", borderRadius: 8, background: "#F1F5F9", fontSize: 11, fontWeight: 700, color: C.text }}>{vehiculoEncontrado.color}</span>}
-                </div>
-              ) : (
-                <p style={{ fontSize: 10, color: C.textLight }}>Este vehículo no tiene marca, modelo ni color registrados.</p>
-              )
-            ) : (
-              <>
-                <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                  <input value={vehiculoForm.marca} onChange={e => setVehiculoForm(p => ({ ...p, marca: e.target.value }))} placeholder="Marca (ej. Toyota)" style={campoInputStyle} />
-                  <input value={vehiculoForm.modelo} onChange={e => setVehiculoForm(p => ({ ...p, modelo: e.target.value }))} placeholder="Modelo (ej. Corolla)" style={campoInputStyle} />
-                </div>
-                <input value={vehiculoForm.color} onChange={e => setVehiculoForm(p => ({ ...p, color: e.target.value }))} placeholder="Color (ej. Blanco)" style={{ ...campoInputStyle, marginTop: 8 }} />
-                <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Opcional. Se completa solo al escanear la matrícula con OCR, o puedes escribirlo a mano.</p>
-              </>
-            )}
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>Datos del vehículo detectado</label>
+            <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <input value={vehiculoForm.marca} onChange={e => setVehiculoForm(p => ({ ...p, marca: e.target.value }))} placeholder="Marca (ej. Toyota) *" style={campoInputStyle} />
+              <input value={vehiculoForm.modelo} onChange={e => setVehiculoForm(p => ({ ...p, modelo: e.target.value }))} placeholder="Modelo (ej. Corolla)" style={campoInputStyle} />
+            </div>
+            <input value={vehiculoForm.color} onChange={e => setVehiculoForm(p => ({ ...p, color: e.target.value }))} placeholder="Color (ej. Blanco) *" style={{ ...campoInputStyle, marginTop: 8 }} />
+            <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>
+              Esta placa no está entre los vehículos registrados de {conductorIdentificado?.nombre ?? "este conductor"} (típico tras escanearla con OCR). Marca y color son obligatorios para registrarla.
+            </p>
           </div>
         )}
         <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#F8FAFC", cursor: "pointer" }}>

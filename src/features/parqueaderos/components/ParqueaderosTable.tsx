@@ -3,7 +3,7 @@ import { Car, Eye, Pencil, MapPin } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
-import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar } from "../lib/helpers";
+import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar, estaFueraDeHorarioOperacion } from "../lib/helpers";
 
 const C = theme;
 
@@ -162,9 +162,11 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                       const matched = cellMatchesSearch(celda);
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
                       const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
+                      const fueraDeHorario = estaOcupada && estaFueraDeHorarioOperacion();
                       return (
                         <button key={celda.id} onClick={() => onCellClick(celda)}
-                          style={{ position: "relative", padding: "8px 10px 8px 12px", borderRadius: 10, borderTop: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, borderRight: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, borderBottom: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : cfg.border}`, borderLeft: `4px solid ${tipoCfg.accent}`, background: cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : undefined }}>
+                          title={fueraDeHorario ? "Sigue ocupada fuera del horario permitido — considera generar un incidente" : undefined}
+                          style={{ position: "relative", padding: "8px 10px 8px 12px", borderRadius: 10, borderTop: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`, borderRight: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`, borderBottom: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`, borderLeft: `4px solid ${tipoCfg.accent}`, background: fueraDeHorario ? "#FEF2F2" : cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : fueraDeHorario ? "0 0 0 3px rgba(220,38,38,.2)" : undefined }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                             <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{celda.numero}</span>
                             <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 5, background: tipoCfg.accent, flexShrink: 0 }}>
@@ -173,6 +175,9 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                           </div>
                           {estaOcupada && ocupante && (
                             <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 700, background: "rgba(255,255,255,.15)", padding: "1px 4px", borderRadius: 4, marginBottom: 2 }}>{ocupante.vehiculo.placa}</div>
+                          )}
+                          {fueraDeHorario && (
+                            <div style={{ fontSize: 8, color: "#DC2626", fontWeight: 800, marginBottom: 2 }}>⏰ Fuera de horario</div>
                           )}
                           {celda.estado === "no_disponible" && !ocupante && (
                             <div style={{ fontSize: 8, color: C.danger, fontWeight: 700, marginBottom: 2 }}>⚠️ Error</div>

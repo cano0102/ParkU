@@ -1,7 +1,8 @@
 import { theme } from "@/styles/theme";
-import { LoadingState } from "@/components/shared";
+import { LoadingState, Modal } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
+import { ConductorFormModal, AgregarVehiculoModal } from "@/features/conductores";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
 import { ParqueaderosHero } from "./components/ParqueaderosHero";
@@ -19,7 +20,10 @@ import { ScannerModal } from "./components/modals/ScannerModal";
 const C = theme;
 
 export default function Parqueaderos() {
-  const { navigate, hasPermission, data, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick } = useParqueaderosPage();
+  const {
+    navigate, hasPermission, data, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick,
+    conductorForm, agregarVehiculo, abrirCrearConductor, abrirCrearVehiculo,
+  } = useParqueaderosPage();
   const { user } = useAuth();
 
   // Comunidad SENA (Conductor) solo puede reservar para su propio vehículo: el buscador del
@@ -107,14 +111,19 @@ export default function Parqueaderos() {
         placaError={ingreso.placaError}
         onPlacaChange={() => ingreso.setPlacaError(null)}
         ingresoPlacaOk={ingreso.ingresoPlacaOk}
-        ingresoConductorOk={ingreso.ingresoConductorOk}
         ingresoValid={ingreso.ingresoValid}
         ingresoPlacaHint={ingreso.ingresoPlacaHint}
         placaYaEstacionada={ingreso.placaYaEstacionada}
         vehiculoEncontrado={ingreso.vehiculoEncontrado}
-        conductorEncontrado={ingreso.conductorEncontrado}
         conductorIdentificado={ingreso.conductorIdentificado}
-        conductoresSugeridos={ingreso.conductoresSugeridos}
+        conductores={data.conductores}
+        conductorQuery={ingreso.conductorQuery}
+        onConductorQueryChange={ingreso.setConductorQuery}
+        onSelectConductor={ingreso.seleccionarConductor}
+        onCambiarConductor={ingreso.cambiarConductor}
+        onCrearConductor={abrirCrearConductor}
+        onCrearVehiculo={abrirCrearVehiculo}
+        onSelectVehiculo={ingreso.seleccionarVehiculo}
         vehiculosConductor={ingreso.vehiculosConductor}
         parqueaderoInactivo={!ingreso.parqueaderoIngresoActivo}
         motivoBloqueoLive={ingreso.motivoBloqueoLive}
@@ -122,6 +131,57 @@ export default function Parqueaderos() {
         onOpenScanner={() => scanner.abrirScannerDesde("ingreso")}
         onSubmit={ingreso.registrarVehiculo}
       />
+
+      {/* Sub-pasos del asistente de "Estacionar Vehículo": crear conductor o vehículo sin
+          perder la celda ni el resto del formulario (ver useParqueaderosPage.ts). */}
+      <Modal open={modal.openModal === "crearConductor"} onClose={() => modal.setOpenModal("ingreso")} maxWidth={780}>
+        <ConductorFormModal
+          isEdit={false}
+          formData={conductorForm.formData}
+          setFormData={conductorForm.setFormData}
+          formErrors={conductorForm.formErrors}
+          touched={conductorForm.touched}
+          markTouched={conductorForm.markTouched}
+          isValid={conductorForm.isValid}
+          usuarioSearch={conductorForm.usuarioSearch}
+          setUsuarioSearch={conductorForm.setUsuarioSearch}
+          usuariosFiltrados={conductorForm.usuariosFiltrados}
+          usuariosConConductorIds={conductorForm.usuariosConConductorIds}
+          usuarioSeleccionado={conductorForm.usuarioSeleccionado}
+          onSubmit={conductorForm.handleSave}
+          onCancel={() => modal.setOpenModal("ingreso")}
+        />
+      </Modal>
+
+      <Modal open={modal.openModal === "crearVehiculo"} onClose={() => modal.setOpenModal("ingreso")} maxWidth={520}>
+        {agregarVehiculo.conductorActivo && (
+          <AgregarVehiculoModal
+            conductor={agregarVehiculo.conductorActivo}
+            modo={agregarVehiculo.modo}
+            onModoChange={agregarVehiculo.setModo}
+            placa={agregarVehiculo.form.placa}
+            tipoVehiculo={agregarVehiculo.form.tipoVehiculo}
+            marca={agregarVehiculo.form.marca}
+            color={agregarVehiculo.form.color}
+            descripcionVehiculo={agregarVehiculo.form.descripcionVehiculo}
+            errors={agregarVehiculo.errors}
+            touched={agregarVehiculo.touched}
+            onPlacaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, placa: v }))}
+            onTipoVehiculoChange={(tipo) => agregarVehiculo.setForm((f) => ({ ...f, tipoVehiculo: tipo }))}
+            onMarcaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, marca: v }))}
+            onColorChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, color: v }))}
+            onDescripcionChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, descripcionVehiculo: v }))}
+            onMarkTouched={agregarVehiculo.markTouched}
+            busquedaExistente={agregarVehiculo.busquedaExistente}
+            onBusquedaExistenteChange={agregarVehiculo.setBusquedaExistente}
+            vehiculoExistenteId={agregarVehiculo.vehiculoExistenteId}
+            onVehiculoExistenteIdChange={agregarVehiculo.setVehiculoExistenteId}
+            vehiculosVinculables={agregarVehiculo.vehiculosVinculables}
+            onSubmit={agregarVehiculo.guardar}
+            onCancel={() => modal.setOpenModal("ingreso")}
+          />
+        )}
+      </Modal>
 
       <CeldaInfoModal
         open={modal.openModal === "info"}

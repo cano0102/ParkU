@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { createFakeRestBackend } from '@/test/fakeApi';
 import { Reservas } from './ReservasPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
 import { AuthProvider } from '@/context/AuthContext';
+import { ROLES } from '@/services/core/roles';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({
@@ -34,10 +35,23 @@ const parqueaderos = createFakeRestBackend('/parqueaderos', [
 ]);
 const reservas = createFakeRestBackend('/reservas', []);
 
+function sesionUsuario(rol: number) {
+  return { id: '9', correo: 'staff@sena.edu.co', nombre: 'Staff Prueba', numero: '', rol };
+}
+
 // El helper genérico espera basePath == prefijo exacto del path recibido — como
 // varios dominios comparten un solo mock de apiFetch en este test, se enruta
 // por prefijo hacia el backend correspondiente en vez de usar cada uno "suelto".
+// `/auth/verificar` se responde aparte (no es un recurso CRUD): AuthProvider lo
+// llama al montar si hay un token guardado, y si falla cierra la sesión local
+// (ver AuthContext.tsx) — por eso debe devolver algo válido, no solo no-matchear.
 apiFetchMock.mockImplementation(async (path: string, opts?: object) => {
+  if (path === '/auth/verificar') {
+    const raw = localStorage.getItem('parkUUser');
+    if (!raw) throw new Error('No autenticado');
+    const u = JSON.parse(raw);
+    return { success: true, message: '', data: { usuario: { id: Number(u.id), correo: u.correo, nombre: u.nombre, rol: Number(u.rol), estado: 'ACTIVO' } } };
+  }
   const backends: [string, ReturnType<typeof createFakeRestBackend>][] = [
     ['/vehiculos', vehiculos], ['/celdas', celdas], ['/conductores', conductores],
     ['/parqueaderos', parqueaderos], ['/reservas', reservas],
@@ -54,6 +68,7 @@ async function reservaSample() {
     celdaId: '1',
     conductorId: '1',
     motivo: '',
+    motivoRechazo: '',
     fechaReserva: '2030-01-01',
     horaInicio: '08:00',
     horaFin: '10:00',
@@ -74,6 +89,15 @@ function renderReservas(client = createTestQueryClient()) {
 }
 
 describe('features/reservas', () => {
+  beforeEach(() => {
+    localStorage.setItem('parkuToken', 'fake-token');
+    localStorage.setItem('parkUUser', JSON.stringify(sesionUsuario(ROLES.ADMIN)));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it('muestra el estado vacío cuando no hay reservas', async () => {
     renderReservas();
     await waitFor(() => expect(screen.getByText('No se encontraron reservas')).toBeInTheDocument());
@@ -127,5 +151,19 @@ describe('features/reservas', () => {
 
     await waitFor(() => expect(screen.getByText('No se encontraron reservas')).toBeInTheDocument());
     expect(screen.queryByText('ABC123')).not.toBeInTheDocument();
+  });
+
+  it('no muestra el botón de eliminar para un Vigilante (el backend ya se lo rechaza con 403)', async () => {
+    const reservasService = await import('@/services/api/reservas');
+    await reservasService.create(await reservaSample());
+
+    localStorage.setItem('parkUUser', JSON.stringify(sesionUsuario(ROLES.VIGILANTE)));
+    renderReservas();
+
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
+
+    expect(screen.queryByLabelText('Eliminar reserva')).not.toBeInTheDocument();
+    // El resto de la fila sigue disponible — solo se oculta la acción de eliminar.
+    expect(screen.getByLabelText('Ver detalle de la reserva')).toBeInTheDocument();
   });
 });

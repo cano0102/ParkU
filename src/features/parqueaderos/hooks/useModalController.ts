@@ -5,7 +5,13 @@ import { esPlacaOficial, type Ocupante } from "../lib/helpers";
 import type { ParqueaderosData } from "./useParqueaderosData";
 
 
-export type ModalKind = "create" | "edit" | "ingreso" | "info" | "scanner" | "smartAssign" | "incidente" | "reserva" | null;
+export type ModalKind =
+  | "create" | "edit" | "ingreso" | "info" | "scanner" | "smartAssign" | "incidente" | "reserva"
+  // Sub-pasos del asistente de "Estacionar Vehículo" (ver useIngresoVehiculo.ts): se
+  // navega a ellos y se vuelve a "ingreso" igual que ya hace el escáner OCR, para no
+  // superponer dos diálogos completos a la vez.
+  | "crearConductor" | "crearVehiculo"
+  | null;
 
 /** Qué modal está abierto, qué celda está seleccionada, y los datos derivados de esa selección. */
 export function useModalController(data: ParqueaderosData) {

@@ -141,3 +141,23 @@ export async function cambiarDisponibilidad(
 export async function remove(id: string): Promise<void> {
   await apiFetch<void>(`/celdas/${id}`, { method: 'DELETE' });
 }
+
+export interface GenerarLoteCantidades {
+  carros: number;
+  motos: number;
+  movilidadReducida: number;
+}
+
+/**
+ * Genera en lote las celdas de un parqueadero recién creado (numeración
+ * automática "C-001"/"M-001"/"PMR-001"... del lado del backend, en una sola
+ * transacción). Usado por el formulario simplificado de creación de
+ * parqueadero, que ya no pide crear las celdas una por una.
+ */
+export async function generarLote(parqueaderoId: string, cantidades: GenerarLoteCantidades): Promise<Celda[]> {
+  const creadas = await apiFetch<ApiCelda[]>(`/celdas/parqueadero/${parqueaderoId}/generar-lote`, {
+    method: 'POST',
+    body: cantidades,
+  });
+  return creadas.map(toFrontend);
+}

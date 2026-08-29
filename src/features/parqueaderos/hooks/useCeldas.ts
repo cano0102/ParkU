@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as celdasService from '@/services/api/celdas';
-import type { Celda, MotivoDisponibilidad } from '@/services/api/celdas';
+import type { Celda, MotivoDisponibilidad, GenerarLoteCantidades } from '@/services/api/celdas';
 import { createQueryHooks } from '@/services/core/queryFactory';
 
 export type { Celda };
@@ -23,5 +23,18 @@ export function useCambiarDisponibilidadCelda() {
       celdasService.cambiarDisponibilidad(id, estado, motivo, observacion),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: hooks.queryKey }),
     onError: (error) => toast.error(error instanceof Error ? error.message : 'No se pudo cambiar el estado de la celda.'),
+  });
+}
+
+/** Genera en lote las celdas de un parqueadero recién creado — ver
+ *  `services/api/celdas.ts#generarLote` para el porqué de un endpoint aparte
+ *  (una sola transacción en vez de N creaciones sueltas). */
+export function useGenerarLoteCeldas() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ parqueaderoId, cantidades }: { parqueaderoId: string; cantidades: GenerarLoteCantidades }) =>
+      celdasService.generarLote(parqueaderoId, cantidades),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: hooks.queryKey }),
+    onError: (error) => toast.error(error instanceof Error ? error.message : 'No se pudieron generar las celdas del parqueadero.'),
   });
 }

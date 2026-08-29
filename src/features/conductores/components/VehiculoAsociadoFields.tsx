@@ -8,20 +8,24 @@ interface VehiculoAsociadoFieldsProps {
   placaError?: string;
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
+  marcaError?: string;
   color: string;
+  colorError?: string;
   descripcionVehiculo: string;
   onPlacaChange: (value: string) => void;
   onPlacaBlur: () => void;
   onTipoVehiculoChange: (tipo: Vehiculo["tipo"]) => void;
   onMarcaChange: (value: string) => void;
+  onMarcaBlur: () => void;
   onColorChange: (value: string) => void;
+  onColorBlur: () => void;
   onDescripcionChange: (value: string) => void;
 }
 
 /** Sección "Vehículo asociado": placa, tipo, marca, color y descripción. */
 export function VehiculoAsociadoFields({
-  placa, placaError, tipoVehiculo, marca, color, descripcionVehiculo,
-  onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onColorChange, onDescripcionChange,
+  placa, placaError, tipoVehiculo, marca, marcaError, color, colorError, descripcionVehiculo,
+  onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onMarcaBlur, onColorChange, onColorBlur, onDescripcionChange,
 }: VehiculoAsociadoFieldsProps) {
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
@@ -53,7 +57,7 @@ export function VehiculoAsociadoFields({
               value={placa}
               onChange={(e) => onPlacaChange(e.target.value.toUpperCase())}
               onBlur={onPlacaBlur}
-              maxLength={10}
+              maxLength={6}
               required
               style={{ ...inputStyle, border: "none", background: "transparent", padding: "8px 0", fontSize: 15, fontWeight: 700, color: COLORS.text, letterSpacing: 1 }}
             />
@@ -72,22 +76,24 @@ export function VehiculoAsociadoFields({
           </select>
         </FormField>
 
-        <FormField label="Marca">
+        <FormField label="Marca *" error={marcaError}>
           <input
             type="text"
             placeholder="ej. Chevrolet Spark"
             value={marca}
             onChange={(e) => onMarcaChange(e.target.value)}
+            onBlur={onMarcaBlur}
             style={inputStyle}
           />
         </FormField>
 
-        <FormField label="Color">
+        <FormField label="Color *" error={colorError}>
           <input
             type="text"
             placeholder="ej. Rojo"
             value={color}
             onChange={(e) => onColorChange(e.target.value)}
+            onBlur={onColorBlur}
             style={inputStyle}
           />
         </FormField>

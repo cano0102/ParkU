@@ -31,7 +31,12 @@ export type ModoAgregarVehiculo = "nuevo" | "existente";
  * dueño (p. ej. una pareja compartiendo un carro).
  */
 export function useAgregarVehiculo(
-  data: Pick<ConductoresData, "vehiculos" | "addVehiculo"> & { agregarPropietario: (vehiculoId: string, conductorId: string) => Promise<unknown> }
+  data: Pick<ConductoresData, "vehiculos" | "addVehiculo"> & { agregarPropietario: (vehiculoId: string, conductorId: string) => Promise<unknown> },
+  /** Se dispara al terminar con éxito cualquiera de los dos modos (vehículo nuevo creado, o
+   *  uno existente vinculado como copropietario), con ese vehículo — lo usa el asistente de
+   *  "Estacionar Vehículo" para seleccionarlo de inmediato sin que el operador tenga que
+   *  volver a buscarlo. */
+  onCreated?: (vehiculo: Vehiculo) => void
 ) {
   const [open, setOpen] = useState(false);
   const [conductorActivo, setConductorActivo] = useState<Conductor | null>(null);
@@ -56,21 +61,35 @@ export function useAgregarVehiculo(
     [data.vehiculos]
   );
 
-  const validar = useCallback((f: AgregarVehiculoForm): string | null => {
+  interface AgregarVehiculoErrors {
+    placa?: string;
+    marca?: string;
+    color?: string;
+  }
+
+  const validar = useCallback((f: AgregarVehiculoForm): AgregarVehiculoErrors => {
+    const errores: AgregarVehiculoErrors = {};
     const placa = f.placa.trim().toUpperCase();
-    if (!placa) return "La placa es obligatoria";
-    if (!validarPlacaColombiana(placa)) return "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
-    if ((f.tipoVehiculo === "carro" || f.tipoVehiculo === "moto") && !validarPlacaPorTipo(placa, f.tipoVehiculo)) {
+    if (!placa) {
+      errores.placa = "La placa es obligatoria";
+    } else if (!validarPlacaColombiana(placa)) {
+      errores.placa = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
+    } else if ((f.tipoVehiculo === "carro" || f.tipoVehiculo === "moto") && !validarPlacaPorTipo(placa, f.tipoVehiculo)) {
       const tipoDetectado = tipoVehiculoDesdePlaca(placa);
-      return `Seleccionaste "${f.tipoVehiculo}", pero la placa tiene formato de ${tipoDetectado}.`;
+      errores.placa = `Seleccionaste "${f.tipoVehiculo}", pero la placa tiene formato de ${tipoDetectado}.`;
+    } else if (placasOcupadas.has(placa)) {
+      errores.placa = "Esta placa ya está registrada en otro vehículo";
     }
-    if (placasOcupadas.has(placa)) return "Esta placa ya está registrada en otro vehículo";
-    return null;
+
+    if (!f.marca.trim()) errores.marca = "La marca es obligatoria";
+    if (!f.color.trim()) errores.color = "El color es obligatorio";
+
+    return errores;
   }, [placasOcupadas]);
 
   // Validación en tiempo real, igual que el resto de formularios de la app:
   // se recalcula en cada cambio, pero solo se muestra tras el primer intento.
-  const error = modo === "nuevo" && touched ? validar(form) : null;
+  const errors: AgregarVehiculoErrors = modo === "nuevo" && touched ? validar(form) : {};
 
   const markTouched = useCallback(() => setTouched(true), []);
 
@@ -91,10 +110,12 @@ export function useAgregarVehiculo(
 
     if (modo === "existente") {
       if (!vehiculoExistenteId) { toast.error("Selecciona un vehículo para vincular"); return; }
+      const vehiculoVinculado = data.vehiculos.find((v) => v.id === vehiculoExistenteId);
       try {
         await data.agregarPropietario(vehiculoExistenteId, conductorActivo.id);
         toast.success(`Vehículo vinculado a ${conductorActivo.nombre} como copropietario`);
         setOpen(false);
+        if (vehiculoVinculado) onCreated?.(vehiculoVinculado);
       } catch (error) {
         console.error("Error linking copropietario:", error);
       }
@@ -102,10 +123,10 @@ export function useAgregarVehiculo(
     }
 
     setTouched(true);
-    if (validar(form)) return;
+    if (Object.values(validar(form)).some(Boolean)) return;
 
     try {
-      await data.addVehiculo({
+      const creado = await data.addVehiculo({
         conductorId: conductorActivo.id,
         conductorNombre: sanitizeText(conductorActivo.nombre),
         placa: form.placa.trim().toUpperCase(),
@@ -119,16 +140,17 @@ export function useAgregarVehiculo(
       });
       toast.success(`Vehículo agregado a ${conductorActivo.nombre}`);
       setOpen(false);
+      onCreated?.(creado);
     } catch (error) {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
       // (services/core/queryFactory.ts).
       console.error("Error adding vehiculo:", error);
     }
-  }, [form, conductorActivo, data, validar, modo, vehiculoExistenteId]);
+  }, [form, conductorActivo, data, validar, modo, vehiculoExistenteId, onCreated]);
 
   return {
     open, setOpen, conductorActivo, modo, setModo, form, setForm,
-    error, touched, markTouched, abrir, guardar,
+    errors, touched, markTouched, abrir, guardar,
     busquedaExistente, setBusquedaExistente, vehiculoExistenteId, setVehiculoExistenteId, vehiculosVinculables,
   };
 }

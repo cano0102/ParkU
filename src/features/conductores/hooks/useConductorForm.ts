@@ -9,7 +9,13 @@ import {
 import type { ConductoresData } from "./useConductoresData";
 
 /** Formulario de crear/editar conductor (con su vehículo), con validación en vivo. */
-export function useConductorForm(data: ConductoresData) {
+export function useConductorForm(
+  data: ConductoresData,
+  /** Se dispara solo tras CREAR un conductor nuevo (no al editar uno existente), con el
+   *  conductor y el vehículo recién creados — lo usa el asistente de "Estacionar Vehículo"
+   *  para seleccionar ambos de inmediato, sin que el operador tenga que volver a buscarlos. */
+  onCreated?: (conductor: Conductor, vehiculo: Vehiculo) => void
+) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
   const [editingVehiculoId, setEditingVehiculoId] = useState<string | null>(null);
@@ -27,7 +33,8 @@ export function useConductorForm(data: ConductoresData) {
 
   const usuariosFiltrados = useMemo(() => {
     const q = usuarioSearch.toLowerCase().trim();
-    if (!q) return data.usuarios;
+    // Campo vacío = sin sugerencias (no listar toda la cuenta de usuarios sin que se pida).
+    if (!q) return [];
     return data.usuarios.filter(
       (u) => u.nombre.toLowerCase().includes(q) || u.correo.toLowerCase().includes(q)
     );
@@ -97,9 +104,8 @@ export function useConductorForm(data: ConductoresData) {
     if (!form.tipoUsuarioId) {
       errors.tipoUsuarioId = "Selecciona un tipo de usuario";
     }
-    if (!form.centroFormacion.trim()) {
-      errors.centroFormacion = "El centro de formación es requerido";
-    }
+    // Centro de formación es opcional (el backend ya lo trata como tal —
+    // no se pide de nuevo un dato que la BD no exige).
     const placa = form.placa.trim().toUpperCase();
     if (!placa) {
       errors.placa = "La placa es obligatoria";
@@ -110,6 +116,12 @@ export function useConductorForm(data: ConductoresData) {
       errors.placa = `Seleccionaste "${form.tipoVehiculo}", pero la placa tiene formato de ${tipoDetectado}.`;
     } else if (placasOcupadas.has(placa)) {
       errors.placa = "Esta placa ya está registrada en otro vehículo";
+    }
+    if (!form.marca.trim()) {
+      errors.marca = "La marca es obligatoria";
+    }
+    if (!form.color.trim()) {
+      errors.color = "El color es obligatorio";
     }
     return errors;
   }, [placasOcupadas]);
@@ -132,7 +144,7 @@ export function useConductorForm(data: ConductoresData) {
   const handleSave = useCallback(async () => {
     const errors = validate(formData);
     setFormErrors(errors);
-    setTouched({ nombre: true, numeroDocumento: true, tipoUsuarioId: true, centroFormacion: true, placa: true });
+    setTouched({ nombre: true, numeroDocumento: true, tipoUsuarioId: true, placa: true, marca: true, color: true });
 
     if (Object.keys(errors).length > 0) {
       const firstError = Object.values(errors)[0];
@@ -188,7 +200,7 @@ export function useConductorForm(data: ConductoresData) {
       } else {
         const created = await data.addConductor(conductorData);
         if (created?.id) {
-          await data.addVehiculo({
+          const vehiculoCreado = await data.addVehiculo({
             conductorId: created.id,
             conductorNombre: created.nombre,
             placa: formData.placa.toUpperCase().trim(),
@@ -200,6 +212,7 @@ export function useConductorForm(data: ConductoresData) {
             descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
             estado: "activo",
           });
+          onCreated?.(created, vehiculoCreado);
         }
         toast.success("Conductor creado correctamente");
       }
@@ -210,7 +223,7 @@ export function useConductorForm(data: ConductoresData) {
       // mostrar un falso "éxito" cuando alguno de los pasos en realidad falló.
       console.error("Error saving conductor:", error);
     }
-  }, [formData, editingConductor, editingVehiculoId, data, validate]);
+  }, [formData, editingConductor, editingVehiculoId, data, validate, onCreated]);
 
   return {
     dialogOpen, setDialogOpen, editingConductor, editingVehiculoId,

@@ -95,13 +95,17 @@ export function ConductorFormModal({
         placaError={touched.placa ? formErrors.placa : undefined}
         tipoVehiculo={formData.tipoVehiculo}
         marca={formData.marca}
+        marcaError={touched.marca ? formErrors.marca : undefined}
         color={formData.color}
+        colorError={touched.color ? formErrors.color : undefined}
         descripcionVehiculo={formData.descripcionVehiculo}
         onPlacaChange={(v) => setFormData({ ...formData, placa: v })}
         onPlacaBlur={() => markTouched("placa")}
         onTipoVehiculoChange={(tipo) => setFormData({ ...formData, tipoVehiculo: tipo })}
         onMarcaChange={(v) => setFormData({ ...formData, marca: v })}
+        onMarcaBlur={() => markTouched("marca")}
         onColorChange={(v) => setFormData({ ...formData, color: v })}
+        onColorBlur={() => markTouched("color")}
         onDescripcionChange={(v) => setFormData({ ...formData, descripcionVehiculo: v })}
       />
     </EntityFormModal>

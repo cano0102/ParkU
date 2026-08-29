@@ -6,7 +6,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { EstadoBadge, TipoBadge } from "../map/CeldaBadges";
-import { Ocupante, formatearFechaHora, formatearDuracion } from "../../lib/helpers";
+import { Ocupante, formatearFechaHora, formatearDuracion, estaFueraDeHorarioOperacion, HORA_OPERACION_FIN } from "../../lib/helpers";
 
 const C = theme;
 
@@ -136,6 +136,12 @@ export function CeldaInfoModal({
           </>
         ) : celdaActiva?.estado === "no_disponible" && ocupanteActivo ? (
           <>
+            {estaFueraDeHorarioOperacion() && (
+              <div style={{ padding: "12px 14px", borderRadius: 11, background: "#FEF2F2", border: `1px solid #FECACA`, fontSize: 12, color: "#991B1B", fontWeight: 700 }}>
+                ⏰ Este vehículo sigue estacionado fuera del horario permitido (hasta las {HORA_OPERACION_FIN}).
+                {canReportarIncidentes ? " Considera generar un incidente." : ""}
+              </div>
+            )}
             {[
               { icon: Car,    label: "Placa",        value: <span style={{ fontFamily: "monospace", fontWeight: 900 }}>{ocupanteActivo.vehiculo.placa}{ocupanteActivo.esOficial && <span style={{ marginLeft: 6, fontSize: 9, background: C.primaryPale, color: C.primaryDark, padding: "1px 6px", borderRadius: 4 }}>OFICIAL</span>}</span> },
               ...(ocupanteActivo.conductor ? [{ icon: UserCircle2, label: "Conductor", value: ocupanteActivo.conductor.nombre, onClick: () => onNavigateConductor(ocupanteActivo.conductor!.nombre) }] : []),
