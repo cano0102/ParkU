@@ -12,6 +12,17 @@
  * ningún efecto de autorización en el backend actual). El formulario de
  * Roles se mantiene sin cambios — solo `nombre/descripcion/estado` viajan
  * de verdad a la API en `create`/`update`.
+ *
+ * El backend SÍ tiene un modelo `permiso`/`rol_permiso` real (M:N, con
+ * catálogo agrupado por módulo) — `getPermisosCatalogo`/`getPermisosDeRol`
+ * más abajo lo consultan de solo lectura para `PermisosEditor.tsx`. Pero
+ * ningún endpoint lo usa para autorizar nada: las 67 rutas de la API siguen
+ * gateadas por `verificarRol([...])` hardcodeado, y el middleware que sí
+ * leería `rol_permiso` (`verificarPermiso`) existe pero no está enganchado
+ * a ninguna ruta todavía (confirmado leyendo `Api-ParkU/src/middlewares/
+ * auth.middleware.js`). Por eso el editor es de solo lectura: lo que
+ * muestra ya está guardado de verdad, pero cambiarlo hoy no cambiaría el
+ * acceso real de nadie.
  */
 import { apiFetch } from '../core/http';
 import { PERMISOS_POR_ROL, PERMISOS_VACIOS, esRolId, type PermisosRol } from '../core/roles';
@@ -74,4 +85,49 @@ export async function update(id: string, data: Partial<Omit<Rol, 'id'>>): Promis
 
 export async function remove(id: string): Promise<void> {
   await apiFetch<void>(`/roles/${id}`, { method: 'DELETE' });
+}
+
+/** Un permiso del catálogo real (`/api/permisos`), agrupado por módulo. */
+export interface PermisoCatalogo {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  moduloId: string;
+  moduloNombre: string;
+}
+
+interface ApiPermiso {
+  id: number;
+  modulo_id: number;
+  nombre: string;
+  descripcion: string | null;
+  estado: boolean;
+  modulo?: { id: number; nombre: string };
+}
+
+/** Catálogo completo de permisos definidos en el backend, sin importar a qué rol
+ *  estén asignados — ver la nota de solo-lectura en el encabezado del archivo. */
+export async function getPermisosCatalogo(): Promise<PermisoCatalogo[]> {
+  const rows = await apiFetch<ApiPermiso[]>('/permisos');
+  return rows
+    .filter((p) => p.estado)
+    .map((p) => ({
+      id: String(p.id),
+      nombre: p.nombre,
+      descripcion: p.descripcion ?? '',
+      moduloId: String(p.modulo_id),
+      moduloNombre: p.modulo?.nombre ?? 'Sin módulo',
+    }));
+}
+
+interface ApiRolPermiso {
+  id: number;
+  rol: number;
+  permiso: number;
+}
+
+/** Ids de los permisos que un rol tiene realmente asignados en `rol_permiso`. */
+export async function getPermisosDeRol(rolId: string): Promise<Set<string>> {
+  const rows = await apiFetch<ApiRolPermiso[]>(`/roles-permisos/rol/${rolId}`);
+  return new Set(rows.map((r) => String(r.permiso)));
 }

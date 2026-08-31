@@ -88,9 +88,6 @@ describe('Roles', () => {
     const nombreUnico = `Rol Test ${Date.now()}`;
     await user.type(nombreInput, nombreUnico);
 
-    // Activa un permiso para asegurar que el submit se ejecuta con datos no triviales.
-    await user.click(screen.getByRole('checkbox', { name: 'Dashboard' }));
-
     await user.click(screen.getByRole('button', { name: 'Crear Rol' }));
 
     await waitFor(() => {
@@ -142,7 +139,7 @@ describe('Roles', () => {
     });
   });
 
-  it('togglea todos los permisos de un grupo desde el formulario', async () => {
+  it('no ofrece permisos para un rol nuevo (todavía no existe en el backend real)', async () => {
     const user = userEvent.setup();
     renderRoles();
     await waitFor(() => {
@@ -152,20 +149,31 @@ describe('Roles', () => {
     await user.click(screen.getByText('Nuevo Rol'));
     await screen.findByLabelText('Nombre del rol');
 
-    // Con el formulario vacío, los 4 grupos muestran "Todo" (ninguno está
-    // completo). El grupo "Administración" es el primero en PERMISOS, así
-    // que corresponde al primer botón "Todo" del DOM.
-    const todoButtons = screen.getAllByText('Todo');
-    expect(todoButtons).toHaveLength(4);
-    await user.click(todoButtons[0]);
+    expect(screen.getByText(/todavía no tiene permisos asignados en el backend/)).toBeInTheDocument();
+    // Nada clickeable: es de solo lectura, no un editor.
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
 
-    // Una vez marcado, el checkbox añade el símbolo "✓" a su nombre accesible
-    // (viene del span de check dentro del botón), por eso se matchea con un
-    // regex de prefijo en vez del texto exacto.
+  it('muestra los permisos reales del rol (solo lectura) al editar uno existente', async () => {
+    const user = userEvent.setup();
+    renderRoles();
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: /^Usuarios/ })).toHaveAttribute('aria-checked', 'true');
+      expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
     });
-    expect(screen.getByRole('checkbox', { name: /^Roles/ })).toHaveAttribute('aria-checked', 'true');
-    expect(screen.getByRole('checkbox', { name: /^Dashboard/ })).toHaveAttribute('aria-checked', 'true');
+
+    await user.click(screen.getByLabelText('Ver detalle de Administrador'));
+    await user.click(await screen.findByText('Editar este rol'));
+    await screen.findByRole('heading', { level: 2, name: 'Editar Rol' });
+
+    // Semilla: rol 1 (Administrador) tiene 2 permisos reales asignados en
+    // rolesPermisosSeed (ver appFakeApi.ts) — "configuracion.gestionar" y
+    // "parqueaderos.consultar", agrupados por sus módulos reales.
+    await waitFor(() => {
+      expect(screen.getByText('2 / 3 asignados')).toBeInTheDocument();
+    });
+    expect(screen.getByText('configuracion.gestionar')).toBeInTheDocument();
+    expect(screen.getByText('Configuración')).toBeInTheDocument();
+    // Nada clickeable: ver el permiso guardado no significa poder cambiarlo desde aquí.
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 });

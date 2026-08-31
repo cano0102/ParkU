@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Rol } from "@/services/api/roles";
 import { sanitizeText } from "@/utils/format";
-import { countActive, PERMISOS, type PermisosKeys, type PermisosState } from "../lib/permisos";
 import { type FormState } from "../lib/helpers";
 
 interface UseRolFormArgs {
@@ -49,21 +48,6 @@ export function useRolForm({ initial, onSave, existingRoles, editingRolId = null
     setForm((f) => ({ ...f, estado }));
   }, []);
 
-  const handleTogglePermiso = useCallback((k: keyof PermisosState) => {
-    setForm((f) => ({
-      ...f,
-      permisos: { ...f.permisos, [k]: !f.permisos[k] },
-    }));
-  }, []);
-
-  const handleToggleGrupo = useCallback((grupo: PermisosKeys) => {
-    const keys = Object.keys(PERMISOS[grupo]) as Array<keyof PermisosState>;
-    setForm((f) => {
-      const allOn = keys.every((k) => f.permisos[k]);
-      return { ...f, permisos: keys.reduce((acc, k) => ({ ...acc, [k]: !allOn }), f.permisos) };
-    });
-  }, []);
-
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
@@ -87,9 +71,6 @@ export function useRolForm({ initial, onSave, existingRoles, editingRolId = null
     [form, onSave, existingRoles, editingRolId]
   );
 
-  const activeCount = useMemo(() => countActive(form.permisos), [form.permisos]);
-  const total = useMemo(() => Object.keys(form.permisos).length, [form.permisos]);
-
   return {
     form,
     setDescripcion,
@@ -98,10 +79,6 @@ export function useRolForm({ initial, onSave, existingRoles, editingRolId = null
     formInvalido,
     handleNombreChange,
     markNombreTocado,
-    handleTogglePermiso,
-    handleToggleGrupo,
     handleSubmit,
-    activeCount,
-    total,
   };
 }

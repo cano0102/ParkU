@@ -19,8 +19,10 @@
  * página. Si el backend real todavía bloquea `GET /parqueaderos` o
  * `GET /celdas` para el rol Conductor, hay que habilitarlo ahí también; el
  * resto de acciones de esta pantalla (crear/editar parqueadero, ingreso/
- * egreso de vehículos, asignación inteligente, incidentes) siguen vetadas
- * para Conductor vía `celdas`/`asignaciones`/`entradaSalida`/`incidentes`.
+ * egreso de vehículos, asignación inteligente) siguen vetadas para Conductor
+ * vía `celdas`/`asignaciones`/`entradaSalida`. `incidentes` sí se habilitó
+ * (HU 07.1.11-07.1.14, "Mis incidentes") — ver el comentario junto a ese
+ * campo más abajo para el porqué es parcial hoy.
  */
 
 export const ROLES = {
@@ -84,16 +86,21 @@ export const PERMISOS_POR_ROL: Record<RolId, PermisosRol> = {
     conductores: false,
     vehiculos: false,
     // Solo lectura del mapa/disponibilidad de celdas + reservar una: ve la sección de
-    // Parqueaderos, pero sin `celdas`/`asignaciones`/`entradaSalida`/`incidentes` no puede
-    // crear/editar parqueaderos, registrar ingresos/egresos, usar asignación inteligente ni
-    // reportar incidentes (esas acciones están gateadas en la UI por esos permisos, no por
-    // este). Ver ParqueaderosPage.tsx / CeldaInfoModal.tsx.
+    // Parqueaderos, pero sin `celdas`/`asignaciones`/`entradaSalida` no puede crear/editar
+    // parqueaderos, registrar ingresos/egresos ni usar asignación inteligente (esas acciones
+    // están gateadas en la UI por esos permisos, no por este). Ver ParqueaderosPage.tsx /
+    // CeldaInfoModal.tsx.
     parqueaderos: true,
     celdas: false,
     asignaciones: false,
     entradaSalida: false,
     reservas: true,
-    incidentes: false,
+    // `true`: HU 07.1.11-07.1.14 (reportar/consultar/actualizar/cancelar sus propios
+    // incidentes) — ver ConductorIncidentes.tsx. En la API real hoy solo "reportar" (POST) y
+    // el historial funcionan de verdad para este rol; "consultar"/"actualizar"/"cancelar" ya
+    // están listos en el frontend pero dan 403 hasta que el backend abra esas rutas para que
+    // un Conductor gestione sus propios recursos (ver services/api/incidentes.ts).
+    incidentes: true,
     reconocimientoPlacas: false,
   },
 };

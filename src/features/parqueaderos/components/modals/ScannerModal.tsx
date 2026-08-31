@@ -8,8 +8,12 @@ const C = theme;
 
 interface ScannerModalProps {
   open: boolean;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  guiaRef: React.RefObject<HTMLDivElement | null>;
+  // `RefObject<T>` (sin `| null` en el genérico) es lo que devuelve el
+  // `useRef<T>(null)` de origen (useOcrScanner.ts) — con @types/react 18
+  // real (antes se enmascaraba con @types/react 19, que tipa los refs de
+  // forma más permisiva), `| null` aquí no es asignable al `ref` nativo.
+  videoRef: React.RefObject<HTMLVideoElement>;
+  guiaRef: React.RefObject<HTMLDivElement>;
   camaraLista: boolean;
   onCamaraLista: () => void;
   ocrLoading: boolean;

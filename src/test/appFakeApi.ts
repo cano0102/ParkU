@@ -20,6 +20,18 @@ export const rolesSeed = [
   { id: 3, nombre: 'Comunidad SENA', descripcion: 'Acceso básico', estado: true },
 ];
 
+// Catálogo real de permisos (`/api/permisos`) y su asignación por rol
+// (`/api/roles-permisos`) — de solo lectura en la UI, ver PermisosEditor.tsx.
+export const permisosSeed = [
+  { id: 1, modulo_id: 1, nombre: 'configuracion.gestionar', descripcion: 'Gestionar roles y permisos', estado: true, modulo: { id: 1, nombre: 'Configuración' } },
+  { id: 4, modulo_id: 3, nombre: 'parqueaderos.consultar', descripcion: 'Consultar parqueaderos y celdas', estado: true, modulo: { id: 3, nombre: 'Parqueaderos' } },
+  { id: 5, modulo_id: 3, nombre: 'parqueaderos.gestionar', descripcion: 'Gestionar parqueaderos y celdas', estado: true, modulo: { id: 3, nombre: 'Parqueaderos' } },
+];
+export const rolesPermisosSeed = [
+  { id: 1, rol: 1, permiso: 1, rol_nombre: 'Administrador', permiso_nombre: 'configuracion.gestionar' },
+  { id: 2, rol: 1, permiso: 4, rol_nombre: 'Administrador', permiso_nombre: 'parqueaderos.consultar' },
+];
+
 // `rol_id`: nombre real de la columna en `/usuarios` (confirmado en vivo —
 // `toFrontend` de services/api/usuarios.ts la lee así). El endpoint de login
 // sí anida el rol como `rol` en su respuesta (confirmado en vivo también);
@@ -348,9 +360,17 @@ export function createAppBackends() {
   const catalogos = createFakeRestBackend('/catalogos/tipos-usuario', catalogosSeed);
   const auth = createAuthBackend();
 
+  const rolesPermisos = createFakeRestBackend('/roles-permisos', rolesPermisosSeed, {
+    actions: [{
+      method: 'GET', pattern: /^\/rol\/(\d+)$/,
+      handle: (m, _body, items) => items.filter((i: any) => i.rol === Number(m[1])),
+    }],
+  });
+
   const backends: [string, ReturnType<typeof createFakeRestBackend>][] = [
     ['/catalogos/tipos-usuario', catalogos],
-    ['/roles-permisos', createFakeRestBackend('/roles-permisos', [])],
+    ['/permisos', createFakeRestBackend('/permisos', permisosSeed)],
+    ['/roles-permisos', rolesPermisos],
     ['/roles', roles],
     ['/usuarios', usuarios],
     ['/conductores', conductores],

@@ -159,8 +159,8 @@ export function AuthProvider({
     return true;
   };
 
-  // LOGIN GOOGLE — sin flujo de Firebase Auth conectado (ver services/core/firebase.ts);
-  // se deja el estado local por compatibilidad, pero no llama a la API.
+  // LOGIN GOOGLE — sin flujo de Firebase Auth conectado; se deja el estado
+  // local por compatibilidad, pero no llama a la API.
   const googleLogin = (userData: any) => {
     const googleUser: User = {
       id: userData.uid,

@@ -2,13 +2,14 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
+import { exportarCsv, type CsvColumn } from "@/utils/csvExport";
 import { useReservas, useRemoveReserva, useUpdateReserva } from "./useReservas";
 import type { Reserva } from "@/services/api/reservas";
 import { useUpdateCelda, useCeldas, useParqueaderos } from "@/features/parqueaderos";
 import type { Celda } from "@/services/api/celdas";
 import { useVehiculos, useConductores, vehiculoEstaParqueado } from "@/features/conductores";
 import { useControlSalida } from "@/features/controlSalida";
-import type { EstadoReserva } from "../lib/constants";
+import { ESTADO_CONFIG, type EstadoReserva } from "../lib/constants";
 
 /** Datos, filtros y eliminación del historial de reservas. */
 export function useReservasPage() {
@@ -116,6 +117,29 @@ export function useReservasPage() {
     setFilterEstado("todos");
   };
 
+  // HU 06.1.3/06.1.8/06.1.9 ("generar reporte" de reservas). Exporta `filteredReservas`, no
+  // `reservas`: son las filas que ya se ven en pantalla, así que respeta la búsqueda y el
+  // filtro de estado activos en vez de volcar siempre el historial completo.
+  const columnasExportReservas: CsvColumn<Reserva>[] = [
+    { header: "Fecha", value: (r) => r.fechaReserva },
+    { header: "Hora inicio", value: (r) => r.horaInicio },
+    { header: "Hora fin", value: (r) => r.horaFin },
+    { header: "Celda", value: (r) => getCelda(r.celdaId)?.numero ?? "" },
+    { header: "Parqueadero", value: (r) => { const c = getCelda(r.celdaId); return c ? getParqueadero(c.parqueaderoId)?.nombre ?? "" : ""; } },
+    { header: "Placa", value: (r) => getVehiculo(r.vehiculoId)?.placa ?? "" },
+    { header: "Conductor", value: (r) => getConductorReserva(r)?.nombre ?? "" },
+    { header: "Estado", value: (r) => ESTADO_CONFIG[r.estado].label },
+    { header: "Motivo", value: (r) => r.motivo },
+    { header: "Motivo de rechazo", value: (r) => r.motivoRechazo },
+  ];
+  const exportarReservas = () => {
+    if (filteredReservas.length === 0) {
+      toast.error("No hay reservas para exportar con los filtros actuales.");
+      return;
+    }
+    exportarCsv("reservas", columnasExportReservas, filteredReservas);
+  };
+
   // Solo Admin/Vigilante gestionan solicitudes — un Conductor puede solicitar una reserva,
   // pero no aprobar la suya (ni la de nadie).
   const puedeGestionarSolicitudes = user?.rol === ROLES.ADMIN || user?.rol === ROLES.VIGILANTE;
@@ -216,7 +240,7 @@ export function useReservasPage() {
     search, setSearch, filterEstado, setFilterEstado, confirmDelete, setConfirmDelete,
     confirmRechazar, setConfirmRechazar,
     getVehiculo, getCelda, getParqueadero, getConductorReserva,
-    counts, filteredReservas, handleDelete, confirmDeleteAction,
+    counts, filteredReservas, handleDelete, confirmDeleteAction, exportarReservas,
     puedeGestionarSolicitudes, solicitudesPendientes, aceptarSolicitud, handleRechazar, confirmRechazarAction,
     miConductorId, celdas, parqueaderos, vehiculos, controlesSalida, reservasTodas,
     activeFiltersCount, clearFilters, isLoading,

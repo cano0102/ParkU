@@ -71,13 +71,14 @@ export default function ConductorDashboard() {
       </Card>
 
       <Card>
+        {/* Sin "Ver detalle": /app/conductores es una ruta con permission="conductores" que
+            este rol no tiene (navegar ahí terminaba en "Acceso denegado") — el detalle de
+            cada vehículo ya se muestra completo aquí abajo, no hace falta otra pantalla. */}
         <SectionTitle
           icon={Car}
           title="Mis vehículos"
           subtitle={`${d.misVehiculos.length} vehículo(s) registrado(s)`}
           color={COLORS.blue}
-          actionLabel="Ver detalle"
-          onAction={() => navigate("/app/conductores")}
         />
         {d.misVehiculos.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#E2E8F0] p-5 text-center">

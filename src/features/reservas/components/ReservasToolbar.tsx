@@ -1,4 +1,4 @@
-import { Search, X } from "lucide-react";
+import { Download, Search, X } from "lucide-react";
 import { theme } from "@/styles/theme";
 import type { EstadoReserva } from "../lib/constants";
 
@@ -11,10 +11,11 @@ interface ReservasToolbarProps {
   onFilterEstadoChange: (value: "todos" | EstadoReserva) => void;
   activeFiltersCount: number;
   onClearFilters: () => void;
+  onExport: () => void;
 }
 
-/** Buscador + filtro de estado + "limpiar filtros" de la página de Reservas. */
-export function ReservasToolbar({ search, onSearchChange, filterEstado, onFilterEstadoChange, activeFiltersCount, onClearFilters }: ReservasToolbarProps) {
+/** Buscador + filtro de estado + "limpiar filtros" + exportar CSV de la página de Reservas. */
+export function ReservasToolbar({ search, onSearchChange, filterEstado, onFilterEstadoChange, activeFiltersCount, onClearFilters, onExport }: ReservasToolbarProps) {
   return (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
       <div style={{ flex: 1, position: "relative", minWidth: 200 }}>
@@ -62,6 +63,14 @@ export function ReservasToolbar({ search, onSearchChange, filterEstado, onFilter
           <X size={14} /> Limpiar
         </button>
       )}
+
+      <button
+        onClick={onExport}
+        title="Exportar a CSV la lista con los filtros activos"
+        style={{ padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, color: C.text, fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+      >
+        <Download size={14} /> Exportar CSV
+      </button>
     </div>
   );
 }

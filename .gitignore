@@ -1,2 +1,11 @@
 node_modules/
 .claude/settings.local.json
+
+# Variables de entorno locales — .env.example sí se versiona, es la plantilla
+.env
+.env.local
+
+# Artefactos regenerables (build y reporte de cobertura): no aportan nada al
+# historial y solo generan conflictos de merge en cada PR
+dist/
+coverage/

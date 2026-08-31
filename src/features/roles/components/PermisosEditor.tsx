@@ -1,220 +1,117 @@
+import { Info } from "lucide-react";
 import { theme } from "@/styles/theme";
-import {
-  GRUPO_COLORS, GRUPO_ICON_COMPONENTS, GRUPO_LABELS, PERMISOS,
-  type PermisosKeys, type PermisosState,
-} from "../lib/permisos";
+import type { PermisoCatalogo } from "@/services/api/roles";
 
 const COLORS = theme;
 
 interface PermisosEditorProps {
-  permisos: PermisosState;
-  activeCount: number;
-  total: number;
-  onTogglePermiso: (k: keyof PermisosState) => void;
-  onToggleGrupo: (grupo: PermisosKeys) => void;
+  isCreating: boolean;
+  isLoading: boolean;
+  permisosCatalogo: PermisoCatalogo[];
+  permisosAsignadosIds: Set<string>;
 }
 
-/** Sección "Permisos" del formulario de rol: progreso global + tarjetas por grupo con sus toggles. */
-export function PermisosEditor({ permisos, activeCount, total, onTogglePermiso, onToggleGrupo }: PermisosEditorProps) {
+/**
+ * Sección "Permisos" del formulario de rol — de SOLO LECTURA: muestra los permisos que el
+ * backend real tiene guardados para este rol (`GET /roles-permisos/rol/:id`), agrupados por
+ * módulo. No hay checkboxes editables a propósito: la API expone `rol_permiso` para
+ * guardarlo, pero ninguna ruta lo consulta todavía para autorizar nada (ver el porqué
+ * completo en el encabezado de `services/api/roles.ts`) — un control que aceptara cambios
+ * aquí los guardaría sin que tuvieran ningún efecto real, que es justo el problema que esto
+ * reemplaza.
+ */
+export function PermisosEditor({ isCreating, isLoading, permisosCatalogo, permisosAsignadosIds }: PermisosEditorProps) {
+  const porModulo = new Map<string, PermisoCatalogo[]>();
+  for (const permiso of permisosCatalogo) {
+    const lista = porModulo.get(permiso.moduloNombre) ?? [];
+    lista.push(permiso);
+    porModulo.set(permiso.moduloNombre, lista);
+  }
+  const activeCount = permisosCatalogo.filter((p) => permisosAsignadosIds.has(p.id)).length;
+
   return (
     <section>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 10,
-        }}
-      >
-        <p
-          style={{
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: 1.5,
-            color: COLORS.textLight,
-            textTransform: "uppercase",
-          }}
-        >
-          Permisos
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: COLORS.textLight, textTransform: "uppercase" }}>
+          Permisos (solo lectura)
         </p>
-        <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.primary }}>
-          {activeCount} / {total} activos
-        </span>
+        {!isCreating && !isLoading && (
+          <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.primary }}>
+            {activeCount} / {permisosCatalogo.length} asignados
+          </span>
+        )}
       </div>
 
       <div
         style={{
-          height: 4,
-          borderRadius: 999,
-          background: "#E2E8F0",
-          marginBottom: 9,
-          overflow: "hidden",
+          display: "flex", alignItems: "flex-start", gap: 8, padding: "9px 12px", borderRadius: 10,
+          background: "#EFF6FF", border: "1px solid #BFDBFE", marginBottom: 10,
         }}
       >
-        <div
-          style={{
-            height: "100%",
-            borderRadius: 999,
-            background: COLORS.primary,
-            width: `${(activeCount / total) * 100}%`,
-            transition: "width .3s ease",
-          }}
-          role="progressbar"
-          aria-valuenow={(activeCount / total) * 100}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        />
+        <Info size={13} color="#1D4ED8" style={{ flexShrink: 0, marginTop: 1 }} />
+        <p style={{ fontSize: 11, color: "#1E3A8A", lineHeight: 1.5, margin: 0 }}>
+          Esto refleja lo que ya está guardado en el backend, pero hoy ningún endpoint lo
+          consulta para autorizar accesos — el control de acceso real sigue siendo fijo por
+          rol en el servidor. Gestionar permisos se hace desde el backend, no desde aquí.
+        </p>
       </div>
 
-      <div className="roles-permiso-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
-        {(Object.entries(PERMISOS) as [PermisosKeys, typeof PERMISOS[PermisosKeys]][]).map(
-          ([grupo, permisosGrupo]) => {
-            const color = GRUPO_COLORS[grupo] ?? COLORS.primary;
-            const Icon = GRUPO_ICON_COMPONENTS[grupo];
-            const keys = Object.keys(permisosGrupo) as Array<keyof PermisosState>;
-            const on = keys.filter((k) => permisos[k]).length;
-            const totalGrupo = keys.length;
-            const allOn = on === totalGrupo;
-
+      {isCreating ? (
+        <p style={{ fontSize: 11, color: COLORS.textLight, padding: "8px 2px" }}>
+          Un rol nuevo todavía no tiene permisos asignados en el backend — se podrán ver aquí
+          después de crearlo.
+        </p>
+      ) : isLoading ? (
+        <p style={{ fontSize: 11, color: COLORS.textLight, padding: "8px 2px" }}>Cargando permisos…</p>
+      ) : permisosCatalogo.length === 0 ? (
+        <p style={{ fontSize: 11, color: COLORS.textLight, padding: "8px 2px" }}>
+          El backend no tiene ningún permiso definido en su catálogo todavía.
+        </p>
+      ) : (
+        <div className="roles-permiso-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
+          {Array.from(porModulo.entries()).map(([moduloNombre, permisos]) => {
+            const on = permisos.filter((p) => permisosAsignadosIds.has(p.id)).length;
             return (
-              <div
-                key={grupo}
-                style={{
-                  borderRadius: 12,
-                  border: `1px solid ${COLORS.border}`,
-                  background: "#F8FAFC",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "7px 10px",
-                    borderBottom: `1px solid ${COLORS.border}`,
-                    background: "#fff",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
-                    <div
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 7,
-                        background: `${color}18`,
-                        color,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Icon size={13} />
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: COLORS.text,
-                      }}
-                    >
-                      {GRUPO_LABELS[grupo]}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onToggleGrupo(grupo)}
-                    style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color,
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                    }}
-                  >
-                    {allOn ? "Quitar todo" : "Todo"}
-                  </button>
+              <div key={moduloNombre} style={{ borderRadius: 12, border: `1px solid ${COLORS.border}`, background: "#F8FAFC", overflow: "hidden" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 10px", borderBottom: `1px solid ${COLORS.border}`, background: "#fff" }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: COLORS.text }}>{moduloNombre}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: COLORS.textLight }}>{on}/{permisos.length}</span>
                 </div>
-
-                <div style={{ height: 3, background: "#E2E8F0", overflow: "hidden" }}>
-                  <div
-                    style={{
-                      height: "100%",
-                      background: color,
-                      width: `${(on / totalGrupo) * 100}%`,
-                      transition: "width .3s",
-                    }}
-                  />
-                </div>
-
-                <div
-                  style={{
-                    padding: "7px 10px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 4,
-                  }}
-                >
-                  {Object.entries(permisosGrupo).map(([key, label]) => {
-                    const checked = permisos[key as keyof PermisosState];
+                <div style={{ padding: "7px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+                  {permisos.map((permiso) => {
+                    const checked = permisosAsignadosIds.has(permiso.id);
                     return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => onTogglePermiso(key as keyof PermisosState)}
+                      <div
+                        key={permiso.id}
+                        title={permiso.descripcion}
                         style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "6px 10px",
-                          borderRadius: 9,
-                          cursor: "pointer",
-                          border: `1px solid ${checked ? `${color}30` : COLORS.border}`,
-                          background: checked ? `${color}08` : "#fff",
-                          transition: "all .15s",
-                          width: "100%",
-                          fontFamily: "inherit",
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: COLORS.text,
+                          display: "flex", alignItems: "center", justifyContent: "space-between",
+                          padding: "6px 10px", borderRadius: 9,
+                          border: `1px solid ${checked ? `${COLORS.primary}30` : COLORS.border}`,
+                          background: checked ? `${COLORS.primary}08` : "#fff",
+                          fontSize: 11, fontWeight: 600, color: checked ? COLORS.text : COLORS.textLight,
                         }}
-                        role="checkbox"
-                        aria-checked={checked}
                       >
-                        <span>{label}</span>
+                        <span>{permiso.nombre}</span>
                         <div
                           style={{
-                            width: 16,
-                            height: 16,
-                            borderRadius: 5,
-                            border: `1.5px solid ${checked ? color : COLORS.border}`,
-                            background: checked ? color : "#fff",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                            transition: "all .15s",
+                            width: 16, height: 16, borderRadius: 5, flexShrink: 0,
+                            border: `1.5px solid ${checked ? COLORS.primary : COLORS.border}`,
+                            background: checked ? COLORS.primary : "#fff",
+                            display: "flex", alignItems: "center", justifyContent: "center",
                           }}
                         >
-                          {checked && (
-                            <span
-                              style={{ color: "#fff", fontSize: 9, fontWeight: 900, lineHeight: 1 }}
-                            >
-                              ✓
-                            </span>
-                          )}
+                          {checked && <span style={{ color: "#fff", fontSize: 9, fontWeight: 900, lineHeight: 1 }}>✓</span>}
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
               </div>
             );
-          }
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </section>
   );
 }

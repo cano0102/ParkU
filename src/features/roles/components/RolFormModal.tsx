@@ -3,6 +3,7 @@ import { ShieldCheck, X } from "lucide-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
 import { useRolForm } from "../hooks/useRolForm";
+import { usePermisosCatalogo, usePermisosDeRol } from "../hooks/useRoles";
 import type { FormState } from "../lib/helpers";
 import { RolBasicInfoFields } from "./RolBasicInfoFields";
 import { PermisosEditor } from "./PermisosEditor";
@@ -23,9 +24,10 @@ interface RolFormModalProps {
 export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing = false, existingRoles, editingRolId = null }: RolFormModalProps) => {
   const {
     form, setDescripcion, setEstado, nombreErrorVisible, formInvalido,
-    handleNombreChange, markNombreTocado, handleTogglePermiso, handleToggleGrupo,
-    handleSubmit, activeCount, total,
+    handleNombreChange, markNombreTocado, handleSubmit,
   } = useRolForm({ initial, onSave, existingRoles, editingRolId });
+  const { data: permisosCatalogo = [], isLoading: catalogoLoading } = usePermisosCatalogo();
+  const { data: permisosAsignadosIds = new Set<string>(), isLoading: asignadosLoading } = usePermisosDeRol(editingRolId);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -100,11 +102,10 @@ export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing 
           onEstadoChange={setEstado}
         />
         <PermisosEditor
-          permisos={form.permisos}
-          activeCount={activeCount}
-          total={total}
-          onTogglePermiso={handleTogglePermiso}
-          onToggleGrupo={handleToggleGrupo}
+          isCreating={!editingRolId}
+          isLoading={catalogoLoading || asignadosLoading}
+          permisosCatalogo={permisosCatalogo}
+          permisosAsignadosIds={permisosAsignadosIds}
         />
       </div>
 

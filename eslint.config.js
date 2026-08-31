@@ -74,9 +74,9 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
 
       // Regla dura de la Fase 1: solo services/ puede importar el SDK de Firebase.
-      // (services/core/firebase.ts es la única integración, y hoy no está
-      // conectada a ningún flujo activo — todo lo demás corre contra el mock
-      // de services/api/auth.ts.)
+      // La integración (services/core/firebase.ts) se eliminó por no usarse —
+      // la regla se deja como guardia para que no se reintroduzca sin pasar
+      // por una capa de servicios.
       'no-restricted-imports': [
         'error',
         { patterns: [{ group: ['firebase', 'firebase/*'], message: 'Solo src/services/ puede importar el SDK de Firebase.' }] },

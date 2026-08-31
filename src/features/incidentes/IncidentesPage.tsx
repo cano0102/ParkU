@@ -1,5 +1,7 @@
 import { Modal, LoadingState } from "@/components/shared";
 import { theme } from "@/styles/theme";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { useIncidentesPage } from "./hooks/useIncidentesPage";
 import { incidentesStyles } from "./lib/styles";
 import { IncidentesHero } from "./components/IncidentesHero";
@@ -8,11 +10,20 @@ import { IncidentesGrid } from "./components/IncidentesGrid";
 import { IncidenteFormModal } from "./components/IncidenteFormModal";
 import { IncidenteViewModal } from "./components/IncidenteViewModal";
 import { ConfirmDeleteIncidenteModal } from "./components/ConfirmDeleteIncidenteModal";
+import { ConductorIncidentes } from "./components/ConductorIncidentes";
 
 const C = theme;
 
 export function Incidentes() {
+  const { user } = useAuth();
   const p = useIncidentesPage();
+
+  // El rol Comunidad SENA (Conductor) no puede listar el /novedades completo en la API
+  // real (403) ni gestionar los de otros — mismo patrón que ConductorDashboard.tsx: una
+  // vista propia y más simple en vez del panel de gestión que usan Admin/Vigilante.
+  if (user?.rol === ROLES.CONDUCTOR) {
+    return <ConductorIncidentes />;
+  }
 
   return (
     <>

@@ -4,12 +4,14 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createAppBackends } from '@/test/appFakeApi';
+import { AuthProvider } from '@/context/AuthContext';
 import { Incidentes } from './IncidentesPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({
   apiFetch: apiFetchMock,
+  AUTH_EXPIRED_EVENT: 'parku:auth-expired',
   crearConRespaldo: async (path: string, body: unknown, fetchTodosCrudo: () => Promise<any[]>) => {
     const creado = await apiFetchMock(path, { method: 'POST', body });
     if (creado) return creado;
@@ -23,7 +25,9 @@ function renderIncidentes(client = createTestQueryClient()) {
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
-        <Incidentes />
+        <AuthProvider>
+          <Incidentes />
+        </AuthProvider>
       </QueryClientProvider>
     </MemoryRouter>
   );

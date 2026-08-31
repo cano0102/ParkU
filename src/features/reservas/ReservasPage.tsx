@@ -61,6 +61,7 @@ export function Reservas() {
           onFilterEstadoChange={p.setFilterEstado}
           activeFiltersCount={p.activeFiltersCount}
           onClearFilters={p.clearFilters}
+          onExport={p.exportarReservas}
         />
 
         {p.isLoading ? (
