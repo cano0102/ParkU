@@ -1,6 +1,0 @@
-import{c as n,a5 as r,ae as s,af as a,a4 as u}from"./index-CQbT-iSH.js";/**
- * @license lucide-react v0.487.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */const d=[["path",{d:"M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2",key:"5owen"}],["circle",{cx:"7",cy:"17",r:"2",key:"u2ysq9"}],["path",{d:"M9 17h6",key:"r8uit2"}],["circle",{cx:"17",cy:"17",r:"2",key:"axvx0g"}]],S=n("car",d),e=r(s.get,s.set,"veh","Vehículo"),l=e.getAll,i=e.getById,g=e.create,p=e.update,v=e.remove,y=Object.freeze(Object.defineProperty({__proto__:null,create:g,getAll:l,getById:i,remove:v,update:p},Symbol.toStringTag,{value:"Module"})),t=r(a.get,a.set,"cond","Conductor"),h=t.getAll,C=t.getById,_=t.create,b=t.update,m=t.remove,f=Object.freeze(Object.defineProperty({__proto__:null,create:_,getAll:h,getById:C,remove:m,update:b},Symbol.toStringTag,{value:"Module"})),c=u("vehiculos",y),$=c.useList,A=c.useCreate,I=c.useUpdate,o=u("conductores",f),x=o.useList,B=o.useCreate,j=o.useUpdate;export{S as C,h as a,x as b,B as c,j as d,A as e,I as f,l as g,$ as u};
