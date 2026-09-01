@@ -65,6 +65,14 @@ describe('services/celdas', () => {
   });
 });
 
+// El `patchSample` NO usa `estado` a propósito: `celdas.update()` documenta (ver el comentario
+// sobre `PUT /celdas/:id` en celdas.ts) que el backend real IGNORA ese campo ahí — el único
+// canal real para cambiarlo es `cambiarDisponibilidad()` (`PUT /celdas/:id/disponibilidad`).
+// El backend falso de este archivo (`createFakeRestBackend`) simula un PUT genérico que SÍ
+// aplica cualquier campo enviado, `estado` incluido — si el contrato genérico de abajo
+// siguiera parcheando `estado`, pasaría igual aquí sin proteger contra una regresión real
+// donde `update()` volviera a depender de que el backend de verdad lo aplique. `observaciones`
+// sí es un campo que el PUT real aplica normalmente, así que es una prueba fiel del contrato.
 describeCrudContract<Celda>(
   'celdas',
   celdas,
@@ -77,5 +85,5 @@ describeCrudContract<Celda>(
     ocupada: false,
     observaciones: '',
   }),
-  () => ({ estado: 'mantenimiento' }),
+  () => ({ observaciones: 'Revisión de rutina' }),
 );

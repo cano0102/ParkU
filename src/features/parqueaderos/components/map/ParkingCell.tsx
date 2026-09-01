@@ -1,5 +1,5 @@
 import type { Celda } from "@/services/api/celdas";
-import { CELDA_CONFIG, CeldaPos, getTipoCeldaConfig, Ocupante, SPACE_W, SPACE_H } from "../../lib/helpers";
+import { CELDA_CONFIG, CeldaPos, estaFueraDeHorarioOperacion, getTipoCeldaConfig, Ocupante, SPACE_W, SPACE_H } from "../../lib/helpers";
 import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG } from "./MapVisuals";
 import type { HoverInfo } from "./useParkingMapInteraction";
 
@@ -21,6 +21,10 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, ocupante, onP
   const TipoIcon = tipoCfg.icon;
   const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
   const esMoto = celda.tipo === "moto";
+  // Mismo indicador que ya existe en la vista tabla (ParqueaderosTable.tsx, "⏰ Fuera de
+  // horario"), adaptado al vocabulario visual del plano SVG: reutiliza el mismo helper
+  // canónico `estaFueraDeHorarioOperacion()` en vez de reimplementar el cálculo.
+  const fueraDeHorario = estaOcupada && estaFueraDeHorarioOperacion();
 
   return (
     <g
@@ -33,11 +37,13 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, ocupante, onP
       <rect
         x={celda.x} y={celda.y} width={SPACE_W} height={SPACE_H} rx="5"
         fill={celda.estado === "reservada" ? "url(#resH)" : cfg.mapFill}
-        stroke={m ? "#F59E0B" : cfg.mapStroke}
-        strokeWidth={m ? 2.2 : celda.estado === "disponible" ? 1.1 : 0.9}
-        strokeOpacity={m ? 1 : celda.estado === "disponible" ? 0.85 : 0.55}
+        stroke={m ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.mapStroke}
+        strokeWidth={m ? 2.2 : fueraDeHorario ? 1.8 : celda.estado === "disponible" ? 1.1 : 0.9}
+        strokeOpacity={m ? 1 : fueraDeHorario ? 1 : celda.estado === "disponible" ? 0.85 : 0.55}
         strokeDasharray={celda.estado === "disponible" ? "3,2" : undefined}
-      />
+      >
+        {fueraDeHorario && <title>Sigue ocupada fuera del horario permitido — considera generar un incidente</title>}
+      </rect>
       {/* Franja lateral de color según TIPO de celda (carro/moto/m.reducida) — visible en cualquier estado */}
       <rect x={celda.x} y={celda.y} width={4} height={SPACE_H} rx="2" fill={tipoCfg.accent} opacity={0.9} />
       {/* Insignia con icono del tipo (esquina superior derecha): solo cuando no hay
@@ -66,6 +72,16 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, ocupante, onP
         esMoto
           ? <HighFiMotoSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
           : <HighFiCarSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
+      )}
+      {/* Insignia de "fuera de horario" (mismo aviso que ParqueaderosTable.tsx): ocupa la
+          misma esquina que la insignia de tipo, que ya está oculta mientras la celda está
+          ocupada (la silueta del vehículo comunica el tipo por su forma). */}
+      {fueraDeHorario && (
+        <g transform={`translate(${celda.x + SPACE_W - 15},${celda.y + 2.5})`} pointerEvents="none">
+          <title>Sigue ocupada fuera del horario permitido — considera generar un incidente</title>
+          <rect width="14" height="14" rx="4" fill="#DC2626" stroke="#fff" strokeWidth=".6" />
+          <text x="7" y="10.5" textAnchor="middle" fontSize="9" fontWeight="900" fill="#fff">!</text>
+        </g>
       )}
       {celda.estado === "no_disponible" && !ocupante && (
         <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#FBBF24">Sin datos</text>

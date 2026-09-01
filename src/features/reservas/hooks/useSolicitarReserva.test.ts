@@ -66,6 +66,25 @@ describe('useSolicitarReserva', () => {
     expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
+  it('rechaza enviar la solicitud con un horario fuera de la ventana de operación (04:00–21:00)', async () => {
+    // Antes no había ninguna validación de horario en el frontend para esta solicitud — una
+    // fuera de la ventana de operación (HORA_OPERACION_INICIO/FIN en parqueaderos/lib/helpers)
+    // solo se enteraba de ser inválida hasta que el backend la rechazaba con un error genérico.
+    const { result } = renderHook(
+      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro], [parqueadero], [miCarro], [], []),
+      { wrapper: withQueryClient() }
+    );
+
+    act(() => result.current.abrir());
+    act(() => result.current.setForm({
+      ...result.current.form, parqueaderoId: '1', celdaId: '1', horaInicio: '21:30', horaFin: '22:30',
+    }));
+    await act(async () => result.current.enviarSolicitud());
+
+    expect(result.current.error).toContain('horario de operación');
+    expect(apiFetchMock).not.toHaveBeenCalled();
+  });
+
   it('crea la reserva como pendiente y no toca la celda (queda a la espera de aprobación)', async () => {
     apiFetchMock.mockResolvedValue({
       id: 99, tipo_reserva: 'VEHICULO_SENA', celda_id: 1, conductor_id: 1, vehiculo_id: 1,

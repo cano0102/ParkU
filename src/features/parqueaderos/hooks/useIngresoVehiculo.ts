@@ -63,6 +63,22 @@ export function useIngresoVehiculo(
     datosVehiculo?: { marca?: string; modelo?: string; color?: string },
     conductorIdExplicito?: string
   ): Promise<boolean> => {
+    // Defensa contra condición de carrera: `data.celdas` puede tener hasta 60s de anticuación
+    // en caché (staleTime intencional en App.tsx, para no golpear el rate limit del backend),
+    // así que la celda recibida por parámetro (derivada de esa misma caché en el momento en
+    // que se abrió el modal) puede ya no reflejar su estado real — otro vigilante pudo haberla
+    // ocupado, puesto en mantenimiento o desactivado mientras este formulario seguía abierto.
+    // Se relee por id directo de `data.celdas` (no del parámetro) para tomar el valor más
+    // fresco disponible en este instante. "reservada" es la única excepción: es el estado
+    // normal de una celda con una reserva activa, y el chequeo de `reservaDeLaCelda` más abajo
+    // ya exige que sea justo el vehículo reservado el que se registre aquí — bloquearla de
+    // entrada rompería el flujo real de "el vehículo reservado llega y se estaciona".
+    const celdaFresca = data.celdas.find((c) => c.id === celda.id);
+    if (celdaFresca && celdaFresca.estado !== "disponible" && celdaFresca.estado !== "reservada") {
+      setPlacaError("Esta celda ya no está disponible. Actualiza la vista.");
+      return false;
+    }
+
     const placa = placaRaw.trim().toUpperCase();
     const conductorNombre = normalizarTexto(conductorRaw, 60);
     if (!placa || !conductorNombre) { setPlacaError("Completa todos los campos."); return false; }
@@ -109,6 +125,18 @@ export function useIngresoVehiculo(
     // o se cancele.
     const reservaDeLaCelda = reservas.find((r) => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
     const vehiculoExistentePorPlaca = vehiculos.find((v) => v.placa === placa) ?? null;
+    // La placa ya pertenece a un vehículo registrado a nombre de OTRO conductor distinto del
+    // identificado en este formulario (buscador estructurado, o nombre exacto resuelto por el
+    // flujo de OCR/Asignación Inteligente) — sin este chequeo, el registro se guardaba igual
+    // con un conductorId que no es el dueño real del vehículo, desincronizado en silencio de
+    // lo que se veía en pantalla. Chequeo aquí (y no solo en el efecto de auto-relleno más
+    // abajo) para que quede bloqueado sin importar quién llame a `registrarEnCelda` — también
+    // lo usan el escáner OCR y la Asignación Inteligente, que no pasan por ese efecto.
+    if (vehiculoExistentePorPlaca?.conductorId && conductorExistente && vehiculoExistentePorPlaca.conductorId !== conductorExistente.id) {
+      const duenoReal = conductores.find((c) => c.id === vehiculoExistentePorPlaca.conductorId);
+      setPlacaError(`Esta placa ya está registrada a nombre de ${duenoReal?.nombre ?? "otro conductor"} — selecciónalo o crea un nuevo vehículo.`);
+      return false;
+    }
     if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId !== vehiculoExistentePorPlaca?.id) {
       const vehiculoReservado = vehiculos.find((v) => v.id === reservaDeLaCelda.vehiculoId);
       setPlacaError(`Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${reservaDeLaCelda.horaFin}.`);
@@ -125,7 +153,11 @@ export function useIngresoVehiculo(
     }
 
     const conductorId = conductorExistente?.id ?? "";
-    const fechaEntrada = new Date().toISOString().slice(0, 16);
+    // Se manda el ISO completo (con el offset UTC "Z"), igual que ya hace correctamente
+    // `combinarFechaHora()` en services/api/reservas.ts — truncar a `.slice(0, 16)` deja un
+    // string timezone-naive ("2026-01-01T14:30") que, si el backend lo interpreta como hora
+    // LOCAL en vez de UTC, desfasa el ingreso registrado varias horas.
+    const fechaEntrada = new Date().toISOString();
     const vehiculoTipo: "carro" | "moto" = tipoPlaca === "moto" ? "moto" : "carro";
 
     try {
@@ -274,12 +306,25 @@ export function useIngresoVehiculo(
   useEffect(() => {
     if (conductorEncontrado) {
       conductorAutoRef.current = true;
+      // La placa tecleada/escaneada resolvió a un vehículo ya registrado a nombre de un
+      // conductor distinto del elegido explícitamente en el buscador estructurado
+      // (`conductorSeleccionadoId`, que tiene prioridad 1 en `conductorIdentificado` más
+      // abajo). Si no se limpiara acá, `conductorIdentificado` se quedaría fijo en el
+      // conductor YA elegido aunque `vehiculoForm.conductor` cambiara de nombre por debajo —
+      // desincronizando en silencio lo que se ve de lo que se termina enviando al registrar
+      // (`registrarEnCelda` igual lo bloquea como defensa adicional, ver el chequeo de
+      // propiedad ahí). Al limpiarlo, `conductorIdentificado` recae en `conductorEncontrado`
+      // (el dueño real del vehículo) y el vigilante ve el cambio de nombre de inmediato — ese
+      // cambio visible es justamente el aviso de que había otro conductor seleccionado.
+      if (conductorSeleccionadoId && conductorSeleccionadoId !== conductorEncontrado.id) {
+        setConductorSeleccionadoId(null);
+      }
       setVehiculoForm((prev) => (prev.conductor === conductorEncontrado.nombre ? prev : { ...prev, conductor: conductorEncontrado.nombre }));
     } else if (conductorAutoRef.current) {
       conductorAutoRef.current = false;
       setVehiculoForm((prev) => (prev.conductor ? { ...prev, conductor: "" } : prev));
     }
-  }, [conductorEncontrado]);
+  }, [conductorEncontrado, conductorSeleccionadoId]);
 
   const vehiculosConductor = useMemo(() => {
     if (!conductorIdentificado) return [];

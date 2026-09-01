@@ -121,18 +121,29 @@ export function AuthProvider({
         persistUser(null);
         return;
       }
-      // Refresca el usuario local con la respuesta autoritativa del backend (rol incluido) en
-      // vez de descartarla y quedarse solo con lo que ya hubiera en localStorage: antes, si el
-      // rol de alguien cambiaba en el servidor (o alguien editaba `parkUUser.rol` a mano desde
-      // DevTools), ni `hasPermission()` ni los guards de ruta se enteraban hasta un nuevo login.
-      // `foto` se preserva porque es un campo solo-local (ver `updateUser` más abajo): el
-      // backend real no lo devuelve.
-      persistUser({ ...usuarioReal, foto: user?.foto });
+      // Resincroniza SOLO `rol` contra la respuesta autoritativa del backend — antes se
+      // descartaba del todo, así que si el rol de alguien cambiaba en el servidor (o alguien
+      // editaba `parkUUser.rol` a mano desde DevTools), ni `hasPermission()` ni los guards de
+      // ruta se enteraban hasta un nuevo login. El resto de campos (`nombre`, `numero`, `foto`)
+      // se DEJAN tal cual estén en el estado local a propósito: `updateUser` más abajo ya
+      // documenta que esos solo se editan localmente desde Perfil — el backend real ni
+      // siquiera tiene forma de persistir un usuario editando su propio nombre/teléfono —
+      // así que sobrescribirlos aquí con la respuesta del backend borraría esa edición local
+      // en cada recarga de página.
+      setUser((actual) => {
+        if (!actual) return actual;
+        const next = { ...actual, rol: usuarioReal.rol };
+        try {
+          localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // localStorage no disponible — la sesión sigue funcionando en memoria para esta pestaña.
+        }
+        return next;
+      });
     });
     return () => {
       cancelado = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Si `http.ts` no logró renovar el token en un 401, cierra la sesión local.

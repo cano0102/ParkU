@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -68,15 +68,57 @@ describe('features/incidentes — ConductorIncidentes (rol Comunidad SENA)', () 
     expect(opciones.some((o) => o?.includes('DEF456'))).toBe(false);
   });
 
-  it('permite cancelar un incidente propio que sigue pendiente', async () => {
+  // `PUT /novedades/:id` (usado por "Editar" y "Cancelar") da 403 para este rol en la API real
+  // hoy (ver el comentario junto a PERMISOS_POR_ROL[CONDUCTOR].incidentes en
+  // services/core/roles.ts) — antes este test aceptaba como correcto que el botón disparara un
+  // PUT que en producción fallaría con un 403 confuso justo después de que la lista deje de
+  // fallar en silencio (fix #1). ConductorIncidenteCard.tsx ahora deja el botón visible pero
+  // deshabilitado hasta que el backend abra esa ruta.
+  it('el botón "Cancelar" (y "Editar") de un incidente propio pendiente está deshabilitado, no dispara ningún PUT', async () => {
     const user = userEvent.setup();
     renderComoComunidadSena();
     await screen.findByText('Mis incidentes');
 
-    await user.click(await screen.findByRole('button', { name: /Cancelar/i }));
+    const botonCancelar = await screen.findByRole('button', { name: /Cancelar/i });
+    const botonEditar = screen.getByRole('button', { name: /Editar/i });
 
-    await waitFor(() => {
-      expect(apiFetchMock).toHaveBeenCalledWith('/novedades/1', expect.objectContaining({ method: 'PUT' }));
-    });
+    expect(botonCancelar).toBeDisabled();
+    expect(botonEditar).toBeDisabled();
+    expect(botonCancelar.getAttribute('title')).toContain('Disponible próximamente');
+
+    await user.click(botonCancelar);
+
+    expect(apiFetchMock).not.toHaveBeenCalledWith('/novedades/1', expect.objectContaining({ method: 'PUT' }));
+  });
+});
+
+describe('features/incidentes — ConductorIncidentes con el 403 real simulado (GET /novedades para Comunidad SENA)', () => {
+  afterEach(() => {
+    // Vuelve al backend permisivo (comportamiento por defecto de createAppBackends) para no
+    // filtrar este 403 simulado hacia otros tests de este archivo.
+    apiFetchMock.mockImplementation(createAppBackends().apiFetch);
+  });
+
+  it('no revienta y muestra un mensaje claro en vez de la ambigua "no has reportado nada" cuando el listado 403 para este rol', async () => {
+    apiFetchMock.mockImplementation(createAppBackends({ rolActual: ROLES.CONDUCTOR }).apiFetch);
+    renderComoComunidadSena();
+
+    expect(await screen.findByText('Mis incidentes')).toBeInTheDocument();
+    expect(await screen.findByText('No pudimos cargar tu historial de incidentes')).toBeInTheDocument();
+    expect(screen.getByText(/se guardó correctamente/i)).toBeInTheDocument();
+
+    // El mensaje ambiguo de "cero reportes" (indistinguible de un 403 silencioso, que es
+    // justamente el bug que motivó este fix) no debe aparecer en este escenario.
+    expect(screen.queryByText('Todavía no has reportado ningún incidente')).not.toBeInTheDocument();
+  });
+
+  it('reportar un incidente nuevo (POST) sigue funcionando aunque el listado (GET) 403 para este rol', async () => {
+    apiFetchMock.mockImplementation(createAppBackends({ rolActual: ROLES.CONDUCTOR }).apiFetch);
+    const user = userEvent.setup();
+    renderComoComunidadSena();
+    await screen.findByText('Mis incidentes');
+
+    await user.click(screen.getByRole('button', { name: /Reportar incidente/i }));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Nuevo Incidente' })).toBeInTheDocument();
   });
 });

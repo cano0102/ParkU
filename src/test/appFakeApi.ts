@@ -12,7 +12,7 @@
  */
 import { vi } from 'vitest';
 import { createFakeRestBackend } from './fakeApi';
-import { ROLES } from '@/services/core/roles';
+import { ROLES, type RolId } from '@/services/core/roles';
 
 export const rolesSeed = [
   { id: 1, nombre: 'Administrador', descripcion: 'Acceso total al sistema', estado: true },
@@ -244,8 +244,42 @@ function createAuthBackend() {
   return { apiFetch: vi.fn(apiFetch) };
 }
 
-/** Crea un set fresco de backends por dominio (uno por test, para no filtrar estado entre tests). */
-export function createAppBackends() {
+/**
+ * Simula, para `/novedades`, los 403 reales documentados para Comunidad SENA (Conductor) en
+ * `PERMISOS_POR_ROL[CONDUCTOR].incidentes` (services/core/roles.ts): `GET /novedades` (listar)
+ * y `PUT /novedades/:id` (actualizar, usado también por "cancelar") están hoy restringidos a
+ * Admin/Vigilante; `POST` (reportar) y `GET /:id` siguen abiertos para cualquier autenticado.
+ * Envuelve el backend genérico en vez de tocar `createFakeRestBackend` (compartido por todos
+ * los dominios) para no afectar a nadie más.
+ */
+function createIncidentesBackend(rolActual?: RolId) {
+  const base = createFakeRestBackend('/novedades', incidentesSeed);
+  if (rolActual !== ROLES.CONDUCTOR) return base;
+
+  const apiFetch = vi.fn(async (path: string, reqOptions: { method?: string; body?: unknown } = {}) => {
+    const method = (reqOptions.method ?? 'GET').toUpperCase();
+    const rel = path.slice('/novedades'.length);
+    if (method === 'GET' && (rel === '' || rel === '/')) {
+      throw new Error('No tienes permisos para consultar el listado completo de incidentes.');
+    }
+    if (method === 'PUT' && /^\/\d+$/.test(rel)) {
+      throw new Error('No tienes permisos para actualizar este incidente.');
+    }
+    return base.apiFetch(path, reqOptions);
+  });
+
+  // No se usa spread (`{ ...base, apiFetch }`): `items` es un getter en `base`, y el spread lo
+  // evaluaría una sola vez al construir este objeto en vez de conservarlo vivo.
+  return { apiFetch, get items() { return base.items; } };
+}
+
+/**
+ * Crea un set fresco de backends por dominio (uno por test, para no filtrar estado entre
+ * tests). `opciones.rolActual`: opt-in, no cambia el comportamiento por defecto (permisivo)
+ * para nadie que no lo pase explícitamente — solo hoy afecta a `/novedades` cuando vale
+ * `ROLES.CONDUCTOR` (ver `createIncidentesBackend`).
+ */
+export function createAppBackends(opciones?: { rolActual?: RolId }) {
   const roles = createFakeRestBackend('/roles', rolesSeed);
   const usuarios = createFakeRestBackend('/usuarios', usuariosSeed.map(({ contrasena: _c, ...u }) => u), {
     actions: [{
@@ -359,7 +393,7 @@ export function createAppBackends() {
       },
     }],
   });
-  const incidentes = createFakeRestBackend('/novedades', incidentesSeed);
+  const incidentes = createIncidentesBackend(opciones?.rolActual);
   const catalogos = createFakeRestBackend('/catalogos/tipos-usuario', catalogosSeed);
   const auth = createAuthBackend();
 

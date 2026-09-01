@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Incidente, TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
+import { ESTADOS_ABIERTOS } from "../lib/constants";
 import type { IncidentesData } from "./useIncidentesData";
 
 const emptyFormData = () => ({
@@ -17,7 +18,7 @@ const emptyFormData = () => ({
 
 /** Los tres modales de Incidentes: crear/editar (con su validación en vivo), ver detalle y confirmar eliminación. */
 export function useIncidenteDialogs(data: IncidentesData) {
-  const { celdas, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda } = data;
+  const { celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda } = data;
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -96,10 +97,28 @@ export function useIncidenteDialogs(data: IncidentesData) {
     });
   };
 
+  // Evita reportar dos veces la misma novedad: si ya hay un incidente abierto (pendiente/en
+  // proceso) para la misma celda o el mismo vehículo, se bloquea la creación en vez de dejar
+  // que se acumulen duplicados. Solo aplica al crear — al editar uno existente no tiene sentido
+  // compararlo contra sí mismo.
+  const incidenteAbiertoDuplicado = () =>
+    incidentes.find(
+      (i) =>
+        i.id !== selectedIncidente?.id &&
+        ESTADOS_ABIERTOS.includes(i.estado) &&
+        ((formData.celdaId && i.celdaId === formData.celdaId) ||
+          (formData.vehiculoId && i.vehiculoId === formData.vehiculoId))
+    );
+
   const handleSave = async () => {
     setFormTouched({ descripcion: true, parqueaderoId: true });
     if (formInvalido) {
       toast.error("Descripción y Parqueadero son obligatorios");
+      return;
+    }
+
+    if (!isEditing && incidenteAbiertoDuplicado()) {
+      toast.error("Ya existe un incidente abierto para esta celda o vehículo.");
       return;
     }
 

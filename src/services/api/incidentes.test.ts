@@ -36,6 +36,20 @@ describe('services/incidentes (novedades)', () => {
     expect(all.length).toBeGreaterThanOrEqual(2);
     expect(all.map((i) => i.estado)).toEqual(expect.arrayContaining(['pendiente', 'resuelto']));
   });
+
+  it('create envía la fecha calculada por el llamador como fecha_hora (antes se perdía en toApiPayload)', async () => {
+    const fecha = '2025-03-04T10:00:00.000Z';
+    const creado = await incidentes.create({
+      tipoNovedad: 'otro', prioridad: 'media', descripcion: 'Con fecha explícita',
+      parqueaderoId: '1', celdaId: '', vehiculoId: '', usuarioAsignadoId: '',
+      fecha, estado: 'pendiente', justificacionCierre: '',
+    });
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      '/novedades',
+      expect.objectContaining({ body: expect.objectContaining({ fecha_hora: fecha }) }),
+    );
+    expect(creado.fecha).toBe(fecha);
+  });
 });
 
 describeCrudContract<Incidente>(

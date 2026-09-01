@@ -18,7 +18,10 @@ interface ReservaRowProps {
   usuario: Conductor | null | undefined;
   parqueadero: Parqueadero | undefined;
   /** Solo Admin puede eliminar reservas — las demás cuentas ya reciben 403 del backend
-   *  si lo intentan, así que el botón ni se muestra para ellas. */
+   *  si lo intentan, así que el botón ni se muestra para ellas. Este permiso por rol se
+   *  combina abajo con el estado de la reserva: solo se puede borrar una "pendiente",
+   *  nunca una ya gestionada (activa/rechazada/completada/cancelada), para no destruir
+   *  el rastro de auditoría del historial. */
   canDelete: boolean;
   onView: () => void;
   onDelete: () => void;
@@ -28,6 +31,10 @@ interface ReservaRowProps {
 export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, canDelete, onView, onDelete }: ReservaRowProps) {
   const cfg = ESTADO_CONFIG[reserva.estado];
   const esPasada = reserva.fechaReserva < todayStr() && !["completada", "cancelada", "rechazada"].includes(reserva.estado);
+  // Eliminar borra el registro por completo — solo tiene sentido mientras la reserva sigue
+  // "pendiente" (aún no gestionada). Una ya aceptada/rechazada/completada/cancelada es
+  // historial y debe conservarse, así que el botón se oculta aunque el rol sí pueda eliminar.
+  const puedeEliminarEstaFila = canDelete && reserva.estado === "pendiente";
 
   return (
     <div
@@ -114,7 +121,7 @@ export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, can
         >
           <Eye size={13} />
         </button>
-        {canDelete && (
+        {puedeEliminarEstaFila && (
           <button
             className="action-btn"
             title="Eliminar"

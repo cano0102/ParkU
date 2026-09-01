@@ -81,6 +81,7 @@ function toApiPayload(data: Partial<Omit<Incidente, 'id'>>): Record<string, unkn
   if (data.celdaId !== undefined) payload.celda_id = data.celdaId ? Number(data.celdaId) : null;
   if (data.vehiculoId !== undefined) payload.vehiculo_id = data.vehiculoId ? Number(data.vehiculoId) : null;
   if (data.usuarioAsignadoId !== undefined) payload.usuario_asignado_id = data.usuarioAsignadoId ? Number(data.usuarioAsignadoId) : null;
+  if (data.fecha !== undefined) payload.fecha_hora = data.fecha;
   if (data.estado !== undefined) payload.estado = ESTADO_A_API[data.estado];
   if (data.justificacionCierre !== undefined) payload.justificacion_cierre = data.justificacionCierre || null;
   return payload;

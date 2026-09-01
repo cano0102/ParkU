@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -6,6 +6,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { createAppBackends, reservasSeed, vehiculosSeed } from '@/test/appFakeApi';
 import { createTestQueryClient } from '@/test/queryWrapper';
+import { ROLES } from '@/services/core/roles';
 import { useReservasPage } from './useReservasPage';
 
 vi.mock('sonner', () => ({
@@ -153,5 +154,56 @@ describe('useReservasPage — solicitudes pendientes', () => {
       expect(result.current.reservas.find((r) => r.id === '15')?.estado).toBe('rechazada');
     });
     expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('rechazaron automáticamente'));
+  });
+});
+
+describe('useReservasPage — eliminar reservas', () => {
+  it('confirmDeleteAction rechaza eliminar una reserva que no está "pendiente" (defensa en profundidad: no basta con ocultar el botón)', async () => {
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Reserva id 10 del seed de este archivo ya está "activa" (ACEPTADA) — borrarla
+    // destruiría el rastro de auditoría de una reserva ya gestionada.
+    const reservaActiva = result.current.reservas.find((r) => r.id === '10')!;
+    expect(reservaActiva.estado).toBe('activa');
+
+    act(() => result.current.setConfirmDelete(reservaActiva));
+    await act(async () => result.current.confirmDeleteAction());
+
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('pendientes'));
+    // Sigue existiendo: la mutación de borrado nunca llegó a llamarse.
+    expect(result.current.reservas.find((r) => r.id === '10')).toBeDefined();
+  });
+});
+
+describe('useReservasPage — rol Conductor (Comunidad SENA)', () => {
+  afterEach(() => localStorage.clear());
+
+  it('arma su propio historial con getByVehiculo en vez de GET /reservas (403 para este rol) — la misma fuente que alimenta la validación de "reserva duplicada" de useSolicitarReserva', async () => {
+    // conductoresSeed[0] (id 1) pertenece a usuario_id 2, y vehiculosSeed[0] (id 1, placa
+    // ABC123) lo tiene como conductor principal — reserva id 10 del seed de este archivo ya
+    // es justo la reserva de ese conductor/vehículo (celda 1, ACEPTADA -> 'activa').
+    localStorage.setItem('parkuToken', 'fake-token-2');
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '2', correo: 'ana.martinez@sena.edu.co', nombre: 'Ana Martínez R.', numero: '', rol: ROLES.CONDUCTOR,
+    }));
+
+    // Marca desde dónde contar las llamadas a apiFetch: el mock es compartido a nivel de
+    // módulo con el resto de tests de este archivo, así que ya trae historial de llamadas
+    // a `/reservas` (rol Admin/Vigilante) antes de que este test arranque.
+    const llamadasPrevias = apiFetchMock.mock.calls.length;
+
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Ve su propia reserva...
+    expect(result.current.reservas.map((r) => r.id)).toEqual(['10']);
+    expect(result.current.reservasTodas.map((r) => r.id)).toEqual(['10']);
+
+    // ...obtenida sin disparar el GET /reservas que el backend real rechaza con 403 para
+    // este rol: solo debe aparecer /reservas/vehiculo/1 en las llamadas hechas por este test.
+    const rutasLlamadas = apiFetchMock.mock.calls.slice(llamadasPrevias).map(([path]) => path);
+    expect(rutasLlamadas).not.toContain('/reservas');
+    expect(rutasLlamadas).toContain('/reservas/vehiculo/1');
   });
 });

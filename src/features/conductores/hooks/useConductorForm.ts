@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import {
-  emptyForm, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
+  emptyForm, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, validarNumeroDocumento,
   type FormState, type FormErrors,
 } from "../lib/helpers";
 import type { ConductoresData } from "./useConductoresData";
@@ -92,14 +92,31 @@ export function useConductorForm(
     );
   }, [data.vehiculos, editingVehiculoId]);
 
+  // Documentos ya registrados en otros conductores (para evitar duplicados), excluyendo el
+  // conductor en edición. Se combina tipo + número (no solo el número) porque dos conductores
+  // distintos sí pueden compartir el mismo número si su tipo de documento es diferente (p. ej.
+  // una CC y una CE con el mismo número no son la misma persona).
+  const documentosOcupados = useMemo(() => {
+    return new Set(
+      data.conductores
+        .filter((c) => c.id !== editingConductor?.id)
+        .map((c) => `${c.tipoDocumento}|${c.numeroDocumento.trim()}`)
+    );
+  }, [data.conductores, editingConductor]);
+
   // Validación en vivo del formulario
   const validate = useCallback((form: FormState): FormErrors => {
     const errors: FormErrors = {};
     if (!form.nombre.trim()) {
       errors.nombre = "El nombre es obligatorio";
     }
-    if (!form.numeroDocumento.trim()) {
+    const numeroDocumento = form.numeroDocumento.trim();
+    if (!numeroDocumento) {
       errors.numeroDocumento = "El número de documento es obligatorio";
+    } else if (!validarNumeroDocumento(numeroDocumento)) {
+      errors.numeroDocumento = "El número de documento debe tener entre 6 y 10 dígitos.";
+    } else if (documentosOcupados.has(`${form.tipoDocumento}|${numeroDocumento}`)) {
+      errors.numeroDocumento = "Ya existe un conductor registrado con este tipo y número de documento.";
     }
     if (!form.tipoUsuarioId) {
       errors.tipoUsuarioId = "Selecciona un tipo de usuario";
@@ -124,7 +141,7 @@ export function useConductorForm(
       errors.color = "El color es obligatorio";
     }
     return errors;
-  }, [placasOcupadas]);
+  }, [placasOcupadas, documentosOcupados]);
 
   useEffect(() => {
     setFormErrors(validate(formData));

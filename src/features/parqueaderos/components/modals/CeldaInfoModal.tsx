@@ -35,6 +35,10 @@ interface CeldaInfoModalProps {
   /** true si el rol tiene el permiso "incidentes" — controla el botón de
    *  reportar incidente. */
   canReportarIncidentes: boolean;
+  /** true si ya hay un incidente abierto (pendiente/en proceso) para esta celda u ocupante —
+   *  deshabilita el botón de reportar en vez de dejar que se acumulen duplicados. Opcional:
+   *  por defecto no bloquea, para no exigirle este dato a cada consumidor del modal. */
+  incidenteAbiertoExiste?: boolean;
   /** Fuerza el estado de la celda sin pasar por el flujo normal (estacionar/
    *  liberar/reservar). Es la vía de escape para una celda que quedó
    *  atascada en un estado (p. ej. datos inconsistentes) o para marcarla en
@@ -53,7 +57,7 @@ export function CeldaInfoModal({
   open, celdaActiva, ocupanteActivo, reservaActiva, vehiculoReservado, parqueaderoActivo, onClose,
   onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
   onReportarIncidente, onEstacionarVehiculo, onReservarCelda,
-  canManageCeldas, canRegistrarIngreso, canReportarIncidentes, onSetEstadoManual,
+  canManageCeldas, canRegistrarIngreso, canReportarIncidentes, incidenteAbiertoExiste, onSetEstadoManual,
 }: CeldaInfoModalProps) {
   const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
   return (
@@ -168,12 +172,19 @@ export function CeldaInfoModal({
                 )}
                 {canReportarIncidentes && (
                   <button
-                    onClick={onReportarIncidente}
-                    title="Reportar Incidente"
-                    style={{ display: "flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "8px 12px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", color: C.textLight, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                    onClick={incidenteAbiertoExiste ? undefined : onReportarIncidente}
+                    disabled={incidenteAbiertoExiste}
+                    title={incidenteAbiertoExiste ? "Ya existe un incidente abierto para esta celda o vehículo." : "Reportar Incidente"}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 5, flexShrink: 0, padding: "8px 12px", borderRadius: 10,
+                      border: `1px solid ${C.border}`, background: "#fff", color: C.textLight, fontSize: 11, fontWeight: 700,
+                      fontFamily: "inherit",
+                      cursor: incidenteAbiertoExiste ? "not-allowed" : "pointer",
+                      opacity: incidenteAbiertoExiste ? 0.55 : 1,
+                    }}
                   >
                     <AlertTriangle size={13} />
-                    Incidente
+                    {incidenteAbiertoExiste ? "Ya reportado" : "Incidente"}
                   </button>
                 )}
               </div>

@@ -106,8 +106,15 @@ describe('features/incidentes', () => {
     );
 
     // Incidente 1 (semilla, appFakeApi.ts) tiene vehiculo_id 1 -> ABC123, dueño Carlos López M.
-    const [firstVerBtn] = screen.getAllByLabelText('Ver detalle del incidente');
-    await user.click(firstVerBtn);
+    // Se ubica su tarjeta por la descripción en vez de asumir que es la primera del grid: el
+    // orden es por fecha desc, y este archivo reutiliza el mismo backend falso entre tests (no
+    // uno fresco por test) — si un test anterior crea un incidente, ahora que `fecha_hora` sí
+    // se manda al crear (antes se perdía en toApiPayload, ver services/api/incidentes.ts), ese
+    // incidente nuevo pasa a ser el más reciente y se movería al primer lugar.
+    const descripcion = screen.getAllByText('Vehículo mal estacionado bloqueando entrada')[0];
+    const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
+    const verBtn = within(tarjeta).getByLabelText('Ver detalle del incidente');
+    await user.click(verBtn);
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('ABC123')).toBeInTheDocument();

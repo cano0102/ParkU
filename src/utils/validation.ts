@@ -71,3 +71,12 @@ export const filtrarTelefono = (valor: string): string => valor.replace(/[^0-9()
 /** Tipos de documento reales (ENUM `conductor.tipo_documento` en la API) — un
  *  valor fuera de este set no corresponde a ningún conductor posible. */
 export const TIPOS_DOCUMENTO = ["CC", "CE", "TI", "PASAPORTE", "PEP", "NIT"] as const;
+
+/** Un documento de identidad colombiano (CC/CE/TI/PEP/NIT) va de 6 a 10 dígitos — el campo ya
+ *  solo admite dígitos (ver DatosConductorFields.tsx), así que lo único que falta acotar es la
+ *  longitud: fuera de ese rango casi con certeza es un error de tecleo (un dígito de más o de
+ *  menos), no un documento real. */
+export const NUMERO_DOCUMENTO_MIN = 6;
+export const NUMERO_DOCUMENTO_MAX = 10;
+export const NUMERO_DOCUMENTO_REGEX = /^[0-9]{6,10}$/;
+export const validarNumeroDocumento = (valor: string): boolean => NUMERO_DOCUMENTO_REGEX.test(valor.trim());

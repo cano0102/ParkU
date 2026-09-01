@@ -6,6 +6,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Reserva } from "@/services/api/reservas";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
+import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
 import { useCreateReserva } from "./useReservas";
 
 interface SolicitarReservaForm {
@@ -79,6 +80,13 @@ export function useSolicitarReserva(
     if (!f.fechaReserva) return "La fecha es obligatoria";
     if (!f.horaInicio || !f.horaFin) return "El horario es obligatorio";
     if (toMinutes(f.horaFin) <= toMinutes(f.horaInicio)) return "La hora de fin debe ser posterior a la de inicio";
+    // El backend rechaza crear reservas fuera de la ventana de operación (04:00–21:00, ver
+    // HORA_OPERACION_INICIO/FIN) — sin este chequeo, la solicitud solo se entera de que es
+    // inválida hasta que el backend la rechaza con un error genérico. Comparación como string
+    // funciona porque el input <input type="time"> siempre entrega "HH:MM" con cero a la izquierda.
+    if (f.horaInicio < HORA_OPERACION_INICIO || f.horaFin > HORA_OPERACION_FIN) {
+      return `El horario debe estar entre ${HORA_OPERACION_INICIO} y ${HORA_OPERACION_FIN} (horario de operación).`;
+    }
     const inicio = new Date(`${f.fechaReserva}T${f.horaInicio}`);
     if (inicio.getTime() < Date.now()) return "No puedes solicitar una fecha u hora que ya pasó";
 

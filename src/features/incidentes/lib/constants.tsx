@@ -14,6 +14,11 @@ export const CELDA_ESTADO_CONFIG: Record<Celda["estado"], { bg: string; text: st
 
 export type EstadoIncidente = EstadoNovedad;
 
+/** Estados en los que un incidente sigue "abierto" (activo): se usa para bloquear un reporte
+ *  duplicado sobre la misma celda/vehículo mientras el anterior no se resuelva, cierre o
+ *  cancele — ver useIncidenteDialogs.ts y useIncidenteReporte.ts. */
+export const ESTADOS_ABIERTOS: EstadoIncidente[] = ["pendiente", "en_proceso"];
+
 export const ESTADO_CONFIG: Record<EstadoIncidente, {
   bg: string; text: string; border: string; dot: string; label: string; icon: ReactNode;
 }> = {

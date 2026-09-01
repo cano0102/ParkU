@@ -39,8 +39,14 @@ describe('services/usuarios', () => {
   });
 
   it('envía el rol como rol_id al crear y editar (la API real no reconoce "rol")', async () => {
+    // Se filtra por el correo de ESTE test (no solo por método+path): `apiFetchMock` acumula
+    // las llamadas de todos los `it` de este archivo, y otro test más arriba también hace un
+    // POST a /usuarios — sin filtrar por un valor propio de esta llamada, `.find()` puede
+    // devolver esa otra petición en vez de la de acá.
     await usuarios.create({ correo: 'rol@sena.edu.co', password: 'Pass1234', nombre: 'Con Rol', numero: '', rol: 2, estado: 'activo' });
-    const createCall = apiFetchMock.mock.calls.find(([path, opts]) => path === '/usuarios' && (opts as any)?.method === 'POST');
+    const createCall = apiFetchMock.mock.calls.find(
+      ([path, opts]) => path === '/usuarios' && (opts as any)?.method === 'POST' && (opts as any)?.body?.correo === 'rol@sena.edu.co'
+    );
     expect((createCall?.[1] as any).body.rol_id).toBe(2);
     expect((createCall?.[1] as any).body.rol).toBeUndefined();
 

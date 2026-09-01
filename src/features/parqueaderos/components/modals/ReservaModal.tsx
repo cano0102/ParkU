@@ -7,7 +7,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
-import { horaAMinutos } from "../../lib/helpers";
+import { horaAMinutos, HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../../lib/helpers";
 
 const C = theme;
 
@@ -77,7 +77,17 @@ export function ReservaModal({
   };
 
   const horarioInvalido = !!(reservaForm.horaInicio && reservaForm.horaFin && horaAMinutos(reservaForm.horaFin) <= horaAMinutos(reservaForm.horaInicio));
-  const formValido = !!(reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin && !horarioInvalido);
+  // Espejo visual de la misma validación que ya hace `handleCrearReserva` (useReservaCelda.ts)
+  // antes de enviar — deshabilitar el botón acá evita el viaje redondo de mandar una reserva
+  // que el hook (y en última instancia el backend) va a rechazar de todos modos.
+  const fueraDeHorarioOperacion = !!(
+    reservaForm.horaInicio && reservaForm.horaFin &&
+    (reservaForm.horaInicio < HORA_OPERACION_INICIO || reservaForm.horaFin > HORA_OPERACION_FIN)
+  );
+  const formValido = !!(
+    reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin &&
+    !horarioInvalido && !fueraDeHorarioOperacion
+  );
 
   return (
     <Modal open={open} onClose={onClose} maxWidth={680}>
@@ -241,12 +251,17 @@ export function ReservaModal({
                 onChange={(e) => setReservaForm(prev => ({ ...prev, horaFin: e.target.value }))}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 11,
-                  border: `1px solid ${horarioInvalido ? C.danger : C.border}`, fontSize: 13, outline: "none",
+                  border: `1px solid ${horarioInvalido || fueraDeHorarioOperacion ? C.danger : C.border}`, fontSize: 13, outline: "none",
                   fontFamily: "inherit", background: "#F8FAFC",
                 }}
               />
               {horarioInvalido && (
                 <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>La hora de fin debe ser posterior a la de inicio.</p>
+              )}
+              {!horarioInvalido && fueraDeHorarioOperacion && (
+                <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>
+                  El horario debe estar entre {HORA_OPERACION_INICIO} y {HORA_OPERACION_FIN} (horario de operación).
+                </p>
               )}
             </div>
 

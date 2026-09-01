@@ -33,7 +33,18 @@ const conductores = createFakeRestBackend('/conductores', [
 const parqueaderos = createFakeRestBackend('/parqueaderos', [
   { id: 1, nombre: 'PQ Uno', ubicacion: 'Regional', acceso: 'REGIONAL', capacidad_maxima: 10, hora_apertura: '06:00:00', hora_cierre: '20:00:00', estado: true, zona: '', piso: '', descripcion: '', tipo: 'GENERAL' },
 ]);
-const reservas = createFakeRestBackend('/reservas', []);
+const reservas = createFakeRestBackend('/reservas', [], {
+  actions: [{
+    method: 'PATCH', pattern: /^\/(\d+)\/estado$/,
+    handle: (m, body, items) => {
+      const idx = items.findIndex((i) => i.id === Number(m[1]));
+      if (idx === -1) throw new Error('404');
+      const b = body as any;
+      items[idx] = { ...items[idx], estado: b.estado, ...(b.motivo_rechazo !== undefined ? { motivo_rechazo: b.motivo_rechazo } : {}) };
+      return items[idx];
+    },
+  }],
+});
 
 function sesionUsuario(rol: number) {
   return { id: '9', correo: 'staff@sena.edu.co', nombre: 'Staff Prueba', numero: '', rol };
@@ -151,6 +162,25 @@ describe('features/reservas', () => {
 
     await waitFor(() => expect(screen.getByText('No se encontraron reservas')).toBeInTheDocument());
     expect(screen.queryByText('ABC123')).not.toBeInTheDocument();
+  });
+
+  it('no muestra el botón de eliminar para una reserva ya rechazada, aunque el rol sí pueda eliminar (se conserva el historial de auditoría)', async () => {
+    const reservasService = await import('@/services/api/reservas');
+    const creada = await reservasService.create(await reservaSample());
+    await reservasService.update(creada.id, { estado: 'rechazada', motivoRechazo: 'Sin disponibilidad en ese horario.' });
+
+    renderReservas();
+
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
+    expect(screen.getByText('Rechazada')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Eliminar reserva')).not.toBeInTheDocument();
+    // El resto de la fila sigue disponible — solo se oculta la acción de eliminar.
+    expect(screen.getByLabelText('Ver detalle de la reserva')).toBeInTheDocument();
+
+    // Este archivo acumula estado entre tests (ver el backend a nivel de módulo más arriba) —
+    // se elimina directo por el servicio (no por el botón, que este test ya probó que está
+    // oculto) para no interferir con los tests que siguen.
+    await reservasService.remove(creada.id);
   });
 
   it('exporta a CSV las reservas visibles con los filtros activos', async () => {

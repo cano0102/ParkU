@@ -23,7 +23,7 @@ export function useIncidentesData() {
   // Solo Admin puede listar /api/usuarios — para Vigilante/Conductor queda en
   // [] y el selector de "asignar a" simplemente aparece vacío (ver IncidenteVehiculoAsignadoFields).
   const { data: usuarios = [] } = useUsuarios();
-  const { data: incidentes = [], isLoading } = useIncidentes();
+  const { data: incidentes = [], isLoading, isError } = useIncidentes();
   const createIncidenteMutation = useCreateIncidente();
   const updateIncidenteMutation = useUpdateIncidente();
   const removeIncidenteMutation = useRemoveIncidente();
@@ -138,6 +138,7 @@ export function useIncidentesData() {
     activeFiltersCount,
     clearFilters,
     isLoading,
+    isError,
   };
 }
 

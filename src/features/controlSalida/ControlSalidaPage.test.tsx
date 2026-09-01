@@ -57,6 +57,21 @@ describe('features/controlSalida', () => {
     expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0);
   });
 
+  it('registra la salida y libera la celda desde el botón "Registrar salida" de la fila', async () => {
+    // Antes esta acción solo existía en el mapa/tabla de Parqueaderos — se agregó también acá
+    // porque es exactamente la pantalla donde alguien buscaría "registrar salida" por su nombre.
+    const user = userEvent.setup();
+    renderControlSalida();
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
+
+    expect(screen.getByText('Activo')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Registrar salida y liberar la celda'));
+
+    await waitFor(() => expect(screen.getByText('Completado')).toBeInTheDocument());
+    expect(screen.queryByText('Activo')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Registrar salida y liberar la celda')).not.toBeInTheDocument();
+  });
+
   it('elimina el registro al confirmar en el diálogo', async () => {
     const user = userEvent.setup();
     renderControlSalida();

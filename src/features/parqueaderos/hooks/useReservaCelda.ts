@@ -5,6 +5,8 @@ import { ReservaFormState } from "../components/modals/ReservaModal";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
+import { buscarConflictoHorario } from "@/features/reservas";
+import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../lib/helpers";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
@@ -55,6 +57,15 @@ export function useReservaCelda(
       return setReservaError("La hora de fin debe ser posterior a la hora de inicio");
     }
 
+    // El backend rechaza crear reservas/ingresos fuera de la ventana de operación
+    // (04:00–21:00, ver HORA_OPERACION_INICIO/FIN) — sin este chequeo, una reserva fuera de
+    // horario solo se entera de que es inválida hasta que el backend la rechaza con un error
+    // genérico. Comparación como string funciona porque el input <input type="time"> siempre
+    // entrega "HH:MM" con cero a la izquierda.
+    if (reservaForm.horaInicio < HORA_OPERACION_INICIO || reservaForm.horaFin > HORA_OPERACION_FIN) {
+      return setReservaError(`El horario debe estar entre ${HORA_OPERACION_INICIO} y ${HORA_OPERACION_FIN} (horario de operación).`);
+    }
+
     // El <input type="date" min=...> del formulario ya sugiere no elegir un día
     // pasado, pero ese límite es solo de interfaz: se puede editar el campo
     // directamente. Se revalida aquí, incluyendo la hora, para el día de hoy.
@@ -64,13 +75,17 @@ export function useReservaCelda(
     }
 
     try {
-      // Solo se permite una reserva activa por celda a la vez
-      const conflicto = data.reservas.find(
-        (r) => r.celdaId === reservaForm.celdaId && (r.estado === "pendiente" || r.estado === "activa")
-      );
+      // Choque de horario real (misma celda + fecha/hora que se solapan), no "cualquier
+      // pendiente/activa de la celda sin importar cuándo" — la misma lógica de referencia que
+      // usa useReservasPage.ts al aceptar una solicitud (lib/helpers.ts de reservas), así una
+      // reserva futura sin solape deja de bloquearse por una pendiente/activa vieja y ajena.
+      const conflicto = buscarConflictoHorario(reservaForm, data.reservas);
       if (conflicto) {
         const vehiculo = data.vehiculos.find((v) => v.id === conflicto.vehiculoId);
-        setReservaError(`La celda ya tiene una reserva activa (vehículo ${vehiculo?.placa || "—"})`);
+        setReservaError(
+          `La celda ya tiene una reserva activa en ese horario (vehículo ${vehiculo?.placa || "—"}, ` +
+          `${conflicto.fechaReserva} de ${conflicto.horaInicio} a ${conflicto.horaFin})`
+        );
         return;
       }
 
@@ -136,7 +151,11 @@ export function useReservaCelda(
     const ocupante = getOcupante(celdaActiva.id);
     try {
       if (ocupante && ocupante.controlId) {
-        await updateControlSalida(ocupante.controlId, { fechaSalida: new Date().toISOString().slice(0, 16), estado: "finalizado" });
+        // ISO completo (con el offset UTC "Z"), igual que `combinarFechaHora()` en
+        // services/api/reservas.ts — truncar a `.slice(0, 16)` deja un string timezone-naive
+        // que, si el backend lo interpreta como hora LOCAL en vez de UTC, desfasa la salida
+        // registrada varias horas (mismo bug que `fechaEntrada` en useIngresoVehiculo.ts).
+        await updateControlSalida(ocupante.controlId, { fechaSalida: new Date().toISOString(), estado: "finalizado" });
       }
       await data.updateCelda(celdaActiva.id, { estado: "disponible", ocupada: false });
       toast.info(`Celda ${celdaActiva.numero} liberada.`);

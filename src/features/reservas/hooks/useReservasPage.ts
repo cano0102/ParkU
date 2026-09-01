@@ -10,6 +10,7 @@ import type { Celda } from "@/services/api/celdas";
 import { useVehiculos, useConductores, vehiculoEstaParqueado } from "@/features/conductores";
 import { useControlSalida } from "@/features/controlSalida";
 import { ESTADO_CONFIG, type EstadoReserva } from "../lib/constants";
+import { seSolapan, buscarConflictoHorario as buscarConflictoHorarioEnLista } from "../lib/helpers";
 
 /** Datos, filtros y eliminación del historial de reservas. */
 export function useReservasPage() {
@@ -176,21 +177,13 @@ export function useReservasPage() {
     [reservasTodas]
   );
 
-  // Choque de horario: dos reservas de la MISMA celda se solapan si una empieza antes de que
-  // la otra termine y termina después de que la otra empieza.
-  const seSolapan = (a: Reserva, b: Reserva) => {
-    const aInicio = new Date(`${a.fechaReserva}T${a.horaInicio}`).getTime();
-    const aFin = new Date(`${a.fechaReserva}T${a.horaFin}`).getTime();
-    const bInicio = new Date(`${b.fechaReserva}T${b.horaInicio}`).getTime();
-    const bFin = new Date(`${b.fechaReserva}T${b.horaFin}`).getTime();
-    return bInicio < aFin && bFin > aInicio;
-  };
-
   // Contra reservas ya "activa" (aceptadas): esto SÍ bloquea, es un doble-booking real —
   // dos solicitudes "pendiente" pueden competir por la misma franja sin problema, el
   // conflicto real solo existe si se intenta aceptar una segunda vez la misma franja.
+  // (`seSolapan`/`buscarConflictoHorario` viven en lib/helpers.ts — es la implementación de
+  // referencia que también usa useReservaCelda.ts al crear una reserva desde Parqueaderos.)
   const buscarConflictoHorario = (reserva: Reserva): Reserva | null =>
-    reservasTodas.find((r) => r.id !== reserva.id && r.celdaId === reserva.celdaId && r.estado === "activa" && seSolapan(reserva, r)) ?? null;
+    buscarConflictoHorarioEnLista(reserva, reservasTodas, { excludeId: reserva.id });
 
   const aceptarSolicitud = async (reserva: Reserva) => {
     const conflicto = buscarConflictoHorario(reserva);

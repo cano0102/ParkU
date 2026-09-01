@@ -19,6 +19,15 @@ interface ConductorIncidenteCardProps {
 // proceso o resuelto, el cambio ya no le corresponde al conductor que lo reportó.
 const ESTADOS_GESTIONABLES: Incidente["estado"][] = ["pendiente"];
 
+// `PUT /novedades/:id` (usado tanto por "Editar" como por "Cancelar", que internamente es un
+// cambio de estado vía ese mismo endpoint) da 403 para Comunidad SENA en la API real hoy — ver
+// el comentario junto a `PERMISOS_POR_ROL[CONDUCTOR].incidentes` en services/core/roles.ts. El
+// frontend ya tiene el flujo completo listo; se deja el botón visible pero deshabilitado (no se
+// elimina el código) para que se habilite solo con este flag el día que el backend abra esa
+// ruta para que un Conductor gestione sus propios recursos.
+const ACCIONES_BACKEND_DISPONIBLES = false;
+const TOOLTIP_ACCION_NO_DISPONIBLE = "Disponible próximamente: el backend aún no permite esta acción a Comunidad SENA.";
+
 /** Tarjeta de "Mis incidentes" (rol Comunidad SENA): resumen de solo lo que el propio
  *  conductor reportó, sin las acciones de gestión que sí ve Admin/Vigilante. */
 export function ConductorIncidenteCard({ incidente, celda, nombreParqueadero, onEdit, onCancelar }: ConductorIncidenteCardProps) {
@@ -63,20 +72,28 @@ export function ConductorIncidenteCard({ incidente, celda, nombreParqueadero, on
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: "flex", gap: 8 }}>
             <button
               onClick={onEdit}
+              disabled={!ACCIONES_BACKEND_DISPONIBLES}
+              title={ACCIONES_BACKEND_DISPONIBLES ? undefined : TOOLTIP_ACCION_NO_DISPONIBLE}
               style={{
                 flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 padding: "8px 10px", borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff",
-                color: C.text, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                color: C.text, fontSize: 11, fontWeight: 700, fontFamily: "inherit",
+                cursor: ACCIONES_BACKEND_DISPONIBLES ? "pointer" : "not-allowed",
+                opacity: ACCIONES_BACKEND_DISPONIBLES ? 1 : 0.5,
               }}
             >
               <Edit size={12} />Editar
             </button>
             <button
               onClick={onCancelar}
+              disabled={!ACCIONES_BACKEND_DISPONIBLES}
+              title={ACCIONES_BACKEND_DISPONIBLES ? undefined : TOOLTIP_ACCION_NO_DISPONIBLE}
               style={{
                 flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                 padding: "8px 10px", borderRadius: 9, border: `1px solid ${C.danger}33`, background: "#fff",
-                color: C.danger, fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                color: C.danger, fontSize: 11, fontWeight: 700, fontFamily: "inherit",
+                cursor: ACCIONES_BACKEND_DISPONIBLES ? "pointer" : "not-allowed",
+                opacity: ACCIONES_BACKEND_DISPONIBLES ? 1 : 0.5,
               }}
             >
               <XCircle size={12} />Cancelar

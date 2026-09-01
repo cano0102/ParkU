@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Pencil, X, GaugeCircle, Palette, Calendar } from "lucide-react";
+import { Pencil, X, GaugeCircle, Palette, Calendar, Users, UserMinus, Crown } from "lucide-react";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS, getTipoVehiculoStyle } from "../lib/helpers";
 
@@ -7,11 +7,18 @@ interface VehiculoViewProps {
   vehiculo: Vehiculo;
   onEdit: () => void;
   onClose: () => void;
+  /** Desvincula a un copropietario (no al principal — el backend no lo permite). Ausente en
+   *  llamadores que no necesitan esta acción (p. ej. una vista de solo lectura). */
+  onQuitarPropietario?: (conductorId: string, conductorNombre: string) => void;
 }
 
-export const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewProps) => {
+export const VehiculoView = memo(({ vehiculo, onEdit, onClose, onQuitarPropietario }: VehiculoViewProps) => {
   const tipoStyle = getTipoVehiculoStyle(vehiculo.tipo);
   const TipoIcon = tipoStyle.icon;
+  // El backend ya resuelve todos los conductores vinculados (principal + copropietarios) en el
+  // GET de vehículos — ver services/api/vehiculos.ts#toFrontend. Si por lo que sea no vino
+  // (endpoint viejo, o el vehículo se quedó sin ningún vínculo resuelto), no hay nada que listar.
+  const propietarios = vehiculo.copropietarios ?? [];
 
   return (
     <div>
@@ -166,6 +173,56 @@ export const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewPro
             </div>
             <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.4 }}>
               {vehiculo.descripcion}
+            </div>
+          </div>
+        )}
+
+        {propietarios.length > 1 && (
+          <div style={{ marginTop: 4, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+              <Users size={12} color={COLORS.textLight} />
+              <span style={{ fontSize: 9, fontWeight: 800, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                Copropietarios ({propietarios.length})
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {propietarios.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10,
+                    background: "#F8FAFC", border: `1px solid ${COLORS.border}`,
+                  }}
+                >
+                  {p.esPrincipal && <Crown size={13} color={tipoStyle.dot} style={{ flexShrink: 0 }} />}
+                  <span style={{ fontSize: 12, fontWeight: 600, color: COLORS.text, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {p.nombre || "—"}
+                  </span>
+                  {p.esPrincipal ? (
+                    <span style={{ fontSize: 9, fontWeight: 800, color: COLORS.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Principal
+                    </span>
+                  ) : (
+                    onQuitarPropietario && (
+                      <button
+                        type="button"
+                        onClick={() => onQuitarPropietario(p.id, p.nombre)}
+                        aria-label={`Quitar a ${p.nombre} como copropietario`}
+                        title="Quitar copropietario"
+                        style={{
+                          display: "flex", alignItems: "center", gap: 4, border: "none",
+                          background: "rgba(220,38,38,.08)", color: "#B91C1C",
+                          fontSize: 10.5, fontWeight: 800, padding: "4px 9px", borderRadius: 999,
+                          cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
+                        }}
+                      >
+                        <UserMinus size={11} />
+                        Quitar
+                      </button>
+                    )
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}

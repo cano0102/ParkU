@@ -1,6 +1,6 @@
 import { FormField } from "@/components/shared";
 import { useTiposUsuario } from "../hooks/useTiposUsuario";
-import { COLORS, TIPOS_DOCUMENTO, inputStyle, inputErrorStyle, quitarDigitos, type FormState } from "../lib/helpers";
+import { COLORS, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, inputStyle, inputErrorStyle, quitarDigitos, type FormState } from "../lib/helpers";
 
 interface DatosConductorFieldsProps {
   isEdit: boolean;
@@ -49,6 +49,7 @@ export function DatosConductorFields({ isEdit, form, errors, touched, onChange, 
           value={form.numeroDocumento}
           onChange={(e) => onChange({ numeroDocumento: e.target.value.replace(/[^0-9]/g, "") })}
           onBlur={() => onBlur("numeroDocumento")}
+          maxLength={NUMERO_DOCUMENTO_MAX}
           style={{ ...inputStyle, ...(err("numeroDocumento") ? inputErrorStyle : {}) }}
         />
       </FormField>

@@ -13,6 +13,14 @@
  */
 import { apiFetch, crearConRespaldo } from '../core/http';
 
+/** Un conductor vinculado a un vehículo (principal o copropietario) — ver `agregarPropietario`/
+ *  `quitarPropietario` más abajo. */
+export interface VehiculoPropietario {
+  id: string;
+  nombre: string;
+  esPrincipal: boolean;
+}
+
 export interface Vehiculo {
   id: string;
   conductorId: string;
@@ -26,6 +34,15 @@ export interface Vehiculo {
   color: string;
   descripcion: string;
   estado: 'activo' | 'inactivo';
+  /**
+   * Todos los conductores vinculados a este vehículo (principal + copropietarios), ya
+   * resueltos por el backend en el GET (`ApiVehiculo.conductores`) — `conductorId`/
+   * `conductorNombre` arriba solo exponen al principal porque es lo único que necesita la
+   * mayoría de la UI. Opcional (no requerido) para no forzar a cada literal `Vehiculo` de
+   * prueba en otras features a completarlo: si falta, se trata como "sin copropietarios
+   * resueltos" en vez de un array vacío real.
+   */
+  copropietarios?: VehiculoPropietario[];
 }
 
 const TIPO_A_API: Record<Vehiculo['tipo'], string> = {
@@ -72,6 +89,11 @@ function toFrontend(v: ApiVehiculo): Vehiculo {
     color: v.color ?? '',
     descripcion: v.observaciones ?? '',
     estado: v.estado ? 'activo' : 'inactivo',
+    copropietarios: v.conductores?.map((c) => ({
+      id: String(c.id),
+      nombre: c.nombre_apellidos,
+      esPrincipal: !!c.DetallePropiedad?.es_principal,
+    })),
   };
 }
 

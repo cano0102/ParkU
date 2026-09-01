@@ -58,7 +58,21 @@ export function ConductorIncidentes() {
           background: "#fff", color: C.textLight,
         }}>
           <AlertTriangle size={36} color={C.border} style={{ marginBottom: 10 }} />
-          <p style={{ fontWeight: 700, fontSize: 13 }}>Todavía no has reportado ningún incidente</p>
+          {data.isError ? (
+            // La consulta de "mis incidentes" falló (típicamente un 403: la API real hoy solo
+            // le da a este rol "reportar" y el historial, no el listado — ver
+            // useConductorIncidentesData.ts). Sin este mensaje, esta pantalla vacía es
+            // indistinguible de "no he reportado nada" y el conductor podría creer, erróneamente,
+            // que su reporte se perdió.
+            <>
+              <p style={{ fontWeight: 700, fontSize: 13 }}>No pudimos cargar tu historial de incidentes</p>
+              <p style={{ fontSize: 11, marginTop: 4, textAlign: "center", maxWidth: 320 }}>
+                Si ya reportaste uno, se guardó correctamente: esta consulta todavía no está disponible para tu rol. Intenta de nuevo más tarde.
+              </p>
+            </>
+          ) : (
+            <p style={{ fontWeight: 700, fontSize: 13 }}>Todavía no has reportado ningún incidente</p>
+          )}
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(320px,1fr))", gap: 12 }}>

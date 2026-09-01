@@ -1,5 +1,5 @@
 import { ShieldCheck, Users, UserCheck, Car as CarIcon, Bike as BikeIcon } from "lucide-react";
-import { Modal, LoadingState } from "@/components/shared";
+import { Modal, LoadingState, ConfirmDialog } from "@/components/shared";
 import { StatsPanel } from "@/components/data";
 import { ConductorFormModal } from "./components/ConductorFormModal";
 import { ConductorDetailModal } from "./components/ConductorDetailModal";
@@ -12,7 +12,9 @@ import { useConductoresPage } from "./hooks/useConductoresPage";
 
 export function Conductores() {
   const { data, filters: f, form, agregarVehiculo, viewVehiculoOpen, setViewVehiculoOpen, viewDetailOpen, setViewDetailOpen,
-    viewingVehiculo, viewingConductor, openVehiculoView, openConductorDetail, handleToggleEstado } = useConductoresPage();
+    viewingVehiculo, viewingConductor, openVehiculoView, openConductorDetail, handleToggleEstado,
+    confirmQuitarCopropietario, setConfirmQuitarCopropietario, solicitarQuitarPropietario, confirmQuitarCopropietarioAction,
+  } = useConductoresPage();
 
   return (
     <>
@@ -108,6 +110,9 @@ export function Conductores() {
               }
             }}
             onClose={() => setViewVehiculoOpen(false)}
+            onQuitarPropietario={(conductorId, conductorNombre) =>
+              solicitarQuitarPropietario(viewingVehiculo, conductorId, conductorNombre)
+            }
           />
         )}
       </Modal>
@@ -166,6 +171,20 @@ export function Conductores() {
           />
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!confirmQuitarCopropietario}
+        onConfirm={confirmQuitarCopropietarioAction}
+        onCancel={() => setConfirmQuitarCopropietario(null)}
+        title="Quitar copropietario"
+        message={
+          confirmQuitarCopropietario
+            ? `${confirmQuitarCopropietario.conductorNombre} dejará de figurar como copropietario del vehículo ${confirmQuitarCopropietario.vehiculo.placa}. Esta acción no se puede revertir desde aquí.`
+            : ""
+        }
+        confirmLabel="Quitar"
+        tone="danger"
+      />
     </>
   );
 }

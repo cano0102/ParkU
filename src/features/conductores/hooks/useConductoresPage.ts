@@ -20,6 +20,37 @@ export function useConductoresPage() {
   const [viewingVehiculo, setViewingVehiculo] = useState<Vehiculo | null>(null);
   const [viewingConductor, setViewingConductor] = useState<Conductor | null>(null);
 
+  // Confirmación para "quitar copropietario": es una acción destructiva y difícil de revertir
+  // (el conductor pierde el vínculo con el vehículo de inmediato), así que sigue el mismo
+  // patrón de confirmación de dos pasos que useControlSalidaPage.ts usa para eliminar un
+  // registro (estado con el ítem pendiente de confirmar + acción que lo ejecuta).
+  const [confirmQuitarCopropietario, setConfirmQuitarCopropietario] = useState<{
+    vehiculo: Vehiculo;
+    conductorId: string;
+    conductorNombre: string;
+  } | null>(null);
+
+  const solicitarQuitarPropietario = useCallback(
+    (vehiculo: Vehiculo, conductorId: string, conductorNombre: string) => {
+      setConfirmQuitarCopropietario({ vehiculo, conductorId, conductorNombre });
+    },
+    []
+  );
+
+  const confirmQuitarCopropietarioAction = useCallback(async () => {
+    if (!confirmQuitarCopropietario) return;
+    const { vehiculo, conductorId, conductorNombre } = confirmQuitarCopropietario;
+    try {
+      await data.quitarPropietario(vehiculo.id, conductorId);
+      toast.success(`${conductorNombre} ya no es copropietario de ${vehiculo.placa}`);
+      setConfirmQuitarCopropietario(null);
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts / useVehiculos.ts).
+      console.error("Error quitando copropietario:", error);
+    }
+  }, [confirmQuitarCopropietario, data]);
+
   const openVehiculoView = useCallback((vehiculo: Vehiculo) => {
     setViewingVehiculo(vehiculo);
     setViewVehiculoOpen(true);
@@ -50,5 +81,7 @@ export function useConductoresPage() {
     viewVehiculoOpen, setViewVehiculoOpen, viewDetailOpen, setViewDetailOpen,
     viewingVehiculo, viewingConductor,
     openVehiculoView, openConductorDetail, handleToggleEstado,
+    confirmQuitarCopropietario, setConfirmQuitarCopropietario,
+    solicitarQuitarPropietario, confirmQuitarCopropietarioAction,
   };
 }
