@@ -1,4 +1,5 @@
 import type { Celda } from "@/services/api/celdas";
+import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
 import {
   CELDA_CONFIG, LotLayout, Ocupante, getTipoCeldaConfig,
@@ -16,13 +17,18 @@ interface ParkingLotProps extends LotLayout {
   onCellPointerDown: (e: React.PointerEvent<SVGGElement>, celda: Celda) => void;
   onCellHover: (info: HoverInfo) => void;
   onCellHoverLeave: () => void;
+  /** Si se pasa (rol con permiso "celdas"), el badge de estado se vuelve clicable. */
+  onLotPointerDown?: (e: React.PointerEvent<SVGGElement>, pq: Parqueadero) => void;
 }
 
 /** Un parqueadero dibujado en el plano: cabecera con nombre/composición/stats, y sus filas de celdas. */
 export function ParkingLot({
   pq, celdasPorFila, libres, ocupados, reservadas, pct, filas, lotTop, lotHeight, ancho,
   getOcupante, cellMatchesSearch, onCellPointerDown, onCellHover, onCellHoverLeave,
+  onLotPointerDown,
 }: ParkingLotProps) {
+  const activo = pq.estado === "activo";
+  const estadoColor = activo ? CELDA_CONFIG.disponible.dotColor : C.danger;
   const hc = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
   // Composición de la zona por tipo de vehículo, para distinguir de un vistazo
   // qué parqueaderos son de carro, de moto o mixtos (celdas de movilidad reducida incluidas).
@@ -69,6 +75,18 @@ export function ParkingLot({
             <text x="13" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{reservadas} reservadas</text>
           </g>
         )}
+        {/* Badge de estado activo/inactivo — mismo toggle que la vista tabla, clicable solo con permiso "celdas". */}
+        <g
+          transform={`translate(${ancho - PADDING + 10 - 64},0)`}
+          onPointerDown={onLotPointerDown ? (e) => onLotPointerDown(e, pq) : undefined}
+          style={{ cursor: onLotPointerDown ? "pointer" : "default" }}
+        >
+          {onLotPointerDown && <title>{activo ? "Desactivar parqueadero" : "Activar parqueadero"}</title>}
+          <circle cx="5" cy="-2.5" r="3.5" fill={estadoColor} />
+          <text x="13" y="1" fill={activo ? MAP_THEME.textDim : "#F87171"} fontSize="8.5" fontWeight="bold" style={{ textTransform: "uppercase" }}>
+            {pq.estado}
+          </text>
+        </g>
       </g>
 
       {filas.map((fila, fi) => fila.esCarril ? (

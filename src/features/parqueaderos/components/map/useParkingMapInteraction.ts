@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Celda } from "@/services/api/celdas";
+import type { Parqueadero } from "@/services/api/parqueaderos";
 
 const DRAG_THRESHOLD = 8;
 
@@ -17,7 +18,7 @@ export interface HoverInfo {
  * mientras el usuario no haya hecho zoom/arrastre manual, el mapa sigue ese valor automáticamente,
  * para que en pantallas angostas no arranque recortado al 100%.
  */
-export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, fitZoom: number = 1) {
+export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, onToggleEstadoLot: ((pq: Parqueadero) => void) | undefined, fitZoom: number = 1) {
   const [zoom, setZoom] = useState(fitZoom);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -27,6 +28,7 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, fi
   const pointerStartRef = useRef({ x: 0, y: 0 });
   const isDraggedRef = useRef(false);
   const pendingCellRef = useRef<Celda | null>(null);
+  const pendingLotRef = useRef<Parqueadero | null>(null);
   const userAdjustedRef = useRef(false);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, fi
     if (e.button !== 0) return;
     isDraggedRef.current = false;
     pendingCellRef.current = null;
+    pendingLotRef.current = null;
     pointerStartRef.current = { x: e.clientX, y: e.clientY };
     dragOriginRef.current = { x: pan.x, y: pan.y };
     setIsDragging(true);
@@ -49,6 +52,7 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, fi
     if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
       isDraggedRef.current = true;
       pendingCellRef.current = null;
+      pendingLotRef.current = null;
     }
     if (isDraggedRef.current) {
       setPan({ x: dragOriginRef.current.x + dx, y: dragOriginRef.current.y + dy });
@@ -61,14 +65,22 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, fi
       userAdjustedRef.current = true;
     } else if (pendingCellRef.current) {
       onCellClick(pendingCellRef.current);
+    } else if (pendingLotRef.current) {
+      onToggleEstadoLot?.(pendingLotRef.current);
     }
     isDraggedRef.current = false;
     pendingCellRef.current = null;
-  }, [onCellClick]);
+    pendingLotRef.current = null;
+  }, [onCellClick, onToggleEstadoLot]);
 
   const handleCellPointerDown = useCallback((e: React.PointerEvent<SVGGElement>, celda: Celda) => {
     e.stopPropagation();
     pendingCellRef.current = celda;
+  }, []);
+
+  const handleLotPointerDown = useCallback((e: React.PointerEvent<SVGGElement>, pq: Parqueadero) => {
+    e.stopPropagation();
+    pendingLotRef.current = pq;
   }, []);
 
   const zoomIn = useCallback(() => {
@@ -91,7 +103,7 @@ export function useParkingMapInteraction(onCellClick: (celda: Celda) => void, fi
 
   return {
     zoom, pan, isDragging, isDraggedRef, hover, setCellHover, clearHover: () => setHover(null),
-    handlePointerDown, handlePointerMove, handlePointerUp, handleCellPointerDown,
+    handlePointerDown, handlePointerMove, handlePointerUp, handleCellPointerDown, handleLotPointerDown,
     zoomIn, zoomOut, resetView,
   };
 }

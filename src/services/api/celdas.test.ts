@@ -26,7 +26,7 @@ const loteAction = {
   method: 'POST' as const,
   pattern: /^\/parqueadero\/(\d+)\/generar-lote$/,
   handle: (m: RegExpMatchArray, body: unknown, items: any[]) => {
-    const b = body as { carros?: number; motos?: number; movilidadReducida?: number };
+    const b = body as { cantidadCarro?: number; cantidadMoto?: number; cantidadMovilidadReducida?: number };
     const creadas: unknown[] = [];
     const push = (prefijo: string, tipo: string, usabilidad: string, cantidad: number) => {
       for (let i = 1; i <= cantidad; i++) {
@@ -36,9 +36,9 @@ const loteAction = {
         creadas.push(nueva);
       }
     };
-    push('C-', 'CARRO', 'GENERAL', b.carros ?? 0);
-    push('M-', 'MOTO', 'GENERAL', b.motos ?? 0);
-    push('PMR-', 'CARRO', 'MOVILIDAD_REDUCIDA', b.movilidadReducida ?? 0);
+    push('C-', 'CARRO', 'GENERAL', b.cantidadCarro ?? 0);
+    push('M-', 'MOTO', 'GENERAL', b.cantidadMoto ?? 0);
+    push('PMR-', 'CARRO', 'MOVILIDAD_REDUCIDA', b.cantidadMovilidadReducida ?? 0);
     return creadas;
   },
 };

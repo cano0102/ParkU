@@ -153,11 +153,21 @@ export interface GenerarLoteCantidades {
  * automática "C-001"/"M-001"/"PMR-001"... del lado del backend, en una sola
  * transacción). Usado por el formulario simplificado de creación de
  * parqueadero, que ya no pide crear las celdas una por una.
+ *
+ * Confirmado en vivo: el backend espera `cantidadCarro`/`cantidadMoto`/
+ * `cantidadMovilidadReducida` (no los nombres cortos que usa el resto del
+ * frontend) — sin este mapeo, el backend no reconocía ninguno de los tres
+ * campos, los trataba como 0 y rechazaba la petición con "Debes indicar al
+ * menos una cantidad mayor a 0" aunque el formulario sí traía cantidades.
  */
 export async function generarLote(parqueaderoId: string, cantidades: GenerarLoteCantidades): Promise<Celda[]> {
   const creadas = await apiFetch<ApiCelda[]>(`/celdas/parqueadero/${parqueaderoId}/generar-lote`, {
     method: 'POST',
-    body: cantidades,
+    body: {
+      cantidadCarro: cantidades.carros,
+      cantidadMoto: cantidades.motos,
+      cantidadMovilidadReducida: cantidades.movilidadReducida,
+    },
   });
   return creadas.map(toFrontend);
 }

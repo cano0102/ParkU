@@ -278,11 +278,11 @@ export function createAppBackends() {
       method: 'POST', pattern: /^\/parqueadero\/(\d+)\/generar-lote$/,
       handle: (m, body, items) => {
         const parqueaderoId = Number(m[1]);
-        const b = body as { carros?: number; motos?: number; movilidadReducida?: number };
+        const b = body as { cantidadCarro?: number; cantidadMoto?: number; cantidadMovilidadReducida?: number };
         const config: [string, string, string, number][] = [
-          ['C-', 'CARRO', 'GENERAL', b.carros ?? 0],
-          ['M-', 'MOTO', 'GENERAL', b.motos ?? 0],
-          ['PMR-', 'CARRO', 'MOVILIDAD_REDUCIDA', b.movilidadReducida ?? 0],
+          ['C-', 'CARRO', 'GENERAL', b.cantidadCarro ?? 0],
+          ['M-', 'MOTO', 'GENERAL', b.cantidadMoto ?? 0],
+          ['PMR-', 'CARRO', 'MOVILIDAD_REDUCIDA', b.cantidadMovilidadReducida ?? 0],
         ];
         const creadas: unknown[] = [];
         for (const [prefijo, tipo, usabilidad, cantidad] of config) {
