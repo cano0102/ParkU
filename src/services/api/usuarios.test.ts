@@ -37,6 +37,20 @@ describe('services/usuarios', () => {
     );
     expect(updateCall).toBeDefined();
   });
+
+  it('envía el rol como rol_id al crear y editar (la API real no reconoce "rol")', async () => {
+    await usuarios.create({ correo: 'rol@sena.edu.co', password: 'Pass1234', nombre: 'Con Rol', numero: '', rol: 2, estado: 'activo' });
+    const createCall = apiFetchMock.mock.calls.find(([path, opts]) => path === '/usuarios' && (opts as any)?.method === 'POST');
+    expect((createCall?.[1] as any).body.rol_id).toBe(2);
+    expect((createCall?.[1] as any).body.rol).toBeUndefined();
+
+    await usuarios.update('1', { rol: 2 });
+    const updateCall = apiFetchMock.mock.calls.find(
+      ([path, opts]) => path === '/usuarios/1' && (opts as any)?.method === 'PUT' && (opts as any)?.body?.rol_id === 2
+    );
+    expect(updateCall).toBeDefined();
+    expect((updateCall?.[1] as any).body.rol).toBeUndefined();
+  });
 });
 
 describeCrudContract<Usuario>(

@@ -114,11 +114,20 @@ export function AuthProvider({
   useEffect(() => {
     if (!getToken()) return;
     let cancelado = false;
-    authService.verificarToken().then((valido) => {
-      if (!cancelado && !valido) {
+    authService.verificarToken().then((usuarioReal) => {
+      if (cancelado) return;
+      if (!usuarioReal) {
         clearTokens();
         persistUser(null);
+        return;
       }
+      // Refresca el usuario local con la respuesta autoritativa del backend (rol incluido) en
+      // vez de descartarla y quedarse solo con lo que ya hubiera en localStorage: antes, si el
+      // rol de alguien cambiaba en el servidor (o alguien editaba `parkUUser.rol` a mano desde
+      // DevTools), ni `hasPermission()` ni los guards de ruta se enteraban hasta un nuevo login.
+      // `foto` se preserva porque es un campo solo-local (ver `updateUser` más abajo): el
+      // backend real no lo devuelve.
+      persistUser({ ...usuarioReal, foto: user?.foto });
     });
     return () => {
       cancelado = true;

@@ -41,6 +41,22 @@ describe("construirContenidoCsv", () => {
     const csv = construirContenidoCsv(columnas, []);
     expect(csv.slice(1)).toBe("Nombre;Ciudad;Cantidad");
   });
+
+  it("antepone un apóstrofo a un valor que Excel interpretaría como fórmula (CSV Injection)", () => {
+    const csv = construirContenidoCsv(columnas, [
+      { nombre: "=SUM(A1:A2)", ciudad: "-2+3", cantidad: 1 },
+    ]);
+    const lineas = csv.split("\r\n");
+    expect(lineas[1]).toBe("'=SUM(A1:A2);'-2+3;1");
+  });
+
+  it("combina el apóstrofo de fórmula con el escape de comillas cuando aplican los dos", () => {
+    const csv = construirContenidoCsv(columnas, [
+      { nombre: '=HYPERLINK("http://evil.com")', ciudad: "Cali", cantidad: 1 },
+    ]);
+    const lineas = csv.split("\r\n");
+    expect(lineas[1]).toBe('"\'=HYPERLINK(""http://evil.com"")";Cali;1');
+  });
 });
 
 describe("nombreArchivoConFecha", () => {

@@ -128,9 +128,13 @@ describe('useReservasPage — solicitudes pendientes', () => {
     const solicitud = result.current.solicitudesPendientes[0];
     const estadoAntes = result.current.reservas.find((r) => r.id === solicitud.id)?.estado;
     act(() => result.current.handleRechazar(solicitud));
-    // El propio backend (real o fake) rechaza un motivo vacío — se propaga como error de mutación.
+    // `confirmRechazarAction` ahora se valida a sí mismo (defensa en profundidad: antes solo
+    // `ConfirmRechazarReservaModal` bloqueaba un motivo vacío, una guarda solo de UI) — con
+    // motivo vacío corta antes de llamar a la mutación, en vez de depender de que el backend
+    // (real o fake) lo rechace.
     await act(async () => result.current.confirmRechazarAction(''));
 
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('motivo'));
     // El estado no cambió: el rechazo nunca se confirmó.
     expect(result.current.reservas.find((r) => r.id === solicitud.id)?.estado).toBe(estadoAntes);
   });

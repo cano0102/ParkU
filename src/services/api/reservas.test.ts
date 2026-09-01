@@ -25,7 +25,7 @@ const backend = createFakeRestBackend('/reservas', [], {
         const idx = items.findIndex((i) => i.id === id);
         if (idx === -1) throw new Error('404');
         const b = body as any;
-        items[idx] = { ...items[idx], estado: b.estado, ...(b.motivoRechazo !== undefined ? { motivo_rechazo: b.motivoRechazo } : {}) };
+        items[idx] = { ...items[idx], estado: b.estado, ...(b.motivo_rechazo !== undefined ? { motivo_rechazo: b.motivo_rechazo } : {}) };
         return items[idx];
       },
     },
@@ -61,7 +61,10 @@ describe('services/reservas', () => {
     expect(apiFetchMock.mock.calls.some(([path, opts]) => path === `/reservas/${creada.id}/estado` && (opts as any)?.method === 'PATCH')).toBe(true);
   });
 
-  it('rechazar envía motivoRechazo en el body del PATCH /:id/estado y lo devuelve al leer', async () => {
+  it('rechazar envía motivo_rechazo (snake_case, como el resto de campos del body) en el PATCH /:id/estado y lo devuelve al leer', async () => {
+    // Bug confirmado: el body real usa snake_case en todos sus campos (`tipo_reserva`,
+    // `celda_id`...) — este test antes afirmaba `motivoRechazo` (camelCase) en el body, la
+    // única excepción a ese patrón, que el backend real ignoraría en silencio.
     const creada = await reservas.create({
       tipoReserva: 'visitante', vehiculoId: '1', celdaId: '1', conductorId: '1', motivo: '', motivoRechazo: '',
       fechaReserva: '2030-01-01', horaInicio: '08:00', horaFin: '10:00', estado: 'pendiente',
@@ -71,7 +74,7 @@ describe('services/reservas', () => {
     expect(actualizada.estado).toBe('rechazada');
     expect(actualizada.motivoRechazo).toBe('La celda ya fue asignada a otro vehículo.');
     const call = apiFetchMock.mock.calls.find(([path, opts]) => path === `/reservas/${creada.id}/estado` && (opts as any)?.method === 'PATCH');
-    expect((call?.[1] as any).body.motivoRechazo).toBe('La celda ya fue asignada a otro vehículo.');
+    expect((call?.[1] as any).body.motivo_rechazo).toBe('La celda ya fue asignada a otro vehículo.');
   });
 });
 

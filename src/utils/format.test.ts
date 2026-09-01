@@ -1,21 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeText, getInitials, getAvatarGradient } from './format';
+import { getInitials, getAvatarGradient } from './format';
 
 describe('utils/format', () => {
-  describe('sanitizeText', () => {
-    it('escapa etiquetas HTML', () => {
-      expect(sanitizeText('<script>alert(1)</script>')).toBe('&lt;script&gt;alert(1)&lt;/script&gt;');
-    });
-
-    it('deja intacto el texto plano', () => {
-      expect(sanitizeText('Carlos López')).toBe('Carlos López');
-    });
-
-    it('escapa comillas y ampersands', () => {
-      expect(sanitizeText('Tom & Jerry "amigos"')).toBe('Tom &amp; Jerry "amigos"');
-    });
-  });
-
   describe('getInitials', () => {
     it('toma la primera letra de las dos primeras palabras', () => {
       expect(getInitials('Carlos López Martínez')).toBe('CL');

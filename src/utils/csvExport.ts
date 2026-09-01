@@ -20,13 +20,21 @@ const SEPARADOR = ";";
 // sin él, cualquier tilde o "ñ" se ve como caracteres corruptos al abrirlo.
 const BOM_UTF8 = "﻿";
 
-/** Escapa un valor para una celda CSV: solo envuelve en comillas si el valor
- *  contiene el separador, comillas o un salto de línea (regla estándar CSV). */
+// Un valor que empieza con alguno de estos caracteres, Excel/Sheets lo interpreta como
+// fórmula al abrir el CSV — como estos campos vienen de texto libre escrito por cualquier
+// rol (motivo, nombre, descripción...), sin neutralizarlo alguien podría ejecutar código
+// en la máquina de quien exporte y abra el archivo (CSV/Formula Injection, OWASP).
+const EMPIEZA_COMO_FORMULA = /^[=+\-@\t\r]/;
+
+/** Escapa un valor para una celda CSV: le antepone un apóstrofo si Excel lo leería como
+ *  fórmula, y lo envuelve en comillas si contiene el separador, comillas o un salto de
+ *  línea (regla estándar CSV). */
 function escaparCampoCsv(valor: string): string {
-  if (/[";\r\n]/.test(valor)) {
-    return `"${valor.replace(/"/g, '""')}"`;
+  const seguro = EMPIEZA_COMO_FORMULA.test(valor) ? `'${valor}` : valor;
+  if (/[";\r\n]/.test(seguro)) {
+    return `"${seguro.replace(/"/g, '""')}"`;
   }
-  return valor;
+  return seguro;
 }
 
 /** Arma el contenido del CSV (con BOM) a partir de columnas + filas — separado de

@@ -4,7 +4,7 @@ import type { DataListColumn } from "@/components/data";
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle } from "../lib/helpers";
 
 /**
  * Antes ConductoresGrid.tsx y ConductoresList.tsx: el layout de cuadrícula y
@@ -44,7 +44,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
         </div>
 
         <div className="card-identity">
-          <p className="card-name">{sanitizeText(conductor.nombre)}</p>
+          <p className="card-name">{conductor.nombre}</p>
           <p className="card-doc">
             {conductor.tipoDocumento} · {conductor.numeroDocumento}
           </p>
@@ -107,7 +107,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
 
       <div className="card-center">
         <Building2 size={12} color={COLORS.textLight} />
-        <span>{sanitizeText(conductor.centroFormacion) || "—"}</span>
+        <span>{conductor.centroFormacion || "—"}</span>
       </div>
 
       <div className="card-footer">
@@ -119,7 +119,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
             className="action-btn"
             title="Agregar un nuevo vehículo a este conductor"
             onClick={() => onAgregarVehiculo(conductor)}
-            aria-label={`Agregar vehículo a ${sanitizeText(conductor.nombre)}`}
+            aria-label={`Agregar vehículo a ${conductor.nombre}`}
             style={{
               width: "auto", padding: "0 8px", gap: 4,
               background: `${COLORS.primary}14`, borderColor: `${COLORS.primary}55`, color: COLORS.primary,
@@ -132,7 +132,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
             className="action-btn"
             title="Ver detalles"
             onClick={() => onViewDetail(conductor)}
-            aria-label={`Ver detalles de ${sanitizeText(conductor.nombre)}`}
+            aria-label={`Ver detalles de ${conductor.nombre}`}
           >
             <Eye size={14} />
           </button>
@@ -140,7 +140,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
             className="action-btn"
             title="Editar"
             onClick={() => onEdit(conductor)}
-            aria-label={`Editar ${sanitizeText(conductor.nombre)}`}
+            aria-label={`Editar ${conductor.nombre}`}
           >
             <Pencil size={14} />
           </button>
@@ -174,7 +174,7 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
             </div>
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 800, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {sanitizeText(conductor.nombre)}
+                {conductor.nombre}
               </p>
               <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1 }}>
                 {conductor.tipoDocumento} · {conductor.numeroDocumento}
@@ -196,7 +196,7 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
           title={conductor.centroFormacion}
         >
           <Building2 size={11} style={{ flexShrink: 0 }} />
-          {sanitizeText(conductor.centroFormacion) || "—"}
+          {conductor.centroFormacion || "—"}
         </div>
       ),
     },
@@ -286,7 +286,7 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
               width: "auto", height: 26, padding: "0 8px", gap: 4,
               border: `1px solid ${COLORS.primary}55`, background: `${COLORS.primary}14`, color: COLORS.primary,
             }}
-            aria-label={`Agregar vehículo a ${sanitizeText(conductor.nombre)}`}
+            aria-label={`Agregar vehículo a ${conductor.nombre}`}
           >
             <Plus size={12} />
             <span style={{ fontSize: 10, fontWeight: 800, whiteSpace: "nowrap" }}>Vehículo</span>

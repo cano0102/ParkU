@@ -3,7 +3,7 @@ import { Pencil, Plus, X, Mail, Phone, IdCard, Building2, Accessibility, Car } f
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
+import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle } from "../lib/helpers";
 
 interface ConductorDetailModalProps {
   conductor: Conductor;
@@ -88,7 +88,7 @@ export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdi
             </button>
           </div>
           <h2 style={{ marginTop: 14, fontSize: 20, fontWeight: 900, lineHeight: 1.2 }}>
-            {sanitizeText(conductor.nombre)}
+            {conductor.nombre}
           </h2>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800, background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)" }}>
@@ -101,7 +101,7 @@ export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdi
             {conductor.movilidadReducida && (
               <span style={{ display: "inline-flex", alignItems: "center", gap: 4, padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800, background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)" }}>
                 <Accessibility size={11} />
-                {conductor.tipoDiscapacidad ? sanitizeText(conductor.tipoDiscapacidad) : "Movilidad reducida"}
+                {conductor.tipoDiscapacidad ? conductor.tipoDiscapacidad : "Movilidad reducida"}
               </span>
             )}
           </div>
@@ -129,7 +129,7 @@ export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdi
                 {item.label}
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text, wordBreak: "break-word" }}>
-                {sanitizeText(String(item.value))}
+                {String(item.value)}
               </div>
             </div>
           </div>

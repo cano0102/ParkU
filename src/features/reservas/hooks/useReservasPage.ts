@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { exportarCsv, type CsvColumn } from "@/utils/csvExport";
-import { useReservas, useRemoveReserva, useUpdateReserva } from "./useReservas";
+import { useReservas, useReservasDeVehiculos, useRemoveReserva, useUpdateReserva } from "./useReservas";
 import type { Reserva } from "@/services/api/reservas";
 import { useUpdateCelda, useCeldas, useParqueaderos } from "@/features/parqueaderos";
 import type { Celda } from "@/services/api/celdas";
@@ -14,12 +14,34 @@ import { ESTADO_CONFIG, type EstadoReserva } from "../lib/constants";
 /** Datos, filtros y eliminación del historial de reservas. */
 export function useReservasPage() {
   const { user } = useAuth();
-  const { data: reservasTodas = [], isLoading } = useReservas();
-  const { data: vehiculos = [] } = useVehiculos();
+  const esConductor = user?.rol === ROLES.CONDUCTOR;
+  const { data: vehiculos = [], isLoading: isLoadingVehiculos } = useVehiculos();
   const { data: celdas = [] } = useCeldas();
-  const { data: conductores = [] } = useConductores();
+  const { data: conductores = [], isLoading: isLoadingConductores } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
   const { data: controlesSalida = [] } = useControlSalida();
+
+  // Un Conductor (Comunidad SENA) no puede pedir `GET /reservas` (403 documentado en
+  // `getByVehiculo` de services/api/reservas.ts) — con `enabled: false` se evita disparar
+  // esa consulta condenada a fallar (ahora que los errores de lectura sí muestran un toast
+  // app-wide vía QueryCache.onError, un 403 acá dejaría de ser silencioso). En su lugar arma
+  // su propio historial con `getByVehiculo` por cada uno de sus vehículos — la misma ruta que
+  // ya usa el Dashboard de Comunidad SENA (ver useConductorDashboardData.ts).
+  const miConductorId = useMemo(
+    () => (esConductor ? conductores.find((c) => c.usuarioId === user!.id)?.id ?? null : null),
+    [esConductor, user, conductores]
+  );
+  const misVehiculosIds = useMemo(
+    () => (esConductor ? vehiculos.filter((v) => v.conductorId === miConductorId).map((v) => v.id) : []),
+    [esConductor, vehiculos, miConductorId]
+  );
+  const { data: reservasAdmin = [], isLoading: isLoadingReservasAdmin } = useReservas({ enabled: !esConductor });
+  const { reservas: reservasConductor, isLoading: isLoadingReservasConductor } = useReservasDeVehiculos(misVehiculosIds);
+  const reservasTodas = esConductor ? reservasConductor : reservasAdmin;
+  const isLoading = esConductor
+    ? (isLoadingVehiculos || isLoadingConductores || isLoadingReservasConductor)
+    : isLoadingReservasAdmin;
+
   const removeReservaMutation = useRemoveReserva();
   const updateCeldaMutation = useUpdateCelda();
   const updateReservaMutation = useUpdateReserva();
@@ -48,17 +70,14 @@ export function useReservasPage() {
     return v ? conductores.find((c) => c.id === v.conductorId) ?? null : null;
   };
 
-  // Un Conductor (Comunidad SENA) solo debe ver su propio historial de reservas, no el de
-  // todos los usuarios — Admin/Vigilante sí necesitan el historial completo para gestionarlo.
-  const miConductorId = useMemo(
-    () => (user?.rol === ROLES.CONDUCTOR ? conductores.find((c) => c.usuarioId === user.id)?.id ?? null : null),
-    [user, conductores]
-  );
+  // `reservasTodas` ya viene acotada a las suyas para un Conductor (ver arriba, vía
+  // `getByVehiculo`) — este filtro es una segunda comprobación por defensa en profundidad,
+  // no la fuente primaria de la restricción.
   const reservas = useMemo(() => {
-    if (user?.rol !== ROLES.CONDUCTOR) return reservasTodas;
+    if (!esConductor) return reservasTodas;
     return reservasTodas.filter((r) => getConductorReserva(r)?.id === miConductorId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reservasTodas, user, miConductorId, conductores, vehiculos]);
+  }, [reservasTodas, esConductor, miConductorId, conductores, vehiculos]);
 
   const counts = {
     pendiente: reservas.filter((r) => r.estado === "pendiente").length,
@@ -96,11 +115,17 @@ export function useReservasPage() {
 
   const confirmDeleteAction = async () => {
     if (!confirmDelete) return;
+    // Solo se puede eliminar una reserva "pendiente" — una ya gestionada (activa, rechazada,
+    // completada, cancelada) es historial/rastro de auditoría y no debe poder borrarse
+    // permanentemente. Esto es defensa en profundidad: `ReservaRow` ya oculta el botón de
+    // eliminar para esos casos, pero el hook se valida a sí mismo por si se llama directo.
+    if (confirmDelete.estado !== "pendiente") {
+      toast.error("Solo se pueden eliminar reservas pendientes; el historial se conserva para auditoría.");
+      setConfirmDelete(null);
+      return;
+    }
     try {
-      // Si la reserva seguía activa, libera la celda al eliminar el registro
-      if (confirmDelete.estado === "pendiente" || confirmDelete.estado === "activa") {
-        await updateCelda(confirmDelete.celdaId, { estado: "disponible" });
-      }
+      await updateCelda(confirmDelete.celdaId, { estado: "disponible" });
       await deleteReserva(confirmDelete.id);
       toast.success("Reserva eliminada correctamente");
       setConfirmDelete(null);
@@ -224,6 +249,14 @@ export function useReservasPage() {
 
   const confirmRechazarAction = async (motivo: string) => {
     if (!confirmRechazar) return;
+    // El motivo es obligatorio en el backend al rechazar — `ConfirmRechazarReservaModal` ya
+    // bloquea su propio botón de confirmar sin motivo, pero esa es solo una guarda de UI.
+    // Esta es la guarda real: protege el hook aunque se llame directo (p. ej. desde un test
+    // o un futuro sitio de llamada) sin pasar por el modal.
+    if (!motivo.trim()) {
+      toast.error("Debe ingresar un motivo para rechazar la reserva.");
+      return;
+    }
     try {
       await updateReserva(confirmRechazar.id, { estado: "rechazada", motivoRechazo: motivo });
       toast.success("Solicitud rechazada.");

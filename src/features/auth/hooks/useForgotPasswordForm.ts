@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useUsuarios } from "@/features/usuarios";
 import { useAuth } from "@/context/AuthContext";
 
 // Corrección: antes solo se aceptaban correos "@sena.edu.co", pero el sistema
@@ -8,20 +7,21 @@ import { useAuth } from "@/context/AuthContext";
 // sin forma de recuperar su contraseña. Se usa el mismo formato general que Login.
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Referencia estable: evita que `usuarios` cambie de identidad en cada
-// render mientras la query sigue sin datos (lo que rearmaría cualquier
-// efecto/memo que dependiera de ella).
-const EMPTY_USUARIOS: { correo: string }[] = [];
-
-/** Formulario de recuperación: valida el correo contra usuarios reales y genera un enlace
- * de un solo uso (sin servidor de correo propio, se muestra directamente en pantalla). */
+/** Formulario de recuperación: solo valida el FORMATO del correo (nunca si existe una cuenta
+ * con ese valor) y genera un enlace de un solo uso (sin servidor de correo propio, se muestra
+ * directamente en pantalla). Antes esto llamaba a `GET /usuarios` — el listado completo de
+ * cuentas — desde esta pantalla pública sin sesión, solo para decirle a cualquier visitante si
+ * un correo existía o no en el sistema (enumeración de cuentas, y de paso una fuga de PII si esa
+ * ruta no exige auth estricta en el backend). `requestPasswordReset` ya está diseñado para no
+ * revelar esto — devuelve un token solo fuera de producción y `null` en cualquier otro caso sin
+ * distinguir "no existe" de "existe pero no se muestra" (ver services/api/auth.ts) — así que la
+ * validación de existencia se elimina del todo en vez de duplicarla de forma insegura acá. */
 export function useForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [resetLink, setResetLink] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
-  const { data: usuarios = EMPTY_USUARIOS } = useUsuarios();
   const { requestPasswordReset } = useAuth();
 
   // Validación en tiempo real: se recalcula en cada cambio; la visibilidad
@@ -35,15 +35,9 @@ export function useForgotPasswordForm() {
     } else if (!EMAIL_REGEX.test(trimmed)) {
       newErrors.email = "Ingresa un correo electrónico válido";
     }
-    // Corrección: valida que el correo pertenezca a un usuario registrado en
-    // el sistema, igual que lo hace el login (antes se simulaba éxito con
-    // cualquier correo, aunque no existiera ninguna cuenta con ese valor).
-    else if (!usuarios.some((u) => u.correo.trim().toLowerCase() === trimmed)) {
-      newErrors.email = "No existe una cuenta registrada con este correo";
-    }
 
     return newErrors;
-  }, [email, usuarios]);
+  }, [email]);
 
   const validateForm = (): boolean => {
     setTouched(true);
@@ -64,17 +58,16 @@ export function useForgotPasswordForm() {
     // enlace de recuperación real (token de un solo uso, 30 min de validez)
     // y se muestra directamente en pantalla en vez de despacharlo a un correo.
     setTimeout(async () => {
+      // `null` no es un error: es el comportamiento normal en producción (el backend no
+      // confirma si el correo existe, para no permitir enumerar cuentas) — tratarlo como un
+      // fallo real revelaría por otra vía la misma información que se intenta ocultar
+      // (un correo que "sí funciona" tendría link, uno que "falla" no existiría). Se avanza
+      // igual a la pantalla de éxito en ambos casos; `ForgotPasswordSuccess` ya sabe ocultar
+      // la caja del enlace cuando `resetLink` es `null`.
       const token = await requestPasswordReset(email);
       setLoading(false);
-
-      if (!token) {
-        toast.error("No se pudo generar el enlace. Intenta de nuevo.");
-        return;
-      }
-
-      setResetLink(`${window.location.origin}/reset-password?token=${token}`);
+      setResetLink(token ? `${window.location.origin}/reset-password?token=${token}` : null);
       setEmailSent(true);
-      toast.success("Enlace de recuperación generado");
     }, 700);
   };
 

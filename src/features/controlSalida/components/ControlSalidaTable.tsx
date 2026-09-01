@@ -21,12 +21,13 @@ interface ControlSalidaTableProps {
   getUsuarioConductor: (vehiculoId: string) => Conductor | null | undefined;
   getParqueadero: (id: string) => Parqueadero | undefined;
   onDelete: (control: ControlSalida) => void;
+  onLiberar: (control: ControlSalida) => void;
 }
 
 /** Tabla del historial: encabezado, filas (o estado vacío) y paginación. */
 export function ControlSalidaTable({
   paginatedControles, filteredCount, currentPage, totalPages, onPageChange,
-  getVehiculo, getCelda, getUsuarioConductor, getParqueadero, onDelete,
+  getVehiculo, getCelda, getUsuarioConductor, getParqueadero, onDelete, onLiberar,
 }: ControlSalidaTableProps) {
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${COLORS.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
@@ -62,6 +63,7 @@ export function ControlSalidaTable({
                 usuario={getUsuarioConductor(control.vehiculoId)}
                 parqueadero={celda ? getParqueadero(celda.parqueaderoId) : null}
                 onDelete={onDelete}
+                onLiberar={onLiberar}
               />
             );
           })

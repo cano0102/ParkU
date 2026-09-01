@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { Pencil, X, GaugeCircle, Palette, Calendar } from "lucide-react";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getTipoVehiculoStyle, sanitizeText } from "../lib/helpers";
+import { COLORS, getTipoVehiculoStyle } from "../lib/helpers";
 
 interface VehiculoViewProps {
   vehiculo: Vehiculo;
@@ -71,7 +71,7 @@ export const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewPro
             </button>
           </div>
           <h2 style={{ marginTop: 14, fontSize: 24, fontWeight: 900, lineHeight: 1, letterSpacing: 0.5 }}>
-            {sanitizeText(vehiculo.placa)}
+            {vehiculo.placa}
           </h2>
           <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span
@@ -136,7 +136,7 @@ export const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewPro
                 {item.label}
               </div>
               <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.text }}>
-                {sanitizeText(String(item.value))}
+                {String(item.value)}
               </div>
             </div>
           </div>
@@ -165,7 +165,7 @@ export const VehiculoView = memo(({ vehiculo, onEdit, onClose }: VehiculoViewPro
               Descripción
             </div>
             <div style={{ fontSize: 12, color: COLORS.text, lineHeight: 1.4 }}>
-              {sanitizeText(vehiculo.descripcion)}
+              {vehiculo.descripcion}
             </div>
           </div>
         )}

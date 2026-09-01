@@ -2,7 +2,6 @@ import { memo, useCallback, useMemo } from "react";
 import { CheckCircle2, Eye, Lock, Pencil, Shield, XCircle } from "lucide-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
-import { sanitizeText } from "@/utils/format";
 import {
   countActive, GRUPO_COLORS, GRUPO_ICON_COMPONENTS, GRUPO_LABELS, PERMISOS,
   type PermisosKeys, type PermisosState,
@@ -77,7 +76,7 @@ export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado }: RoleCardP
                 type="button"
                 role="switch"
                 aria-checked={activo}
-                aria-label={activo ? `Deshabilitar rol ${sanitizeText(rol.nombre)}` : `Habilitar rol ${sanitizeText(rol.nombre)}`}
+                aria-label={activo ? `Deshabilitar rol ${rol.nombre}` : `Habilitar rol ${rol.nombre}`}
                 title={activo ? "Deshabilitar rol" : "Habilitar rol"}
                 onClick={handleToggleEstado}
                 className="role-switch"
@@ -95,7 +94,7 @@ export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado }: RoleCardP
         </div>
 
         <div className="role-name-row">
-          <h3 className="role-name">{sanitizeText(rol.nombre)}</h3>
+          <h3 className="role-name">{rol.nombre}</h3>
           {protegido && (
             <span className="role-lock" title="Rol protegido del sistema">
               <Lock size={11} />
@@ -151,11 +150,11 @@ export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado }: RoleCardP
       </div>
 
       <div className="role-card-footer">
-        <button className="role-action-btn" onClick={handleView} aria-label={`Ver detalle de ${sanitizeText(rol.nombre)}`} title="Ver detalle">
+        <button className="role-action-btn" onClick={handleView} aria-label={`Ver detalle de ${rol.nombre}`} title="Ver detalle">
           <Eye size={15} />
         </button>
         <span className="role-action-divider" />
-        <button className="role-action-btn" onClick={handleEdit} aria-label={`Editar ${sanitizeText(rol.nombre)}`} title="Editar">
+        <button className="role-action-btn" onClick={handleEdit} aria-label={`Editar ${rol.nombre}`} title="Editar">
           <Pencil size={15} />
         </button>
       </div>

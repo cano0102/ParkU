@@ -29,7 +29,7 @@ function renderConductores() {
  * interacción entre los múltiples hooks de React Query simultáneos de este
  * componente y jsdom) antes de reactivar en CI.
  */
-describe.skip("features/conductores", () => {
+describe("features/conductores", () => {
   it("renderiza la lista con datos semilla reales (conductores y vehículos)", async () => {
     renderConductores();
 

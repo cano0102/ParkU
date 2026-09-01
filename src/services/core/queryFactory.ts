@@ -25,8 +25,15 @@ function avisarError(error: unknown) {
 export function createQueryHooks<T extends { id: string }>(queryKey: string, service: CrudService<T>) {
   const key = [queryKey] as const;
 
-  function useList() {
-    return useQuery({ queryKey: key, queryFn: service.getAll });
+  // Los errores de esta query los avisa `QueryCache.onError` en App.tsx, no un
+  // `onError` acá — React Query 5 ya no lo admite en `useQuery` (solo en `useMutation`).
+  // `enabled` (default true) es para el caso de un rol que la API real bloquea de plano
+  // (403 documentado) — sin esto, un componente que llama a este hook incondicionalmente
+  // antes de decidir qué renderizar (p. ej. DashboardPage.tsx antes de su rama por rol)
+  // igual dispara la petición condenada a fallar, y ahora que los errores de lectura sí
+  // avisan (ver arriba), eso se traduciría en un toast de error visible para ese rol.
+  function useList(options?: { enabled?: boolean }) {
+    return useQuery({ queryKey: key, queryFn: service.getAll, enabled: options?.enabled ?? true });
   }
 
   function useCreate() {

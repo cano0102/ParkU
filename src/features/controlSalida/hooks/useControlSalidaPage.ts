@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useControlSalida, useRemoveControlSalida } from "./useControlSalida";
+import { useControlSalida, useRemoveControlSalida, useUpdateControlSalida } from "./useControlSalida";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
-import { useCeldas, useParqueaderos } from "@/features/parqueaderos";
+import { useCeldas, useParqueaderos, useUpdateCelda } from "@/features/parqueaderos";
 import { PAGE_SIZE } from "../lib/helpers";
 
 /** Datos, filtros, paginación y eliminación del historial de entrada/salida. */
@@ -14,6 +14,8 @@ export function useControlSalidaPage() {
   const { data: conductores = [] } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
   const removeControlSalidaMutation = useRemoveControlSalida();
+  const updateControlSalidaMutation = useUpdateControlSalida();
+  const updateCeldaMutation = useUpdateCelda();
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" cuando la mutación en realidad falla.
   const deleteControlSalida = useCallback(
@@ -86,6 +88,28 @@ export function useControlSalidaPage() {
 
   const handleDelete = useCallback((control: ControlSalida) => setConfirmDelete(control), []);
 
+  // Registrar salida directo desde esta pantalla — antes el único lugar donde liberar una
+  // celda era el mapa/tabla de Parqueaderos (ver useReservaCelda.ts#handleRequestLiberar,
+  // mismo patrón: cierra el ControlSalida y refresca la celda con lo que ya movió el trigger
+  // del backend tras el POST de salida). Se mantiene aquí como una llamada aparte, no una
+  // reutilización de ese hook, porque ese vive atado al estado de modal de la pantalla de
+  // Parqueaderos (celda activa, ocupante activo) que esta pantalla no tiene.
+  const handleLiberar = useCallback(
+    async (control: ControlSalida) => {
+      try {
+        await updateControlSalidaMutation.mutateAsync({
+          id: control.id,
+          data: { estado: "finalizado", fechaSalida: new Date().toISOString() },
+        });
+        await updateCeldaMutation.mutateAsync({ id: control.celdaId, data: { estado: "disponible" } });
+        toast.success("Salida registrada. Celda liberada.");
+      } catch (error) {
+        console.error("Error registering salida from ControlSalidaPage:", error);
+      }
+    },
+    [updateControlSalidaMutation, updateCeldaMutation]
+  );
+
   const confirmDeleteAction = useCallback(async () => {
     if (!confirmDelete) return;
     try {
@@ -115,7 +139,7 @@ export function useControlSalidaPage() {
     celdasDisponibles, vehiculosEnParqueadero, vehiculosSalidos,
     filteredControles, paginatedControles,
     currentPage, totalPages, setPage,
-    handleDelete, confirmDeleteAction, clearFilters, hasActiveFilters,
+    handleDelete, confirmDeleteAction, clearFilters, hasActiveFilters, handleLiberar,
     isLoading,
   };
 }

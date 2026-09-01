@@ -31,7 +31,7 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
         title={isEdit ? "Editar Parqueadero" : "Nuevo Parqueadero"}
         onSubmit={onSubmit}
         onCancel={onClose}
-        isValid={true}
+        isValid={!formError}
         submitLabel={isEdit ? "Guardar Cambios" : "Crear Parqueadero"}
       >
         {formError && <Banner tone="danger" message={formError} />}

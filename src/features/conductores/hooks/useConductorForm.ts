@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import {
-  emptyForm, sanitizeText, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
+  emptyForm, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
   type FormState, type FormErrors,
 } from "../lib/helpers";
 import type { ConductoresData } from "./useConductoresData";
@@ -154,7 +154,7 @@ export function useConductorForm(
 
     const conductorData = {
       usuarioId: formData.usuarioId,
-      nombre: sanitizeText(formData.nombre.trim()),
+      nombre: formData.nombre.trim(),
       tipoDocumento: formData.tipoDocumento,
       numeroDocumento: formData.numeroDocumento.trim(),
       correo: formData.correo.trim(),
@@ -162,12 +162,12 @@ export function useConductorForm(
       numeroTelefonico: formData.numeroTelefonico.trim(),
       tipoUsuarioId: formData.tipoUsuarioId,
       tipoUsuarioNombre: "",
-      regionalFormacion: sanitizeText(formData.regionalFormacion.trim()),
-      centroFormacion: sanitizeText(formData.centroFormacion.trim()),
-      programaFormacion: sanitizeText(formData.programaFormacion.trim()),
+      regionalFormacion: formData.regionalFormacion.trim(),
+      centroFormacion: formData.centroFormacion.trim(),
+      programaFormacion: formData.programaFormacion.trim(),
       vigencia: editingConductor?.vigencia || "",
       movilidadReducida: formData.movilidadReducida,
-      tipoDiscapacidad: sanitizeText(formData.tipoDiscapacidad.trim()),
+      tipoDiscapacidad: formData.tipoDiscapacidad.trim(),
       estado: formData.estado,
     };
 
@@ -180,11 +180,11 @@ export function useConductorForm(
           conductorNombre: conductorData.nombre,
           placa: formData.placa.toUpperCase().trim(),
           tipo: formData.tipoVehiculo,
-          marca: sanitizeText(formData.marca.trim()),
+          marca: formData.marca.trim(),
           linea: "",
           modelo: null,
-          color: sanitizeText(formData.color.trim()),
-          descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
+          color: formData.color.trim(),
+          descripcion: formData.descripcionVehiculo.trim(),
           estado: "activo" as const,
         };
 
@@ -205,11 +205,11 @@ export function useConductorForm(
             conductorNombre: created.nombre,
             placa: formData.placa.toUpperCase().trim(),
             tipo: formData.tipoVehiculo,
-            marca: sanitizeText(formData.marca.trim()),
+            marca: formData.marca.trim(),
             linea: "",
             modelo: null,
-            color: sanitizeText(formData.color.trim()),
-            descripcion: sanitizeText(formData.descripcionVehiculo.trim()),
+            color: formData.color.trim(),
+            descripcion: formData.descripcionVehiculo.trim(),
             estado: "activo",
           });
           onCreated?.(created, vehiculoCreado);

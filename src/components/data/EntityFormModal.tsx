@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { AlertCircle, X } from "lucide-react";
 import { theme } from "@/styles/theme";
 
@@ -8,7 +8,7 @@ export interface EntityFormModalProps {
   icon: ReactNode;
   eyebrow: string;
   title: string;
-  onSubmit: () => void;
+  onSubmit: () => void | Promise<void>;
   onCancel: () => void;
   isValid: boolean;
   submitLabel: string;
@@ -32,11 +32,22 @@ export function EntityFormModal({
   showValidationMessage = false,
   children,
 }: EntityFormModalProps) {
+  // Evita el doble envío (doble clic, o una conexión lenta): mientras `onSubmit` esté en
+  // vuelo, el botón queda deshabilitado en vez de permitir una segunda petición antes de
+  // que la primera responda y cierre el modal — antes de esto no había ninguna protección,
+  // con riesgo real de crear el mismo registro dos veces.
+  const [submitting, setSubmitting] = useState(false);
   return (
     <form
-      onSubmit={(e) => {
+      onSubmit={async (e) => {
         e.preventDefault();
-        onSubmit();
+        if (submitting) return;
+        setSubmitting(true);
+        try {
+          await onSubmit();
+        } finally {
+          setSubmitting(false);
+        }
       }}
     >
       <div
@@ -138,7 +149,13 @@ export function EntityFormModal({
         </button>
         <button
           type="submit"
-          disabled={!isValid}
+          /* Solo se deshabilita mientras la mutación está en vuelo (protección de doble
+           * envío) — un formulario inválido se deja clicable a propósito: el handler de cada
+           * dominio (handleCreate/handleSave/...) ya valida antes de llamar a la API y revela
+           * los errores marcando todos los campos como "tocados", así que bloquear el clic
+           * aquí solo le quitaría al usuario la forma más simple de descubrir qué falta. El
+           * color/opacidad sí reflejan `isValid` como señal visual. */
+          disabled={submitting}
           style={{
             padding: "11px 24px",
             borderRadius: 12,
@@ -147,14 +164,14 @@ export function EntityFormModal({
             color: "#fff",
             fontSize: 13,
             fontWeight: 800,
-            cursor: isValid ? "pointer" : "not-allowed",
+            cursor: submitting ? "not-allowed" : "pointer",
             fontFamily: "inherit",
             boxShadow: isValid ? "0 6px 18px rgba(57,169,0,.22)" : "none",
-            opacity: isValid ? 1 : 0.65,
+            opacity: isValid ? (submitting ? 0.75 : 1) : 0.65,
             transition: "opacity .15s ease",
           }}
         >
-          {submitLabel}
+          {submitting ? "Guardando…" : submitLabel}
         </button>
       </div>
     </form>

@@ -4,6 +4,8 @@ import { useControlSalida } from "@/features/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
 import { useIncidentes } from "@/features/incidentes";
 import { useReservas } from "@/features/reservas";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { theme } from "@/styles/theme";
 import { availableOf, occupancyOf, type Movement, type ParkingLot } from "../lib/helpers";
 
@@ -14,16 +16,24 @@ export function useDashboardData() {
   const [filter, setFilter] = useState<"all" | "car" | "moto">("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  // `DashboardPage.tsx` llama a este hook incondicionalmente y solo DESPUÉS decide renderizar
+  // <ConductorDashboard/> en su lugar para ese rol — por reglas de hooks no se puede saltar la
+  // llamada, así que las queries que la API real bloquea para Comunidad SENA (403 documentado:
+  // entradas-salidas, vehículos, conductores, novedades, reservas completas) se deshabilitan
+  // aquí mismo con `enabled`. Sin esto, cada Conductor que abrieaa el Dashboard disparaba cinco
+  // peticiones condenadas a fallar — antes se veían silenciosamente vacías, y ahora que las
+  // queries fallidas sí avisan (`QueryCache.onError` en App.tsx) se habrían visto como toasts
+  // de error en una pantalla que ese rol nunca llega a ver de verdad.
+  const { user } = useAuth();
+  const esComunidadSena = user?.rol === ROLES.CONDUCTOR;
+
   const { data: parqueaderos = [], isLoading: loadingParqueaderos } = useParqueaderos();
   const { data: celdas = [], isLoading: loadingCeldas } = useCeldas();
-  // Solo Admin/Vigilante pueden leer /api/entradas-salidas — para un Conductor
-  // esta query falla (403) y queda en `[]`, así que los paneles de movimientos
-  // simplemente se ven vacíos en vez de romper el resto del Dashboard.
-  const { data: controlesSalida = [] } = useControlSalida();
-  const { data: vehiculos = [] } = useVehiculos();
-  const { data: conductores = [] } = useConductores();
-  const { data: incidentes = [] } = useIncidentes();
-  const { data: reservas = [] } = useReservas();
+  const { data: controlesSalida = [] } = useControlSalida({ enabled: !esComunidadSena });
+  const { data: vehiculos = [] } = useVehiculos({ enabled: !esComunidadSena });
+  const { data: conductores = [] } = useConductores({ enabled: !esComunidadSena });
+  const { data: incidentes = [] } = useIncidentes({ enabled: !esComunidadSena });
+  const { data: reservas = [] } = useReservas({ enabled: !esComunidadSena });
   // Solo se espera a parqueaderos/celdas (lo primero que se ve en pantalla): el resto son
   // datos secundarios de paneles específicos, esperarlos todos solo alargaría la carga inicial.
   const isLoading = loadingParqueaderos || loadingCeldas;
@@ -48,7 +58,12 @@ export function useDashboardData() {
         block: pq.zona || pq.ubicacion,
         type: tipo,
         status: pq.estado === "activo" ? "activo" : "mantenimiento",
-        capacity: pq.capacidadMaxima || celdasDelPQ.length || 1,
+        // Antes usaba `pq.capacidadMaxima` primero — un número que el Admin escribe a mano al
+        // crear el parqueadero, sin ninguna relación forzada con la cantidad real de celdas
+        // generadas (esas se definen aparte). Eso hacía que el % de ocupación del Dashboard
+        // pudiera no coincidir con el que muestra la pantalla de Parqueaderos, que sí cuenta
+        // las celdas reales — se unifica usando siempre el conteo real acá también.
+        capacity: celdasDelPQ.length || 1,
         occupied: ocupadas,
         reserved: reservadas,
         maintenance: mantenimiento,

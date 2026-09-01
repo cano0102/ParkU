@@ -1,7 +1,7 @@
 import { Shield, UserCheck, Users, UserX } from "lucide-react";
 import { Modal, LoadingState } from "@/components/shared";
 import { StatsPanel } from "@/components/data";
-import { COLORS, sanitizeText } from "./lib/helpers";
+import { COLORS } from "./lib/helpers";
 import { UsuarioFormModal } from "./components/UsuarioFormModal";
 import { UsuariosToolbar } from "./components/UsuariosToolbar";
 import { UsuariosResults } from "./components/UsuariosResults";
@@ -54,7 +54,7 @@ export default function Usuarios() {
                 {f.search && (
                   <>
                     {" "}
-                    para "<strong>{sanitizeText(f.search)}</strong>"
+                    para "<strong>{f.search}</strong>"
                   </>
                 )}
               </p>

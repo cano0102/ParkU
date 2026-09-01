@@ -2,7 +2,6 @@ import { memo, useMemo } from "react";
 import { CheckCircle2, Lock, Pencil, Shield, XCircle, X } from "lucide-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
-import { sanitizeText } from "@/utils/format";
 import { countActive, PERMISO_LABELS } from "../lib/permisos";
 import { ROLES_PROTEGIDOS, getRolAccent } from "../lib/helpers";
 
@@ -90,7 +89,7 @@ export const RolViewModal = memo(({ rol, onClose, onEdit }: RolViewModalProps) =
             </button>
           </div>
           <h2 style={{ marginTop: 14, fontSize: 26, fontWeight: 900, lineHeight: 1 }}>
-            {sanitizeText(rol.nombre)}
+            {rol.nombre}
           </h2>
           <p style={{ marginTop: 6, fontSize: 13, color: "rgba(255,255,255,.8)", lineHeight: 1.5 }}>
             {rol.descripcion || "Sin descripción"}

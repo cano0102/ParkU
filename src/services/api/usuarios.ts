@@ -76,7 +76,7 @@ export async function create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
       contrasena: data.password,
       nombre: data.nombre,
       numero_telefonico: data.numero.trim() || undefined,
-      rol: data.rol,
+      rol_id: data.rol,
       // La API espera el ENUM en mayúsculas ("ACTIVO"/"INACTIVO"), no un
       // booleano — confirmado en vivo: enviar `true`/`false` aquí hace que
       // el backend responda 500 en cada creación.
@@ -91,7 +91,7 @@ export async function update(id: string, data: Partial<Omit<Usuario, 'id'>>): Pr
   if (data.correo !== undefined) payload.correo = data.correo.trim().toLowerCase();
   if (data.nombre !== undefined) payload.nombre = data.nombre;
   if (data.numero !== undefined) payload.numero_telefonico = data.numero.trim() || null;
-  if (data.rol !== undefined) payload.rol = data.rol;
+  if (data.rol !== undefined) payload.rol_id = data.rol;
   // Mismo caso que en `create`: el backend exige el ENUM en mayúsculas, un
   // booleano hace que la actualización falle con 500 (bug reproducido en vivo).
   if (data.estado !== undefined) payload.estado = data.estado === 'activo' ? 'ACTIVO' : 'INACTIVO';

@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { router } from './routes';
 import { AuthProvider } from './context/AuthContext';
 import { Toaster, ErrorBoundary } from './components/shared';
@@ -25,7 +26,17 @@ import { RouteFallback } from './routes/RouteFallback';
 // esto por sí solo alcanza para gatillar el 429 con el uso normal de la app,
 // sin que medie ningún reintento. Con un `staleTime` de 1 minuto los datos ya
 // cacheados se reutilizan en vez de volver a pedirse en cada navegación.
+// `QueryCache.onError` — React Query 5 quitó el `onError` por-query de `useQuery`
+// (solo lo conserva `useMutation`), así que este es el único lugar posible para que
+// una lectura fallida (p. ej. un 403 de un rol sin permiso sobre esa lista) muestre
+// algo en vez de quedar como un array vacío indistinguible de "no hay datos" —
+// antes de esto, `useList()` en queryFactory.ts no avisaba nada.
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'No se pudo cargar la información.');
+    },
+  }),
   defaultOptions: {
     queries: {
       retry: false,

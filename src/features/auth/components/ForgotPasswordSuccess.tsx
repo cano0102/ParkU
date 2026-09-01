@@ -30,9 +30,19 @@ export function ForgotPasswordSuccess({ email, resetLink }: ForgotPasswordSucces
       </h2>
 
       <p style={{ color: COLORS.textLight, lineHeight: 1.6, fontSize: 13, marginBottom: "1rem" }}>
-        Cuenta: <strong style={{ color: COLORS.text }}>{email}</strong>. Como
-        ParkU no tiene un servidor de correo propio, el enlace de recuperación
-        se genera y se muestra aquí directamente.
+        {resetLink ? (
+          <>
+            Cuenta: <strong style={{ color: COLORS.text }}>{email}</strong>. Como
+            ParkU no tiene un servidor de correo propio, el enlace de recuperación
+            se genera y se muestra aquí directamente.
+          </>
+        ) : (
+          <>
+            Si <strong style={{ color: COLORS.text }}>{email}</strong> tiene una
+            cuenta registrada, en breve podrás usar el enlace de recuperación que
+            genere el sistema.
+          </>
+        )}
       </p>
 
       {resetLink && (

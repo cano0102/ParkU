@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Rol } from "@/services/api/roles";
-import { sanitizeText } from "@/utils/format";
 import { type FormState } from "../lib/helpers";
 
 interface UseRolFormArgs {
@@ -65,7 +64,7 @@ export function useRolForm({ initial, onSave, existingRoles, editingRolId = null
         toast.error("Ya existe un rol con este nombre");
         return;
       }
-      const sanitizedName = sanitizeText(rawName);
+      const sanitizedName = rawName;
       onSave({ ...form, nombre: sanitizedName });
     },
     [form, onSave, existingRoles, editingRolId]

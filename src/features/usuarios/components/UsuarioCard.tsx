@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import type { Usuario } from "@/services/api/usuarios";
 import { nombreDeRol } from "@/services/core/roles";
-import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials, sanitizeText } from "../lib/helpers";
+import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials } from "../lib/helpers";
 
 /**
  * Antes UsuariosGrid.tsx y UsuariosList.tsx. Mismo criterio que
@@ -55,7 +55,7 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
             <div style={{ minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 800, color: COLORS.text, lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {sanitizeText(u.nombre)}
+                {u.nombre}
               </p>
               <p style={{ fontSize: 10, color: COLORS.textLight, marginTop: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {u.correo}
@@ -179,7 +179,7 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
             </div>
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 800, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                {sanitizeText(u.nombre)}
+                {u.nombre}
               </p>
               {protegido && (
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 9, fontWeight: 700, color: "#92400E" }}>

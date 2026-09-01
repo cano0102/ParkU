@@ -345,12 +345,15 @@ export function createAppBackends() {
         const idx = items.findIndex((i) => i.id === Number(m[1]));
         if (idx === -1) throw new Error('404');
         const b = body as any;
-        if (b.estado === 'RECHAZADA' && !b.motivoRechazo?.trim()) {
-          throw new Error('motivoRechazo es obligatorio al rechazar una reserva');
+        // `motivo_rechazo` (snake_case) es el nombre real del campo en el body — ver el bug
+        // confirmado en services/api/reservas.ts (antes se enviaba/leía como `motivoRechazo`,
+        // que el backend real ignora en silencio).
+        if (b.estado === 'RECHAZADA' && !b.motivo_rechazo?.trim()) {
+          throw new Error('motivo_rechazo es obligatorio al rechazar una reserva');
         }
         items[idx] = {
           ...items[idx], estado: b.estado,
-          ...(b.motivoRechazo !== undefined ? { motivo_rechazo: b.motivoRechazo } : {}),
+          ...(b.motivo_rechazo !== undefined ? { motivo_rechazo: b.motivo_rechazo } : {}),
         };
         return items[idx];
       },

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import {
-  sanitizeText, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
+  validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
 } from "../lib/helpers";
 import type { ConductoresData } from "./useConductoresData";
 
@@ -128,14 +128,14 @@ export function useAgregarVehiculo(
     try {
       const creado = await data.addVehiculo({
         conductorId: conductorActivo.id,
-        conductorNombre: sanitizeText(conductorActivo.nombre),
+        conductorNombre: conductorActivo.nombre,
         placa: form.placa.trim().toUpperCase(),
         tipo: form.tipoVehiculo,
-        marca: sanitizeText(form.marca.trim()),
+        marca: form.marca.trim(),
         linea: "",
         modelo: null,
-        color: sanitizeText(form.color.trim()),
-        descripcion: sanitizeText(form.descripcionVehiculo.trim()),
+        color: form.color.trim(),
+        descripcion: form.descripcionVehiculo.trim(),
         estado: "activo",
       });
       toast.success(`Vehículo agregado a ${conductorActivo.nombre}`);

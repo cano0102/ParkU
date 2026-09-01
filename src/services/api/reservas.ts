@@ -165,9 +165,12 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
       // No se usa `updated` como fuente de verdad para el estado en ningún sitio de llamada —
       // todos dependen de la invalidación de la query de reservas (ver queryFactory.ts) para
       // refrescar con el GET real, así que esta respuesta obsoleta no llega a mostrarse.
+      // El body usa `motivo_rechazo` (snake_case, como el resto de campos de este archivo) —
+      // enviarlo como `motivoRechazo` (camelCase) hace que el backend lo ignore en silencio,
+      // igual que el mismo bug ya confirmado en vivo para `services/api/celdas.ts`.
       updated = await apiFetch<ApiReserva>(`/reservas/${id}/estado`, {
         method: 'PATCH',
-        body: { estado: estadoApi, motivoRechazo: estado === 'rechazada' ? data.motivoRechazo : undefined },
+        body: { estado: estadoApi, motivo_rechazo: estado === 'rechazada' ? data.motivoRechazo : undefined },
       });
     }
   }

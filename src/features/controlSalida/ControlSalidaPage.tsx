@@ -47,6 +47,7 @@ export function ControlSalidaPage() {
             getUsuarioConductor={p.getUsuarioConductor}
             getParqueadero={p.getParqueadero}
             onDelete={p.handleDelete}
+            onLiberar={p.handleLiberar}
           />
         )}
       </div>

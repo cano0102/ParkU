@@ -30,7 +30,7 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, editing
       title={title}
       onSubmit={f.handleSubmit}
       onCancel={onCancel}
-      isValid={true}
+      isValid={f.isValid}
       submitLabel={isEdit ? "Guardar cambios" : "Crear Usuario"}
     >
       <DatosPersonalesFields

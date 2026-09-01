@@ -62,6 +62,22 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
         rol: esRolId(rolId) ? rolId : ROLES.CONDUCTOR,
       } as Omit<Usuario, "id">;
 
+      // Misma protección que handleToggleEstado, pero para el otro camino que puede dejar
+      // al sistema sin Admin: editar el rol o el estado del único Admin activo desde este
+      // formulario en vez de usar el botón de activar/desactivar.
+      if (
+        editingUsuario &&
+        editingUsuario.estado === "activo" &&
+        editingUsuario.rol === ROLES.ADMIN &&
+        (payload.rol !== ROLES.ADMIN || payload.estado !== "activo")
+      ) {
+        const adminsActivos = data.usuarios.filter((x) => x.rol === ROLES.ADMIN && x.estado === "activo");
+        if (adminsActivos.length <= 1) {
+          toast.error("No puedes quitarle el rol de Administrador ni desactivar al único administrador activo del sistema.");
+          return;
+        }
+      }
+
       try {
         if (editingUsuario) {
           // Corrección: si el campo de contraseña se deja vacío al editar,

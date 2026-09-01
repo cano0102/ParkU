@@ -6,7 +6,6 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
 import { createTestQueryClient } from '@/test/queryWrapper';
 import { createAppBackends } from '@/test/appFakeApi';
-import * as usuariosService from '@/services/api/usuarios';
 import { ForgotPassword } from './ForgotPassword';
 
 vi.mock('sonner', () => ({
@@ -19,13 +18,11 @@ apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 import { toast } from 'sonner';
 
-// Precarga la lista de usuarios en la caché de React Query antes de montar,
-// para que la validación de "correo existente" del formulario (que depende
-// de useUsuarios()) no corra contra una lista todavía vacía por una
-// condición de carrera con el fetch inicial.
-async function renderForgotPassword() {
+// Esta pantalla ya NO consulta `GET /usuarios` para validar si el correo existe (era una fuga
+// de información desde una ruta pública, sin sesión — ver useForgotPasswordForm.ts) — solo
+// valida el formato del correo en el cliente, así que no hace falta precargar ningún listado.
+function renderForgotPassword() {
   const client = createTestQueryClient();
-  await client.prefetchQuery({ queryKey: ['usuarios'], queryFn: usuariosService.getAll });
 
   return render(
     <QueryClientProvider client={client}>
@@ -62,19 +59,31 @@ describe('ForgotPassword', () => {
       () => expect(screen.getByText('Abrir Enlace de Recuperación')).toBeInTheDocument(),
       { timeout: 2000 }
     );
-    expect(toast.success).toHaveBeenCalled();
   });
 
-  it('muestra un error de validación si el correo no pertenece a ninguna cuenta', async () => {
+  it('para un correo con formato válido que no pertenece a ninguna cuenta, igual avanza a la pantalla de éxito sin revelar que no existe (evita enumeración de cuentas)', async () => {
     const user = userEvent.setup();
     await renderForgotPassword();
 
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), 'no-existe@sena.edu.co');
     await user.click(screen.getByRole('button', { name: 'Generar Enlace' }));
 
-    expect(
-      await screen.findByText('No existe una cuenta registrada con este correo')
-    ).toBeInTheDocument();
+    // Llega a la pantalla de éxito igual que con un correo real ("Recomendaciones" solo se
+    // renderiza ahí) — la única diferencia observable es que no hay enlace para abrir/copiar,
+    // nunca un mensaje que confirme o niegue si la cuenta existe.
+    expect(await screen.findByText('Recomendaciones')).toBeInTheDocument();
+    expect(screen.queryByText('Abrir Enlace de Recuperación')).not.toBeInTheDocument();
+    expect(screen.queryByText(/no existe una cuenta/i)).not.toBeInTheDocument();
+  });
+
+  it('valida el formato del correo sin consultar si la cuenta existe', async () => {
+    const user = userEvent.setup();
+    await renderForgotPassword();
+
+    await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), 'no-es-un-correo');
+    await user.click(screen.getByRole('button', { name: 'Generar Enlace' }));
+
+    expect(await screen.findByText('Ingresa un correo electrónico válido')).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith('Por favor, corrige los errores del formulario');
   });
 });

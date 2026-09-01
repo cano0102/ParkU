@@ -4,7 +4,7 @@ import type { Usuario } from "@/services/api/usuarios";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import {
-  FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, sanitizeText, validarTelefono,
+  FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono,
 } from "../lib/helpers";
 
 interface UseUsuarioFormArgs {
@@ -123,13 +123,14 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
       return;
     }
 
-    const sanitizedNombre = sanitizeText(form.nombre.trim());
-    const sanitizedCorreo = sanitizeText(form.correo.trim().toLowerCase());
+    const sanitizedNombre = form.nombre.trim();
+    const sanitizedCorreo = form.correo.trim().toLowerCase();
     onSave({ ...form, nombre: sanitizedNombre, correo: sanitizedCorreo });
   }, [form, onSave, validate]);
 
   return {
     form, set, showPass, setShowPass,
     rolesDisponibles, markTouched, err, handleSubmit,
+    isValid: Object.keys(errors).length === 0,
   };
 }

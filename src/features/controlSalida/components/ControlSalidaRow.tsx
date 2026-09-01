@@ -1,4 +1,4 @@
-import { Car, ParkingCircle, Trash2 } from "lucide-react";
+import { Car, LogOut, ParkingCircle, Trash2 } from "lucide-react";
 import { theme } from "@/styles/theme";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -18,10 +18,14 @@ interface ControlSalidaRowProps {
   usuario: Conductor | null | undefined;
   parqueadero: Parqueadero | null | undefined;
   onDelete: (control: ControlSalida) => void;
+  /** Registra la salida de un registro activo y libera su celda — mismo par de llamadas que
+   *  ya usa el flujo "Liberar Celda" del mapa/tabla de Parqueaderos, disponible acá también
+   *  para quien busque esa acción por el nombre de esta pantalla. */
+  onLiberar: (control: ControlSalida) => void;
 }
 
 /** Una fila del historial: vehículo, conductor, celda, parqueadero, entrada/salida, estadía y acciones. */
-export function ControlSalidaRow({ control, vehiculo, celda, usuario, parqueadero, onDelete }: ControlSalidaRowProps) {
+export function ControlSalidaRow({ control, vehiculo, celda, usuario, parqueadero, onDelete, onLiberar }: ControlSalidaRowProps) {
   const esActivo = control.estado === "en_parqueadero";
   const esHoy = isSameDay(control.fechaEntrada, new Date());
 
@@ -98,6 +102,17 @@ export function ControlSalidaRow({ control, vehiculo, celda, usuario, parqueader
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: COLORS.success, flexShrink: 0 }} />
             Completado
           </span>
+        )}
+        {esActivo && (
+          <button
+            className="action-btn"
+            title="Registrar salida"
+            aria-label="Registrar salida y liberar la celda"
+            onClick={() => onLiberar(control)}
+            style={{ background: "transparent", color: COLORS.info, padding: 6 }}
+          >
+            <LogOut size={13} />
+          </button>
         )}
         <button
           className="action-btn"
