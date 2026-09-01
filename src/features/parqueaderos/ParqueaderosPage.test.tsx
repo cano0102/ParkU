@@ -192,6 +192,69 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     expect(screen.queryByText('PQ-Sin Celdas')).not.toBeInTheDocument();
   });
 
+  it('al editar un parqueadero, subir la cantidad de celdas de una categoría crea solo las que faltan (no duplica las existentes)', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+
+    const fila = screen.getByText('PQ-1 Torre A').closest('.pq-table-row') as HTMLElement;
+    await user.click(within(fila).getByTitle('Editar'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Editar Parqueadero')).toBeInTheDocument();
+
+    // Precargado con la cantidad ACTIVA real (celdasSeed: C-001 ocupada + C-002 disponible = 2
+    // celdas de carro), no un valor fijo en 0 — ver openEdit en useParqueaderoForm.ts.
+    const inputCarro = within(dialog).getByLabelText('Celdas de carro') as HTMLInputElement;
+    expect(inputCarro.value).toBe('2');
+
+    await user.clear(inputCarro);
+    await user.type(inputCarro, '3');
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar Cambios' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+    // Se creó únicamente la celda que faltaba (C-003, numeración continuada) — C-001/C-002
+    // siguen existiendo tal cual, sin recrearse ni duplicarse.
+    await user.click(screen.getByText('PQ-1 Torre A'));
+    expect(await screen.findByText('C-003')).toBeInTheDocument();
+    expect(screen.getAllByText('C-001')).toHaveLength(1);
+    expect(screen.getAllByText('C-002')).toHaveLength(1);
+  });
+
+  it('eliminar un parqueadero con celdas/historial se rechaza sin abrir el diálogo de confirmación', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+
+    // PQ-1 tiene celdas (C-001/C-002/M-001), un ingreso registrado (controlSalidaSeed) y
+    // dos incidentes (incidentesSeed) — no debería poder eliminarse físicamente.
+    const fila = screen.getByText('PQ-1 Torre A').closest('.pq-table-row') as HTMLElement;
+    await user.click(within(fila).getByTitle('Eliminar'));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('PQ-1 Torre A')).toBeInTheDocument();
+  });
+
+  it('eliminar un parqueadero sin celdas ni historial pide confirmación y lo quita de la lista', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-3 Torre C');
+
+    // PQ-3 no tiene ninguna celda sembrada (celdasSeed solo cubre los parqueaderos 1 y 2), así
+    // que sí se puede eliminar de verdad.
+    const fila = screen.getByText('PQ-3 Torre C').closest('.pq-table-row') as HTMLElement;
+    await user.click(within(fila).getByTitle('Eliminar'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/PQ-3 Torre C/)).toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('PQ-3 Torre C')).not.toBeInTheDocument());
+  });
+
   it('el botón "Asignación Inteligente" abre el modal correspondiente', async () => {
     const user = userEvent.setup();
     renderPage();

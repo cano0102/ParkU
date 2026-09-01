@@ -25,12 +25,16 @@ interface CeldaInfoModalProps {
   onReportarIncidente: () => void;
   onEstacionarVehiculo: () => void;
   onReservarCelda: () => void;
-  /** true si el rol del usuario logueado tiene el permiso "celdas" — controla
-   *  si se muestra el ajuste manual de estado (ver onSetEstadoManual). */
+  /** true si el rol del usuario logueado tiene el permiso "celdas" — controla si se muestra
+   *  el ajuste manual de estado (ver onSetEstadoManual) y el botón "Reservar Celda". Ese botón
+   *  usa `handleCrearReserva` (ver useReservaCelda.ts), que crea la reserva y la ACTIVA de
+   *  inmediato sin pasar por aprobación — exclusivo de Admin/Vigilante. Comunidad SENA
+   *  (Conductor) reserva por un camino aparte, "Solicitar reserva" (useSolicitarReserva.ts),
+   *  que sí queda pendiente hasta que alguien la acepte — no por este modal. */
   canManageCeldas?: boolean;
   /** true si el rol tiene el permiso "entradaSalida" — controla si se muestran
    *  las acciones de estacionar/liberar/cancelar reserva (portería). Comunidad
-   *  SENA (Conductor) no lo tiene: solo puede ver la celda y reservarla. */
+   *  SENA (Conductor) no lo tiene. */
   canRegistrarIngreso: boolean;
   /** true si el rol tiene el permiso "incidentes" — controla el botón de
    *  reportar incidente. */
@@ -204,12 +208,19 @@ export function CeldaInfoModal({
                 {canRegistrarIngreso && (
                   <button onClick={onEstacionarVehiculo} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>Estacionar Vehículo</button>
                 )}
-                <button
-                  onClick={onReservarCelda}
-                  style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
-                >
-                  📅 Reservar Celda
-                </button>
+                {/* `handleCrearReserva` (ver useReservaCelda.ts) crea la reserva y la ACTIVA de
+                 * inmediato con un segundo PATCH, sin pasar por "pendiente" — el mismo atajo
+                 * exclusivo de Admin/Vigilante que ya usa `onEstacionarVehiculo` de al lado.
+                 * Antes este botón no verificaba ningún permiso: cualquier rol que llegara a
+                 * abrir este modal podía saltarse el flujo de aprobación de Comunidad SENA. */}
+                {canManageCeldas && (
+                  <button
+                    onClick={onReservarCelda}
+                    style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
+                  >
+                    📅 Reservar Celda
+                  </button>
+                )}
               </div>
             </>
           )

@@ -1,11 +1,11 @@
 import { FormField } from "@/components/shared";
 import { useTiposUsuario } from "../hooks/useTiposUsuario";
-import { COLORS, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, inputStyle, inputErrorStyle, quitarDigitos, type FormState } from "../lib/helpers";
+import { COLORS, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, inputStyle, inputErrorStyle, quitarDigitos, filtrarTelefono, type FormState } from "../lib/helpers";
 
 interface DatosConductorFieldsProps {
   isEdit: boolean;
   form: FormState;
-  errors: { nombre?: string; numeroDocumento?: string; tipoUsuarioId?: string };
+  errors: { nombre?: string; numeroDocumento?: string; numeroTelefonico?: string; tipoUsuarioId?: string };
   touched: Record<string, boolean>;
   onChange: (patch: Partial<FormState>) => void;
   onBlur: (field: string) => void;
@@ -64,13 +64,15 @@ export function DatosConductorFields({ isEdit, form, errors, touched, onChange, 
         />
       </FormField>
 
-      <FormField label="Teléfono (opcional)">
+      <FormField label="Teléfono (opcional)" error={err("numeroTelefonico")}>
         <input
           type="tel"
           placeholder="300 000 0000"
           value={form.numeroTelefonico}
-          onChange={(e) => onChange({ numeroTelefonico: e.target.value })}
-          style={inputStyle}
+          onChange={(e) => onChange({ numeroTelefonico: filtrarTelefono(e.target.value) })}
+          onBlur={() => onBlur("numeroTelefonico")}
+          maxLength={15}
+          style={{ ...inputStyle, ...(err("numeroTelefonico") ? inputErrorStyle : {}) }}
         />
       </FormField>
 

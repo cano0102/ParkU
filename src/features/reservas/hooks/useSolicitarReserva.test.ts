@@ -66,7 +66,7 @@ describe('useSolicitarReserva', () => {
     expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
-  it('rechaza enviar la solicitud con un horario fuera de la ventana de operación (04:00–21:00)', async () => {
+  it('rechaza enviar la solicitud con un horario fuera de la ventana de operación (05:00–21:00)', async () => {
     // Antes no había ninguna validación de horario en el frontend para esta solicitud — una
     // fuera de la ventana de operación (HORA_OPERACION_INICIO/FIN en parqueaderos/lib/helpers)
     // solo se enteraba de ser inválida hasta que el backend la rechazaba con un error genérico.

@@ -20,7 +20,10 @@ export function useReservasPage() {
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [], isLoading: isLoadingConductores } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
-  const { data: controlesSalida = [] } = useControlSalida();
+  // `/entradas-salidas` es 403 para Comunidad SENA (confirmado en vivo) — solo se usa más abajo
+  // dentro de `aceptarSolicitud`, una acción exclusiva de Admin/Vigilante, así que desactivarla
+  // para ese rol no le quita nada real y evita el toast de error en cada visita a esta página.
+  const { data: controlesSalida = [] } = useControlSalida({ enabled: !esConductor });
 
   // Un Conductor (Comunidad SENA) no puede pedir `GET /reservas` (403 documentado en
   // `getByVehiculo` de services/api/reservas.ts) — con `enabled: false` se evita disparar

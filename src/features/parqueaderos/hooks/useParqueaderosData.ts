@@ -1,4 +1,4 @@
-import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero } from "./useParqueaderos";
+import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero, useRemoveParqueadero } from "./useParqueaderos";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda, useCambiarDisponibilidadCelda, useGenerarLoteCeldas } from "./useCeldas";
 import type { Celda, MotivoDisponibilidad, GenerarLoteCantidades } from "@/services/api/celdas";
@@ -10,20 +10,32 @@ import { useControlSalida, useCreateControlSalida, useUpdateControlSalida } from
 import type { ControlSalida } from "@/services/api/controlSalida";
 import { useReservas, useCreateReserva, useUpdateReserva } from "@/features/reservas";
 import type { Reserva } from "@/services/api/reservas";
-import { useCreateIncidente } from "@/features/incidentes";
+import { useIncidentes, useCreateIncidente } from "@/features/incidentes";
 import type { Incidente } from "@/services/api/incidentes";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 
 /** Queries y mutaciones de todos los dominios que orquesta la página de Parqueaderos. */
 export function useParqueaderosData() {
+  const { user } = useAuth();
+  const esConductor = user?.rol === ROLES.CONDUCTOR;
   const { data: parqueaderos = [], isLoading } = useParqueaderos();
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
   const { data: vehiculos = [] } = useVehiculos();
-  const { data: controlesSalida = [] } = useControlSalida();
-  const { data: reservas = [] } = useReservas();
+  // `/entradas-salidas` y el listado completo de `/reservas` son 403 para Comunidad SENA
+  // (confirmado en vivo) — se desactivan para ese rol en vez de dejarlos fallar en cada
+  // visita a esta pantalla (que sí es de acceso legítimo: es donde reserva su propia celda).
+  const { data: controlesSalida = [] } = useControlSalida({ enabled: !esConductor });
+  const { data: reservas = [] } = useReservas({ enabled: !esConductor });
+  // `/novedades` (listado completo) también es solo Admin/Vigilante — mismo criterio que
+  // controlesSalida/reservas de arriba; se usa aquí para saber si un parqueadero tiene
+  // incidentes reportados antes de permitir eliminarlo (ver evaluarEliminacionParqueadero).
+  const { data: incidentes = [] } = useIncidentes({ enabled: !esConductor });
 
   const createParqueaderoMutation = useCreateParqueadero();
   const updateParqueaderoMutation = useUpdateParqueadero();
+  const removeParqueaderoMutation = useRemoveParqueadero();
   const createCeldaMutation = useCreateCelda();
   const updateCeldaMutation = useUpdateCelda();
   const removeCeldaMutation = useRemoveCelda();
@@ -43,6 +55,7 @@ export function useParqueaderosData() {
   const addParqueadero = (data: Omit<Parqueadero, "id">) => createParqueaderoMutation.mutateAsync(data);
   const updateParqueadero = (id: string, data: Partial<Omit<Parqueadero, "id">>) =>
     updateParqueaderoMutation.mutateAsync({ id, data });
+  const deleteParqueadero = (id: string) => removeParqueaderoMutation.mutateAsync(id);
   const addCelda = (data: Omit<Celda, "id">) => createCeldaMutation.mutateAsync(data);
   const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutateAsync({ id, data });
   const deleteCelda = (id: string) => removeCeldaMutation.mutateAsync(id);
@@ -69,8 +82,8 @@ export function useParqueaderosData() {
     createIncidenteMutation.mutateAsync({ ...data, fecha: new Date().toISOString() });
 
   return {
-    parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas,
-    addParqueadero, updateParqueadero, addCelda, updateCelda, deleteCelda, cambiarDisponibilidadCelda, generarCeldasEnLote,
+    parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas, incidentes,
+    addParqueadero, updateParqueadero, deleteParqueadero, addCelda, updateCelda, deleteCelda, cambiarDisponibilidadCelda, generarCeldasEnLote,
     addConductor, addVehiculo, updateVehiculo,
     addControlSalida, updateControlSalida, addReserva, updateReserva, addIncidente,
     isLoading,

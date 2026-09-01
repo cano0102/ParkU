@@ -29,9 +29,11 @@ export interface FormParqueadero {
   zona: string;
   piso: string;
   descripcion: string;
-  /** Solo se usan al CREAR (el formulario de edición no los muestra — ver
-   *  ParqueaderoFormModal.tsx): cantidad de celdas a generar automáticamente
-   *  por tipo, vía POST /celdas/parqueadero/:id/generar-lote. */
+  /** Cantidad de celdas por categoría. Al crear, se generan de una vez vía
+   *  POST /celdas/parqueadero/:id/generar-lote. Al editar, se precargan con la cantidad
+   *  ACTIVA real (ver useParqueaderoForm.ts#openEdit) y, al guardar, se reconcilian contra
+   *  ese número — sube crea/reactiva celdas, baja desactiva solo las que estén libres (ver
+   *  lib/celdasReconciliacion.ts). */
   celdasCarros: number;
   celdasMotos: number;
   celdasMovilidadReducida: number;
@@ -249,6 +251,50 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
   if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
   return null;
 }
+
+export interface EvaluacionEliminacionParqueadero {
+  eliminable: boolean;
+  /** Motivo específico cuando no es eliminable — cuenta cada tipo de relación por separado
+   *  para que el mensaje diga exactamente qué hay (no un "Error al eliminar" genérico). */
+  motivo?: string;
+}
+
+/**
+ * Decide si un parqueadero se puede eliminar físicamente (DELETE real) o si hay que
+ * conservarlo (desactivarlo en su lugar) porque tiene relaciones que representan trazabilidad
+ * real: celdas propias, ingresos/salidas, reservas (por sus celdas) o incidentes reportados.
+ * Cualquiera de esas relaciones, aunque ya esté cerrada/histórica, bloquea el borrado físico —
+ * es exactamente el dato que un DELETE en cascada perdería. Un parqueadero sin ninguna (p. ej.
+ * uno recién creado cuya generación de celdas falló) sí se puede eliminar de verdad.
+ */
+export function evaluarEliminacionParqueadero(
+  parqueaderoId: string,
+  celdas: Celda[],
+  controlesSalida: { parqueaderoId: string }[],
+  reservas: { celdaId: string }[],
+  incidentes: { parqueaderoId: string }[]
+): EvaluacionEliminacionParqueadero {
+  const celdasPq = celdas.filter((c) => c.parqueaderoId === parqueaderoId);
+  const celdaIds = new Set(celdasPq.map((c) => c.id));
+  const ingresosPq = controlesSalida.filter((r) => r.parqueaderoId === parqueaderoId);
+  const reservasPq = reservas.filter((r) => celdaIds.has(r.celdaId));
+  const incidentesPq = incidentes.filter((i) => i.parqueaderoId === parqueaderoId);
+
+  if (!celdasPq.length && !ingresosPq.length && !reservasPq.length && !incidentesPq.length) {
+    return { eliminable: true };
+  }
+
+  const partes: string[] = [];
+  if (celdasPq.length) partes.push(`${celdasPq.length} celda(s)`);
+  if (ingresosPq.length) partes.push(`${ingresosPq.length} registro(s) de ingreso/salida`);
+  if (reservasPq.length) partes.push(`${reservasPq.length} reserva(s)`);
+  if (incidentesPq.length) partes.push(`${incidentesPq.length} incidente(s)`);
+
+  return {
+    eliminable: false,
+    motivo: `No se puede eliminar: tiene ${partes.join(", ")} asociados que deben conservarse por trazabilidad. Desactívalo en su lugar (columna Estado) para dejar de usarlo sin perder ese historial.`,
+  };
+}
 /* Busca una línea etiquetada (p.ej. "MARCA: TOYOTA") y devuelve su valor: lo que sigue
    a la etiqueta en la misma línea o, si no hay nada ahí, el contenido de la línea siguiente
    (algunos documentos traen la etiqueta y el valor en renglones separados). */
@@ -283,13 +329,17 @@ export function extraerDatosDocumento(texto:string){
 /* ============================================================
    HORARIO GLOBAL DE OPERACIÓN
 ============================================================ */
-/* Espejo del mismo horario que ya valida el backend (04:00–21:00) en
+/* Espejo del horario que debe validar el backend (05:00–21:00) en
    Api-ParkU/src/config/horarioOperacion.js — repos separados, sin paquete
-   compartido, así que se duplica acá solo para el indicador visual (el
-   backend es quien realmente bloquea crear reservas/ingresos fuera de esta
-   ventana; acá solo se usa para marcar celdas que quedaron ocupadas
-   después de que cerró la ventana). */
-export const HORA_OPERACION_INICIO = "04:00";
+   compartido, así que se duplica acá. El valor de apertura se corrigió de
+   "04:00" a "05:00" (regla de negocio actualizada) — esto SOLO cambia el
+   indicador visual y las validaciones de este repo; si el archivo del
+   backend sigue en "04:00", hay que actualizarlo ahí también, porque es
+   quien realmente bloquea crear reservas/ingresos fuera de esta ventana
+   (acá antes solo se usaba para marcar celdas que quedaron ocupadas
+   después de que cerró la ventana — ahora también para validar antes de
+   enviar una reserva, ver useReservaCelda.ts/useSolicitarReserva.ts). */
+export const HORA_OPERACION_INICIO = "05:00";
 export const HORA_OPERACION_FIN = "21:00";
 
 export const estaFueraDeHorarioOperacion = (fecha: Date = new Date()): boolean => {

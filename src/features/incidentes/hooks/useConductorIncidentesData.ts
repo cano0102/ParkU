@@ -24,7 +24,10 @@ import { useIncidentesData } from "./useIncidentesData";
 export function useConductorIncidentesData() {
   const { user } = useAuth();
   const { data: conductores = [] } = useConductores();
-  const base = useIncidentesData();
+  // El listado de incidentes ya muestra su propio mensaje persistente más abajo en
+  // ConductorIncidentes.tsx cuando falla — silencia el toast global redundante (ver N1/N2
+  // del informe de auditoría).
+  const base = useIncidentesData({ silentIncidentesError: true });
 
   const miConductorId = useMemo(
     () => (user?.rol === ROLES.CONDUCTOR ? conductores.find((c) => c.usuarioId === user.id)?.id ?? null : null),

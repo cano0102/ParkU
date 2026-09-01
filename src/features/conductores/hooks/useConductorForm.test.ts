@@ -129,6 +129,66 @@ describe('useConductorForm — validación de numeroDocumento', () => {
   });
 });
 
+describe('useConductorForm — validación de numeroTelefonico', () => {
+  it('es opcional: se puede guardar sin escribir ningún teléfono', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data));
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776' }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.numeroTelefonico).toBeUndefined();
+    expect(data.addConductor).toHaveBeenCalled();
+  });
+
+  it('rechaza un teléfono con letras (antes ni siquiera se filtraban las teclas)', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data));
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', numeroTelefonico: 'abc1234567',
+    }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.numeroTelefonico).toBe('Ingresa un número de teléfono colombiano válido (10 dígitos)');
+    expect(data.addConductor).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un teléfono con menos de 10 dígitos', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data));
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', numeroTelefonico: '12345',
+    }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.numeroTelefonico).toBe('Ingresa un número de teléfono colombiano válido (10 dígitos)');
+    expect(data.addConductor).not.toHaveBeenCalled();
+  });
+
+  it('acepta un teléfono colombiano válido de 10 dígitos', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data));
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', numeroTelefonico: '3101234567',
+    }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.numeroTelefonico).toBeUndefined();
+    expect(data.addConductor).toHaveBeenCalled();
+  });
+});
+
 describe('useConductorForm — validación de placa (referencia, ya existente)', () => {
   it('rechaza una placa ya registrada en otro vehículo', async () => {
     const data = buildData();

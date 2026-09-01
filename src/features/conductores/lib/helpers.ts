@@ -3,13 +3,13 @@ import { Car, Bike, Truck, Bus as BusIcon, Wind, GraduationCap, BookOpen, Briefc
 import { theme } from "@/styles/theme";
 import {
   validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO,
-  validarNumeroDocumento, NUMERO_DOCUMENTO_MAX,
+  validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, validarTelefono, filtrarTelefono,
 } from "@/utils/validation";
 import { getAvatarGradient, getInitials } from "@/utils/format";
 import type { Vehiculo } from "@/services/api/vehiculos";
 
 export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO };
-export { validarNumeroDocumento, NUMERO_DOCUMENTO_MAX };
+export { validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, validarTelefono, filtrarTelefono };
 export { getAvatarGradient, getInitials };
 
 export const COLORS = theme;
@@ -106,6 +106,7 @@ export const emptyForm = (): FormState => ({
 export interface FormErrors {
   nombre?: string;
   numeroDocumento?: string;
+  numeroTelefonico?: string;
   tipoUsuarioId?: string;
   placa?: string;
   marca?: string;

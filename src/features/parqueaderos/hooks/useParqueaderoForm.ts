@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import {
-  type FormParqueadero, normalizarTexto, validarFormParqueadero, NOMBRE_PQ_MAX,
+  type FormParqueadero, normalizarTexto, validarFormParqueadero, evaluarEliminacionParqueadero, NOMBRE_PQ_MAX,
 } from "../lib/helpers";
+import { agruparPorCategoria, reconciliarTodasLasCategorias } from "../lib/celdasReconciliacion";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 
@@ -17,12 +18,16 @@ const emptyPqForm = (): FormParqueadero => ({
  * Las celdas ya no se generan/redimensionan automáticamente al guardar
  * (la API real no lo hace) — se administran aparte desde la pantalla de Celdas. */
 export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind, setOpenModal: (m: ModalKind) => void) {
-  const { parqueaderos, addParqueadero, updateParqueadero, generarCeldasEnLote } = data;
+  const {
+    parqueaderos, addParqueadero, updateParqueadero, deleteParqueadero, generarCeldasEnLote,
+    celdas, addCelda, cambiarDisponibilidadCelda, controlesSalida, reservas, incidentes,
+  } = data;
 
   const [pqEditId, setPqEditId] = useState<string | null>(null);
   const [pqForm, setPqFormRaw] = useState<FormParqueadero>(emptyPqForm());
   const [formError, setFormError] = useState<string | null>(null);
   const [pqTocado, setPqTocado] = useState(false);
+  const [pqAEliminar, setPqAEliminar] = useState<Parqueadero | null>(null);
 
   // Validación en tiempo real: se recalcula en cada cambio (no solo al enviar), y solo se
   // muestra una vez que el usuario empezó a escribir (pqTocado), para no saludarlo con
@@ -47,12 +52,17 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
 
   const openEdit = (pq: Parqueadero) => {
     setPqEditId(pq.id);
+    // Precarga la cantidad ACTIVA real de cada categoría (celdas con estado != "inactiva"),
+    // no un valor fijo en 0 — así el admin ve de dónde parte antes de subir o bajar la cifra
+    // (ver handleEdit, que reconcilia contra estos mismos números al guardar).
+    const celdasDelPq = celdas.filter((c) => c.parqueaderoId === pq.id);
+    const grupos = agruparPorCategoria(celdasDelPq);
+    const activas = (lista: typeof celdasDelPq) => lista.filter((c) => c.estado !== "inactiva").length;
     setPqFormRaw({
       nombre: pq.nombre, ubicacion: pq.ubicacion, acceso: pq.acceso, tipo: pq.tipo,
       capacidadMaxima: pq.capacidadMaxima, horaInicio: pq.horaInicio, horaFin: pq.horaFin,
       zona: pq.zona, piso: pq.piso, descripcion: pq.descripcion,
-      // No aplican al editar (solo se usan en creación) — se dejan en 0.
-      celdasCarros: 0, celdasMotos: 0, celdasMovilidadReducida: 0,
+      celdasCarros: activas(grupos.carros), celdasMotos: activas(grupos.motos), celdasMovilidadReducida: activas(grupos.movilidadReducida),
     });
     setFormError(null);
     setPqTocado(false);
@@ -108,7 +118,30 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
         capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
         zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
       });
-      toast.success("Parqueadero actualizado.");
+
+      // Segunda llamada encadenada (mismo patrón que handleCreate): el parqueadero ya se
+      // actualizó, ahora se reconcilia la cantidad de celdas de cada categoría contra lo que
+      // haya en el formulario. Si aumenta, reactiva celdas inactivas primero y solo crea las
+      // que falten (nunca duplica). Si disminuye, SOLO desactiva celdas realmente libres —
+      // una celda ocupada o con una reserva activa nunca se toca, y si no hay suficientes
+      // libres para llegar al número pedido, esa categoría puntual se deja sin cambiar en vez
+      // de reducirla a medias.
+      const celdasDelPq = celdas.filter((c) => c.parqueaderoId === pqEditId);
+      const resultado = await reconciliarTodasLasCategorias(
+        celdasDelPq,
+        { carros: pqForm.celdasCarros, motos: pqForm.celdasMotos, movilidadReducida: pqForm.celdasMovilidadReducida },
+        { parqueaderoId: pqEditId, addCelda, cambiarDisponibilidadCelda }
+      );
+
+      if (!resultado.ok) {
+        toast.error(`Parqueadero "${nombre}" actualizado, pero: ${resultado.bloqueos.join(" ")}`);
+      } else {
+        const cambios: string[] = [];
+        if (resultado.totalCreadas) cambios.push(`${resultado.totalCreadas} celda(s) nueva(s)`);
+        if (resultado.totalReactivadas) cambios.push(`${resultado.totalReactivadas} reactivada(s)`);
+        if (resultado.totalDesactivadas) cambios.push(`${resultado.totalDesactivadas} desactivada(s)`);
+        toast.success(cambios.length ? `Parqueadero actualizado (${cambios.join(", ")}).` : "Parqueadero actualizado.");
+      }
       setOpenModal(null);
       setPqEditId(null);
     } catch (error) {
@@ -126,8 +159,34 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     }
   };
 
+  // Pide confirmación para eliminar SOLO si el parqueadero de verdad no tiene nada que
+  // perder (sin celdas/ingresos/reservas/incidentes) — si tiene, ni se abre el diálogo de
+  // confirmación: se avisa de una vez con el motivo específico y se sugiere desactivar.
+  const handleDeleteRequest = (p: Parqueadero) => {
+    const evaluacion = evaluarEliminacionParqueadero(p.id, celdas, controlesSalida, reservas, incidentes);
+    if (!evaluacion.eliminable) {
+      toast.error(evaluacion.motivo);
+      return;
+    }
+    setPqAEliminar(p);
+  };
+
+  const confirmDeleteParqueadero = async () => {
+    if (!pqAEliminar) return;
+    try {
+      await deleteParqueadero(pqAEliminar.id);
+      toast.success(`Parqueadero "${pqAEliminar.nombre}" eliminado.`);
+      setPqAEliminar(null);
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts).
+      console.error("Error deleting parqueadero:", error);
+    }
+  };
+
   return {
     pqForm, setPqForm, formError, pqEditId,
     openCreate, openEdit, handleCreate, handleEdit, handleToggleEstadoParqueadero,
+    pqAEliminar, setPqAEliminar, handleDeleteRequest, confirmDeleteParqueadero,
   };
 }

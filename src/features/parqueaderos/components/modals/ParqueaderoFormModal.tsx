@@ -82,11 +82,32 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
             <div>
               <label style={labelStyle}>Capacidad máxima *</label>
               <input type="number" min={1} max={500} value={pqForm.capacidadMaxima} onChange={e => setPqForm(p => ({ ...p, capacidadMaxima: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
-              <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>Las celdas se administran por separado desde la pantalla de Celdas.</p>
             </div>
             <div>
               <label style={labelStyle}>Descripción</label>
               <input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} style={fieldStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>Cantidad de celdas por tipo</label>
+              <p style={{ fontSize: 11, color: C.textLight, marginBottom: 10 }}>
+                Si subes un número, se generan celdas nuevas (o se reactivan las que ya estuvieran desactivadas). Si lo
+                bajas, se desactivan las que sobren — nunca una celda ocupada o con una reserva activa; si no hay
+                suficientes libres, esa cantidad puntual no se puede reducir y te lo avisamos al guardar.
+              </p>
+              <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={labelStyle} htmlFor="pq-celdas-carro-edit">Celdas de carro</label>
+                  <input id="pq-celdas-carro-edit" type="number" min={0} max={200} value={pqForm.celdasCarros} onChange={e => setPqForm(p => ({ ...p, celdasCarros: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="pq-celdas-moto-edit">Celdas de moto</label>
+                  <input id="pq-celdas-moto-edit" type="number" min={0} max={200} value={pqForm.celdasMotos} onChange={e => setPqForm(p => ({ ...p, celdasMotos: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle} htmlFor="pq-celdas-pmr-edit">Movilidad reducida</label>
+                  <input id="pq-celdas-pmr-edit" type="number" min={0} max={200} value={pqForm.celdasMovilidadReducida} onChange={e => setPqForm(p => ({ ...p, celdasMovilidadReducida: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+                </div>
+              </div>
             </div>
           </>
         ) : (

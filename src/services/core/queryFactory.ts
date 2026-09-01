@@ -32,8 +32,18 @@ export function createQueryHooks<T extends { id: string }>(queryKey: string, ser
   // antes de decidir qué renderizar (p. ej. DashboardPage.tsx antes de su rama por rol)
   // igual dispara la petición condenada a fallar, y ahora que los errores de lectura sí
   // avisan (ver arriba), eso se traduciría en un toast de error visible para ese rol.
-  function useList(options?: { enabled?: boolean }) {
-    return useQuery({ queryKey: key, queryFn: service.getAll, enabled: options?.enabled ?? true });
+  // `silentError` es para el caso contrario: la lectura SÍ hay que intentarla (no hay otra
+  // fuente de datos — p. ej. el listado de incidentes para Comunidad SENA, que la API real
+  // bloquea sin ningún endpoint alternativo), pero quien la llama ya construyó su propio
+  // manejo de `isError` en pantalla (un mensaje persistente, no un toast) — mostrar TAMBIÉN
+  // el toast global sería una segunda copia redundante del mismo aviso.
+  function useList(options?: { enabled?: boolean; silentError?: boolean }) {
+    return useQuery({
+      queryKey: key,
+      queryFn: service.getAll,
+      enabled: options?.enabled ?? true,
+      meta: { silentError: options?.silentError ?? false },
+    });
   }
 
   function useCreate() {

@@ -1,5 +1,5 @@
 import React, { memo, useState } from "react";
-import { Car, Eye, Pencil, MapPin } from "lucide-react";
+import { Car, Eye, Pencil, MapPin, Trash2 } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
@@ -10,11 +10,12 @@ const C = theme;
 /* ============================================================
    VISTA TABLA
 ============================================================ */
-export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onToggleEstado, onCellClick, cellMatchesSearch, canManage }: {
+export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onDelete, onToggleEstado, onCellClick, cellMatchesSearch, canManage }: {
   parqueaderos: Parqueadero[];
   celdas: Celda[];
   getOcupante: (celdaId: string) => Ocupante | null;
   onEdit: (p: Parqueadero) => void;
+  onDelete: (p: Parqueadero) => void;
   onToggleEstado: (p: Parqueadero) => void;
   onCellClick: (c: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
@@ -133,6 +134,13 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                       style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                       onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
                       <Pencil size={13} />
+                    </button>
+                  )}
+                  {canManage && (
+                    <button title="Eliminar" onClick={e => { e.stopPropagation(); onDelete(pq); }}
+                      style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.danger, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#FEF2F2")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                      <Trash2 size={13} />
                     </button>
                   )}
                 </div>

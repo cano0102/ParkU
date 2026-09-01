@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
@@ -6,6 +6,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Conductores } from "./ConductoresPage";
 import { createTestQueryClient } from "@/test/queryWrapper";
 import { createAppBackends } from "@/test/appFakeApi";
+import { AuthProvider } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 
 // Igual que UsuariosPage.test.tsx / ParqueaderosPage.test.tsx: mockea `apiFetch` contra el
 // backend falso compartido. Esta suite estuvo en `.skip` con un comentario que describía un
@@ -26,18 +28,33 @@ vi.mock("@/services/core/http", () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EV
 
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
+const SEED_ADMIN = {
+  id: '1', correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', numero: '3101234567', rol: ROLES.ADMIN,
+};
+
 function renderConductores() {
   const client = createTestQueryClient();
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
-        <Conductores />
+        <AuthProvider>
+          <Conductores />
+        </AuthProvider>
       </QueryClientProvider>
     </MemoryRouter>
   );
 }
 
 describe("features/conductores", () => {
+  beforeEach(() => {
+    localStorage.setItem('parkuToken', 'fake-token-1');
+    localStorage.setItem('parkUUser', JSON.stringify(SEED_ADMIN));
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+  });
+
   it("renderiza la lista con datos semilla reales (conductores y vehículos)", async () => {
     renderConductores();
 

@@ -33,7 +33,11 @@ import { RouteFallback } from './routes/RouteFallback';
 // antes de esto, `useList()` en queryFactory.ts no avisaba nada.
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (error) => {
+    onError: (error, query) => {
+      // `meta.silentError` (ver queryFactory.ts#useList): para una lectura que hay que
+      // intentar igual porque no existe otra fuente de datos, pero cuyo componente ya
+      // construyó su propio manejo de `isError` en pantalla — evita el toast duplicado.
+      if (query.meta?.silentError) return;
       toast.error(error instanceof Error ? error.message : 'No se pudo cargar la información.');
     },
   }),

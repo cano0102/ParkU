@@ -58,7 +58,7 @@ export function useReservaCelda(
     }
 
     // El backend rechaza crear reservas/ingresos fuera de la ventana de operación
-    // (04:00–21:00, ver HORA_OPERACION_INICIO/FIN) — sin este chequeo, una reserva fuera de
+    // (05:00–21:00, ver HORA_OPERACION_INICIO/FIN) — sin este chequeo, una reserva fuera de
     // horario solo se entera de que es inválida hasta que el backend la rechaza con un error
     // genérico. Comparación como string funciona porque el input <input type="time"> siempre
     // entrega "HH:MM" con cero a la izquierda.

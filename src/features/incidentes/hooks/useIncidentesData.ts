@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { useParqueaderos, useCeldas } from "@/features/parqueaderos";
 import { useControlSalida } from "@/features/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
@@ -13,17 +15,31 @@ import {
 } from "./useIncidentes";
 import type { EstadoIncidente } from "../lib/constants";
 
+interface UseIncidentesDataOptions {
+  /** El listado de incidentes hay que intentarlo igual para Comunidad SENA — no existe otra
+   *  ruta que le dé su propio historial (ver useConductorIncidentesData.ts) — pero ese hook ya
+   *  construye su propio mensaje persistente de error en pantalla; pasar `true` evita que el
+   *  toast global de App.tsx muestre una segunda copia redundante del mismo aviso. */
+  silentIncidentesError?: boolean;
+}
+
 /** Datos base de Incidentes: queries, mutaciones, lookups hacia Parqueaderos/Celdas, stats y filtrado. */
-export function useIncidentesData() {
+export function useIncidentesData(options?: UseIncidentesDataOptions) {
+  const { user } = useAuth();
+  const esConductor = user?.rol === ROLES.CONDUCTOR;
   const { data: parqueaderos = [] } = useParqueaderos();
   const { data: celdas = [] } = useCeldas();
   const { data: vehiculos = [] } = useVehiculos();
   const { data: conductores = [] } = useConductores();
-  const { data: controlesSalida = [] } = useControlSalida();
-  // Solo Admin puede listar /api/usuarios — para Vigilante/Conductor queda en
-  // [] y el selector de "asignar a" simplemente aparece vacío (ver IncidenteVehiculoAsignadoFields).
-  const { data: usuarios = [] } = useUsuarios();
-  const { data: incidentes = [], isLoading, isError } = useIncidentes();
+  // Solo Admin/Vigilante pueden listar /api/entradas-salidas — 403 en vivo para Comunidad SENA;
+  // solo se usa más abajo para "quién ocupa esta celda ahora", una vista de gestión que ese rol
+  // no tiene en su pantalla de incidentes.
+  const { data: controlesSalida = [] } = useControlSalida({ enabled: !esConductor });
+  // Solo Admin puede listar /api/usuarios — para Vigilante/Conductor queda deshabilitada (antes
+  // solo quedaba en [] tras un 403 real; ahora que las lecturas fallidas sí avisan globalmente,
+  // desactivarla evita ese toast para dos roles que nunca iban a poder verla).
+  const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
+  const { data: incidentes = [], isLoading, isError } = useIncidentes({ silentError: options?.silentIncidentesError });
   const createIncidenteMutation = useCreateIncidente();
   const updateIncidenteMutation = useUpdateIncidente();
   const removeIncidenteMutation = useRemoveIncidente();

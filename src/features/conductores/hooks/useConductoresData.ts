@@ -8,6 +8,8 @@ import {
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { useUsuarios } from "@/features/usuarios";
 import type { Usuario } from "@/services/api/usuarios";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 
 // Referencias ESTABLES para cuando la query todavía no resolvió: `data: x = []` con un
 // literal inline crea un array NUEVO en cada render mientras `data` sigue `undefined`, lo que
@@ -24,8 +26,12 @@ const EMPTY_VEHICULOS: Vehiculo[] = [];
 
 /** Queries, mutaciones y totales de la página de Conductores. */
 export function useConductoresData() {
+  const { user } = useAuth();
   const { data: conductores = EMPTY_CONDUCTORES, isLoading } = useConductores();
-  const { data: usuarios = EMPTY_USUARIOS } = useUsuarios();
+  // Solo Admin puede listar /api/usuarios — un Vigilante (que sí llega a esta pantalla,
+  // permiso `conductores`) recibía un 403 real en cada visita; con el toast global de errores
+  // (ver App.tsx) eso pasó de quedar en `[]` en silencio a mostrarse como error visible.
+  const { data: usuarios = EMPTY_USUARIOS } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
   const { data: vehiculos = EMPTY_VEHICULOS } = useVehiculos();
   const createConductorMutation = useCreateConductor();
   const updateConductorMutation = useUpdateConductor();

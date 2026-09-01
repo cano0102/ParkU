@@ -100,7 +100,7 @@ describe('useReservaCelda — choque de horario real (no "cualquier pendiente/ac
   });
 });
 
-describe('useReservaCelda — horario de operación (04:00–21:00)', () => {
+describe('useReservaCelda — horario de operación (05:00–21:00)', () => {
   it('rechaza crear una reserva fuera de la ventana de operación', async () => {
     const data = buildDataConReservas({ reservas: [] });
     const { result } = setupCrearReserva(data);

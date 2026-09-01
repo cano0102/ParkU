@@ -1,5 +1,5 @@
 import { theme } from "@/styles/theme";
-import { LoadingState, Modal } from "@/components/shared";
+import { LoadingState, Modal, ConfirmDialog } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { ConductorFormModal, AgregarVehiculoModal } from "@/features/conductores";
@@ -71,6 +71,7 @@ export default function Parqueaderos() {
                 celdas={filters.search.trim() ? filters.filteredCeldas : data.celdas}
                 getOcupante={modal.getOcupante}
                 onEdit={pqFormState.openEdit}
+                onDelete={pqFormState.handleDeleteRequest}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
                 onCellClick={handleCellClick}
                 cellMatchesSearch={filters.cellMatchesSearch}
@@ -103,6 +104,15 @@ export default function Parqueaderos() {
         formError={pqFormState.formError}
         onClose={() => modal.setOpenModal(null)}
         onSubmit={modal.openModal === "edit" ? pqFormState.handleEdit : pqFormState.handleCreate}
+      />
+
+      <ConfirmDialog
+        open={!!pqFormState.pqAEliminar}
+        onConfirm={pqFormState.confirmDeleteParqueadero}
+        onCancel={() => pqFormState.setPqAEliminar(null)}
+        title="Eliminar parqueadero"
+        message={`El parqueadero "${pqFormState.pqAEliminar?.nombre ?? ""}" se eliminará permanentemente. Esta acción no se puede revertir.`}
+        confirmLabel="Eliminar"
       />
 
       <IngresoModal

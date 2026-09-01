@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { useReservas, useUpdateReserva } from "./useReservas";
 import { useCeldas, useUpdateCelda } from "@/features/parqueaderos";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 
 const CHECK_INTERVAL_MS = 30000;
 
@@ -19,10 +21,16 @@ const CHECK_INTERVAL_MS = 30000;
  *   este chequeo la alcance, así que nunca llega a este punto.
  *
  * Se monta una sola vez a nivel de layout (ver MainLayout) para que corra
- * sin importar qué página esté abierta.
+ * sin importar qué página esté abierta — incluida cualquier sesión de
+ * Comunidad SENA, aunque ese rol no gestiona el vencimiento de nadie. Como
+ * necesita el listado COMPLETO de reservas (no solo las propias) y esa ruta
+ * da 403 para ese rol, se desactiva la query por completo para Conductor en
+ * vez de dejarla fallar en cada página que visite.
  */
 export function useReservaAutoExpiry() {
-  const { data: reservas = [] } = useReservas();
+  const { user } = useAuth();
+  const esConductor = user?.rol === ROLES.CONDUCTOR;
+  const { data: reservas = [] } = useReservas({ enabled: !esConductor });
   const { data: celdas = [] } = useCeldas();
   const updateReservaMutation = useUpdateReserva();
   const updateCeldaMutation = useUpdateCelda();
