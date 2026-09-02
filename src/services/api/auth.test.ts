@@ -44,7 +44,7 @@ describe('services/auth', () => {
 
     const user = await auth.register({
       correo: 'nuevo@sena.edu.co', password: 'Pass1234', nombre: 'Nuevo', numero: '3000000000',
-      tipoUsuario: 'estudiante', tipoDocumento: 'CC', identificacion: 'id-1',
+      tipoDocumento: 'CC', identificacion: 'id-1',
     });
     expect(user.rol).toBe(3);
     expect(calls).toEqual(['/auth/registro', '/auth/login']);

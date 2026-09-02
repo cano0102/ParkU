@@ -54,6 +54,15 @@ export function MapLegend() {
           </span>
           <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.9)", whiteSpace: "nowrap" }}>Incidente abierto</span>
         </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{
+            width: 16, height: 12, borderRadius: 3.5, background: "#DC2626", border: "1px solid #fff",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 7, fontWeight: 900, color: "#fff", lineHeight: 1 }}>16h</span>
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.9)", whiteSpace: "nowrap" }}>Más de 16h estacionado</span>
+        </div>
       </div>
 
       <div style={panelDivider} />

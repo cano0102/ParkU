@@ -27,7 +27,11 @@ export interface RegisterInput {
   password: string;
   nombre: string;
   numero: string;
-  tipoUsuario: 'visitante' | 'estudiante' | 'docente' | 'administrativo' | 'otro';
+  /** El formulario los valida (formato + duplicado en vivo vía `existeDocumento`) pero
+   *  `register()` más abajo NO los envía: `POST /auth/registro` no tiene ningún campo para
+   *  persistirlos — el modelo real de Usuario no tiene columna de documento (esa información
+   *  vive en Conductor, una entidad aparte que este endpoint público no crea). Pendiente de
+   *  que el backend agregue soporte; documentado también en el informe de esta auditoría. */
   tipoDocumento: string;
   identificacion: string;
 }

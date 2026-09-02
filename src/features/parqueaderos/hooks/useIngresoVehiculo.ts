@@ -243,6 +243,22 @@ export function useIngresoVehiculo(
     return vehiculos.find((v) => v.placa === placa) ?? null;
   }, [vehiculoForm.placa, vehiculos]);
 
+  // Sugerencias de placas parecidas mientras se escribe (p. ej. "AB" -> ABC123, ABD456...):
+  // los vehículos ya están cargados en memoria (sin llamada de red por letra), pero igual se
+  // debouncea el cálculo/render de la lista para no hacerla parpadear en cada tecla de un
+  // tecleo rápido. Deja de mostrarse en cuanto la placa ya coincide exacto con un vehículo
+  // (ahí ya se ve la ficha completa de `vehiculoEncontrado`, no hace falta la lista aparte).
+  const [placaDebounced, setPlacaDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setPlacaDebounced(vehiculoForm.placa.trim().toUpperCase()), 250);
+    return () => clearTimeout(t);
+  }, [vehiculoForm.placa]);
+
+  const sugerenciasPlaca = useMemo(() => {
+    if (!placaDebounced || vehiculoEncontrado) return [];
+    return vehiculos.filter((v) => v.placa.startsWith(placaDebounced)).slice(0, 6);
+  }, [placaDebounced, vehiculos, vehiculoEncontrado]);
+
   /* Chequeo en vivo de "vehículo ya estacionado en otra celda": los datos (controlesSalida,
      vehículos) ya están cargados en memoria, así que no hace falta esperar al envío del
      formulario para avisar — se recalcula con cada tecleo de la placa, igual que el resto de
@@ -363,7 +379,7 @@ export function useIngresoVehiculo(
   return {
     vehiculoForm, setVehiculoForm, placaError, setPlacaError,
     registrarEnCelda, registrarVehiculo, abrirIngresoOficial, abrirIngresoVisitante,
-    conductoresSugeridos, vehiculoEncontrado, conductorEncontrado, conductorIdentificado, vehiculosConductor,
+    conductoresSugeridos, vehiculoEncontrado, sugerenciasPlaca, conductorEncontrado, conductorIdentificado, vehiculosConductor,
     ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo, placaYaEstacionada,
     motivoBloqueoLive,
     conductorQuery, setConductorQuery, seleccionarConductor, cambiarConductor, seleccionarVehiculo,

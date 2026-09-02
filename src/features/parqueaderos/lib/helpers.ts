@@ -29,6 +29,9 @@ export interface FormParqueadero {
   zona: string;
   piso: string;
   descripcion: string;
+  /** Solo se pide al crear (con un switch 🟢/⚫) — al editar, el estado se cambia aparte con
+   *  el toggle de la tabla/plano (que además pide confirmación, ver handleToggleEstadoParqueadero). */
+  estado: Parqueadero["estado"];
   /** Cantidad de celdas por categoría. Al crear, se generan de una vez vía
    *  POST /celdas/parqueadero/:id/generar-lote. Al editar, se precargan con la cantidad
    *  ACTIVA real (ver useParqueaderoForm.ts#openEdit) y, al guardar, se reconcilian contra
@@ -215,6 +218,19 @@ export const formatearDuracion=(iso:string)=>{
   return h>0?`${h}h ${min}m`:`${min}m`;
 };
 
+/** Umbral de estadía a partir del cual se avisa en la celda (no aplica a un ingreso marcado
+ *  "Oficial SENA" — ver `superaEstadiaLimite`). */
+export const ESTADIA_ALERTA_HORAS = 16;
+
+/** true si un vehículo lleva más de `ESTADIA_ALERTA_HORAS` estacionado — el aviso visual en la
+ *  celda (⚠️ +16h) usa esto, nunca genera nada automáticamente: solo ofrece la acción
+ *  "Reportar" (el mismo flujo de incidente/novedad que ya existe para cualquier celda). */
+export const superaEstadiaLimite = (fechaEntrada: string, esOficial: boolean): boolean => {
+  if (esOficial) return false;
+  const horas = (Date.now() - new Date(fechaEntrada).getTime()) / 3_600_000;
+  return horas > ESTADIA_ALERTA_HORAS;
+};
+
 /* ============================================================
    VALIDACIÓN DEL FORMULARIO DE PARQUEADERO (crear / editar)
 ============================================================ */
@@ -239,6 +255,7 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
   if (ubicacion.length > UBICACION_PQ_MAX) return `La ubicación no puede superar ${UBICACION_PQ_MAX} caracteres.`;
 
   if (esCreacion) {
+    if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
     if (form.celdasCarros + form.celdasMotos + form.celdasMovilidadReducida <= 0) {
       return "Debes indicar al menos una celda (carro, moto o movilidad reducida) para generar.";
     }

@@ -31,7 +31,6 @@ interface AuthContextType {
     password: string;
     nombre: string;
     numero: string;
-    tipoUsuario: 'visitante' | 'estudiante' | 'docente' | 'administrativo' | 'otro';
     tipoDocumento: string;
     identificacion: string;
   }) => Promise<boolean>;
@@ -77,6 +76,39 @@ const AuthContext =
 
 const USER_STORAGE_KEY = 'parkUUser';
 
+/** La foto de perfil vive en una llave APARTE de `parkUUser`, indexada por id de usuario —
+ *  el modelo real de Usuario no tiene columna `foto` (ver el comentario de `updateUser` más
+ *  abajo), así que `logout()` no puede "guardarla en el backend" antes de borrar la sesión.
+ *  Guardándola por separado, sobrevive a `persistUser(null)` (logout) y se puede volver a
+ *  fusionar en el próximo login de la MISMA cuenta en este mismo navegador — antes vivía solo
+ *  dentro de `parkUUser`, así que cada logout la borraba sin remedio. */
+const fotoStorageKey = (userId: string) => `parkuFotoPerfil:${userId}`;
+
+function leerFotoGuardada(userId: string): string | undefined {
+  try {
+    return localStorage.getItem(fotoStorageKey(userId)) || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function guardarFotoGuardada(userId: string, foto: string) {
+  try {
+    if (foto) localStorage.setItem(fotoStorageKey(userId), foto);
+    else localStorage.removeItem(fotoStorageKey(userId));
+  } catch {
+    // localStorage no disponible — la foto solo dura esta pestaña, igual que el resto de la sesión.
+  }
+}
+
+/** Completa `foto` desde el almacenamiento propio si el usuario recién resuelto (login/registro/
+ *  hidratación inicial) no trae una — pasa exactamente igual si ya la tenía. */
+function conFotoGuardada(u: User): User {
+  if (u.foto) return u;
+  const foto = leerFotoGuardada(u.id);
+  return foto ? { ...u, foto } : u;
+}
+
 export function AuthProvider({
   children
 }: {
@@ -92,7 +124,7 @@ export function AuthProvider({
     try {
       if (!getToken()) return null;
       const savedUser = localStorage.getItem(USER_STORAGE_KEY);
-      return savedUser ? JSON.parse(savedUser) : null;
+      return savedUser ? conFotoGuardada(JSON.parse(savedUser)) : null;
     } catch {
       return null;
     }
@@ -160,7 +192,7 @@ export function AuthProvider({
     password: string
   ): Promise<boolean> => {
     const loggedUser = await authService.login(correo, password);
-    persistUser(loggedUser);
+    persistUser(conFotoGuardada(loggedUser));
     return true;
   };
 
@@ -170,7 +202,6 @@ export function AuthProvider({
     password: string;
     nombre: string;
     numero: string;
-    tipoUsuario: 'visitante' | 'estudiante' | 'docente' | 'administrativo' | 'otro';
     tipoDocumento: string;
     identificacion: string;
   }): Promise<boolean> => {
@@ -201,6 +232,9 @@ export function AuthProvider({
   // ACTUALIZAR PERFIL (usado por la página Perfil, incl. la foto) — solo local, ver nota en el tipo.
   const updateUser = (data: Partial<Pick<User, 'nombre' | 'numero' | 'foto'>>) => {
     if (!user) return;
+    // La foto, además de vivir en `parkUUser`, se guarda aparte para sobrevivir a un logout
+    // (ver `guardarFotoGuardada` arriba) — con `foto: ''` (quitar foto) se borra de ambos lados.
+    if (data.foto !== undefined) guardarFotoGuardada(user.id, data.foto);
     persistUser({ ...user, ...data });
   };
 

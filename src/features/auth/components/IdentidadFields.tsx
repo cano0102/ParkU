@@ -8,25 +8,20 @@ const COLORS = theme;
 interface IdentidadFieldsProps {
   tipoDocumento: string;
   identificacion: string;
-  tipoUsuario: string;
   identificacionRef: Ref<HTMLInputElement>;
   identificacionError?: string;
-  tipoUsuarioError?: string;
   /** Hay una consulta en curso a /auth/existe-documento (chequeo de disponibilidad en vivo). */
   checkingDocumento?: boolean;
   onTipoDocumentoChange: (value: string) => void;
   onIdentificacionChange: (value: string) => void;
   onIdentificacionBlur: () => void;
-  onTipoUsuarioChange: (value: string) => void;
-  onTipoUsuarioBlur: () => void;
 }
 
-/** Documento (tipo + número) y "¿cómo te identificas?" del formulario de registro. */
+/** Documento (tipo + número) del formulario de registro. */
 export function IdentidadFields({
-  tipoDocumento, identificacion, tipoUsuario, identificacionRef,
-  identificacionError, tipoUsuarioError, checkingDocumento,
+  tipoDocumento, identificacion, identificacionRef,
+  identificacionError, checkingDocumento,
   onTipoDocumentoChange, onIdentificacionChange, onIdentificacionBlur,
-  onTipoUsuarioChange, onTipoUsuarioBlur,
 }: IdentidadFieldsProps) {
   return (
     <>
@@ -84,38 +79,6 @@ export function IdentidadFields({
       ) : checkingDocumento ? (
         <p style={{ marginTop: -6, fontSize: 12, color: COLORS.textLight }}>Verificando disponibilidad…</p>
       ) : null}
-
-      <div>
-        <label htmlFor="register-tipo-usuario" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
-          ¿Cómo te identificas?
-        </label>
-        <select
-          id="register-tipo-usuario"
-          value={tipoUsuario}
-          onChange={(e) => onTipoUsuarioChange(e.target.value)}
-          onBlur={onTipoUsuarioBlur}
-          className={tipoUsuarioError ? "input-error" : ""}
-          aria-invalid={!!tipoUsuarioError}
-          style={{
-            width: "100%", padding: "13px 14px", borderRadius: 12,
-            border: `1px solid ${tipoUsuarioError ? COLORS.danger : COLORS.border}`,
-            background: "#fff", fontSize: 14, outline: "none", cursor: "pointer", appearance: "none",
-          }}
-        >
-          <option value="">Selecciona una opción...</option>
-          <option value="visitante">Visitante</option>
-          <option value="estudiante">Estudiante</option>
-          <option value="docente">Docente</option>
-          <option value="administrativo">Administrativo</option>
-          <option value="otro">Otro</option>
-        </select>
-        {tipoUsuarioError && (
-          <p role="alert" style={{ marginTop: 6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
-            <AlertCircle size={13} />
-            {tipoUsuarioError}
-          </p>
-        )}
-      </div>
     </>
   );
 }

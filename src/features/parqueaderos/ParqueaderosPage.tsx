@@ -117,6 +117,15 @@ export default function Parqueaderos() {
         confirmLabel="Eliminar"
       />
 
+      <ConfirmDialog
+        open={!!pqFormState.pqADesactivar}
+        onConfirm={pqFormState.confirmDesactivarParqueadero}
+        onCancel={() => pqFormState.setPqADesactivar(null)}
+        title="Desactivar parqueadero"
+        message={`¿Está seguro de desactivar "${pqFormState.pqADesactivar?.nombre ?? ""}"? Los vehículos actualmente estacionados tendrán registro de salida y las reservas activas no completadas serán canceladas por mantenimiento.`}
+        confirmLabel="Desactivar"
+      />
+
       <IngresoModal
         open={modal.openModal === "ingreso"}
         celdaActiva={modal.celdaActiva}
@@ -129,6 +138,7 @@ export default function Parqueaderos() {
         ingresoPlacaHint={ingreso.ingresoPlacaHint}
         placaYaEstacionada={ingreso.placaYaEstacionada}
         vehiculoEncontrado={ingreso.vehiculoEncontrado}
+        sugerenciasPlaca={ingreso.sugerenciasPlaca}
         conductorIdentificado={ingreso.conductorIdentificado}
         conductores={data.conductores}
         conductorQuery={ingreso.conductorQuery}

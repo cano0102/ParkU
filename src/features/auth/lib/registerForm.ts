@@ -13,7 +13,6 @@ export interface FormState {
   numero: string;
   tipoDocumento: string;
   identificacion: string;
-  tipoUsuario: "" | "visitante" | "estudiante" | "docente" | "administrativo" | "otro";
   password: string;
   confirmPassword: string;
   aceptaTerminos: boolean;
@@ -25,7 +24,6 @@ export const emptyForm = (): FormState => ({
   numero: "",
   tipoDocumento: "CC",
   identificacion: "",
-  tipoUsuario: "",
   password: "",
   confirmPassword: "",
   aceptaTerminos: false,
@@ -36,7 +34,6 @@ export interface ValidationErrors {
   correo?: string;
   numero?: string;
   identificacion?: string;
-  tipoUsuario?: string;
   password?: string;
   confirmPassword?: string;
   aceptaTerminos?: string;
@@ -85,10 +82,6 @@ export function validate(f: FormState): ValidationErrors {
     nextErrors.confirmPassword = "Confirma tu contraseña";
   } else if (f.confirmPassword !== f.password) {
     nextErrors.confirmPassword = "Las contraseñas no coinciden";
-  }
-
-  if (!f.tipoUsuario) {
-    nextErrors.tipoUsuario = "Selecciona cómo te identificas";
   }
 
   if (!f.aceptaTerminos) {

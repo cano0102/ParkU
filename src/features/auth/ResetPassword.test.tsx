@@ -35,7 +35,6 @@ async function getValidResetToken() {
     password: 'Pass1234',
     nombre: 'Usuario Reset',
     numero: '3101234567',
-    tipoUsuario: 'estudiante',
     tipoDocumento: 'CC',
     identificacion: `${Date.now()}`,
   });

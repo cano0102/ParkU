@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import type { Celda } from '@/services/api/celdas';
 import type { Parqueadero } from '@/services/api/parqueaderos';
@@ -228,6 +228,46 @@ describe('useIngresoVehiculo — asistente de búsqueda estructurada de conducto
 
     expect(result.current.ingresoConductorOk).toBe(false);
     expect(result.current.ingresoValid).toBe(false);
+  });
+});
+
+describe('useIngresoVehiculo — sugerencias de placa mientras se escribe (debounce)', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it('sugiere placas que empiezan con lo escrito, después del debounce', () => {
+    const data = buildData({ conductores: [conductorMaria], vehiculos: [vehiculoDeMaria] });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    expect(result.current.sugerenciasPlaca).toEqual([]);
+
+    act(() => result.current.setVehiculoForm((f) => ({ ...f, placa: 'XY' })));
+    // Antes de que pase el debounce todavía no hay sugerencias.
+    expect(result.current.sugerenciasPlaca).toEqual([]);
+
+    act(() => { vi.advanceTimersByTime(250); });
+    expect(result.current.sugerenciasPlaca).toEqual([vehiculoDeMaria]);
+  });
+
+  it('no sugiere nada con el campo vacío', () => {
+    const data = buildData({ conductores: [conductorMaria], vehiculos: [vehiculoDeMaria] });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    act(() => result.current.setVehiculoForm((f) => ({ ...f, placa: '' })));
+    act(() => { vi.advanceTimersByTime(250); });
+
+    expect(result.current.sugerenciasPlaca).toEqual([]);
+  });
+
+  it('deja de sugerir en cuanto la placa ya coincide exacto con un vehículo (ya se ve su ficha completa)', () => {
+    const data = buildData({ conductores: [conductorMaria], vehiculos: [vehiculoDeMaria] });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    act(() => result.current.setVehiculoForm((f) => ({ ...f, placa: 'XYZ12D' })));
+    act(() => { vi.advanceTimersByTime(250); });
+
+    expect(result.current.vehiculoEncontrado).toEqual(vehiculoDeMaria);
+    expect(result.current.sugerenciasPlaca).toEqual([]);
   });
 });
 

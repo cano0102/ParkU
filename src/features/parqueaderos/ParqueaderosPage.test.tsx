@@ -149,6 +149,20 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     expect(within(celdaM001.closest('button') as HTMLElement).queryByTitle('Tiene un incidente abierto reportado')).not.toBeInTheDocument();
   });
 
+  it('muestra el aviso de +16h de estadía sobre una celda ocupada desde hace más de 16 horas', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+    await user.click(screen.getByText('PQ-1 Torre A'));
+
+    // controlSalidaSeed: celda 1 (C-001) tiene un vehículo DENTRO desde 2025-06-20 — muy por
+    // encima del umbral de 16h, y no es un ingreso "Oficial SENA".
+    const celdaC001 = await screen.findByText('C-001');
+    const celdaM001 = screen.getByText('M-001');
+    expect(within(celdaC001.closest('button') as HTMLElement).getByTitle('Lleva más de 16 horas estacionado — considera generar un incidente')).toBeInTheDocument();
+    expect(within(celdaM001.closest('button') as HTMLElement).queryByTitle('Lleva más de 16 horas estacionado — considera generar un incidente')).not.toBeInTheDocument();
+  });
+
   it('también muestra el aviso de incidente abierto en la vista de plano', async () => {
     const user = userEvent.setup();
     renderPage();

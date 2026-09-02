@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createAppBackends } from '@/test/appFakeApi';
 import { Roles } from './RolesPage';
@@ -175,5 +175,31 @@ describe('Roles', () => {
     expect(screen.getByText('Configuración')).toBeInTheDocument();
     // Nada clickeable: ver el permiso guardado no significa poder cambiarlo desde aquí.
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+  });
+
+  it('no ofrece el botón Eliminar para un rol protegido (Administrador)', async () => {
+    renderRoles();
+    await waitFor(() => {
+      expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
+    });
+
+    expect(screen.queryByLabelText('Eliminar Administrador')).not.toBeInTheDocument();
+  });
+
+  it('eliminar un rol no protegido pide confirmación y lo quita de la lista', async () => {
+    const user = userEvent.setup();
+    renderRoles();
+    await waitFor(() => {
+      expect(screen.getAllByText('Vigilante').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByLabelText('Eliminar Vigilante'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/Vigilante/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Vigilante')).not.toBeInTheDocument());
   });
 });

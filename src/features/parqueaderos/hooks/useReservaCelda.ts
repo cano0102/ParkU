@@ -10,7 +10,7 @@ import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../lib/helpers";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
-  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "controlesSalida" | "addReserva" | "updateReserva" | "updateCelda">,
+  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "controlesSalida" | "parqueaderos" | "addReserva" | "updateReserva" | "updateCelda">,
   celdaActiva: Celda | null,
   getOcupante: (celdaId: string) => { controlId: string } | null,
   updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => Promise<unknown>,
@@ -55,6 +55,15 @@ export function useReservaCelda(
     };
     if (toMinutes(reservaForm.horaFin) <= toMinutes(reservaForm.horaInicio)) {
       return setReservaError("La hora de fin debe ser posterior a la hora de inicio");
+    }
+
+    // A diferencia de la solicitud de un Conductor (useSolicitarReserva.ts, que ya filtra el
+    // selector a solo parqueaderos activos), esta reserva la crea un Admin/Vigilante directo
+    // desde una celda ya elegida en el plano — sin este chequeo, se podía reservar igual en un
+    // parqueadero desactivado.
+    const parqueaderoDeLaCelda = data.parqueaderos.find((p) => p.id === reservaForm.parqueaderoId);
+    if (parqueaderoDeLaCelda && parqueaderoDeLaCelda.estado !== "activo") {
+      return setReservaError("Este parqueadero está inactivo y no acepta nuevas reservas.");
     }
 
     // El backend rechaza crear reservas/ingresos fuera de la ventana de operación

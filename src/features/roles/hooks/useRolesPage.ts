@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useRoles, useCreateRol, useUpdateRol } from "./useRoles";
+import { useRoles, useCreateRol, useUpdateRol, useRemoveRol } from "./useRoles";
 import type { Rol } from "@/services/api/roles";
 import { ROLES_PROTEGIDOS, emptyForm, type FormState } from "../lib/helpers";
 import { initialPermisos } from "../lib/permisos";
@@ -10,6 +10,7 @@ export function useRolesPage() {
   const { data: roles = [], isLoading } = useRoles();
   const createRolMutation = useCreateRol();
   const updateRolMutation = useUpdateRol();
+  const removeRolMutation = useRemoveRol();
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación en realidad falla.
   const addRol = useCallback((data: Omit<Rol, "id">) => createRolMutation.mutateAsync(data), [createRolMutation]);
@@ -17,6 +18,7 @@ export function useRolesPage() {
     (id: string, data: Partial<Rol>) => updateRolMutation.mutateAsync({ id, data }),
     [updateRolMutation]
   );
+  const removeRol = useCallback((id: string) => removeRolMutation.mutateAsync(id), [removeRolMutation]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -25,6 +27,7 @@ export function useRolesPage() {
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
+  const [rolAEliminar, setRolAEliminar] = useState<Rol | null>(null);
 
   const filteredRoles = useMemo(
     () =>
@@ -95,6 +98,29 @@ export function useRolesPage() {
     [updateRol]
   );
 
+  // El botón "Eliminar" ni siquiera se muestra para un rol protegido (ver RoleCard.tsx), pero
+  // se revalida aquí también por si acaso — no depender solo de que el botón esté oculto.
+  const handleDeleteRequest = useCallback((rol: Rol) => {
+    if ((ROLES_PROTEGIDOS as readonly string[]).includes(rol.nombre)) {
+      toast.error("Este rol está protegido y no puede eliminarse");
+      return;
+    }
+    setRolAEliminar(rol);
+  }, []);
+
+  const confirmDeleteRol = useCallback(async () => {
+    if (!rolAEliminar) return;
+    try {
+      await removeRol(rolAEliminar.id);
+      toast.success(`Rol "${rolAEliminar.nombre}" eliminado.`);
+      setRolAEliminar(null);
+    } catch (error) {
+      // El toast de error (incl. "existen usuarios asociados" si el backend lo rechaza así)
+      // ya lo muestra useRemoveRol — no se duplica aquí.
+      console.error("Error deleting rol:", error);
+    }
+  }, [rolAEliminar, removeRol]);
+
   const handleSave = useCallback(
     async (data: FormState) => {
       try {
@@ -134,5 +160,9 @@ export function useRolesPage() {
     openView,
     handleToggleEstado,
     handleSave,
+    rolAEliminar,
+    setRolAEliminar,
+    handleDeleteRequest,
+    confirmDeleteRol,
   };
 }

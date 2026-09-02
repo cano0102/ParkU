@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Celda } from '@/services/api/celdas';
-import { estaFueraDeHorarioOperacion, HORA_OPERACION_INICIO, HORA_OPERACION_FIN, evaluarEliminacionParqueadero } from './helpers';
+import { estaFueraDeHorarioOperacion, HORA_OPERACION_INICIO, HORA_OPERACION_FIN, evaluarEliminacionParqueadero, superaEstadiaLimite, ESTADIA_ALERTA_HORAS } from './helpers';
 
 function celda(overrides: Partial<Celda>): Celda {
   return {
@@ -81,5 +81,25 @@ describe('evaluarEliminacionParqueadero', () => {
   it('el motivo sugiere desactivar en vez de eliminar', () => {
     const r = evaluarEliminacionParqueadero('1', [celda({ id: 'c1', parqueaderoId: '1' })], [], [], []);
     expect(r.motivo).toMatch(/desact/i);
+  });
+});
+
+describe('superaEstadiaLimite', () => {
+  const horasAtras = (h: number) => new Date(Date.now() - h * 3_600_000).toISOString();
+
+  it(`es false justo por debajo del umbral (${ESTADIA_ALERTA_HORAS - 0.1}h)`, () => {
+    expect(superaEstadiaLimite(horasAtras(ESTADIA_ALERTA_HORAS - 0.1), false)).toBe(false);
+  });
+
+  it(`es true justo por encima del umbral (${ESTADIA_ALERTA_HORAS + 0.1}h)`, () => {
+    expect(superaEstadiaLimite(horasAtras(ESTADIA_ALERTA_HORAS + 0.1), false)).toBe(true);
+  });
+
+  it('nunca es true para un ingreso marcado "Oficial SENA", sin importar cuánto tiempo lleve', () => {
+    expect(superaEstadiaLimite(horasAtras(48), true)).toBe(false);
+  });
+
+  it('es false para una estadía corta (2h)', () => {
+    expect(superaEstadiaLimite(horasAtras(2), false)).toBe(false);
   });
 });

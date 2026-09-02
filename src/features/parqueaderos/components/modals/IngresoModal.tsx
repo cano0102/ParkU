@@ -29,6 +29,9 @@ interface IngresoModalProps {
   placaYaEstacionada: boolean;
   /** Vehículo ya registrado en el sistema con esa placa, si existe. */
   vehiculoEncontrado: Vehiculo | null;
+  /** Coincidencias parciales mientras se escribe la placa (p. ej. "AB" -> ABC123, ABD456...),
+   *  vacío una vez que la placa ya coincide exacto con `vehiculoEncontrado`. */
+  sugerenciasPlaca: Vehiculo[];
   /** Conductor identificado (buscador estructurado, placa, o nombre exacto por OCR), activo o
    *  no (para avisar si está inactivo). */
   conductorIdentificado: Conductor | null;
@@ -62,7 +65,7 @@ interface IngresoModalProps {
 export function IngresoModal({
   open, celdaActiva, vehiculoForm, setVehiculoForm, placaError, onPlacaChange,
   ingresoPlacaOk, ingresoValid, ingresoPlacaHint, placaYaEstacionada,
-  vehiculoEncontrado, conductorIdentificado, conductores, conductorQuery, onConductorQueryChange,
+  vehiculoEncontrado, sugerenciasPlaca, conductorIdentificado, conductores, conductorQuery, onConductorQueryChange,
   onSelectConductor, onCambiarConductor, onCrearConductor, onCrearVehiculo, onSelectVehiculo, vehiculosConductor,
   parqueaderoInactivo, motivoBloqueoLive,
   onClose, onOpenScanner, onSubmit,
@@ -115,6 +118,25 @@ export function IngresoModal({
             <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>Este vehículo ya está estacionado en otra celda.</p>
           ) : (
             <p style={{ fontSize: 10, color: C.textLight, marginTop: 6 }}>{ingresoPlacaHint}</p>
+          )}
+          {sugerenciasPlaca.length > 0 && (
+            <div style={{ marginTop: 8, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
+              {sugerenciasPlaca.map(v => (
+                <button
+                  key={v.id}
+                  type="button"
+                  onClick={() => { onPlacaChange(); setVehiculoForm(p => ({ ...p, placa: v.placa })); }}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%",
+                    padding: "8px 12px", border: "none", borderBottom: `1px solid ${C.border}`, background: "#fff",
+                    cursor: "pointer", fontFamily: "inherit", textAlign: "left",
+                  }}
+                >
+                  <span style={{ fontFamily: "monospace", fontWeight: 800, fontSize: 12, color: C.text }}>{v.placa}</span>
+                  <span style={{ fontSize: 11, color: C.textLight }}>{v.conductorNombre || "Sin conductor"}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
         <div>

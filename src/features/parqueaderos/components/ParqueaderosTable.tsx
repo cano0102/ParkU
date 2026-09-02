@@ -3,7 +3,7 @@ import { Car, Eye, Pencil, MapPin, Trash2 } from "lucide-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
-import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar, estaFueraDeHorarioOperacion } from "../lib/helpers";
+import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar, estaFueraDeHorarioOperacion, superaEstadiaLimite } from "../lib/helpers";
 
 const C = theme;
 
@@ -148,6 +148,15 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
               </div>
               {isExpanded && (
                 <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}`, background: "#FAFBFC" }}>
+                  {!activo && (
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", marginBottom: 12,
+                      borderRadius: 10, background: "#FEF2F2", border: "1px solid #FECACA",
+                      fontSize: 11, fontWeight: 800, letterSpacing: .4, color: C.danger, textTransform: "uppercase",
+                    }}>
+                      ⚫ Parqueadero inactivo — no acepta reservas ni nuevos ingresos. Puedes seguir editándolo y gestionando sus celdas.
+                    </div>
+                  )}
                   <div style={{ display: "flex", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
                     {Object.entries(TIPO_CELDA_CONFIG).map(([tipo, cfg]) => {
                       const total = celdasPq.filter(c => c.tipo === tipo).length;
@@ -172,6 +181,7 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
                       const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
                       const fueraDeHorario = estaOcupada && estaFueraDeHorarioOperacion();
+                      const estadiaLarga = estaOcupada && !!ocupante && superaEstadiaLimite(ocupante.fechaEntrada, ocupante.esOficial);
                       const tieneIncidente = celdaTieneIncidenteAbierto(celda);
                       return (
                         <button key={celda.id} onClick={() => onCellClick(celda)}
@@ -194,6 +204,9 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                           )}
                           {fueraDeHorario && (
                             <div style={{ fontSize: 8, color: "#DC2626", fontWeight: 800, marginBottom: 2 }}>⏰ Fuera de horario</div>
+                          )}
+                          {estadiaLarga && (
+                            <div title="Lleva más de 16 horas estacionado — considera generar un incidente" style={{ fontSize: 8, color: "#DC2626", fontWeight: 800, marginBottom: 2 }}>⚠️ +16h</div>
                           )}
                           {celda.estado === "no_disponible" && !ocupante && (
                             <div style={{ fontSize: 8, color: C.danger, fontWeight: 700, marginBottom: 2 }}>⚠️ Error</div>

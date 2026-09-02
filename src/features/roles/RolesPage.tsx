@@ -1,4 +1,4 @@
-import { Modal, LoadingState } from "@/components/shared";
+import { Modal, LoadingState, ConfirmDialog } from "@/components/shared";
 import { useRolesPage } from "./hooks/useRolesPage";
 import { rolesStyles } from "./lib/styles";
 import { RolesHero } from "./components/RolesHero";
@@ -12,6 +12,7 @@ export function Roles() {
     roles, isLoading, dialogOpen, setDialogOpen, viewOpen, setViewOpen, editingRol, viewingRol,
     search, setSearch, filterEstado, setFilterEstado, formInitial, filteredRoles, stats,
     openCreate, openEdit, openView, handleToggleEstado, handleSave,
+    rolAEliminar, setRolAEliminar, handleDeleteRequest, confirmDeleteRol,
   } = useRolesPage();
 
   return (
@@ -37,6 +38,7 @@ export function Roles() {
             onView={openView}
             onEdit={openEdit}
             onToggleEstado={handleToggleEstado}
+            onDelete={handleDeleteRequest}
           />
         )}
       </div>
@@ -63,6 +65,15 @@ export function Roles() {
           />
         )}
       </Modal>
+
+      <ConfirmDialog
+        open={!!rolAEliminar}
+        onConfirm={confirmDeleteRol}
+        onCancel={() => setRolAEliminar(null)}
+        title="Eliminar rol"
+        message={`¿Está seguro de eliminar el rol "${rolAEliminar?.nombre ?? ""}"? Esta acción no se puede deshacer.`}
+        confirmLabel="Eliminar"
+      />
     </>
   );
 }

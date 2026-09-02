@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from "react";
-import { CheckCircle2, Eye, Lock, Pencil, Shield, XCircle } from "lucide-react";
+import { CheckCircle2, Eye, Lock, Pencil, Shield, Trash2, XCircle } from "lucide-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
 import {
@@ -17,10 +17,11 @@ interface RoleCardProps {
   onView: (rol: Rol) => void;
   onEdit: (rol: Rol) => void;
   onToggleEstado: (rol: Rol) => void;
+  onDelete: (rol: Rol) => void;
 }
 
 /** Tarjeta de un rol en el grid: resumen visual de nivel de acceso y acciones rápidas. */
-export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado }: RoleCardProps) => {
+export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado, onDelete }: RoleCardProps) => {
   const activeCount = useMemo(() => countActive(rol.permisos), [rol.permisos]);
   const total = useMemo(() => Object.keys(rol.permisos).length, [rol.permisos]);
   const pct = Math.round((activeCount / total) * 100);
@@ -45,6 +46,7 @@ export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado }: RoleCardP
 
   const handleView = useCallback(() => onView(rol), [onView, rol]);
   const handleEdit = useCallback(() => onEdit(rol), [onEdit, rol]);
+  const handleDelete = useCallback(() => onDelete(rol), [onDelete, rol]);
   const handleToggleEstado = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -157,6 +159,14 @@ export const RoleCard = memo(({ rol, onView, onEdit, onToggleEstado }: RoleCardP
         <button className="role-action-btn" onClick={handleEdit} aria-label={`Editar ${rol.nombre}`} title="Editar">
           <Pencil size={15} />
         </button>
+        {!protegido && (
+          <>
+            <span className="role-action-divider" />
+            <button className="role-action-btn" onClick={handleDelete} aria-label={`Eliminar ${rol.nombre}`} title="Eliminar" style={{ color: COLORS.danger }}>
+              <Trash2 size={15} />
+            </button>
+          </>
+        )}
       </div>
     </article>
   );

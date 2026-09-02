@@ -11,7 +11,7 @@ import type { ModalKind } from "./useModalController";
 const emptyPqForm = (): FormParqueadero => ({
   nombre: "", ubicacion: "", acceso: "regional", tipo: "general",
   capacidadMaxima: 10, horaInicio: "06:00", horaFin: "22:00", zona: "", piso: "", descripcion: "",
-  celdasCarros: 0, celdasMotos: 0, celdasMovilidadReducida: 0,
+  estado: "activo", celdasCarros: 0, celdasMotos: 0, celdasMovilidadReducida: 0,
 });
 
 /** Formulario de crear/editar parqueadero, con su validación en vivo.
@@ -28,6 +28,7 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
   const [formError, setFormError] = useState<string | null>(null);
   const [pqTocado, setPqTocado] = useState(false);
   const [pqAEliminar, setPqAEliminar] = useState<Parqueadero | null>(null);
+  const [pqADesactivar, setPqADesactivar] = useState<Parqueadero | null>(null);
 
   // Validación en tiempo real: se recalcula en cada cambio (no solo al enviar), y solo se
   // muestra una vez que el usuario empezó a escribir (pqTocado), para no saludarlo con
@@ -61,7 +62,7 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     setPqFormRaw({
       nombre: pq.nombre, ubicacion: pq.ubicacion, acceso: pq.acceso, tipo: pq.tipo,
       capacidadMaxima: pq.capacidadMaxima, horaInicio: pq.horaInicio, horaFin: pq.horaFin,
-      zona: pq.zona, piso: pq.piso, descripcion: pq.descripcion,
+      zona: pq.zona, piso: pq.piso, descripcion: pq.descripcion, estado: pq.estado,
       celdasCarros: activas(grupos.carros), celdasMotos: activas(grupos.motos), celdasMovilidadReducida: activas(grupos.movilidadReducida),
     });
     setFormError(null);
@@ -79,7 +80,7 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
         nombre, ubicacion: pqForm.ubicacion.trim(), acceso: pqForm.acceso, tipo: pqForm.tipo,
         capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
         zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
-        estado: "activo",
+        estado: pqForm.estado,
       });
       // Segunda llamada encadenada (mismo patrón que conductor+vehículo en
       // useConductorForm.ts): el parqueadero ya existe, ahora se generan sus
@@ -113,10 +114,12 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     const nombre = normalizarTexto(pqForm.nombre, NOMBRE_PQ_MAX);
 
     try {
+      // Acceso/categoría/zona/piso/horarios ya no se muestran ni se editan desde este
+      // formulario — se dejan fuera del payload a propósito para no reenviar al backend un
+      // valor que el usuario no tocó (y que en este formulario ni siquiera puede ver).
       await updateParqueadero(pqEditId, {
-        nombre, ubicacion: pqForm.ubicacion.trim(), acceso: pqForm.acceso, tipo: pqForm.tipo,
-        capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
-        zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
+        nombre, ubicacion: pqForm.ubicacion.trim(),
+        capacidadMaxima: pqForm.capacidadMaxima, descripcion: pqForm.descripcion.trim(),
       });
 
       // Segunda llamada encadenada (mismo patrón que handleCreate): el parqueadero ya se
@@ -149,13 +152,37 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     }
   };
 
+  // Reactivar (inactivo → activo) no tiene por qué pedir confirmación — es una acción segura,
+  // reversible con el mismo switch. Desactivar sí: puede sacar de operación un parqueadero con
+  // vehículos estacionados en este momento, así que pide confirmación explícita primero (ver
+  // confirmDesactivarParqueadero) en vez de aplicarse directo al pulsar el switch.
   const handleToggleEstadoParqueadero = async (p: Parqueadero) => {
-    const nuevoEstado = p.estado === "activo" ? "inactivo" : "activo";
+    if (p.estado === "activo") {
+      setPqADesactivar(p);
+      return;
+    }
     try {
-      await updateParqueadero(p.id, { estado: nuevoEstado });
-      toast.success(nuevoEstado === "activo" ? "Parqueadero activado." : "Parqueadero desactivado.");
+      await updateParqueadero(p.id, { estado: "activo" });
+      toast.success("Parqueadero activado.");
     } catch (error) {
-      console.error("Error toggling parqueadero state:", error);
+      console.error("Error activating parqueadero:", error);
+    }
+  };
+
+  const confirmDesactivarParqueadero = async () => {
+    if (!pqADesactivar) return;
+    try {
+      // Al invalidar la query de parqueaderos (ver useParqueaderos.ts), esto también refresca
+      // la lista/el detalle abierto y, vía useParqueaderosData, las celdas — no hace falta
+      // ninguna actualización manual aparte para "actualizar lista/detalle/celdas".
+      await updateParqueadero(pqADesactivar.id, { estado: "inactivo" });
+      toast.success("Parqueadero desactivado.");
+      setPqADesactivar(null);
+    } catch (error) {
+      // El toast de error ya lo muestra el manejador centralizado de mutaciones
+      // (services/core/queryFactory.ts) — si el backend rechaza la desactivación por alguna
+      // razón, ese mensaje real se ve ahí en vez de uno genérico inventado aquí.
+      console.error("Error deactivating parqueadero:", error);
     }
   };
 
@@ -188,5 +215,6 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     pqForm, setPqForm, formError, pqEditId,
     openCreate, openEdit, handleCreate, handleEdit, handleToggleEstadoParqueadero,
     pqAEliminar, setPqAEliminar, handleDeleteRequest, confirmDeleteParqueadero,
+    pqADesactivar, setPqADesactivar, confirmDesactivarParqueadero,
   };
 }

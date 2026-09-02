@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import type { Celda } from '@/services/api/celdas';
 import type { Vehiculo } from '@/services/api/vehiculos';
 import type { Reserva } from '@/services/api/reservas';
+import type { Parqueadero } from '@/services/api/parqueaderos';
 import { useReservaCelda } from './useReservaCelda';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() } }));
@@ -14,12 +15,17 @@ const celdaOcupada: Celda = {
   estado: 'no_disponible', ocupada: true, observaciones: '',
 };
 
+const parqueaderoActivo: Parqueadero = {
+  id: '1', nombre: 'PQ-1', ubicacion: '', acceso: 'regional', tipo: 'general', capacidadMaxima: 10,
+  horaInicio: '06:00', horaFin: '22:00', zona: '', piso: '', descripcion: '', estado: 'activo',
+};
+
 function buildData(overrides: Partial<{
-  reservas: unknown[]; vehiculos: unknown[]; controlesSalida: unknown[];
+  reservas: unknown[]; vehiculos: unknown[]; controlesSalida: unknown[]; parqueaderos: unknown[];
   addReserva: ReturnType<typeof vi.fn>; updateReserva: ReturnType<typeof vi.fn>; updateCelda: ReturnType<typeof vi.fn>;
 }> = {}) {
   return {
-    reservas: [], vehiculos: [], controlesSalida: [],
+    reservas: [], vehiculos: [], controlesSalida: [], parqueaderos: [parqueaderoActivo],
     addReserva: vi.fn(),
     updateReserva: vi.fn().mockResolvedValue(undefined),
     updateCelda: vi.fn().mockResolvedValue(undefined),
@@ -59,6 +65,7 @@ function buildDataConReservas(overrides: Partial<ReservaCeldaData> = {}): Reserv
     reservas: [reservaActivaVieja],
     vehiculos: [vehiculoNuevo, vehiculoConflicto],
     controlesSalida: [],
+    parqueaderos: [parqueaderoActivo],
     addReserva: vi.fn().mockResolvedValue({ id: 'r-nueva' }),
     updateReserva: vi.fn().mockResolvedValue(undefined),
     updateCelda: vi.fn().mockResolvedValue(undefined),
@@ -76,7 +83,7 @@ describe('useReservaCelda — choque de horario real (no "cualquier pendiente/ac
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '08:00', horaFin: '10:00',
+      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '08:00', horaFin: '10:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -90,7 +97,7 @@ describe('useReservaCelda — choque de horario real (no "cualquier pendiente/ac
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', celdaId: '1', fechaReserva: '2027-01-05', horaInicio: '09:00', horaFin: '11:00',
+      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-01-05', horaInicio: '09:00', horaFin: '11:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -106,7 +113,7 @@ describe('useReservaCelda — horario de operación (05:00–21:00)', () => {
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '22:00', horaFin: '23:00',
+      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '22:00', horaFin: '23:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -120,13 +127,29 @@ describe('useReservaCelda — horario de operación (05:00–21:00)', () => {
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '05:00', horaFin: '20:00',
+      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '05:00', horaFin: '20:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
 
     expect(result.current.reservaError).toBeNull();
     expect(data.addReserva).toHaveBeenCalled();
+  });
+});
+
+describe('useReservaCelda — parqueadero inactivo', () => {
+  it('rechaza crear una reserva directa (Admin/Vigilante) en un parqueadero desactivado', async () => {
+    const data = buildDataConReservas({ reservas: [], parqueaderos: [{ ...parqueaderoActivo, estado: 'inactivo' }] });
+    const { result } = setupCrearReserva(data);
+
+    act(() => result.current.setReservaForm((f) => ({
+      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '08:00', horaFin: '10:00',
+    })));
+
+    await act(async () => { await result.current.handleCrearReserva(); });
+
+    expect(result.current.reservaError).toBe('Este parqueadero está inactivo y no acepta nuevas reservas.');
+    expect(data.addReserva).not.toHaveBeenCalled();
   });
 });
 

@@ -10,10 +10,11 @@ interface RolesGridProps {
   onView: (rol: Rol) => void;
   onEdit: (rol: Rol) => void;
   onToggleEstado: (rol: Rol) => void;
+  onDelete: (rol: Rol) => void;
 }
 
 /** Grid de tarjetas de rol, o el estado vacío cuando el filtro no arroja resultados. */
-export function RolesGrid({ roles, onView, onEdit, onToggleEstado }: RolesGridProps) {
+export function RolesGrid({ roles, onView, onEdit, onToggleEstado, onDelete }: RolesGridProps) {
   if (roles.length === 0) {
     return (
       <div
@@ -51,6 +52,7 @@ export function RolesGrid({ roles, onView, onEdit, onToggleEstado }: RolesGridPr
           onView={onView}
           onEdit={onEdit}
           onToggleEstado={onToggleEstado}
+          onDelete={onDelete}
         />
       ))}
     </div>

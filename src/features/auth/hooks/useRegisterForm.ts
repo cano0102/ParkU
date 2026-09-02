@@ -141,7 +141,6 @@ export function useRegisterForm() {
       correo: true,
       numero: true,
       identificacion: true,
-      tipoUsuario: true,
       password: true,
       confirmPassword: true,
       aceptaTerminos: true,
@@ -167,7 +166,6 @@ export function useRegisterForm() {
         password: form.password,
         nombre: form.nombre.trim(),
         numero: form.numero.trim(),
-        tipoUsuario: (form.tipoUsuario || "otro") as "visitante" | "estudiante" | "docente" | "administrativo" | "otro",
         tipoDocumento: form.tipoDocumento,
         identificacion: form.identificacion.trim(),
       });

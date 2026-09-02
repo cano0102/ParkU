@@ -42,7 +42,6 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, overrides
   const identificacion = overrides?.identificacion ?? `${Date.now()}`;
 
   await user.type(screen.getByLabelText('N.º de identificación'), identificacion);
-  await user.selectOptions(screen.getByLabelText('¿Cómo te identificas?'), 'estudiante');
   await user.type(screen.getByLabelText('Nombre Completo'), 'Usuario de Prueba');
   await user.type(screen.getByLabelText('Correo Electrónico'), correo);
   await user.type(screen.getByLabelText('Teléfono'), '3101234567');
@@ -65,6 +64,10 @@ describe('Register', () => {
     expect(screen.getByLabelText('Nombre Completo')).toBeInTheDocument();
     expect(screen.getByLabelText('Correo Electrónico')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeInTheDocument();
+    // "¿Cómo te identificas?" no se usaba para nada real (nunca viajaba al backend) — se quitó
+    // del formulario; el documento de identidad sigue ahí porque sí se valida en vivo.
+    expect(screen.queryByLabelText('¿Cómo te identificas?')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('N.º de identificación')).toBeInTheDocument();
   });
 
   it('registra un usuario nuevo con datos válidos y navega al dashboard', async () => {

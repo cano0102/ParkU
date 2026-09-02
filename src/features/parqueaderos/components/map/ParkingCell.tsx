@@ -1,5 +1,5 @@
 import type { Celda } from "@/services/api/celdas";
-import { CELDA_CONFIG, CeldaPos, estaFueraDeHorarioOperacion, getTipoCeldaConfig, Ocupante, SPACE_W, SPACE_H } from "../../lib/helpers";
+import { CELDA_CONFIG, CeldaPos, estaFueraDeHorarioOperacion, getTipoCeldaConfig, Ocupante, SPACE_W, SPACE_H, superaEstadiaLimite } from "../../lib/helpers";
 import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG } from "./MapVisuals";
 import type { HoverInfo } from "./useParkingMapInteraction";
 
@@ -26,6 +26,11 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
   // horario"), adaptado al vocabulario visual del plano SVG: reutiliza el mismo helper
   // canónico `estaFueraDeHorarioOperacion()` en vez de reimplementar el cálculo.
   const fueraDeHorario = estaOcupada && estaFueraDeHorarioOperacion();
+  // Mismo indicador que la vista tabla ("⚠️ +16h") — nunca para un ingreso "Oficial SENA"
+  // (ver superaEstadiaLimite). Se ubica en la esquina inferior derecha, la única libre: la
+  // superior izquierda ya la usa el aviso de incidente y la superior derecha la de "fuera de
+  // horario"/tipo, y ambas pueden coincidir con esta al mismo tiempo.
+  const estadiaLarga = estaOcupada && !!ocupante && superaEstadiaLimite(ocupante.fechaEntrada, ocupante.esOficial);
 
   return (
     <g
@@ -113,6 +118,13 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
           <title>Tiene un incidente abierto reportado</title>
           <rect width="14" height="14" rx="4" fill="#F59E0B" stroke="#fff" strokeWidth=".6" />
           <text x="7" y="10.5" textAnchor="middle" fontSize="9" fontWeight="900" fill="#111318">!</text>
+        </g>
+      )}
+      {estadiaLarga && (
+        <g transform={`translate(${celda.x + SPACE_W - 18},${celda.y + SPACE_H - 15})`} pointerEvents="none">
+          <title>Lleva más de 16 horas estacionado — considera generar un incidente</title>
+          <rect width="17" height="13" rx="3.5" fill="#DC2626" stroke="#fff" strokeWidth=".6" />
+          <text x="8.5" y="9.8" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#fff">16h</text>
         </g>
       )}
     </g>
