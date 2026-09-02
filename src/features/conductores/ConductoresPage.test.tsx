@@ -102,6 +102,33 @@ describe("features/conductores", () => {
     expect(within(dialog).getByPlaceholderText("Ej: ABC123")).toBeInTheDocument();
   });
 
+  it("vincular un vehículo existente como copropietario lo muestra en la tarjeta del nuevo conductor", async () => {
+    const user = userEvent.setup();
+    renderConductores();
+    await waitFor(() => expect(screen.getAllByText("Pedro Ruiz G.").length).toBeGreaterThan(0));
+
+    // Pedro Ruiz G. (conductor 2) ya tiene DEF456 propio; vamos a vincularle también ABC123
+    // (propiedad principal de Carlos López M.) como copropietario.
+    await user.click(screen.getByRole("button", { name: "Agregar vehículo a Pedro Ruiz G." }));
+    const dialog = await screen.findByRole("dialog");
+
+    await user.click(within(dialog).getByRole("button", { name: "Vincular existente" }));
+    await user.click(await within(dialog).findByText(/ABC123/));
+    await user.click(within(dialog).getByRole("button", { name: "Vincular Copropietario" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+    // La tarjeta de Pedro ahora debe reflejar los 2 vehículos (el propio DEF456 + el
+    // copropietario ABC123) — antes del fix, `getVehiculosConductor` solo filtraba por
+    // `conductorId` (dueño principal) y el vínculo quedaba invisible en su propia tarjeta.
+    await waitFor(() => {
+      const tarjetaPedro = screen.getByText("Pedro Ruiz G.").closest(".conductor-card") as HTMLElement;
+      expect(within(tarjetaPedro).getByText("2 vehículos")).toBeInTheDocument();
+      expect(within(tarjetaPedro).getByText("ABC123")).toBeInTheDocument();
+      expect(within(tarjetaPedro).getByText("DEF456")).toBeInTheDocument();
+    });
+  });
+
   it("abre el detalle de un conductor al hacer clic en Ver detalles", async () => {
     const user = userEvent.setup();
     renderConductores();

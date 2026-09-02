@@ -149,6 +149,24 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     expect(within(celdaM001.closest('button') as HTMLElement).queryByTitle('Tiene un incidente abierto reportado')).not.toBeInTheDocument();
   });
 
+  it('también muestra el aviso de incidente abierto en la vista de plano', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+
+    await user.click(screen.getByRole('button', { name: 'Plano' }));
+    await screen.findByLabelText('Acercar');
+
+    // El plano SVG usa el mismo texto accesible que la tabla para el mismo aviso, pero como
+    // <title> anidado dentro de un <g> (no hijo directo de <svg>) `getByTitle` no lo encuentra
+    // — se busca el elemento <title> directo por contenido, igual que un lector de pantalla lo
+    // asociaría con la celda. Aparece dos veces (C-001 y C-002, ambas con novedad PENDIENTE).
+    const titulos = Array.from(document.querySelectorAll('title')).filter(
+      (t) => t.textContent === 'Tiene un incidente abierto reportado'
+    );
+    expect(titulos).toHaveLength(2);
+  });
+
   it('el botón "Nuevo Parqueadero" abre el modal de creación', async () => {
     const user = userEvent.setup();
     renderPage();

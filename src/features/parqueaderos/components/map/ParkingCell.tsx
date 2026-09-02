@@ -37,14 +37,26 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
       {m && <rect x={celda.x - 3} y={celda.y - 3} width={SPACE_W + 6} height={SPACE_H + 6} rx="7" fill="none" stroke="#FBBF24" strokeWidth="4.5" filter="url(#glow)" />}
       <rect
         x={celda.x} y={celda.y} width={SPACE_W} height={SPACE_H} rx="5"
-        fill={celda.estado === "reservada" ? "url(#resH)" : cfg.mapFill}
+        fill={celda.estado === "reservada" ? "url(#resH)" : `url(#cellG-${celda.estado})`}
         stroke={m ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.mapStroke}
         strokeWidth={m ? 2.2 : fueraDeHorario ? 1.8 : celda.estado === "disponible" ? 1.1 : 0.9}
         strokeOpacity={m ? 1 : fueraDeHorario ? 1 : celda.estado === "disponible" ? 0.85 : 0.55}
-        strokeDasharray={celda.estado === "disponible" ? "3,2" : undefined}
       >
         {fueraDeHorario && <title>Sigue ocupada fuera del horario permitido — considera generar un incidente</title>}
       </rect>
+      {/* Líneas pintadas del espacio (estilo demarcación real de parqueadero): un marco en
+          "U" abierto por el frente (por donde entraría el vehículo) en vez del borde punteado
+          que había antes — es lo que hace que una celda libre se lea como un espacio marcado
+          sobre el pavimento y no como un simple recuadro de selección. */}
+      {celda.estado === "disponible" && (
+        <path
+          d={`M ${celda.x + 5} ${celda.y + SPACE_H - 3}
+              L ${celda.x + 5} ${celda.y + 5}
+              L ${celda.x + SPACE_W - 5} ${celda.y + 5}
+              L ${celda.x + SPACE_W - 5} ${celda.y + SPACE_H - 3}`}
+          fill="none" stroke="#fff" strokeWidth="1.6" strokeOpacity=".55" strokeLinecap="round" strokeLinejoin="round"
+        />
+      )}
       {/* Franja lateral de color según TIPO de celda (carro/moto/m.reducida) — visible en cualquier estado */}
       <rect x={celda.x} y={celda.y} width={4} height={SPACE_H} rx="2" fill={tipoCfg.accent} opacity={0.9} />
       {/* Insignia con icono del tipo (esquina superior derecha): solo cuando no hay
@@ -55,9 +67,6 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
           <TipoIcon x={2.5} y={2.5} width={9} height={9} color="#fff" strokeWidth={3} />
         </g>
       )}
-      {/* Número de celda: bien grande y siempre legible, es la primera referencia
-          que necesita el vigilante para orientar al conductor. */}
-      <text x={celda.x + 8} y={celda.y + 13} fill={m ? "#FFF" : MAP_THEME.textBright} fontSize="9.5" fontWeight="900">{celda.numero}</text>
       {celda.estado === "disponible" && !estaOcupada && (
         <TipoIcon
           x={celda.x + SPACE_W / 2 - 10}
@@ -74,6 +83,13 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
           ? <HighFiMotoSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
           : <HighFiCarSVG x={celda.x} y={celda.y} w={SPACE_W} h={SPACE_H} placa={ocupante.vehiculo.placa || "···"} />
       )}
+      {/* Número de celda: se dibuja AL FINAL (por encima del vehículo, si está ocupada) — antes
+          quedaba tapado por la silueta del carro/moto, que se dibuja después en el orden del
+          documento SVG. El contorno oscuro (paintOrder="stroke") lo hace legible encima de
+          cualquier color de carrocería sin depender de una placa de fondo sólida. */}
+      <text x={celda.x + 8} y={celda.y + 13} fontSize="9.5" fontWeight="900" letterSpacing=".2"
+        fill={m ? "#FFF" : MAP_THEME.textBright} stroke="rgba(0,0,0,.6)" strokeWidth="2.6" strokeLinejoin="round" paintOrder="stroke"
+      >{celda.numero}</text>
       {/* Insignia de "fuera de horario" (mismo aviso que ParqueaderosTable.tsx): ocupa la
           misma esquina que la insignia de tipo, que ya está oculta mientras la celda está
           ocupada (la silueta del vehículo comunica el tipo por su forma). */}
@@ -93,10 +109,10 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
           tipo para no chocar con ella (ni con la de "fuera de horario", que solo aparece cuando
           está ocupada); un incidente puede reportarse con la celda en cualquier estado. */}
       {tieneIncidente && (
-        <g transform={`translate(${celda.x - 5},${celda.y - 5})`} pointerEvents="none">
+        <g transform={`translate(${celda.x + 1},${celda.y + 2.5})`} pointerEvents="none">
           <title>Tiene un incidente abierto reportado</title>
-          <circle r="7" fill="#0F172A" stroke="#fff" strokeWidth="1.4" />
-          <text textAnchor="middle" dominantBaseline="central" y="0.5" fontSize="9" fontWeight="900" fill="#FBBF24">!</text>
+          <rect width="14" height="14" rx="4" fill="#F59E0B" stroke="#fff" strokeWidth=".6" />
+          <text x="7" y="10.5" textAnchor="middle" fontSize="9" fontWeight="900" fill="#111318">!</text>
         </g>
       )}
     </g>

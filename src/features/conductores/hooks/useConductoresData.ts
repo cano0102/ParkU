@@ -55,7 +55,16 @@ export function useConductoresData() {
 
   // Cuenta de acceso vinculada (opcional): no todo conductor real tiene una.
   const getUsuario = useCallback((id: string) => usuarios.find((u) => u.id === id), [usuarios]);
-  const getVehiculosConductor = useCallback((id: string) => vehiculos.filter((v) => v.conductorId === id), [vehiculos]);
+  // Un vehículo vinculado como copropietario (ver `agregarPropietario`) NUNCA cambia su
+  // `conductorId` (sigue apuntando al propietario principal) — filtrar solo por eso dejaba
+  // al copropietario recién vinculado invisible en su propia tarjeta (0 vehículos, o sin el
+  // nuevo en la lista) aunque el backend sí lo hubiera vinculado correctamente. `copropietarios`
+  // ya trae TODOS los conductores vinculados (principal + copropietarios), así que basta con
+  // buscar ahí también.
+  const getVehiculosConductor = useCallback(
+    (id: string) => vehiculos.filter((v) => v.conductorId === id || v.copropietarios?.some((p) => p.id === id)),
+    [vehiculos]
+  );
 
   const totalActivos = useMemo(() => conductores.filter((c) => c.estado === "activo").length, [conductores]);
   const totalVehiculos = useMemo(() => vehiculos.length, [vehiculos]);

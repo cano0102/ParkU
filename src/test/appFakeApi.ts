@@ -295,7 +295,40 @@ export function createAppBackends(opciones?: { rolActual?: RolId }) {
     }],
   });
   const conductores = createFakeRestBackend('/conductores', conductoresSeed);
-  const vehiculos = createFakeRestBackend('/vehiculos', vehiculosSeed);
+  const vehiculos = createFakeRestBackend('/vehiculos', vehiculosSeed, {
+    actions: [
+      {
+        method: 'POST', pattern: /^\/(\d+)\/conductores$/,
+        handle: (m, body, items) => {
+          const idx = items.findIndex((i: any) => i.id === Number(m[1]));
+          if (idx === -1) throw new Error('404');
+          const conductorId = (body as { conductor_id: number }).conductor_id;
+          const conductorReal = conductoresSeed.find((c) => c.id === conductorId);
+          const actuales = (items[idx] as any).conductores ?? [];
+          if (!actuales.some((c: any) => c.id === conductorId)) {
+            items[idx] = {
+              ...items[idx],
+              conductores: [...actuales, { id: conductorId, nombre_apellidos: conductorReal?.nombre_apellidos ?? '', DetallePropiedad: { es_principal: false } }],
+            };
+          }
+          return items[idx];
+        },
+      },
+      {
+        method: 'DELETE', pattern: /^\/(\d+)\/conductores\/(\d+)$/,
+        handle: (m, _body, items) => {
+          const idx = items.findIndex((i: any) => i.id === Number(m[1]));
+          if (idx === -1) throw new Error('404');
+          const conductorId = Number(m[2]);
+          items[idx] = {
+            ...items[idx],
+            conductores: ((items[idx] as any).conductores ?? []).filter((c: any) => c.id !== conductorId),
+          };
+          return items[idx];
+        },
+      },
+    ],
+  });
   const parqueaderos = createFakeRestBackend('/parqueaderos', parqueaderosSeed, {
     actions: [{
       method: 'PATCH', pattern: /^\/(\d+)\/estado$/,

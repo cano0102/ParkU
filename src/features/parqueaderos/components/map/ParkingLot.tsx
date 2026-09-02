@@ -47,8 +47,14 @@ export function ParkingLot({
 
   return (
     <g>
-      <rect x={PADDING - 20} y={lotTop - 12} width={ancho - PADDING + 40} height={lotHeight + 12} rx="14" fill={MAP_THEME.asphaltPanel} stroke={MAP_THEME.panelBorder} strokeWidth="1.5" />
+      <rect x={PADDING - 20} y={lotTop - 12} width={ancho - PADDING + 40} height={lotHeight + 12} rx="14" fill={MAP_THEME.asphaltPanel} stroke={MAP_THEME.panelBorder} strokeWidth="1.5" filter="url(#lotShadow)" />
+      {/* Filo superior más claro: el panel se lee como una superficie ligeramente elevada
+          sobre el asfalto en vez de un rectángulo plano del mismo tono. */}
+      <line x1={PADDING - 16} y1={lotTop - 11.3} x2={ancho + 18} y2={lotTop - 11.3} stroke="rgba(255,255,255,.14)" strokeWidth="1" />
       <rect x={PADDING - 10} y={lotTop - 6} width={ancho - PADDING + 10} height={34} rx="8" fill={hc} />
+      {/* Brillo superior sutil (mismo contorno redondeado que la cabecera, sin artefactos en las
+          esquinas): le da un poco de volumen en vez de un color plano. */}
+      <rect x={PADDING - 10} y={lotTop - 6} width={ancho - PADDING + 10} height={34} rx="8" fill="url(#sheenV)" />
       <text x={PADDING + 2} y={lotTop + 10} fill="#fff" fontSize="10.5" fontWeight="900">{pq.nombre.toUpperCase()}</text>
       <text x={PADDING + 2} y={lotTop + 22} fill="rgba(255,255,255,.8)" fontSize="7.5" fontWeight="bold">{pq.zona ? `ZONA ${pq.zona.toUpperCase()}` : pq.ubicacion.toUpperCase()}</text>
       {/* Chips de composición: cuántas celdas de cada tipo tiene esta zona */}

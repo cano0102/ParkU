@@ -25,6 +25,9 @@ export function MapRoadBackground({ totalW, totalH }: MapRoadBackgroundProps) {
         <rect x="-8" y="-9" width="58" height="18" rx="4" fill={C.danger} />
         <text textAnchor="middle" x="21" y="3" fontSize="8" fontWeight="900" fill="#fff">SALIDA</text>
       </g>
+      {/* Viñeta: pintada al final de este fondo, así que solo profundiza el asfalto/césped/
+          carril visibles — los paneles de zona, dibujados después en ParkingMap, quedan encima. */}
+      <rect width={totalW} height={totalH} fill="url(#vignette)" pointerEvents="none" />
     </>
   );
 }
