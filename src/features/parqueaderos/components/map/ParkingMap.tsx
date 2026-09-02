@@ -21,13 +21,14 @@ interface ParkingMapProps {
   getOcupante: (celdaId: string) => Ocupante | null;
   onCellClick: (celda: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
+  celdaTieneIncidenteAbierto: (c: Celda) => boolean;
   /** Si se pasa, se agrega un badge de estado clicable a la cabecera de cada
    *  parqueadero (mismo toggle activar/desactivar que ya existía en la vista tabla). */
   onToggleEstado?: (pq: Parqueadero) => void;
   canManage?: boolean;
 }
 
-export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellMatchesSearch, onToggleEstado, canManage }: ParkingMapProps) => {
+export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellMatchesSearch, celdaTieneIncidenteAbierto, onToggleEstado, canManage }: ParkingMapProps) => {
   const { lots, totalW, totalH } = useMapLayout(parqueaderos, celdas);
 
   // Ancho real del contenedor visible: en móvil el plano (min. 960px de contenido) nunca
@@ -93,6 +94,7 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
               {...lot}
               getOcupante={getOcupante}
               cellMatchesSearch={cellMatchesSearch}
+              celdaTieneIncidenteAbierto={celdaTieneIncidenteAbierto}
               onCellPointerDown={handleCellPointerDown}
               onCellHover={setCellHover}
               onCellHoverLeave={clearHover}

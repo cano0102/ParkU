@@ -14,6 +14,7 @@ const C = theme;
 interface ParkingLotProps extends LotLayout {
   getOcupante: (celdaId: string) => Ocupante | null;
   cellMatchesSearch: (c: Celda) => boolean;
+  celdaTieneIncidenteAbierto: (c: Celda) => boolean;
   onCellPointerDown: (e: React.PointerEvent<SVGGElement>, celda: Celda) => void;
   onCellHover: (info: HoverInfo) => void;
   onCellHoverLeave: () => void;
@@ -24,7 +25,7 @@ interface ParkingLotProps extends LotLayout {
 /** Un parqueadero dibujado en el plano: cabecera con nombre/composición/stats, y sus filas de celdas. */
 export function ParkingLot({
   pq, celdasPorFila, libres, ocupados, reservadas, pct, filas, lotTop, lotHeight, ancho,
-  getOcupante, cellMatchesSearch, onCellPointerDown, onCellHover, onCellHoverLeave,
+  getOcupante, cellMatchesSearch, celdaTieneIncidenteAbierto, onCellPointerDown, onCellHover, onCellHoverLeave,
   onLotPointerDown,
 }: ParkingLotProps) {
   const activo = pq.estado === "activo";
@@ -103,6 +104,7 @@ export function ParkingLot({
               pqNombre={pq.nombre}
               tipoPq={pq.tipo}
               matches={cellMatchesSearch(celda)}
+              tieneIncidente={celdaTieneIncidenteAbierto(celda)}
               ocupante={celda.estado === "no_disponible" ? getOcupante(celda.id) : null}
               onPointerDown={onCellPointerDown}
               onHover={onCellHover}

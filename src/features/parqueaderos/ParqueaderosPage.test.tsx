@@ -133,6 +133,22 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     expect(within(dialog).getByRole('button', { name: 'Liberar Celda' })).toBeInTheDocument();
   });
 
+  it('muestra el aviso de incidente abierto sobre una celda con una novedad pendiente', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+    await user.click(screen.getByText('PQ-1 Torre A'));
+
+    // incidentesSeed tiene una novedad PENDIENTE sobre la celda 1 (C-001) y otra sobre la
+    // celda 2 (C-002) del parqueadero 1; M-001 (celda 3) no tiene ninguna.
+    const celdaC001 = await screen.findByText('C-001');
+    const celdaC002 = screen.getByText('C-002');
+    const celdaM001 = screen.getByText('M-001');
+    expect(within(celdaC001.closest('button') as HTMLElement).getByTitle('Tiene un incidente abierto reportado')).toBeInTheDocument();
+    expect(within(celdaC002.closest('button') as HTMLElement).getByTitle('Tiene un incidente abierto reportado')).toBeInTheDocument();
+    expect(within(celdaM001.closest('button') as HTMLElement).queryByTitle('Tiene un incidente abierto reportado')).not.toBeInTheDocument();
+  });
+
   it('el botón "Nuevo Parqueadero" abre el modal de creación', async () => {
     const user = userEvent.setup();
     renderPage();

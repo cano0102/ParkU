@@ -44,6 +44,15 @@ export function MapLegend() {
             <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.9)", whiteSpace: "nowrap" }}>{cfg.label}</span>
           </div>
         ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{
+            width: 13, height: 13, borderRadius: "50%", background: "#0F172A", border: "1.4px solid #fff",
+            display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+          }}>
+            <span style={{ fontSize: 8, fontWeight: 900, color: "#FBBF24", lineHeight: 1 }}>!</span>
+          </span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "rgba(255,255,255,.9)", whiteSpace: "nowrap" }}>Incidente abierto</span>
+        </div>
       </div>
       {/* Pista de uso: la placa ya se ve directamente sobre cada carro, pero
           tocar la celda abre el detalle completo (conductor, hora de ingreso, etc). */}

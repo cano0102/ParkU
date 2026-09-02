@@ -75,6 +75,7 @@ export default function Parqueaderos() {
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
                 onCellClick={handleCellClick}
                 cellMatchesSearch={filters.cellMatchesSearch}
+                celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
                 canManage={hasPermission("celdas")}
               />
             )}
@@ -86,6 +87,7 @@ export default function Parqueaderos() {
                 getOcupante={modal.getOcupante}
                 onCellClick={handleCellClick}
                 cellMatchesSearch={filters.cellMatchesSearch}
+                celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
                 canManage={hasPermission("celdas")}
               />

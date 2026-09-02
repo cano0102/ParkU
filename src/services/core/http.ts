@@ -52,6 +52,19 @@ interface ApiErrorBody {
   errors?: ApiErrorItem[];
 }
 
+/** Mensaje de respaldo por código HTTP, usado SOLO cuando el backend responde un error sin
+ *  `message` ni `errors` útiles (body vacío o inesperado) — evita mostrar el crudo "Error 404"
+ *  en esos casos, sin inventar un motivo que el backend no dio. */
+const MENSAJE_POR_STATUS: Partial<Record<number, string>> = {
+  400: 'La solicitud no es válida. Revisa los datos ingresados.',
+  401: 'Tu sesión no es válida. Inicia sesión de nuevo.',
+  403: 'No tienes permisos para realizar esta acción.',
+  404: 'No se encontró el recurso solicitado.',
+  409: 'La operación no se pudo completar por un conflicto con datos existentes.',
+  422: 'Los datos ingresados no son válidos. Revisa el formulario.',
+  500: 'Ocurrió un error en el servidor. Intenta de nuevo más tarde.',
+};
+
 function extraerMensajeError(body: unknown, status: number): string {
   const b = body as ApiErrorBody | null;
   if (b && Array.isArray(b.errors) && b.errors.length > 0) {
@@ -61,7 +74,7 @@ function extraerMensajeError(body: unknown, status: number): string {
     if (mensajes.length > 0) return mensajes.join(' ');
   }
   if (b && typeof b.message === 'string' && b.message) return b.message;
-  return `Error ${status}`;
+  return MENSAJE_POR_STATUS[status] ?? `Error ${status}`;
 }
 
 let refreshPromise: Promise<string | null> | null = null;

@@ -10,7 +10,7 @@ const C = theme;
 /* ============================================================
    VISTA TABLA
 ============================================================ */
-export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onDelete, onToggleEstado, onCellClick, cellMatchesSearch, canManage }: {
+export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onDelete, onToggleEstado, onCellClick, cellMatchesSearch, celdaTieneIncidenteAbierto, canManage }: {
   parqueaderos: Parqueadero[];
   celdas: Celda[];
   getOcupante: (celdaId: string) => Ocupante | null;
@@ -19,6 +19,7 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
   onToggleEstado: (p: Parqueadero) => void;
   onCellClick: (c: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
+  celdaTieneIncidenteAbierto: (c: Celda) => boolean;
   /** true si el rol puede editar/activar/desactivar parqueaderos (permiso "celdas"). */
   canManage: boolean;
 }) => {
@@ -171,10 +172,17 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;
                       const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
                       const fueraDeHorario = estaOcupada && estaFueraDeHorarioOperacion();
+                      const tieneIncidente = celdaTieneIncidenteAbierto(celda);
                       return (
                         <button key={celda.id} onClick={() => onCellClick(celda)}
                           title={fueraDeHorario ? "Sigue ocupada fuera del horario permitido — considera generar un incidente" : undefined}
                           style={{ position: "relative", padding: "8px 10px 8px 12px", borderRadius: 10, borderTop: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`, borderRight: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`, borderBottom: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`, borderLeft: `4px solid ${tipoCfg.accent}`, background: fueraDeHorario ? "#FEF2F2" : cfg.bg, color: cfg.text, cursor: "pointer", textAlign: "left", fontFamily: "inherit", outline: "none", boxShadow: matched ? "0 0 0 3px rgba(245,158,11,.25)" : fueraDeHorario ? "0 0 0 3px rgba(220,38,38,.2)" : undefined }}>
+                          {tieneIncidente && (
+                            <span title="Tiene un incidente abierto reportado"
+                              style={{ position: "absolute", top: -6, left: -6, width: 17, height: 17, borderRadius: "50%", background: "#DC2626", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 0 2px #fff, 0 1px 4px rgba(0,0,0,.25)", fontSize: 10, lineHeight: 1, zIndex: 1 }}>
+                              ⚠️
+                            </span>
+                          )}
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
                             <span style={{ fontSize: 10, fontWeight: 900, letterSpacing: 1 }}>{celda.numero}</span>
                             <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 16, height: 16, borderRadius: 5, background: tipoCfg.accent, flexShrink: 0 }}>

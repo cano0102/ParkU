@@ -8,6 +8,7 @@ interface ParkingCellProps {
   pqNombre: string;
   tipoPq: string;
   matches: boolean;
+  tieneIncidente: boolean;
   ocupante: Ocupante | null;
   onPointerDown: (e: React.PointerEvent<SVGGElement>, celda: Celda) => void;
   onHover: (info: HoverInfo) => void;
@@ -15,7 +16,7 @@ interface ParkingCellProps {
 }
 
 /** Una celda del plano: relleno por estado, franja/insignia de tipo, silueta del vehículo si está ocupada. */
-export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, ocupante, onPointerDown, onHover, onHoverLeave }: ParkingCellProps) {
+export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncidente, ocupante, onPointerDown, onHover, onHoverLeave }: ParkingCellProps) {
   const cfg = CELDA_CONFIG[celda.estado];
   const tipoCfg = getTipoCeldaConfig(celda.tipo);
   const TipoIcon = tipoCfg.icon;
@@ -88,6 +89,16 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, ocupante, onP
       )}
       {celda.estado === "reservada" && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="850" fill="#FCD34D" opacity={0.95}>RESERVA</text>}
       {celda.estado === "mantenimiento" && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#CBD5E1" opacity={0.9}>MANT.</text>}
+      {/* Aviso de incidente/novedad abierto sobre esta celda — esquina opuesta a la insignia de
+          tipo para no chocar con ella (ni con la de "fuera de horario", que solo aparece cuando
+          está ocupada); un incidente puede reportarse con la celda en cualquier estado. */}
+      {tieneIncidente && (
+        <g transform={`translate(${celda.x - 5},${celda.y - 5})`} pointerEvents="none">
+          <title>Tiene un incidente abierto reportado</title>
+          <circle r="7" fill="#0F172A" stroke="#fff" strokeWidth="1.4" />
+          <text textAnchor="middle" dominantBaseline="central" y="0.5" fontSize="9" fontWeight="900" fill="#FBBF24">!</text>
+        </g>
+      )}
     </g>
   );
 }

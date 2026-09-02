@@ -5,7 +5,7 @@ import type { ParqueaderosData } from "./useParqueaderosData";
 
 /** Pestaña activa, búsqueda/filtro de tipo, listas filtradas y estadísticas de ocupación. */
 export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (celdaId: string) => { vehiculo: { placa: string }; conductor?: { nombre: string } } | null) {
-  const { parqueaderos, celdas } = data;
+  const { parqueaderos, celdas, incidentes } = data;
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<"map" | "table">("table");
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
@@ -28,6 +28,15 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
     },
     [search, getOcupante]
   );
+
+  // Celdas con un incidente/novedad todavía abierto (pendiente o en proceso) — se usa para el
+  // aviso visual (⚠️) en el plano y la tabla; uno ya resuelto/cerrado/cancelado no cuenta, esa
+  // celda vuelve a verse "limpia" aunque conserve su historial.
+  const celdasConIncidenteAbierto = useMemo(
+    () => new Set(incidentes.filter((i) => i.estado === "pendiente" || i.estado === "en_proceso").map((i) => i.celdaId)),
+    [incidentes]
+  );
+  const celdaTieneIncidenteAbierto = useCallback((celda: Celda) => celdasConIncidenteAbierto.has(celda.id), [celdasConIncidenteAbierto]);
 
   const filteredPqs = useMemo(() => parqueaderos.filter((pq) => filterTipo === "Todos" || pq.tipo === filterTipo), [parqueaderos, filterTipo]);
   const filteredCeldas = useMemo(() => {
@@ -53,7 +62,7 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
     activeTab, setActiveTab,
     search, setSearch,
     filterTipo, setFilterTipo,
-    stats, cellMatchesSearch,
+    stats, cellMatchesSearch, celdaTieneIncidenteAbierto,
     filteredCeldas, filteredPqsConCeldas,
     activeFilters, clearFilters,
   };
