@@ -250,6 +250,7 @@ export default function Parqueaderos() {
         incidenteForm={incidente.incidenteForm}
         setIncidenteForm={incidente.setIncidenteForm}
         incidenteError={incidente.incidenteError}
+        usuariosAsignables={data.usuariosAsignables}
         onClose={incidente.closeIncidenteModal}
         onSubmit={incidente.registrarIncidente}
       />

@@ -86,7 +86,7 @@ export function IncidenteVehiculoAsignadoFields({
         </select>
         {usuarios.length === 0 && (
           <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
-            Solo un Administrador puede ver la lista de usuarios para asignar.
+            Solo se puede asignar a un Vigilante — no hay ninguno disponible (o no tienes permiso para ver la lista de usuarios).
           </p>
         )}
       </div>

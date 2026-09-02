@@ -12,8 +12,10 @@ import { useReservas, useCreateReserva, useUpdateReserva } from "@/features/rese
 import type { Reserva } from "@/services/api/reservas";
 import { useIncidentes, useCreateIncidente } from "@/features/incidentes";
 import type { Incidente } from "@/services/api/incidentes";
+import { useUsuarios } from "@/features/usuarios";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
+import { useMemo } from "react";
 
 /** Queries y mutaciones de todos los dominios que orquesta la página de Parqueaderos. */
 export function useParqueaderosData() {
@@ -32,6 +34,11 @@ export function useParqueaderosData() {
   // controlesSalida/reservas de arriba; se usa aquí para saber si un parqueadero tiene
   // incidentes reportados antes de permitir eliminarlo (ver evaluarEliminacionParqueadero).
   const { data: incidentes = [] } = useIncidentes({ enabled: !esConductor });
+  // Solo Admin puede listar /api/usuarios — usado únicamente para el selector "Asignar a" del
+  // reporte rápido de incidente desde una celda, así que se filtra ya mismo a Vigilante (que es
+  // quien de verdad gestiona incidentes en campo) en vez de exponer la lista completa.
+  const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
+  const usuariosAsignables = useMemo(() => usuarios.filter((u) => u.rol === ROLES.VIGILANTE), [usuarios]);
 
   const createParqueaderoMutation = useCreateParqueadero();
   const updateParqueaderoMutation = useUpdateParqueadero();
@@ -82,7 +89,7 @@ export function useParqueaderosData() {
     createIncidenteMutation.mutateAsync({ ...data, fecha: new Date().toISOString() });
 
   return {
-    parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas, incidentes,
+    parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas, incidentes, usuariosAsignables,
     addParqueadero, updateParqueadero, deleteParqueadero, addCelda, updateCelda, deleteCelda, cambiarDisponibilidadCelda, generarCeldasEnLote,
     addConductor, addVehiculo, updateVehiculo,
     addControlSalida, updateControlSalida, addReserva, updateReserva, addIncidente,

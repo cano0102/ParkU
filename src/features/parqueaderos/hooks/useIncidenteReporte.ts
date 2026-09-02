@@ -8,7 +8,7 @@ import type { Ocupante, IncidenteForm } from "../lib/helpers";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 
-const emptyIncidenteForm = (): IncidenteForm => ({ descripcion: "" });
+const emptyIncidenteForm = (): IncidenteForm => ({ descripcion: "", tipoNovedad: "otro", prioridad: "media", usuarioAsignadoId: "" });
 
 const validarIncidenteForm = (form: IncidenteForm): string | null =>
   form.descripcion.trim() ? null : "La descripción del incidente es obligatoria.";
@@ -85,9 +85,9 @@ export function useIncidenteReporte(
         parqueaderoId: celdaActiva.parqueaderoId,
         celdaId: celdaActiva.id,
         vehiculoId: ocupanteActivo.vehiculo.id,
-        usuarioAsignadoId: "",
-        tipoNovedad: "otro",
-        prioridad: "media",
+        usuarioAsignadoId: incidenteForm.usuarioAsignadoId,
+        tipoNovedad: incidenteForm.tipoNovedad,
+        prioridad: incidenteForm.prioridad,
         estado: "pendiente",
         justificacionCierre: "",
       });

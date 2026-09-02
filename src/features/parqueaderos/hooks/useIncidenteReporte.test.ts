@@ -114,6 +114,20 @@ describe('useIncidenteReporte — bloqueo de incidente duplicado (celda/vehícul
     expect(toast.success).toHaveBeenCalled();
   });
 
+  it('envía el tipo/prioridad/asignado elegidos en el formulario, no valores fijos', async () => {
+    const data = { addIncidente: vi.fn().mockResolvedValue(undefined) };
+    const { result } = setup(data);
+
+    act(() => result.current.setIncidenteForm((f) => ({
+      ...f, descripcion: 'Vidrio roto', tipoNovedad: 'danio', prioridad: 'critica', usuarioAsignadoId: 'u-vigilante-9',
+    })));
+    await act(async () => { await result.current.registrarIncidente(); });
+
+    expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({
+      tipoNovedad: 'danio', prioridad: 'critica', usuarioAsignadoId: 'u-vigilante-9',
+    }));
+  });
+
   it('no dispara la consulta de incidentes para el rol Conductor, para no arriesgar un 403 solo por abrir el plano de Parqueaderos', () => {
     useAuthMock.mockReturnValue({ user: { id: '2', rol: ROLES.CONDUCTOR } });
     const data = { addIncidente: vi.fn() };

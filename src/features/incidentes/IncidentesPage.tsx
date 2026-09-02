@@ -79,7 +79,7 @@ export function Incidentes() {
           markTouched={p.markTouched}
           parqueaderos={p.parqueaderos}
           vehiculos={p.vehiculos}
-          usuarios={p.usuarios}
+          usuarios={p.usuariosAsignables}
           celdasDelParqueadero={p.celdasDelParqueadero}
           celdaSeleccionada={p.celdaDe(p.formData.celdaId)}
           ocupanteSeleccionado={p.ocupanteSeleccionado}

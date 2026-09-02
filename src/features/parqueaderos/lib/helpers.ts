@@ -3,6 +3,7 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero, TipoParqueadero, AccesoParqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Conductor } from "@/services/api/conductores";
+import type { TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
 import {
   PLACA_CARRO_REGEX, PLACA_MOTO_REGEX, PLACA_REGEX,
   validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,
@@ -53,6 +54,9 @@ export interface VehiculoForm {
 
 export interface IncidenteForm {
   descripcion: string;
+  tipoNovedad: TipoNovedad;
+  prioridad: PrioridadNovedad;
+  usuarioAsignadoId: string;
 }
 
 export interface CeldaPos extends Celda { x: number; y: number; }

@@ -58,6 +58,10 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const vehiculoPorId = useMemo(() => new Map(vehiculos.map((v) => [v.id, v])), [vehiculos]);
 
   const usuarioPorId = useMemo(() => new Map(usuarios.map((u) => [u.id, u])), [usuarios]);
+  // "Asignar a" solo debe ofrecer Vigilantes (son quienes de verdad gestionan incidentes en
+  // campo) — `usuarios` completo se conserva aparte para resolver el nombre de un incidente ya
+  // asignado antes de este cambio, aunque esa persona ya no sea Vigilante.
+  const usuariosAsignables = useMemo(() => usuarios.filter((u) => u.rol === ROLES.VIGILANTE), [usuarios]);
 
   const nombreParqueadero = (id: string) => parqueaderoPorId.get(id)?.nombre ?? "—";
   const celdaDe = (id?: string) => (id ? celdaPorId.get(id) : undefined);
@@ -132,6 +136,7 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     celdas,
     vehiculos,
     usuarios,
+    usuariosAsignables,
     incidentes,
     addIncidente,
     updateIncidente,
