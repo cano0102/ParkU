@@ -12,7 +12,9 @@ vi.mock('sonner', () => ({
 
 const conductorExistente: Conductor = {
   id: '1', usuarioId: '', tipoDocumento: 'CC', numeroDocumento: '1001234567', nombre: 'Andrés Torres',
-  correo: '', direccion: '', numeroTelefonico: '', tipoUsuarioId: '1', tipoUsuarioNombre: 'Aprendiz',
+  // Correo y teléfono son obligatorios al guardar un conductor (el backend resuelve/crea el
+  // Usuario asociado con ellos), así que el conductor de referencia los trae completos.
+  correo: 'andres.torres@sena.edu.co', direccion: '', numeroTelefonico: '3105551234', tipoUsuarioId: '1', tipoUsuarioNombre: 'Aprendiz',
   regionalFormacion: '', centroFormacion: '', programaFormacion: '', vigencia: '',
   movilidadReducida: false, tipoDiscapacidad: '', estado: 'activo',
 };
@@ -55,6 +57,7 @@ function llenarCamposObligatorios(result: { current: ReturnType<typeof useConduc
   act(() => result.current.setFormData({
     ...result.current.formData,
     nombre: 'Nuevo Conductor', tipoUsuarioId: '1',
+    correo: 'nuevo.conductor@sena.edu.co', numeroTelefonico: '3105559876',
     placa: 'XYZ789', marca: 'Renault', color: 'Azul',
   }));
 }
@@ -130,17 +133,19 @@ describe('useConductorForm — validación de numeroDocumento', () => {
 });
 
 describe('useConductorForm — validación de numeroTelefonico', () => {
-  it('es opcional: se puede guardar sin escribir ningún teléfono', async () => {
+  // El teléfono pasó de opcional a OBLIGATORIO: junto con el correo es el dato con el que el
+  // backend resuelve (o crea) el Usuario asociado al conductor.
+  it('es obligatorio: no deja guardar sin teléfono', async () => {
     const data = buildData();
     const { result } = renderHook(() => useConductorForm(data));
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
-    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776' }));
+    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776', numeroTelefonico: '' }));
     await act(async () => result.current.handleSave());
 
-    expect(result.current.formErrors.numeroTelefonico).toBeUndefined();
-    expect(data.addConductor).toHaveBeenCalled();
+    expect(result.current.formErrors.numeroTelefonico).toBe('El teléfono es obligatorio');
+    expect(data.addConductor).not.toHaveBeenCalled();
   });
 
   it('rechaza un teléfono con letras (antes ni siquiera se filtraban las teclas)', async () => {
@@ -205,5 +210,46 @@ describe('useConductorForm — validación de placa (referencia, ya existente)',
     expect(result.current.formErrors.placa).toBe('Esta placa ya está registrada en otro vehículo');
     expect(data.addConductor).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalled();
+  });
+});
+
+describe('useConductorForm — validación de correo', () => {
+  it('es obligatorio: no deja guardar sin correo', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data));
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776', correo: '' }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.correo).toBe('El correo es obligatorio');
+    expect(data.addConductor).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un correo con formato inválido', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data));
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776', correo: 'no-es-un-correo' }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.correo).toBe('Ingresa un correo electrónico válido');
+    expect(data.addConductor).not.toHaveBeenCalled();
+  });
+
+  it('acepta un correo válido y guarda', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data));
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776', correo: 'valido@sena.edu.co' }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.correo).toBeUndefined();
+    expect(data.addConductor).toHaveBeenCalledWith(expect.objectContaining({ correo: 'valido@sena.edu.co' }));
   });
 });

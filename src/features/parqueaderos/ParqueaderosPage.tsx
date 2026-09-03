@@ -122,7 +122,7 @@ export default function Parqueaderos() {
         onConfirm={pqFormState.confirmDesactivarParqueadero}
         onCancel={() => pqFormState.setPqADesactivar(null)}
         title="Desactivar parqueadero"
-        message={`¿Está seguro de desactivar "${pqFormState.pqADesactivar?.nombre ?? ""}"? Los vehículos actualmente estacionados tendrán registro de salida y las reservas activas no completadas serán canceladas por mantenimiento.`}
+        message={`¿Está seguro de desactivar "${pqFormState.pqADesactivar?.nombre ?? ""}"? Dejará de aceptar nuevos ingresos y reservas. Los vehículos que ya están dentro siguen registrados: se les puede registrar la salida normalmente.`}
         confirmLabel="Desactivar"
       />
 

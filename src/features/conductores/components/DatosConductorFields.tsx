@@ -5,7 +5,7 @@ import { COLORS, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, inputStyle, inputErrorSt
 interface DatosConductorFieldsProps {
   isEdit: boolean;
   form: FormState;
-  errors: { nombre?: string; numeroDocumento?: string; numeroTelefonico?: string; tipoUsuarioId?: string };
+  errors: { nombre?: string; numeroDocumento?: string; correo?: string; numeroTelefonico?: string; tipoUsuarioId?: string };
   touched: Record<string, boolean>;
   onChange: (patch: Partial<FormState>) => void;
   onBlur: (field: string) => void;
@@ -54,17 +54,18 @@ export function DatosConductorFields({ isEdit, form, errors, touched, onChange, 
         />
       </FormField>
 
-      <FormField label="Correo (opcional)">
+      <FormField label="Correo *" error={err("correo")}>
         <input
           type="email"
           placeholder="correo@sena.edu.co"
           value={form.correo}
           onChange={(e) => onChange({ correo: e.target.value })}
-          style={inputStyle}
+          onBlur={() => onBlur("correo")}
+          style={{ ...inputStyle, ...(err("correo") ? inputErrorStyle : {}) }}
         />
       </FormField>
 
-      <FormField label="Teléfono (opcional)" error={err("numeroTelefonico")}>
+      <FormField label="Teléfono *" error={err("numeroTelefonico")}>
         <input
           type="tel"
           placeholder="300 000 0000"

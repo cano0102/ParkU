@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import {
-  emptyForm, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, validarNumeroDocumento, validarTelefono,
+  emptyForm, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, validarNumeroDocumento, validarTelefono, EMAIL_REGEX,
   type FormState, type FormErrors,
 } from "../lib/helpers";
 import type { ConductoresData } from "./useConductoresData";
@@ -118,11 +118,19 @@ export function useConductorForm(
     } else if (documentosOcupados.has(`${form.tipoDocumento}|${numeroDocumento}`)) {
       errors.numeroDocumento = "Ya existe un conductor registrado con este tipo y número de documento.";
     }
-    // Teléfono opcional (igual que en Usuarios/Registro) — pero si se escribe algo, sí debe
-    // tener forma de teléfono colombiano real: antes este campo no se validaba en absoluto
-    // (ni siquiera se filtraban las teclas), así que aceptaba letras y cualquier longitud.
+    // Correo y teléfono son OBLIGATORIOS al registrar un conductor: son los dos datos con los
+    // que el backend resuelve (o crea) el Usuario asociado — sin correo no hay cuenta con la
+    // cual vincularlo, y sin teléfono no hay forma de contactar al dueño del vehículo.
+    const correo = form.correo.trim();
+    if (!correo) {
+      errors.correo = "El correo es obligatorio";
+    } else if (!EMAIL_REGEX.test(correo)) {
+      errors.correo = "Ingresa un correo electrónico válido";
+    }
     const numeroTelefonico = form.numeroTelefonico.trim();
-    if (numeroTelefonico && !validarTelefono(numeroTelefonico)) {
+    if (!numeroTelefonico) {
+      errors.numeroTelefonico = "El teléfono es obligatorio";
+    } else if (!validarTelefono(numeroTelefonico)) {
       errors.numeroTelefonico = "Ingresa un número de teléfono colombiano válido (10 dígitos)";
     }
     if (!form.tipoUsuarioId) {
@@ -168,7 +176,7 @@ export function useConductorForm(
   const handleSave = useCallback(async () => {
     const errors = validate(formData);
     setFormErrors(errors);
-    setTouched({ nombre: true, numeroDocumento: true, numeroTelefonico: true, tipoUsuarioId: true, placa: true, marca: true, color: true });
+    setTouched({ nombre: true, numeroDocumento: true, correo: true, numeroTelefonico: true, tipoUsuarioId: true, placa: true, marca: true, color: true });
 
     if (Object.keys(errors).length > 0) {
       const firstError = Object.values(errors)[0];

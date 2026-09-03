@@ -23,6 +23,9 @@ interface ParqueaderoFormModalProps {
 }
 
 export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formError, onClose, onSubmit }: ParqueaderoFormModalProps) {
+  // Al editar, estas cantidades vienen precargadas con las celdas ACTIVAS reales del
+  // parqueadero (ver useParqueaderoForm.ts#openEdit), así que su suma es "celdas actuales".
+  const totalCeldas = pqForm.celdasCarros + pqForm.celdasMotos + pqForm.celdasMovilidadReducida;
   return (
     <Modal open={open} onClose={onClose}>
       <EntityFormModal
@@ -48,6 +51,10 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
             <div>
               <label style={labelStyle}>Capacidad máxima *</label>
               <input type="number" min={1} max={500} value={pqForm.capacidadMaxima} onChange={e => setPqForm(p => ({ ...p, capacidadMaxima: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+              <p style={{ fontSize: 11, color: totalCeldas > pqForm.capacidadMaxima ? C.danger : C.textLight, marginTop: 6, fontWeight: totalCeldas > pqForm.capacidadMaxima ? 700 : 400 }}>
+                Celdas actuales: <strong>{totalCeldas}</strong> · Capacidad máxima: <strong>{pqForm.capacidadMaxima}</strong>
+                {totalCeldas > pqForm.capacidadMaxima ? " — la capacidad no puede quedar por debajo de las celdas configuradas." : ""}
+              </p>
             </div>
             <div>
               <label style={labelStyle}>Descripción</label>
@@ -94,21 +101,9 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
               <label style={labelStyle}>Descripción</label>
               <input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} placeholder="Ej: Parqueadero cubierto, acceso por la entrada principal" style={fieldStyle} />
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={labelStyle}>Estado</label>
-              <button
-                type="button"
-                onClick={() => setPqForm(p => ({ ...p, estado: p.estado === "activo" ? "inactivo" : "activo" }))}
-                style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#F8FAFC", cursor: "pointer", width: "100%", fontFamily: "inherit" }}
-              >
-                <span style={{ position: "relative", width: 38, height: 22, borderRadius: 999, background: pqForm.estado === "activo" ? C.primary : "#475569", transition: "background .15s", flexShrink: 0 }}>
-                  <span style={{ position: "absolute", top: 2, left: pqForm.estado === "activo" ? 18 : 2, width: 18, height: 18, borderRadius: "50%", background: "#fff", transition: "left .15s", boxShadow: "0 1px 3px rgba(0,0,0,.3)" }} />
-                </span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: pqForm.estado === "activo" ? C.primary : C.textLight }}>
-                  {pqForm.estado === "activo" ? "🟢 Activo" : "⚫ Inactivo"}
-                </span>
-              </button>
-            </div>
+            {/* El estado NO se pide al crear: un parqueadero nuevo nace activo (ver emptyPqForm
+                en useParqueaderoForm.ts). Se cambia después con el switch de la tarjeta, que
+                además pide confirmación antes de desactivar. */}
             <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
               <div>
                 <label style={labelStyle} htmlFor="pq-celdas-carro">Celdas de carro</label>

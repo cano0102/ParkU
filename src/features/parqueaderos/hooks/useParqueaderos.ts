@@ -19,11 +19,12 @@ const hooks = createQueryHooks<Parqueadero>('parqueaderos', parqueaderosService)
 
 export const useParqueaderos = hooks.useList;
 
-/* Desactivar un parqueadero hace que el backend registre salida a los vehículos ahí
- * estacionados y cancele por mantenimiento las reservas activas no completadas (ver el
- * mensaje de confirmación en useParqueaderoForm.ts) — eso deja obsoletas las celdas, los
- * controles de salida y las reservas ya cargadas, así que un `update` (no solo el
- * create/remove de abajo) también invalida esas tres queries, no solo 'parqueaderos'. */
+/* Un `update` invalida también celdas, entradas-salidas y reservas, no solo 'parqueaderos':
+ * cambiar el estado de un parqueadero puede tener efectos colaterales sobre sus celdas y
+ * registros del lado del servidor, y refrescar las tres deja la vista consistente con lo que
+ * el backend REALMENTE hizo en vez de con una suposición del frontend. (Qué hace exactamente
+ * el backend al desactivar — si toca o no los ingresos/reservas vigentes — no está confirmado
+ * desde aquí; por eso el mensaje de confirmación no promete ningún efecto automático.) */
 export function useUpdateParqueadero() {
   const queryClient = useQueryClient();
   return useMutation({

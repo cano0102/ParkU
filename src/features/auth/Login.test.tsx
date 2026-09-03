@@ -51,7 +51,7 @@ describe('Login', () => {
     expect(screen.getByRole('button', { name: 'Ingresar' })).toBeInTheDocument();
   });
 
-  it('inicia sesión con las credenciales semilla del administrador y navega al dashboard', async () => {
+  it('tras iniciar sesión avisa que se envió un correo a la cuenta, sin navegar aún', async () => {
     const user = userEvent.setup();
     renderLogin();
 
@@ -59,8 +59,23 @@ describe('Login', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'Pass1234');
     await user.click(screen.getByRole('button', { name: 'Ingresar' }));
 
-    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard'));
+    await screen.findByRole('heading', { name: /Revisa tu/ });
+    expect(screen.getByText('admin@sena.edu.co')).toBeInTheDocument();
     expect(toast.success).toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('navega al dashboard desde el aviso de correo enviado', async () => {
+    const user = userEvent.setup();
+    renderLogin();
+
+    await user.type(screen.getByLabelText('Correo Electrónico'), 'admin@sena.edu.co');
+    await user.type(screen.getByLabelText('Contraseña'), 'Pass1234');
+    await user.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+    await user.click(await screen.findByRole('button', { name: /Continuar al panel/ }));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard'));
   });
 
   it('muestra un error si la contraseña es incorrecta y no navega', async () => {

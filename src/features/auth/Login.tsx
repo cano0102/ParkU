@@ -4,6 +4,7 @@ import { useLoginForm } from "./hooks/useLoginForm";
 import { loginStyles } from "./lib/styles";
 import { LoginLeftPanel } from "./components/LoginLeftPanel";
 import { LoginForm } from "./components/LoginForm";
+import { LoginEmailNotice } from "./components/LoginEmailNotice";
 
 const COLORS = theme;
 
@@ -59,7 +60,14 @@ export function Login() {
           <LoginLeftPanel />
 
           <div style={{ padding: "2rem clamp(1.5rem, 3vw, 2.5rem)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <LoginForm formState={formState} />
+            {formState.accesoNotificado ? (
+              <LoginEmailNotice
+                email={formState.accesoNotificado}
+                onContinue={formState.continuarAlPanel}
+              />
+            ) : (
+              <LoginForm formState={formState} />
+            )}
           </div>
         </div>
       </div>
