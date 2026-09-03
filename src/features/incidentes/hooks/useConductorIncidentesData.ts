@@ -4,6 +4,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { useConductores } from "@/features/conductores";
 import { useIncidentesData } from "./useIncidentesData";
+import { compararIncidentes } from "../lib/orden";
 
 /**
  * Vista de Incidentes para el rol Comunidad SENA: los mismos datos y
@@ -43,7 +44,7 @@ export function useConductorIncidentesData() {
     const misVehiculosIds = new Set(misVehiculos.map((v) => v.id));
     return base.incidentes
       .filter((i) => misVehiculosIds.has(i.vehiculoId))
-      .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+      .sort(compararIncidentes);
   }, [base.incidentes, misVehiculos]);
 
   // "Cancelar" no es un DELETE (esa ruta es solo Admin, y de todas formas borrar el

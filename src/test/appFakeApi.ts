@@ -118,6 +118,11 @@ export const incidentesSeed = [
     parqueadero_id: 1, celda_id: 2, vehiculo_id: null, usuario_asignado_id: null,
     fecha_hora: '2025-06-16T07:15:00.000Z', estado: 'PENDIENTE', justificacion_cierre: null,
   },
+  {
+    id: 3, tipo_novedad: 'QUEJA', prioridad: 'CRITICA', descripcion: 'Barrera dañada en el acceso norte',
+    parqueadero_id: 1, celda_id: null, vehiculo_id: null, usuario_asignado_id: null,
+    fecha_hora: '2025-06-20T07:15:00.000Z', estado: 'CERRADA', justificacion_cierre: 'Reparada por mantenimiento',
+  },
 ];
 
 export const catalogosSeed = [

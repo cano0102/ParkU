@@ -82,6 +82,42 @@ describe('features/incidentes', () => {
     expect(dialog).not.toBeInTheDocument();
   });
 
+  it('muestra los incidentes abiertos por prioridad y deja los finalizados al final', async () => {
+    renderIncidentes();
+    await waitFor(() =>
+      expect(screen.getAllByText('Vehículo mal estacionado bloqueando entrada').length).toBeGreaterThan(0)
+    );
+
+    const descripciones = screen
+      .getAllByRole('switch')
+      .map((sw) => sw.closest('.incidente-card')?.querySelector('p')?.textContent);
+
+    // Posiciones relativas (no igualdad exacta): los tests anteriores de este archivo
+    // dejan incidentes creados en la semilla compartida.
+    const posicion = (texto: string) => descripciones.findIndex((d) => d?.includes(texto));
+
+    // Prioridad ALTA por encima de MEDIA entre los abiertos, aunque sea más antigua.
+    expect(posicion('Derrame de aceite')).toBeLessThan(posicion('mal estacionado'));
+    // CERRADO al final, pese a ser el más reciente y de prioridad CRÍTICA.
+    expect(posicion('Barrera dañada')).toBe(descripciones.length - 1);
+  });
+
+  it('bloquea el switch de un incidente cerrado', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    await waitFor(() =>
+      expect(screen.getAllByText('Barrera dañada en el acceso norte').length).toBeGreaterThan(0)
+    );
+
+    const switches = screen.getAllByRole('switch');
+    const switchCerrado = switches[switches.length - 1];
+    expect(switchCerrado).toBeDisabled();
+    expect(switchCerrado).toHaveAccessibleName('El incidente está cerrado y no puede cambiar de estado');
+
+    await user.click(switchCerrado);
+    expect(switchCerrado).toHaveAttribute('aria-checked', 'false');
+  });
+
   it('cambia el estado de un incidente con el switch de la tarjeta', async () => {
     const user = userEvent.setup();
     renderIncidentes();
@@ -89,7 +125,8 @@ describe('features/incidentes', () => {
       expect(screen.getAllByText('Vehículo mal estacionado bloqueando entrada').length).toBeGreaterThan(0)
     );
 
-    // El primero de la lista (orden por fecha desc) es el incidente "mal estacionado".
+    // El primero de la lista es el abierto de mayor prioridad (ALTA, "derrame de aceite"),
+    // no el más reciente ni el CRÍTICO ya cerrado — ver lib/orden.ts.
     const [firstSwitch] = screen.getAllByRole('switch');
     expect(firstSwitch).toHaveAttribute('aria-checked', 'false');
 

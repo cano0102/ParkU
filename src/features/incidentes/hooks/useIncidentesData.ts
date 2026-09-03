@@ -14,6 +14,7 @@ import {
   useRemoveIncidente,
 } from "./useIncidentes";
 import type { EstadoIncidente } from "../lib/constants";
+import { compararIncidentes } from "../lib/orden";
 
 interface UseIncidentesDataOptions {
   /** El listado de incidentes hay que intentarlo igual para Comunidad SENA — no existe otra
@@ -93,6 +94,13 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const toggleEstado = async (id: string) => {
     const incidente = incidentes.find((i) => i.id === id);
     if (!incidente) return;
+    // "Cerrado" es un estado final: no se puede reabrir ni marcar resuelto/pendiente.
+    // La tarjeta ya deshabilita el switch (IncidenteCard.tsx); esta guarda cubre
+    // cualquier otra vía que llame al toggle. El backend debe rechazarlo también.
+    if (incidente.estado === "cerrado") {
+      toast.error("Un incidente cerrado no puede cambiar de estado.");
+      return;
+    }
     try {
       await updateIncidente(id, {
         estado: incidente.estado === "resuelto" ? "pendiente" : "resuelto",
@@ -121,7 +129,7 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
           const matchesEstado = filterEstado === "todos" ? true : inc.estado === filterEstado;
           return matchesSearch && matchesEstado;
         })
-        .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime()),
+        .sort(compararIncidentes),
     [incidentes, search, filterEstado, parqueaderoPorId, celdaPorId, vehiculoPorId]
   );
 

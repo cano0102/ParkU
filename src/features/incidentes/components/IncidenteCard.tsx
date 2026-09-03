@@ -1,4 +1,4 @@
-import { AlertTriangle, Car, CheckCircle, Clock, Edit, Eye, MapPin, Trash2, User } from "lucide-react";
+import { AlertTriangle, Car, CheckCircle, Clock, Edit, Eye, Lock, MapPin, Trash2, User } from "lucide-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
@@ -23,6 +23,10 @@ interface IncidenteCardProps {
 export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidenteCardProps) {
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
+  // Un incidente cerrado no puede volver a pendiente/resuelto: el switch queda
+  // deshabilitado y se marca con un candado (la guarda equivalente vive en
+  // useIncidentesData.toggleEstado, y el backend debe impedirlo también).
+  const estadoBloqueado = incidente.estado === "cerrado";
 
   return (
     <div
@@ -95,13 +99,22 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre,
             <button
               onClick={onToggleEstado}
               role="switch"
+              disabled={estadoBloqueado}
               aria-checked={incidente.estado === "resuelto"}
-              aria-label={`Marcar incidente como ${incidente.estado === "resuelto" ? "pendiente" : "resuelto"}`}
+              aria-label={
+                estadoBloqueado
+                  ? "El incidente está cerrado y no puede cambiar de estado"
+                  : `Marcar incidente como ${incidente.estado === "resuelto" ? "pendiente" : "resuelto"}`
+              }
+              title={estadoBloqueado ? "Un incidente cerrado no puede cambiar de estado" : undefined}
               style={{
                 width: 36, height: 20, borderRadius: 999,
-                background: incidente.estado === "resuelto" ? C.success : C.warning,
-                border: "none", cursor: "pointer", position: "relative",
+                background: estadoBloqueado
+                  ? C.borderStrong
+                  : incidente.estado === "resuelto" ? C.success : C.warning,
+                border: "none", cursor: estadoBloqueado ? "not-allowed" : "pointer", position: "relative",
                 transition: "background .2s",
+                opacity: estadoBloqueado ? 0.65 : 1,
               }}
             >
               <div style={{
@@ -111,8 +124,12 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre,
                 transition: "left .2s",
               }} />
             </button>
-            <span style={{ fontSize: 11, fontWeight: 600, color: C.textLight }}>
-              {incidente.estado === "resuelto" ? "Resuelto" : "Pendiente"}
+            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: C.textLight }}>
+              {/* Antes solo distinguía resuelto/pendiente, así que un incidente
+                  cerrado o cancelado se rotulaba "Pendiente"; ahora usa la etiqueta
+                  real del estado (ESTADO_CONFIG) y avisa cuando está bloqueado. */}
+              {cfg.label}
+              {estadoBloqueado && <Lock size={10} aria-hidden="true" />}
             </span>
           </div>
 
