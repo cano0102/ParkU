@@ -102,6 +102,7 @@ export function ConductorIncidentes() {
           parqueaderos={data.parqueaderos}
           vehiculos={data.misVehiculos}
           usuarios={[]}
+          puedeClasificar={false}
           celdasDelParqueadero={dialogs.celdasDelParqueadero}
           celdaSeleccionada={data.celdaDe(dialogs.formData.celdaId)}
           ocupanteSeleccionado={dialogs.ocupanteSeleccionado}

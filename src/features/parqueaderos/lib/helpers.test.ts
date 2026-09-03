@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Celda } from '@/services/api/celdas';
-import { estaFueraDeHorarioOperacion, HORA_OPERACION_INICIO, HORA_OPERACION_FIN, evaluarEliminacionParqueadero, superaEstadiaLimite, ESTADIA_ALERTA_HORAS } from './helpers';
+import { estaFueraDeHorarioOperacion, HORA_OPERACION_INICIO, HORA_OPERACION_FIN, evaluarEliminacionParqueadero, superaEstadiaLimite, ESTADIA_ALERTA_HORAS, validarFormParqueadero, type FormParqueadero } from './helpers';
 
 function celda(overrides: Partial<Celda>): Celda {
   return {
@@ -101,5 +101,43 @@ describe('superaEstadiaLimite', () => {
 
   it('es false para una estadía corta (2h)', () => {
     expect(superaEstadiaLimite(horasAtras(2), false)).toBe(false);
+  });
+});
+
+/* ============================================================
+   validarFormParqueadero — capacidad máxima vs. celdas configuradas
+============================================================ */
+function form(overrides: Partial<FormParqueadero> = {}): FormParqueadero {
+  return {
+    nombre: 'PQ Nuevo', ubicacion: 'Bloque A', acceso: 'regional', tipo: 'general',
+    capacidadMaxima: 10, horaInicio: '06:00', horaFin: '22:00', zona: '', piso: '', descripcion: '',
+    estado: 'activo', celdasCarros: 2, celdasMotos: 1, celdasMovilidadReducida: 0,
+    ...overrides,
+  };
+}
+
+describe('validarFormParqueadero — capacidad máxima', () => {
+  it('exige capacidad mayor a cero al crear', () => {
+    expect(validarFormParqueadero(form({ capacidadMaxima: 0 }), [], null)).toMatch(/mayor a cero/);
+  });
+
+  it('acepta una configuración cuyas celdas caben en la capacidad', () => {
+    expect(validarFormParqueadero(form({ capacidadMaxima: 10, celdasCarros: 5, celdasMotos: 5 }), [], null)).toBeNull();
+  });
+
+  it('rechaza al crear si las celdas indicadas superan la capacidad máxima', () => {
+    const error = validarFormParqueadero(form({ capacidadMaxima: 5, celdasCarros: 4, celdasMotos: 4 }), [], null);
+    expect(error).toMatch(/superan la capacidad máxima/);
+  });
+
+  it('al editar, no deja bajar la capacidad por debajo de las celdas que ya existen', () => {
+    // En edición los campos de celdas vienen precargados con la cantidad ACTIVA real, así que
+    // bajar la capacidad por debajo de esa suma es justo el caso "capacidad < celdas existentes".
+    const error = validarFormParqueadero(form({ capacidadMaxima: 4, celdasCarros: 6, celdasMotos: 0 }), [], '1');
+    expect(error).toMatch(/la capacidad máxima no puede ser menor/);
+  });
+
+  it('al editar, permite subir la capacidad dejando las celdas como están', () => {
+    expect(validarFormParqueadero(form({ capacidadMaxima: 80, celdasCarros: 30, celdasMotos: 20 }), [], '1')).toBeNull();
   });
 });

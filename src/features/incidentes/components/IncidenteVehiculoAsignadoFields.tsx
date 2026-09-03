@@ -19,6 +19,10 @@ interface IncidenteVehiculoAsignadoFieldsProps {
   vehiculos: Vehiculo[];
   /** Solo tiene datos si el usuario actual es Admin (único rol que puede listar /api/usuarios). */
   usuarios: Usuario[];
+  /** false para quien solo REPORTA (Comunidad SENA): esa persona describe lo que vio, no decide
+   *  la urgencia ni a qué vigilante se le asigna — eso lo define quien recibe el reporte al
+   *  aceptarlo. Con false, ni la prioridad ni "Asignar a" se muestran. */
+  puedeClasificar?: boolean;
   showJustificacionCierre: boolean;
   justificacionCierre: string;
   onVehiculoChange: (value: string) => void;
@@ -30,13 +34,13 @@ interface IncidenteVehiculoAsignadoFieldsProps {
 
 /** Campos tipo/prioridad, vehículo, asignar a (solo Admin), y justificación de cierre. */
 export function IncidenteVehiculoAsignadoFields({
-  vehiculoId, usuarioAsignadoId, tipoNovedad, prioridad, vehiculos, usuarios,
+  vehiculoId, usuarioAsignadoId, tipoNovedad, prioridad, vehiculos, usuarios, puedeClasificar = true,
   showJustificacionCierre, justificacionCierre,
   onVehiculoChange, onUsuarioAsignadoChange, onTipoNovedadChange, onPrioridadChange, onJustificacionCierreChange,
 }: IncidenteVehiculoAsignadoFieldsProps) {
   return (
     <>
-      <div className="incidentes-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="incidentes-form-grid" style={{ display: "grid", gridTemplateColumns: puedeClasificar ? "1fr 1fr" : "1fr", gap: 12 }}>
         <div>
           <label htmlFor="tipoNovedad" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
             Tipo
@@ -47,16 +51,18 @@ export function IncidenteVehiculoAsignadoFields({
             ))}
           </select>
         </div>
-        <div>
-          <label htmlFor="prioridad" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-            Prioridad
-          </label>
-          <select id="prioridad" value={prioridad} onChange={(e) => onPrioridadChange(e.target.value as PrioridadNovedad)} style={selectStyle}>
-            {(Object.keys(PRIORIDAD_LABEL) as PrioridadNovedad[]).map((p) => (
-              <option key={p} value={p}>{PRIORIDAD_LABEL[p]}</option>
-            ))}
-          </select>
-        </div>
+        {puedeClasificar && (
+          <div>
+            <label htmlFor="prioridad" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
+              Prioridad
+            </label>
+            <select id="prioridad" value={prioridad} onChange={(e) => onPrioridadChange(e.target.value as PrioridadNovedad)} style={selectStyle}>
+              {(Object.keys(PRIORIDAD_LABEL) as PrioridadNovedad[]).map((p) => (
+                <option key={p} value={p}>{PRIORIDAD_LABEL[p]}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div>
@@ -74,6 +80,13 @@ export function IncidenteVehiculoAsignadoFields({
         </p>
       </div>
 
+      {!puedeClasificar && (
+        <p style={{ fontSize: 10, color: C.textLight }}>
+          Tu reporte queda <strong>pendiente</strong>: quien lo reciba define la prioridad y a qué vigilante se asigna.
+        </p>
+      )}
+
+      {puedeClasificar && (
       <div>
         <label htmlFor="asignadoA" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
           Asignar a
@@ -90,6 +103,7 @@ export function IncidenteVehiculoAsignadoFields({
           </p>
         )}
       </div>
+      )}
 
       {showJustificacionCierre && (
         <div>

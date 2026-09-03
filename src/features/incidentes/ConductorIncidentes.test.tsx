@@ -68,6 +68,22 @@ describe('features/incidentes — ConductorIncidentes (rol Comunidad SENA)', () 
     expect(opciones.some((o) => o?.includes('DEF456'))).toBe(false);
   });
 
+  it('no ofrece prioridad ni "Asignar a": quien solo reporta no clasifica su propio reporte', async () => {
+    const user = userEvent.setup();
+    renderComoComunidadSena();
+    await screen.findByText('Mis incidentes');
+
+    await user.click(screen.getByRole('button', { name: /Reportar incidente/i }));
+    await screen.findByRole('heading', { level: 2, name: 'Nuevo Incidente' });
+
+    expect(screen.queryByLabelText('Prioridad')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Asignar a')).not.toBeInTheDocument();
+    // Sí se le explica qué pasa con su reporte en vez de dejar el hueco sin más.
+    expect(screen.getByText(/queda/i)).toBeInTheDocument();
+    // El tipo sí lo elige quien reporta (describe QUÉ vio, no la urgencia).
+    expect(screen.getByLabelText('Tipo')).toBeInTheDocument();
+  });
+
   // `PUT /novedades/:id` (usado por "Editar" y "Cancelar") da 403 para este rol en la API real
   // hoy (ver el comentario junto a PERMISOS_POR_ROL[CONDUCTOR].incidentes en
   // services/core/roles.ts) — antes este test aceptaba como correcto que el botón disparara un

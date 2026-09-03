@@ -71,7 +71,18 @@ export function useControlSalidaPage() {
           const matchesParqueadero = filterParqueadero === "todos" ? true : parqueadero?.id === filterParqueadero;
           return matchesSearch && matchesEstado && matchesParqueadero;
         })
-        .sort((a, b) => new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime()),
+        // Orden por fecha/hora de SALIDA, lo más reciente primero. Los que siguen adentro no
+        // tienen salida todavía: en vez de quedar al fondo (o romper la comparación con un
+        // `new Date("")` inválido), van arriba —  son los registros vivos, los que el vigilante
+        // necesita a mano— y entre ellos se ordenan por su hora de entrada más reciente.
+        .sort((a, b) => {
+          const salidaA = a.fechaSalida;
+          const salidaB = b.fechaSalida;
+          if (!salidaA && !salidaB) return new Date(b.fechaEntrada).getTime() - new Date(a.fechaEntrada).getTime();
+          if (!salidaA) return -1;
+          if (!salidaB) return 1;
+          return new Date(salidaB).getTime() - new Date(salidaA).getTime();
+        }),
     [controlesSalida, search, filterEstado, filterParqueadero, getVehiculo, getCelda, getUsuarioConductor, getParqueadero]
   );
 

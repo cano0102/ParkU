@@ -84,6 +84,13 @@ export function ParqueaderoFormModal({ open, isEdit, pqForm, setPqForm, formErro
               agregar más luego desde Celdas):
             </p>
             <div style={{ marginBottom: 12 }}>
+              <label style={labelStyle} htmlFor="pq-capacidad-crear">Capacidad máxima *</label>
+              <input id="pq-capacidad-crear" type="number" min={1} max={500} value={pqForm.capacidadMaxima} onChange={e => setPqForm(p => ({ ...p, capacidadMaxima: Math.max(0, parseInt(e.target.value, 10) || 0) }))} style={fieldStyle} />
+              <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
+                Techo de celdas del parqueadero: las cantidades de abajo no pueden superarlo.
+              </p>
+            </div>
+            <div style={{ marginBottom: 12 }}>
               <label style={labelStyle}>Descripción</label>
               <input value={pqForm.descripcion} maxLength={DESCRIPCION_PQ_MAX} onChange={e => setPqForm(p => ({ ...p, descripcion: e.target.value }))} placeholder="Ej: Parqueadero cubierto, acceso por la entrada principal" style={fieldStyle} />
             </div>

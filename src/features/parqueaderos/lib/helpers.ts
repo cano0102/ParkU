@@ -258,9 +258,25 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
   if (parqueaderos.some(p => p.id !== excludeId && p.nombre.trim().toLowerCase() === nombre.toLowerCase())) return `Ya existe un parqueadero llamado "${nombre}".`;
   if (ubicacion.length > UBICACION_PQ_MAX) return `La ubicación no puede superar ${UBICACION_PQ_MAX} caracteres.`;
 
+  // Capacidad máxima: se pide y se valida igual al crear que al editar — es el techo contra el
+  // que se contrastan las celdas configuradas justo abajo.
+  if (!Number.isInteger(form.capacidadMaxima)) return "La capacidad máxima debe ser un número entero.";
+  if (form.capacidadMaxima <= 0) return "La capacidad máxima debe ser mayor a cero.";
+  if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
+
+  // El total de celdas configuradas no puede exceder la capacidad máxima. Al editar esto cubre
+  // los dos lados del problema con una sola regla: ni se suben las celdas por encima del techo,
+  // ni se baja el techo por debajo de las celdas que YA existen (los campos vienen precargados
+  // con la cantidad activa real, ver useParqueaderoForm.ts#openEdit).
+  const totalCeldas = form.celdasCarros + form.celdasMotos + form.celdasMovilidadReducida;
+  if (totalCeldas > form.capacidadMaxima) {
+    return esCreacion
+      ? `Las ${totalCeldas} celdas indicadas superan la capacidad máxima (${form.capacidadMaxima}). Sube la capacidad o reduce las celdas.`
+      : `Este parqueadero tiene ${totalCeldas} celda(s) configurada(s): la capacidad máxima no puede ser menor (${form.capacidadMaxima}). Desactiva celdas primero o sube la capacidad.`;
+  }
+
   if (esCreacion) {
-    if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
-    if (form.celdasCarros + form.celdasMotos + form.celdasMovilidadReducida <= 0) {
+    if (totalCeldas <= 0) {
       return "Debes indicar al menos una celda (carro, moto o movilidad reducida) para generar.";
     }
     return null;
@@ -268,8 +284,6 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
 
   if (!form.horaInicio || !form.horaFin) return "Debes definir la hora de apertura y de cierre.";
   if (horaAMinutos(form.horaFin) <= horaAMinutos(form.horaInicio)) return "La hora de cierre debe ser posterior a la hora de apertura.";
-  if (form.capacidadMaxima <= 0) return "La capacidad máxima debe ser mayor a cero.";
-  if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
   return null;
 }
 

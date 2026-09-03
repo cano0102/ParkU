@@ -34,6 +34,9 @@ interface IncidenteFormModalProps {
   parqueaderos: Parqueadero[];
   vehiculos: Vehiculo[];
   usuarios: Usuario[];
+  /** false para el flujo de Comunidad SENA (solo reporta): oculta prioridad y "Asignar a" —
+   *  ver IncidenteVehiculoAsignadoFields. Por defecto true (Admin/Vigilante). */
+  puedeClasificar?: boolean;
   celdasDelParqueadero: Celda[];
   celdaSeleccionada: Celda | undefined;
   ocupanteSeleccionado: { vehiculo: { id: string; placa: string }; conductorNombre?: string } | null;
@@ -47,7 +50,7 @@ interface IncidenteFormModalProps {
 /** Modal de crear/editar incidente: header, campos y acciones. */
 export function IncidenteFormModal({
   isEditing, showJustificacionCierre, formData, setFormData, formTouched, formErrors, formInvalido, markTouched,
-  parqueaderos, vehiculos, usuarios, celdasDelParqueadero, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
+  parqueaderos, vehiculos, usuarios, puedeClasificar = true, celdasDelParqueadero, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
   onParqueaderoChange, onCeldaChange, onClose, onSave,
 }: IncidenteFormModalProps) {
   return (
@@ -121,6 +124,7 @@ export function IncidenteFormModal({
             prioridad={formData.prioridad}
             vehiculos={vehiculos}
             usuarios={usuarios}
+            puedeClasificar={puedeClasificar}
             showJustificacionCierre={showJustificacionCierre}
             justificacionCierre={formData.justificacionCierre}
             onVehiculoChange={(value) => setFormData((f) => ({ ...f, vehiculoId: value }))}

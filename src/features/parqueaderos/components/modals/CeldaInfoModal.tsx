@@ -86,28 +86,42 @@ export function CeldaInfoModal({
               <Wrench size={12} color={C.textLight} />
               <span style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>Ajuste manual de estado</span>
             </div>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {ESTADOS_MANUALES.map(({ estado, label }) => {
-                const activo = celdaActiva.estado === estado;
-                return (
-                  <button
-                    key={estado}
-                    disabled={activo}
-                    onClick={() => onSetEstadoManual(estado)}
-                    style={{
-                      padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, fontFamily: "inherit",
-                      border: `1px solid ${activo ? C.primary : C.border}`,
-                      background: activo ? C.primaryPale : "#fff",
-                      color: activo ? C.primaryDark : C.text,
-                      cursor: activo ? "default" : "pointer",
-                    }}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-            <p style={{ fontSize: 9, color: C.textLight, marginTop: 6 }}>Cambia el estado sin pasar por el flujo normal (estacionar/reservar/liberar). Úsalo solo para corregir una celda atascada o ponerla en mantenimiento.</p>
+            {/* Una celda realmente ocupada (o con una reserva activa) no se toca a mano: forzarle
+                "disponible" por aquí dejaría el ingreso/reserva abierto en la base de datos y la
+                celda libre en pantalla — datos desincronizados. Primero se registra la salida
+                (o se cancela la reserva) por su flujo normal, y ahí sí se puede ajustar. */}
+            {ocupanteActivo || reservaActiva ? (
+              <p style={{ fontSize: 11, color: C.text, fontWeight: 600, lineHeight: 1.5 }}>
+                {ocupanteActivo
+                  ? "La celda está ocupada. Debe registrarse la salida del vehículo para poder modificar su estado."
+                  : "La celda tiene una reserva activa. Debe cancelarse la reserva para poder modificar su estado."}
+              </p>
+            ) : (
+              <>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {ESTADOS_MANUALES.map(({ estado, label }) => {
+                    const activo = celdaActiva.estado === estado;
+                    return (
+                      <button
+                        key={estado}
+                        disabled={activo}
+                        onClick={() => onSetEstadoManual(estado)}
+                        style={{
+                          padding: "6px 10px", borderRadius: 8, fontSize: 11, fontWeight: 700, fontFamily: "inherit",
+                          border: `1px solid ${activo ? C.primary : C.border}`,
+                          background: activo ? C.primaryPale : "#fff",
+                          color: activo ? C.primaryDark : C.text,
+                          cursor: activo ? "default" : "pointer",
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ fontSize: 9, color: C.textLight, marginTop: 6 }}>Cambia el estado sin pasar por el flujo normal (estacionar/reservar/liberar). Úsalo solo para corregir una celda atascada o ponerla en mantenimiento.</p>
+              </>
+            )}
           </div>
         )}
         {celdaActiva?.estado === "mantenimiento" && (
