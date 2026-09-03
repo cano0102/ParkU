@@ -20,12 +20,6 @@ export function useLoginForm() {
   const [capsLockOn, setCapsLockOn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
-  /** Correo al que se notificó el acceso. Mientras tenga valor, Login muestra
-   *  `LoginEmailNotice` en lugar del formulario (la sesión ya está iniciada, el
-   *  aviso no bloquea el acceso). El despacho del correo es responsabilidad del
-   *  backend al resolver `POST /auth/login`: el front no tiene endpoint propio
-   *  para dispararlo ni reenviarlo, por eso esta pantalla solo informa. */
-  const [accesoNotificado, setAccesoNotificado] = useState<string | null>(null);
   const [touched, setTouched] = useState<{ email: boolean; password: boolean }>({ email: false, password: false });
 
   const navigate = useNavigate();
@@ -112,10 +106,8 @@ export function useLoginForm() {
         localStorage.removeItem(REMEMBER_KEY);
       }
 
-      // En vez de saltar directo al panel, la pantalla pasa al aviso que informa
-      // a qué correo se envió la notificación de este ingreso.
-      toast.success("¡Bienvenido! Te enviamos un correo de acceso.");
-      setAccesoNotificado(trimmedEmail);
+      toast.success("¡Bienvenido! Redirigiendo...");
+      navigate("/app/dashboard");
     } catch (error: any) {
       console.error("Error al iniciar sesión:", error);
 
@@ -154,8 +146,6 @@ export function useLoginForm() {
     }
   };
 
-  const continuarAlPanel = () => navigate("/app/dashboard");
-
   const isEmailFormatValid = EMAIL_REGEX.test(email.trim());
   const isPasswordFormatValid = password.length >= 6;
   const isFormValid = isEmailFormatValid && isPasswordFormatValid;
@@ -164,6 +154,5 @@ export function useLoginForm() {
     email, setEmail, password, setPassword, rememberMe, setRememberMe,
     showPassword, setShowPassword, capsLockOn, loading, errors, touched,
     emailInputRef, handleBlur, handlePasswordKeyEvent, handleLogin, isFormValid,
-    accesoNotificado, continuarAlPanel,
   };
 }
