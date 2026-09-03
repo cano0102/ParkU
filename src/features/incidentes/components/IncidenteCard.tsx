@@ -2,7 +2,8 @@ import { AlertTriangle, Car, CheckCircle, Clock, Edit, Eye, Lock, MapPin, Trash2
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
-import { ESTADO_CONFIG } from "../lib/constants";
+import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
+import { esEstadoFinal, transicionesDe } from "../lib/transiciones";
 import { CeldaBadgeInline, EstadoBadgeInline } from "./IncidenteBadges";
 
 const C = theme;
@@ -16,17 +17,18 @@ interface IncidenteCardProps {
   onView: () => void;
   onEdit: () => void;
   onDelete: () => void;
-  onToggleEstado: () => void;
+  onCambiarEstado: (estado: EstadoIncidente) => void;
 }
 
 /** Tarjeta de un incidente en el grid: resumen, ubicación y acciones rápidas. */
-export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidenteCardProps) {
+export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidenteCardProps) {
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
-  // Un incidente cerrado no puede volver a pendiente/resuelto: el switch queda
-  // deshabilitado y se marca con un candado (la guarda equivalente vive en
-  // useIncidentesData.toggleEstado, y el backend debe impedirlo también).
-  const estadoBloqueado = incidente.estado === "cerrado";
+  // Resuelto, cerrado y cancelado son finales: en vez del selector se muestra la etiqueta
+  // con un candado (la guarda equivalente vive en useIncidentesData.cambiarEstado, y el
+  // backend debe impedirlo también). Ver lib/transiciones.ts.
+  const estadoBloqueado = esEstadoFinal(incidente.estado);
+  const destinos = transicionesDe(incidente.estado);
 
   return (
     <div
@@ -96,41 +98,37 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre,
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              onClick={onToggleEstado}
-              role="switch"
-              disabled={estadoBloqueado}
-              aria-checked={incidente.estado === "resuelto"}
-              aria-label={
-                estadoBloqueado
-                  ? "El incidente está cerrado y no puede cambiar de estado"
-                  : `Marcar incidente como ${incidente.estado === "resuelto" ? "pendiente" : "resuelto"}`
-              }
-              title={estadoBloqueado ? "Un incidente cerrado no puede cambiar de estado" : undefined}
-              style={{
-                width: 36, height: 20, borderRadius: 999,
-                background: estadoBloqueado
-                  ? C.borderStrong
-                  : incidente.estado === "resuelto" ? C.success : C.warning,
-                border: "none", cursor: estadoBloqueado ? "not-allowed" : "pointer", position: "relative",
-                transition: "background .2s",
-                opacity: estadoBloqueado ? 0.65 : 1,
-              }}
-            >
-              <div style={{
-                width: 16, height: 16, borderRadius: "50%",
-                background: "#fff", position: "absolute", top: 2,
-                left: incidente.estado === "resuelto" ? 18 : 2,
-                transition: "left .2s",
-              }} />
-            </button>
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: C.textLight }}>
-              {/* Antes solo distinguía resuelto/pendiente, así que un incidente
-                  cerrado o cancelado se rotulaba "Pendiente"; ahora usa la etiqueta
-                  real del estado (ESTADO_CONFIG) y avisa cuando está bloqueado. */}
-              {cfg.label}
-              {estadoBloqueado && <Lock size={10} aria-hidden="true" />}
-            </span>
+            {estadoBloqueado ? (
+              <span
+                title={`Un incidente ${cfg.label.toLowerCase()} ya no puede cambiar de estado`}
+                style={{
+                  display: "flex", alignItems: "center", gap: 5, padding: "5px 10px", borderRadius: 999,
+                  fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.text,
+                  border: `1px solid ${cfg.border}`,
+                }}
+              >
+                <Lock size={10} aria-hidden="true" />
+                {cfg.label}
+              </span>
+            ) : (
+              <select
+                aria-label="Cambiar estado del incidente"
+                value={incidente.estado}
+                onChange={(e) => onCambiarEstado(e.target.value as EstadoIncidente)}
+                style={{
+                  padding: "5px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700,
+                  fontFamily: "inherit", cursor: "pointer", appearance: "none",
+                  background: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}`,
+                }}
+              >
+                <option value={incidente.estado}>{cfg.label}</option>
+                {destinos.map((estado) => (
+                  <option key={estado} value={estado}>
+                    Cambiar a: {ESTADO_CONFIG[estado].label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div style={{ display: "flex", gap: 4 }}>

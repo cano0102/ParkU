@@ -56,6 +56,13 @@ export interface FormState {
   /** Id del Rol (string, p. ej. "1") — se convierte a rol_id numérico al guardar. */
   rol: string;
   estado: "activo" | "inactivo";
+  /** Documento de identidad. Solo se pide (y se guarda) cuando el rol es Comunidad SENA:
+   *  la tabla `usuario` no tiene columnas de documento, el dato vive en el `conductor`
+   *  vinculado por `usuario_id` — ver useUsuariosData.guardarDocumentoDeUsuario. */
+  tipoDocumento: string;
+  numeroDocumento: string;
+  /** FK obligatoria de `conductor` (Aprendiz/Instructor/…), del catálogo /catalogos/tipos-usuario. */
+  tipoUsuarioId: string;
 }
 
 export const emptyForm = (): FormState => ({
@@ -65,4 +72,7 @@ export const emptyForm = (): FormState => ({
   numero: "",
   rol: "",
   estado: "activo",
+  tipoDocumento: "CC",
+  numeroDocumento: "",
+  tipoUsuarioId: "",
 });

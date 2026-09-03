@@ -1,4 +1,4 @@
-import { Mail, ShieldCheck } from "lucide-react";
+import { Mail, ShieldCheck, X } from "lucide-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { FormField } from "@/components/shared";
 import { COLORS, getAvatarGradient, getInitials, inputStyle } from "../lib/helpers";
@@ -12,12 +12,15 @@ interface UsuarioVinculadoFieldProps {
   usuarioIdSeleccionado: string;
   usuarioSeleccionado: Usuario | undefined;
   onSelectUsuario: (id: string) => void;
+  /** Deshace SOLO la vinculación con la cuenta (por haber elegido la equivocada): el resto
+   *  del formulario del conductor se conserva tal cual, sin cancelar su creación. */
+  onQuitarUsuario: () => void;
 }
 
 /** Buscador + lista de usuarios para vincular al conductor, con vista previa del seleccionado. */
 export function UsuarioVinculadoField({
   error, usuarioSearch, onUsuarioSearchChange, usuariosFiltrados, usuariosConConductorIds,
-  usuarioIdSeleccionado, usuarioSeleccionado, onSelectUsuario,
+  usuarioIdSeleccionado, usuarioSeleccionado, onSelectUsuario, onQuitarUsuario,
 }: UsuarioVinculadoFieldProps) {
   return (
     <FormField label="Cuenta de acceso vinculada (opcional)" error={error}>
@@ -88,6 +91,20 @@ export function UsuarioVinculadoField({
           <span style={{ marginLeft: "auto", fontSize: 10, color: COLORS.textLight }}>
             Seleccionado: {usuarioSeleccionado.nombre}
           </span>
+          <button
+            type="button"
+            onClick={onQuitarUsuario}
+            aria-label="Quitar la cuenta vinculada"
+            title="Quitar la cuenta vinculada (no cancela el registro del conductor)"
+            style={{
+              flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px",
+              borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff",
+              color: COLORS.textLight, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            <X size={11} />
+            Quitar
+          </button>
         </div>
       )}
     </FormField>

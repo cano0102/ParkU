@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Usuario } from "@/services/api/usuarios";
+import type { Conductor } from "@/services/api/conductores";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
+import { validarNumeroDocumento } from "@/utils/validation";
 import {
   FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono,
 } from "../lib/helpers";
@@ -12,12 +14,14 @@ interface UseUsuarioFormArgs {
   isEdit: boolean;
   roles: { id: string; nombre: string; estado?: "activo" | "inactivo" }[];
   usuarios: Usuario[];
+  /** Conductores ya registrados, para detectar documentos duplicados sin ir al backend. */
+  conductores: Conductor[];
   editingId: string | null;
   onSave: (data: FormState) => void;
 }
 
 /** Estado, validación en vivo y envío del formulario de usuario. */
-export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, onSave }: UseUsuarioFormArgs) {
+export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, editingId, onSave }: UseUsuarioFormArgs) {
   const [form, setForm] = useState<FormState>(initial);
   const [showPass, setShowPass] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
@@ -40,6 +44,19 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
     const activos = roles.filter((r) => r.estado !== "inactivo");
     return esSuperAdmin ? activos : activos.filter((r) => r.id !== String(ROLES.ADMIN));
   }, [roles, esSuperAdmin]);
+
+  /** Documentos ya usados por OTRO conductor (el de la cuenta en edición se excluye, para que
+   *  guardar sin cambiar el documento no choque consigo mismo). Mismo criterio que
+   *  useConductorForm.ts, contra la lista ya cargada en vez de una consulta extra. */
+  const documentosOcupados = useMemo(
+    () =>
+      new Set(
+        conductores
+          .filter((c) => !editingId || c.usuarioId !== editingId)
+          .map((c) => `${c.tipoDocumento}|${c.numeroDocumento.trim()}`)
+      ),
+    [conductores, editingId]
+  );
 
   // Los errores se recalculan en tiempo real vía el `useEffect` sobre `form` (ver más abajo),
   // así que aquí solo hace falta actualizar el valor del campo.
@@ -92,6 +109,24 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
       nextErrors.rol = "Solo el súper administrador puede asignar el rol Administrador";
     }
 
+    // Documento: solo se pide a las cuentas de Comunidad SENA (rol Conductor). El documento
+    // no es una columna de `usuario`, se persiste en el `conductor` vinculado, y ese modelo
+    // exige además el tipo de usuario (FK). Para Admin/Vigilante no se pide nada de esto: no
+    // se les crea un registro de conductor.
+    if (f.rol === String(ROLES.CONDUCTOR)) {
+      const numeroDocumento = f.numeroDocumento.trim();
+      if (!numeroDocumento) {
+        nextErrors.numeroDocumento = "El número de documento es obligatorio";
+      } else if (!validarNumeroDocumento(numeroDocumento)) {
+        nextErrors.numeroDocumento = "El número de documento debe tener entre 6 y 10 dígitos.";
+      } else if (documentosOcupados.has(`${f.tipoDocumento}|${numeroDocumento}`)) {
+        nextErrors.numeroDocumento = "Ya existe un conductor registrado con este tipo y número de documento.";
+      }
+      if (!f.tipoUsuarioId) {
+        nextErrors.tipoUsuarioId = "Selecciona un tipo de usuario";
+      }
+    }
+
     // Contraseña: obligatoria al crear; si se escribe (crear o editar), validar longitud
     if (!isEdit && !f.password) {
       nextErrors.password = "La contraseña es obligatoria";
@@ -100,7 +135,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
     }
 
     return nextErrors;
-  }, [isEdit, usuarios, editingId, esSuperAdmin]);
+  }, [isEdit, usuarios, editingId, esSuperAdmin, documentosOcupados]);
 
   // Validación en tiempo real: recalcula los errores en cada cambio del formulario;
   // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
@@ -117,7 +152,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
   const handleSubmit = useCallback(() => {
     const nextErrors = validate(form);
     setErrors(nextErrors);
-    setTouched({ nombre: true, correo: true, numero: true, rol: true, password: true });
+    setTouched({ nombre: true, correo: true, numero: true, rol: true, password: true, numeroDocumento: true, tipoUsuarioId: true });
     if (Object.keys(nextErrors).length > 0) {
       toast.error("Revisa los campos marcados en rojo");
       return;
@@ -131,6 +166,8 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, editingId, on
   return {
     form, set, showPass, setShowPass,
     rolesDisponibles, markTouched, err, handleSubmit,
+    /** El rol elegido es Comunidad SENA: la sección de documento solo aplica en ese caso. */
+    esRolConductor: form.rol === String(ROLES.CONDUCTOR),
     isValid: Object.keys(errors).length === 0,
   };
 }

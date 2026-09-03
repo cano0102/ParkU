@@ -61,7 +61,7 @@ export function Incidentes() {
               onView={p.openView}
               onEdit={p.openEdit}
               onDelete={p.handleDelete}
-              onToggleEstado={p.toggleEstado}
+              onCambiarEstado={p.cambiarEstado}
             />
           </>
         )}

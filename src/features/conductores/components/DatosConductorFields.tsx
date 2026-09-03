@@ -10,15 +10,19 @@ interface DatosConductorFieldsProps {
   onChange: (patch: Partial<FormState>) => void;
   onBlur: (field: string) => void;
   onToggleEstado: () => void;
+  /** Muestra centro de formación y regional. Se apaga en el alta rápida desde el panel de
+   *  Parqueaderos (portería), donde solo interesan identidad, contacto y tipo de usuario;
+   *  esos datos se siguen gestionando desde el módulo Conductores, que los deja visibles. */
+  mostrarFormacion?: boolean;
 }
 
 /** Identidad, documento, contacto, tipo de usuario y formación del conductor. */
-export function DatosConductorFields({ isEdit, form, errors, touched, onChange, onBlur, onToggleEstado }: DatosConductorFieldsProps) {
+export function DatosConductorFields({ isEdit, form, errors, touched, onChange, onBlur, onToggleEstado, mostrarFormacion = true }: DatosConductorFieldsProps) {
   const { data: tiposUsuario = [] } = useTiposUsuario();
   const err = (field: keyof typeof errors) => (touched[field] ? errors[field] : undefined);
 
   return (
-    <div className="cf-modal-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+    <div className="cf-modal-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 10 }}>
       <FormField label="Nombre completo *" error={err("nombre")} style={{ gridColumn: "1 / -1" }}>
         <input
           type="text"
@@ -117,25 +121,29 @@ export function DatosConductorFields({ isEdit, form, errors, touched, onChange, 
         </FormField>
       )}
 
-      <FormField label="Centro de formación (opcional)" style={{ gridColumn: isEdit ? "1 / -1" : undefined }}>
-        <input
-          type="text"
-          placeholder="ej. Centro de Tecnología"
-          value={form.centroFormacion}
-          onChange={(e) => onChange({ centroFormacion: e.target.value })}
-          style={{ ...inputStyle }}
-        />
-      </FormField>
+      {mostrarFormacion && (
+        <>
+          <FormField label="Centro de formación (opcional)" style={{ gridColumn: isEdit ? "1 / -1" : undefined }}>
+            <input
+              type="text"
+              placeholder="ej. Centro de Tecnología"
+              value={form.centroFormacion}
+              onChange={(e) => onChange({ centroFormacion: e.target.value })}
+              style={{ ...inputStyle }}
+            />
+          </FormField>
 
-      <FormField label="Regional (opcional)">
-        <input
-          type="text"
-          placeholder="ej. Antioquia"
-          value={form.regionalFormacion}
-          onChange={(e) => onChange({ regionalFormacion: e.target.value })}
-          style={inputStyle}
-        />
-      </FormField>
+          <FormField label="Regional (opcional)">
+            <input
+              type="text"
+              placeholder="ej. Antioquia"
+              value={form.regionalFormacion}
+              onChange={(e) => onChange({ regionalFormacion: e.target.value })}
+              style={inputStyle}
+            />
+          </FormField>
+        </>
+      )}
 
       <FormField label="Programa de formación (opcional)" style={{ gridColumn: "1 / -1" }}>
         <input

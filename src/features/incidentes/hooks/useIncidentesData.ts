@@ -13,8 +13,9 @@ import {
   useUpdateIncidente,
   useRemoveIncidente,
 } from "./useIncidentes";
-import type { EstadoIncidente } from "../lib/constants";
+import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
 import { compararIncidentes } from "../lib/orden";
+import { esEstadoFinal, puedeCambiarA } from "../lib/transiciones";
 
 interface UseIncidentesDataOptions {
   /** El listado de incidentes hay que intentarlo igual para Comunidad SENA — no existe otra
@@ -91,25 +92,33 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const enProceso = incidentes.filter((i) => i.estado === "en_proceso").length;
   const resueltos = incidentes.filter((i) => i.estado === "resuelto").length;
 
-  const toggleEstado = async (id: string) => {
+  /**
+   * Cambia el estado de un incidente respetando las transiciones válidas
+   * (lib/transiciones.ts): desde pendiente o en proceso se puede avanzar, mientras que
+   * resuelto, cerrado y cancelado son finales y ya no admiten cambios. La tarjeta solo
+   * ofrece los destinos válidos; estas guardas cubren cualquier otra vía de llamada.
+   * El backend debe aplicar la misma regla.
+   */
+  const cambiarEstado = async (id: string, nuevoEstado: EstadoIncidente) => {
     const incidente = incidentes.find((i) => i.id === id);
-    if (!incidente) return;
-    // "Cerrado" es un estado final: no se puede reabrir ni marcar resuelto/pendiente.
-    // La tarjeta ya deshabilita el switch (IncidenteCard.tsx); esta guarda cubre
-    // cualquier otra vía que llame al toggle. El backend debe rechazarlo también.
-    if (incidente.estado === "cerrado") {
-      toast.error("Un incidente cerrado no puede cambiar de estado.");
+    if (!incidente || incidente.estado === nuevoEstado) return;
+
+    if (esEstadoFinal(incidente.estado)) {
+      toast.error(`Un incidente ${ESTADO_CONFIG[incidente.estado].label.toLowerCase()} ya no puede cambiar de estado.`);
       return;
     }
+    if (!puedeCambiarA(incidente.estado, nuevoEstado)) {
+      toast.error("Ese cambio de estado no está permitido.");
+      return;
+    }
+
     try {
-      await updateIncidente(id, {
-        estado: incidente.estado === "resuelto" ? "pendiente" : "resuelto",
-      });
-      toast.success("Estado del incidente actualizado");
+      await updateIncidente(id, { estado: nuevoEstado });
+      toast.success(`Incidente marcado como "${ESTADO_CONFIG[nuevoEstado].label}"`);
     } catch (error) {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
       // (services/core/queryFactory.ts).
-      console.error("Error toggling incidente estado:", error);
+      console.error("Error changing incidente estado:", error);
     }
   };
 
@@ -162,7 +171,7 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     pendientes,
     enProceso,
     resueltos,
-    toggleEstado,
+    cambiarEstado,
     filteredIncidentes,
     activeFiltersCount,
     clearFilters,

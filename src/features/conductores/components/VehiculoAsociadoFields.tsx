@@ -39,7 +39,7 @@ export function VehiculoAsociadoFields({
           </span>
         )}
       </div>
-      <div className="cf-modal-grid" style={{ padding: "0.85rem 1.1rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+      <div className="cf-modal-grid" style={{ padding: "0.85rem 1.1rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 9 }}>
         <FormField label="Placa *" error={placaError} hint="Sin espacios ni guiones, ej: ABC123" style={{ gridColumn: "1 / -1" }}>
           <div
             style={{

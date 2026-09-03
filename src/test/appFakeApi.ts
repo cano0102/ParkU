@@ -66,7 +66,7 @@ export const vehiculosSeed = [
     conductor_principal_id: 1, conductor_principal_nombre: 'Carlos López M.',
   },
   {
-    id: 2, placa: 'DEF456', tipo: 'MOTO', marca: 'Yamaha', linea: 'FZ 25', modelo: 2022, color: 'Negro',
+    id: 2, placa: 'DEF456', tipo: 'CARRO', marca: 'Yamaha', linea: 'FZ 25', modelo: 2022, color: 'Negro',
     observaciones: 'Moto deportiva', estado: true,
     conductores: [{ id: 2, nombre_apellidos: 'Pedro Ruiz G.', DetallePropiedad: { es_principal: true } }],
     conductor_principal_id: 2, conductor_principal_nombre: 'Pedro Ruiz G.',

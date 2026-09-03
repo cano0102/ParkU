@@ -137,7 +137,7 @@ export function ReservaModal({
         <div style={{ padding: "1.4rem 1.8rem" }}>
           {reservaError && <Banner tone="danger" message={reservaError} />}
 
-          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(220px, 100%), 1fr))", gap: 12 }}>
             <div style={{ gridColumn: "1 / -1", position: "relative" }}>
               <label htmlFor="vehiculoReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 Vehículo *

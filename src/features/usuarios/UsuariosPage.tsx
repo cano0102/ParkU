@@ -69,6 +69,7 @@ export default function Usuarios() {
               totalItems={f.filtered.length}
               onToggleEstado={form.handleToggleEstado}
               onEdit={form.openEdit}
+              documentoDe={data.documentoDe}
               idUltimoAdminActivo={data.idUltimoAdminActivo}
               onPageChange={f.setCurrentPage}
               onItemsPerPageChange={(n) => {
@@ -87,6 +88,7 @@ export default function Usuarios() {
           title={form.editingUsuario ? "Editar Usuario" : "Nuevo Usuario"}
           roles={data.roles}
           usuarios={data.usuarios}
+          conductores={data.conductores}
           editingId={form.editingUsuario?.id ?? null}
           onSave={form.handleSave}
           onCancel={() => form.setDialogOpen(false)}

@@ -39,6 +39,19 @@ describe('Usuarios', () => {
     expect(screen.getAllByText('admin@sena.edu.co').length).toBeGreaterThan(0);
   });
 
+  it('muestra el documento del usuario, tomado del conductor vinculado por usuario_id', async () => {
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    // El conductor semilla con usuario_id 2 es el que aporta el documento de Ana Martínez:
+    // la cuenta en sí no guarda documento en la API real.
+    expect(screen.getAllByText('CC 2345678901').length).toBeGreaterThan(0);
+    // Y un usuario sin conductor vinculado lo dice explícitamente en vez de omitir el dato.
+    expect(screen.getAllByText('Sin documento registrado').length).toBeGreaterThan(0);
+  });
+
   it('filtra la lista al escribir en el buscador', async () => {
     const user = userEvent.setup();
     renderUsuarios();
@@ -160,9 +173,16 @@ describe('Usuarios', () => {
     await user.type(screen.getByPlaceholderText('ej. María García López'), nombre);
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), correo);
     await user.type(screen.getByPlaceholderText('••••••••'), 'Pass1234');
-    // El único combobox del formulario simplificado es el selector de rol
-    // (ya no hay tipo de documento ni tipo de usuario, ver services/api/usuarios.ts).
+    // Mientras no se elige rol, el único combobox del formulario es el selector de rol.
     await user.selectOptions(screen.getByRole('combobox'), 'Comunidad SENA');
+
+    // Al elegir Comunidad SENA aparece la sección de documento: para esas cuentas el
+    // documento es obligatorio y se guarda en el conductor vinculado (ver
+    // useUsuariosData.guardarDocumentoDeUsuario). Los otros roles no la ven.
+    const documento = String(suffix).slice(-6);
+    await user.type(screen.getByPlaceholderText('1001234567'), documento);
+    const combos = screen.getAllByRole('combobox');
+    await user.selectOptions(combos[combos.length - 1], 'Aprendiz');
 
     await user.click(screen.getByRole('button', { name: 'Crear Usuario' }));
 
@@ -175,7 +195,12 @@ describe('Usuarios', () => {
       expect(screen.getAllByText(nombre).length).toBeGreaterThan(0);
     });
     expect(screen.getAllByText(correo).length).toBeGreaterThan(0);
-  });
+    // Ciclo completo: el documento se guardó en el conductor vinculado y vuelve a leerse
+    // desde ahí para mostrarse en la tarjeta del usuario recién creado.
+    await waitFor(() => {
+      expect(screen.getAllByText(`CC ${documento}`).length).toBeGreaterThan(0);
+    });
+  }, 15000);
 
   it('abre el modal de edición con los datos del usuario precargados', async () => {
     const user = userEvent.setup();

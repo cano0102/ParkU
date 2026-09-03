@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "./useUsuarios";
 import type { Usuario } from "@/services/api/usuarios";
+import type { Conductor } from "@/services/api/conductores";
 import { useRoles } from "@/features/roles";
+import { useConductores, useCreateConductor, useUpdateConductor } from "@/features/conductores";
 import { nombreDeRol, ROLES } from "@/services/core/roles";
 
 /** Queries, mutaciones y totales de la página de Usuarios. */
@@ -15,6 +17,87 @@ export function useUsuariosData() {
   const addUsuario = (data: Omit<Usuario, "id">) => createUsuarioMutation.mutateAsync(data);
   const updateUsuario = (id: string, data: Partial<Omit<Usuario, "id">>) =>
     updateUsuarioMutation.mutateAsync({ id, data });
+
+  /**
+   * Documento de identidad por usuario. La cuenta (`usuario`) NO tiene columnas de
+   * documento en la API real: ese dato de persona vive en el `conductor` vinculado
+   * por `usuario_id` (ver el encabezado de services/api/usuarios.ts y de
+   * services/api/conductores.ts). Se resuelve desde ahí en vez de duplicarlo en la
+   * cuenta; un usuario sin conductor vinculado simplemente no tiene documento aún.
+   */
+  const { data: conductores = [] } = useConductores();
+  const documentoPorUsuarioId = useMemo(
+    () =>
+      new Map(
+        conductores
+          .filter((c) => c.usuarioId && c.numeroDocumento)
+          .map((c) => [c.usuarioId, { tipo: c.tipoDocumento, numero: c.numeroDocumento }])
+      ),
+    [conductores]
+  );
+  const documentoDe = (usuarioId: string) => documentoPorUsuarioId.get(usuarioId) ?? null;
+
+  const conductorPorUsuarioId = useMemo(
+    () => new Map(conductores.filter((c) => c.usuarioId).map((c) => [c.usuarioId, c])),
+    [conductores]
+  );
+  const conductorDeUsuario = (usuarioId: string) => conductorPorUsuarioId.get(usuarioId) ?? null;
+
+  const createConductorMutation = useCreateConductor();
+  const updateConductorMutation = useUpdateConductor();
+
+  /**
+   * Persiste el documento de una cuenta de Comunidad SENA. Como `usuario` no tiene columnas
+   * de documento, se escribe en el `conductor` vinculado: se actualiza si esa cuenta ya
+   * tiene uno, y si no, se crea con `usuario_id` apuntando a ella. Al actualizar solo se
+   * tocan documento y tipo de usuario — nombre/correo/teléfono del conductor pueden haber
+   * sido editados desde su propio módulo y no deben pisarse desde aquí.
+   */
+  const guardarDocumentoDeUsuario = async (
+    usuarioId: string,
+    datos: {
+      tipoDocumento: string;
+      numeroDocumento: string;
+      tipoUsuarioId: string;
+      nombre: string;
+      correo: string;
+      numeroTelefonico: string;
+    }
+  ) => {
+    const existente = conductorPorUsuarioId.get(usuarioId);
+    const tipoDocumento = datos.tipoDocumento as Conductor["tipoDocumento"];
+
+    if (existente) {
+      await updateConductorMutation.mutateAsync({
+        id: existente.id,
+        data: {
+          tipoDocumento,
+          numeroDocumento: datos.numeroDocumento,
+          tipoUsuarioId: datos.tipoUsuarioId,
+        },
+      });
+      return;
+    }
+
+    await createConductorMutation.mutateAsync({
+      usuarioId,
+      tipoDocumento,
+      numeroDocumento: datos.numeroDocumento,
+      nombre: datos.nombre,
+      correo: datos.correo,
+      numeroTelefonico: datos.numeroTelefonico,
+      tipoUsuarioId: datos.tipoUsuarioId,
+      direccion: "",
+      tipoUsuarioNombre: "",
+      regionalFormacion: "",
+      centroFormacion: "",
+      programaFormacion: "",
+      vigencia: "",
+      movilidadReducida: false,
+      tipoDiscapacidad: "",
+      estado: "activo",
+    });
+  };
 
   const totalActivos = useMemo(() => usuarios.filter((u) => u.estado === "activo").length, [usuarios]);
   const totalInactivos = useMemo(() => usuarios.filter((u) => u.estado === "inactivo").length, [usuarios]);
@@ -30,7 +113,8 @@ export function useUsuariosData() {
 
   return {
     usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, uniqueRoles,
-    idUltimoAdminActivo, isLoading,
+    idUltimoAdminActivo, isLoading, documentoDe,
+    conductores, conductorDeUsuario, guardarDocumentoDeUsuario,
   };
 }
 

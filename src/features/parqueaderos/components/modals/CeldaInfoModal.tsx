@@ -24,6 +24,9 @@ interface CeldaInfoModalProps {
   onLiberar: () => void;
   onReportarIncidente: () => void;
   onEstacionarVehiculo: () => void;
+  /** Registrar el ingreso del vehículo que tiene la reserva de esta celda: abre el asistente
+   *  ya precargado con esa placa y ese conductor (los únicos que el ingreso aceptará). */
+  onEstacionarReservado: () => void;
   onReservarCelda: () => void;
   /** true si el rol del usuario logueado tiene el permiso "celdas" — controla si se muestra
    *  el ajuste manual de estado (ver onSetEstadoManual) y el botón "Reservar Celda". Ese botón
@@ -60,7 +63,7 @@ const ESTADOS_MANUALES: { estado: Celda["estado"]; label: string }[] = [
 export function CeldaInfoModal({
   open, celdaActiva, ocupanteActivo, reservaActiva, vehiculoReservado, parqueaderoActivo, onClose,
   onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
-  onReportarIncidente, onEstacionarVehiculo, onReservarCelda,
+  onReportarIncidente, onEstacionarVehiculo, onEstacionarReservado, onReservarCelda,
   canManageCeldas, canRegistrarIngreso, canReportarIncidentes, incidenteAbiertoExiste, onSetEstadoManual,
 }: CeldaInfoModalProps) {
   const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
@@ -149,6 +152,16 @@ export function CeldaInfoModal({
             )}
             {canRegistrarIngreso && (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {/* Camino normal de una reserva: el vehículo reservado llega y se estaciona.
+                    Sin esto solo quedaba cancelar la reserva o estacionar un oficial. */}
+                {!parqueaderoInactivo && vehiculoReservado && (
+                  <button
+                    onClick={onEstacionarReservado}
+                    style={{ flex: "1 1 100%", padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}
+                  >
+                    Estacionar {vehiculoReservado.placa}
+                  </button>
+                )}
                 <button onClick={onCancelarReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Cancelar Reserva</button>
                 {!parqueaderoInactivo && (
                   <button onClick={onEstacionarOficial} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>

@@ -10,7 +10,7 @@ import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../lib/helpers";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
-  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "controlesSalida" | "parqueaderos" | "addReserva" | "updateReserva" | "updateCelda">,
+  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "celdas" | "controlesSalida" | "parqueaderos" | "addReserva" | "updateReserva" | "updateCelda">,
   celdaActiva: Celda | null,
   getOcupante: (celdaId: string) => { controlId: string } | null,
   updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => Promise<unknown>,
@@ -101,6 +101,26 @@ export function useReservaCelda(
       const vehiculoReservado = data.vehiculos.find((v) => v.id === reservaForm.vehiculoId);
       if (!vehiculoReservado) { setReservaError("Vehículo no encontrado"); return; }
 
+      // El vehículo tiene que caber en la celda reservada. El selector del modal ya solo
+      // ofrece vehículos compatibles (ver ParqueaderosPage), pero la celda pudo cambiar de
+      // tipo desde que se abrió el modal, así que se revalida contra el dato fresco.
+      const celdaDeLaReserva = data.celdas.find((c) => c.id === reservaForm.celdaId);
+      if (celdaDeLaReserva && celdaDeLaReserva.tipo !== vehiculoReservado.tipo) {
+        setReservaError(
+          `La celda ${celdaDeLaReserva.numero} es para vehículos de tipo "${celdaDeLaReserva.tipo}" ` +
+          `y ${vehiculoReservado.placa} es de tipo "${vehiculoReservado.tipo}".`
+        );
+        return;
+      }
+
+      // Una reserva responde siempre a una persona: sin conductor asociado no habría a quién
+      // exigirle la celda al llegar, ni con quién comparar en el ingreso (ver
+      // useIngresoVehiculo, que solo deja estacionar al conductor de la reserva).
+      if (!vehiculoReservado.conductorId) {
+        setReservaError(`El vehículo ${vehiculoReservado.placa} no tiene un conductor asociado. Asígnale uno en el módulo Conductores antes de reservar.`);
+        return;
+      }
+
       // El vehículo (o cualquier otro del mismo conductor) no puede estar ya estacionado ni
       // tener otra reserva pendiente/activa en otra celda — un conductor solo usa un vehículo
       // suyo a la vez.
@@ -121,7 +141,7 @@ export function useReservaCelda(
         tipoReserva: "visitante",
         vehiculoId: reservaForm.vehiculoId,
         celdaId: reservaForm.celdaId,
-        conductorId: vehiculoReservado.conductorId ?? "",
+        conductorId: vehiculoReservado.conductorId,
         motivo: reservaForm.motivo.trim(),
         motivoRechazo: "",
         fechaReserva: reservaForm.fechaReserva,

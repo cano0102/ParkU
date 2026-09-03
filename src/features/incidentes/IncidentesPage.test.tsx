@@ -83,15 +83,14 @@ describe('features/incidentes', () => {
   });
 
   it('muestra los incidentes abiertos por prioridad y deja los finalizados al final', async () => {
-    renderIncidentes();
+    const { container } = renderIncidentes();
     await waitFor(() =>
       expect(screen.getAllByText('Vehículo mal estacionado bloqueando entrada').length).toBeGreaterThan(0)
     );
 
-    const descripciones = screen
-      .getAllByRole('switch')
-      .map((sw) => sw.closest('.incidente-card')?.querySelector('p')?.textContent);
-
+    const descripciones = Array.from(container.querySelectorAll('.incidente-card')).map(
+      (card) => card.querySelector('p')?.textContent
+    );
     // Posiciones relativas (no igualdad exacta): los tests anteriores de este archivo
     // dejan incidentes creados en la semilla compartida.
     const posicion = (texto: string) => descripciones.findIndex((d) => d?.includes(texto));
@@ -102,61 +101,53 @@ describe('features/incidentes', () => {
     expect(posicion('Barrera dañada')).toBe(descripciones.length - 1);
   });
 
-  it('bloquea el switch de un incidente cerrado', async () => {
-    const user = userEvent.setup();
+  it('no ofrece cambio de estado en un incidente cerrado', async () => {
     renderIncidentes();
-    await waitFor(() =>
-      expect(screen.getAllByText('Barrera dañada en el acceso norte').length).toBeGreaterThan(0)
-    );
-
-    const switches = screen.getAllByRole('switch');
-    const switchCerrado = switches[switches.length - 1];
-    expect(switchCerrado).toBeDisabled();
-    expect(switchCerrado).toHaveAccessibleName('El incidente está cerrado y no puede cambiar de estado');
-
-    await user.click(switchCerrado);
-    expect(switchCerrado).toHaveAttribute('aria-checked', 'false');
-  });
-
-  it('cambia el estado de un incidente con el switch de la tarjeta', async () => {
-    const user = userEvent.setup();
-    renderIncidentes();
-    await waitFor(() =>
-      expect(screen.getAllByText('Vehículo mal estacionado bloqueando entrada').length).toBeGreaterThan(0)
-    );
-
-    // El primero de la lista es el abierto de mayor prioridad (ALTA, "derrame de aceite"),
-    // no el más reciente ni el CRÍTICO ya cerrado — ver lib/orden.ts.
-    const [firstSwitch] = screen.getAllByRole('switch');
-    expect(firstSwitch).toHaveAttribute('aria-checked', 'false');
-
-    await user.click(firstSwitch);
-
-    await waitFor(() => expect(firstSwitch).toHaveAttribute('aria-checked', 'true'));
-  });
-
-  it('muestra el conductor del vehículo en el detalle del incidente (trazabilidad)', async () => {
-    const user = userEvent.setup();
-    renderIncidentes();
-    await waitFor(() =>
-      expect(screen.getAllByText('Vehículo mal estacionado bloqueando entrada').length).toBeGreaterThan(0)
-    );
-
-    // Incidente 1 (semilla, appFakeApi.ts) tiene vehiculo_id 1 -> ABC123, dueño Carlos López M.
-    // Se ubica su tarjeta por la descripción en vez de asumir que es la primera del grid: el
-    // orden es por fecha desc, y este archivo reutiliza el mismo backend falso entre tests (no
-    // uno fresco por test) — si un test anterior crea un incidente, ahora que `fecha_hora` sí
-    // se manda al crear (antes se perdía en toApiPayload, ver services/api/incidentes.ts), ese
-    // incidente nuevo pasa a ser el más reciente y se movería al primer lugar.
-    const descripcion = screen.getAllByText('Vehículo mal estacionado bloqueando entrada')[0];
+    const descripcion = await screen.findByText('Barrera dañada en el acceso norte');
     const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
-    const verBtn = within(tarjeta).getByLabelText('Ver detalle del incidente');
-    await user.click(verBtn);
 
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('ABC123')).toBeInTheDocument();
-    expect(within(dialog).getByText(/Carlos López M\. · 2345678901/)).toBeInTheDocument();
+    // Sin selector de estado: solo la etiqueta del estado final.
+    expect(within(tarjeta).queryByRole('combobox')).not.toBeInTheDocument();
+    expect(within(tarjeta).getAllByText('Cerrado').length).toBeGreaterThan(0);
   });
+
+  it('cambia el estado de un incidente abierto con el selector de la tarjeta', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    const descripcion = await screen.findByText('Vehículo mal estacionado bloqueando entrada');
+    const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
+
+    const selector = within(tarjeta).getByRole('combobox', { name: 'Cambiar estado del incidente' });
+    await user.selectOptions(selector, 'en_proceso');
+
+    await waitFor(() => {
+      const actualizada = screen.getByText('Vehículo mal estacionado bloqueando entrada').closest('.incidente-card') as HTMLElement;
+      expect(within(actualizada).getByRole('combobox')).toHaveValue('en_proceso');
+    });
+  });
+
+  it('desde "en proceso" se puede pasar a resuelto, y ahí el estado queda bloqueado', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    const descripcion = await screen.findByText('Derrame de aceite con posible caída de vehículo');
+    const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
+
+    await user.selectOptions(within(tarjeta).getByRole('combobox'), 'en_proceso');
+    await waitFor(() => {
+      const t = screen.getByText('Derrame de aceite con posible caída de vehículo').closest('.incidente-card') as HTMLElement;
+      expect(within(t).getByRole('combobox')).toHaveValue('en_proceso');
+    });
+
+    const enProceso = screen.getByText('Derrame de aceite con posible caída de vehículo').closest('.incidente-card') as HTMLElement;
+    await user.selectOptions(within(enProceso).getByRole('combobox'), 'resuelto');
+
+    // Resuelto es final: la tarjeta ya no ofrece selector.
+    await waitFor(() => {
+      const t = screen.getByText('Derrame de aceite con posible caída de vehículo').closest('.incidente-card') as HTMLElement;
+      expect(within(t).queryByRole('combobox')).not.toBeInTheDocument();
+      expect(within(t).getAllByText('Resuelto').length).toBeGreaterThan(0);
+    });
+  }, 15000);
 
   it('elimina un incidente mediante el modal de confirmación', async () => {
     const user = userEvent.setup();

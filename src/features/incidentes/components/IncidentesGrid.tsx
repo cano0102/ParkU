@@ -3,6 +3,7 @@ import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
+import type { EstadoIncidente } from "../lib/constants";
 import { IncidenteCard } from "./IncidenteCard";
 
 const C = theme;
@@ -16,11 +17,11 @@ interface IncidentesGridProps {
   onView: (incidente: Incidente) => void;
   onEdit: (incidente: Incidente) => void;
   onDelete: (incidente: Incidente) => void;
-  onToggleEstado: (id: string) => void;
+  onCambiarEstado: (id: string, estado: EstadoIncidente) => void;
 }
 
 /** Grid de tarjetas de incidente, o el estado vacío cuando el filtro no arroja resultados. */
-export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioAsignado, nombreParqueadero, onView, onEdit, onDelete, onToggleEstado }: IncidentesGridProps) {
+export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioAsignado, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidentesGridProps) {
   if (incidentes.length === 0) {
     return (
       <div style={{
@@ -60,7 +61,7 @@ export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioA
           onView={() => onView(incidente)}
           onEdit={() => onEdit(incidente)}
           onDelete={() => onDelete(incidente)}
-          onToggleEstado={() => onToggleEstado(incidente.id)}
+          onCambiarEstado={(estado) => onCambiarEstado(incidente.id, estado)}
         />
       ))}
     </div>

@@ -100,16 +100,54 @@ describe('useIngresoVehiculo — celdas de tipo bicicleta/camión/bus (sin conve
   });
 
   it('sigue funcionando sin cambios para una celda de moto normal (no rompe el caso ya soportado)', async () => {
-    const data = buildData();
+    const data = buildData({ conductores: [conductorPedro] });
     const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
 
     let ok = false;
     await act(async () => {
-      ok = await result.current.registrarEnCelda(celdaMoto, 'ABC12D', 'Juan Pérez', false);
+      ok = await result.current.registrarEnCelda(celdaMoto, 'ABC12D', conductorPedro.nombre, false);
     });
 
     expect(ok).toBe(true);
     expect(data.addControlSalida).toHaveBeenCalled();
+  });
+
+  it('no registra el ingreso si el conductor escrito no está registrado', async () => {
+    const data = buildData({ conductores: [conductorPedro] });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.registrarEnCelda(celdaMoto, 'ABC12D', 'Juan Pérez', false);
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.placaError).toContain('no está registrado');
+    expect(data.addControlSalida).not.toHaveBeenCalled();
+  });
+
+  it('no deja usar la reserva de otro conductor aunque llegue con el vehículo reservado', async () => {
+    const reservaDeMaria = {
+      id: 'r1', tipoReserva: 'visitante', vehiculoId: 'v1', celdaId: celdaMoto.id, conductorId: 'c1',
+      motivo: '', motivoRechazo: '', fechaReserva: '2027-01-05', horaInicio: '08:00', horaFin: '10:00',
+      estado: 'activa',
+    };
+    const data = buildData({
+      conductores: [conductorMaria, conductorPedro],
+      vehiculos: [vehiculoDeMaria],
+      reservas: [reservaDeMaria] as ParqueaderosData['reservas'],
+    });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = true;
+    await act(async () => {
+      // Pedro llega con el vehículo que María tiene reservado en esa celda.
+      ok = await result.current.registrarEnCelda(celdaMoto, vehiculoDeMaria.placa, conductorPedro.nombre, false, undefined, conductorPedro.id);
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.placaError).toContain('María Gómez');
+    expect(data.addControlSalida).not.toHaveBeenCalled();
   });
 
   it('sigue rechazando un carro en una celda de moto con el mensaje original', async () => {

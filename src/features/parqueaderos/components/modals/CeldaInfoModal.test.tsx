@@ -32,6 +32,7 @@ function baseProps(canManageCeldas: boolean) {
     onLiberar: noop,
     onReportarIncidente: noop,
     onEstacionarVehiculo: noop,
+    onEstacionarReservado: noop,
     onReservarCelda: vi.fn(),
     canManageCeldas,
     canRegistrarIngreso: false,

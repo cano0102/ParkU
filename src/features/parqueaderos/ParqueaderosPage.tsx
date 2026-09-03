@@ -30,7 +30,14 @@ export default function Parqueaderos() {
   // modal de reserva no debe exponer la lista completa de vehículos/conductores del sistema.
   const esConductor = user?.rol === ROLES.CONDUCTOR;
   const miConductor = esConductor ? data.conductores.find((c) => c.usuarioId === user!.id) : undefined;
-  const vehiculosParaReserva = esConductor ? data.vehiculos.filter((v) => v.conductorId === miConductor?.id) : data.vehiculos;
+  const vehiculosDelRol = esConductor ? data.vehiculos.filter((v) => v.conductorId === miConductor?.id) : data.vehiculos;
+  // La celda ya está elegida (la reserva se abre desde el plano), así que el selector solo
+  // debe ofrecer vehículos que quepan en SU tipo: una celda de moto no admite un carro y
+  // viceversa. La validación definitiva vuelve a hacerse al crear la reserva (useReservaCelda)
+  // y en el backend.
+  const vehiculosParaReserva = modal.celdaActiva
+    ? vehiculosDelRol.filter((v) => v.tipo === modal.celdaActiva!.tipo)
+    : vehiculosDelRol;
   const conductoresParaReserva = esConductor ? data.conductores.filter((c) => c.id === miConductor?.id) : data.conductores;
 
   return (
@@ -160,6 +167,9 @@ export default function Parqueaderos() {
           perder la celda ni el resto del formulario (ver useParqueaderosPage.ts). */}
       <Modal open={modal.openModal === "crearConductor"} onClose={() => modal.setOpenModal("ingreso")} maxWidth={780}>
         <ConductorFormModal
+          /* Alta rápida desde portería: sin centro de formación ni regional — esos campos
+             siguen disponibles en el módulo Conductores, que es donde se completan. */
+          mostrarFormacion={false}
           isEdit={false}
           formData={conductorForm.formData}
           setFormData={conductorForm.setFormData}
@@ -221,6 +231,14 @@ export default function Parqueaderos() {
         onLiberar={reserva.handleRequestLiberar}
         onReportarIncidente={() => modal.setOpenModal("incidente")}
         onEstacionarVehiculo={ingreso.abrirIngresoVisitante}
+        onEstacionarReservado={() => {
+          const vehiculo = modal.vehiculoReservado;
+          if (!vehiculo) return;
+          const conductor = data.conductores.find(
+            (c) => c.id === (modal.reservaActiva?.conductorId || vehiculo.conductorId)
+          );
+          ingreso.abrirIngresoReservado(vehiculo, conductor);
+        }}
         onReservarCelda={() => { if (modal.celdaActiva) reserva.openReservaFromCelda(modal.celdaActiva); }}
         canManageCeldas={hasPermission("celdas")}
         canRegistrarIngreso={hasPermission("entradaSalida")}

@@ -20,6 +20,8 @@ interface ConductorFormModalProps {
   usuariosFiltrados: Usuario[];
   usuariosConConductorIds: Set<string>;
   usuarioSeleccionado: Usuario | undefined;
+  /** Ver DatosConductorFields: se apaga en el alta rápida desde el panel de Parqueaderos. */
+  mostrarFormacion?: boolean;
   onSubmit: () => void;
   onCancel: () => void;
 }
@@ -27,7 +29,7 @@ interface ConductorFormModalProps {
 export function ConductorFormModal({
   isEdit, formData, setFormData, formErrors, touched, markTouched, isValid,
   usuarioSearch, setUsuarioSearch, usuariosFiltrados, usuariosConConductorIds, usuarioSeleccionado,
-  onSubmit, onCancel,
+  mostrarFormacion, onSubmit, onCancel,
 }: ConductorFormModalProps) {
   return (
     <EntityFormModal
@@ -55,6 +57,12 @@ export function ConductorFormModal({
             usuariosConConductorIds={usuariosConConductorIds}
             usuarioIdSeleccionado={formData.usuarioId}
             usuarioSeleccionado={usuarioSeleccionado}
+            onQuitarUsuario={() => {
+              // Solo se suelta el vínculo con la cuenta: los datos ya escritos (nombre,
+              // documento, contacto…) se conservan para poder seguir creando el conductor.
+              setFormData({ ...formData, usuarioId: "" });
+              setUsuarioSearch("");
+            }}
             onSelectUsuario={(id) => {
               // Autocompleta con los datos que ya tiene la cuenta (nombre/correo/teléfono)
               // para no hacer que se vuelvan a escribir a mano — solo pisa un campo si la
@@ -79,6 +87,7 @@ export function ConductorFormModal({
             onChange={(patch) => setFormData({ ...formData, ...patch })}
             onBlur={markTouched}
             onToggleEstado={() => setFormData({ ...formData, estado: formData.estado === "activo" ? "inactivo" : "activo" })}
+            mostrarFormacion={mostrarFormacion}
           />
 
           <DiscapacidadFields

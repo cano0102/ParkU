@@ -6,7 +6,9 @@ import { USUARIOS_PROTEGIDOS, emptyForm, type FormState } from "../lib/helpers";
 import type { UsuariosData } from "./useUsuariosData";
 
 /** El diálogo de crear/editar usuario (con detección de duplicados) y el toggle de estado. */
-export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUsuario" | "updateUsuario">) {
+export function useUsuarioFormState(
+  data: Pick<UsuariosData, "usuarios" | "addUsuario" | "updateUsuario" | "conductorDeUsuario" | "guardarDocumentoDeUsuario">
+) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
@@ -23,6 +25,9 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
       return;
     }
     setEditingUsuario(u);
+    // El documento no está en la cuenta: se precarga desde el conductor vinculado
+    // (useUsuariosData) para que editar sin tocarlo no lo borre.
+    const conductor = data.conductorDeUsuario(u.id);
     setFormInitial({
       correo: u.correo,
       // Se deja vacío a propósito: el hint del formulario dice
@@ -33,9 +38,12 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
       numero: u.numero,
       rol: String(u.rol),
       estado: u.estado,
+      tipoDocumento: conductor?.tipoDocumento ?? "CC",
+      numeroDocumento: conductor?.numeroDocumento ?? "",
+      tipoUsuarioId: conductor?.tipoUsuarioId ?? "",
     });
     setDialogOpen(true);
-  }, []);
+  }, [data]);
 
   // Corrección: evita registrar dos usuarios con el mismo correo
   const encontrarDuplicado = useCallback(
@@ -79,6 +87,8 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
       }
 
       try {
+        let usuarioId = editingUsuario?.id ?? null;
+
         if (editingUsuario) {
           // Corrección: si el campo de contraseña se deja vacío al editar,
           // no debe sobreescribir la contraseña existente (así lo indica
@@ -87,11 +97,27 @@ export function useUsuarioFormState(data: Pick<UsuariosData, "usuarios" | "addUs
           const { password, ...rest } = payload;
           void password;
           await data.updateUsuario(editingUsuario.id, rest);
-          toast.success("Usuario actualizado correctamente");
         } else {
-          await data.addUsuario(payload);
-          toast.success("Usuario creado correctamente");
+          const creado = await data.addUsuario(payload);
+          usuarioId = creado.id;
         }
+
+        // El documento solo existe para cuentas de Comunidad SENA y se guarda en el
+        // `conductor` vinculado (la tabla `usuario` no tiene esas columnas). Se hace
+        // DESPUÉS de tener el id de la cuenta, y antes del toast de éxito: si falla,
+        // el error del manejador central es lo único que debe verse.
+        if (usuarioId && payload.rol === ROLES.CONDUCTOR && form.numeroDocumento.trim()) {
+          await data.guardarDocumentoDeUsuario(usuarioId, {
+            tipoDocumento: form.tipoDocumento,
+            numeroDocumento: form.numeroDocumento.trim(),
+            tipoUsuarioId: form.tipoUsuarioId,
+            nombre: payload.nombre,
+            correo: payload.correo,
+            numeroTelefonico: payload.numero,
+          });
+        }
+
+        toast.success(editingUsuario ? "Usuario actualizado correctamente" : "Usuario creado correctamente");
         setDialogOpen(false);
       } catch (error) {
         // El toast de error ya lo muestra el manejador centralizado de mutaciones

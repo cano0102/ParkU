@@ -324,9 +324,9 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
 
     // Celda semilla C-002 del parqueadero 1 (id 2) está disponible — su conductor
     // (Pedro Ruiz G., seed conductor 2) no tiene ningún vehículo estacionado todavía.
-    // Nota: la placa semilla de su vehículo (DEF456) tiene formato de carro aunque el
-    // vehículo esté marcado como moto (dato de prueba heredado, no realista) — se usa
-    // una celda de carro para que la validación de formato de placa no bloquee el flujo.
+    // Su vehículo semilla (DEF456) es de tipo carro, igual que el formato de su placa, así
+    // que aparece entre los vehículos ofrecidos para esta celda de carro: el asistente solo
+    // sugiere vehículos compatibles con el tipo de la celda.
     await user.click(screen.getByText('PQ-1 Torre A'));
     const celdaC002 = await screen.findByText('C-002');
     await user.click(celdaC002.closest('button') as HTMLButtonElement);

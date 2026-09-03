@@ -21,11 +21,11 @@ const parqueaderoActivo: Parqueadero = {
 };
 
 function buildData(overrides: Partial<{
-  reservas: unknown[]; vehiculos: unknown[]; controlesSalida: unknown[]; parqueaderos: unknown[];
+  reservas: unknown[]; vehiculos: unknown[]; celdas: unknown[]; controlesSalida: unknown[]; parqueaderos: unknown[];
   addReserva: ReturnType<typeof vi.fn>; updateReserva: ReturnType<typeof vi.fn>; updateCelda: ReturnType<typeof vi.fn>;
 }> = {}) {
   return {
-    reservas: [], vehiculos: [], controlesSalida: [], parqueaderos: [parqueaderoActivo],
+    reservas: [], vehiculos: [], celdas: [celdaLibre, celdaMoto, celdaOcupada], controlesSalida: [], parqueaderos: [parqueaderoActivo],
     addReserva: vi.fn(),
     updateReserva: vi.fn().mockResolvedValue(undefined),
     updateCelda: vi.fn().mockResolvedValue(undefined),
@@ -36,18 +36,25 @@ function buildData(overrides: Partial<{
 /* ============================================================
    handleCrearReserva — choque de horario real + horario de operación
 ============================================================ */
+/* Los tests de compatibilidad y conductor viven al final del archivo. */
 const celdaLibre: Celda = {
   id: '1', parqueaderoId: '1', numero: 'C-001', tipo: 'carro', usabilidad: 'general',
   estado: 'disponible', ocupada: false, observaciones: '',
 };
 
+const celdaMoto: Celda = {
+  id: '7', parqueaderoId: '1', numero: 'M-007', tipo: 'moto', usabilidad: 'general',
+  estado: 'disponible', ocupada: false, observaciones: '',
+};
+
+// Con conductor asociado: sin él, reservar se bloquea a propósito (ver el test dedicado abajo).
 const vehiculoNuevo: Vehiculo = {
-  id: 'v-nuevo', conductorId: '', conductorNombre: '', placa: 'NEW123', tipo: 'carro',
+  id: 'v-nuevo', conductorId: 'c-1', conductorNombre: 'Ana Martínez', placa: 'NEW123', tipo: 'carro',
   marca: 'Renault', linea: '', modelo: 2022, color: 'Blanco', descripcion: '', estado: 'activo',
 };
 
 const vehiculoConflicto: Vehiculo = {
-  id: 'v-conflicto', conductorId: '', conductorNombre: '', placa: 'OLD999', tipo: 'carro',
+  id: 'v-conflicto', conductorId: 'c-2', conductorNombre: 'Pedro Ruiz', placa: 'OLD999', tipo: 'carro',
   marca: 'Mazda', linea: '', modelo: 2019, color: 'Negro', descripcion: '', estado: 'activo',
 };
 
@@ -64,6 +71,7 @@ function buildDataConReservas(overrides: Partial<ReservaCeldaData> = {}): Reserv
   return {
     reservas: [reservaActivaVieja],
     vehiculos: [vehiculoNuevo, vehiculoConflicto],
+    celdas: [celdaLibre, celdaMoto, celdaOcupada],
     controlesSalida: [],
     parqueaderos: [parqueaderoActivo],
     addReserva: vi.fn().mockResolvedValue({ id: 'r-nueva' }),
@@ -206,5 +214,48 @@ describe('useReservaCelda — handleRequestLiberar', () => {
 
     expect(updateControlSalida).not.toHaveBeenCalled();
     expect(data.updateCelda).toHaveBeenCalledWith('5', { estado: 'disponible', ocupada: false });
+  });
+});
+
+/* ============================================================
+   handleCrearReserva — compatibilidad vehículo/celda y conductor
+============================================================ */
+describe('useReservaCelda — compatibilidad y conductor', () => {
+  const manana = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const prepararReserva = (data: any, celda: Celda, vehiculoId: string) => {
+    const { result } = renderHook(() => useReservaCelda(data, celda, vi.fn(), vi.fn(), vi.fn()));
+    act(() => {
+      result.current.setReservaForm((f) => ({
+        ...f, vehiculoId, parqueaderoId: '1', celdaId: celda.id,
+        fechaReserva: manana(), horaInicio: '08:00', horaFin: '10:00',
+      }));
+    });
+    return result;
+  };
+
+  it('no deja reservar una celda de moto con un carro', async () => {
+    const data = buildData({ vehiculos: [vehiculoNuevo] });
+    const result = prepararReserva(data, celdaMoto, 'v-nuevo');
+
+    await act(async () => { await result.current.handleCrearReserva(); });
+
+    expect(result.current.reservaError).toContain('M-007');
+    expect(data.addReserva).not.toHaveBeenCalled();
+  });
+
+  it('no deja reservar con un vehículo que no tiene conductor asociado', async () => {
+    const sinConductor: Vehiculo = { ...vehiculoNuevo, id: 'v-sin', conductorId: '', conductorNombre: '', placa: 'SIN123' };
+    const data = buildData({ vehiculos: [sinConductor] });
+    const result = prepararReserva(data, celdaLibre, 'v-sin');
+
+    await act(async () => { await result.current.handleCrearReserva(); });
+
+    expect(result.current.reservaError).toContain('no tiene un conductor asociado');
+    expect(data.addReserva).not.toHaveBeenCalled();
   });
 });

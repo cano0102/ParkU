@@ -1,4 +1,4 @@
-import { Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
+import { IdCard, Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import type { Usuario } from "@/services/api/usuarios";
@@ -13,12 +13,17 @@ import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials } fr
 export interface UsuarioCardHandlers {
   onToggleEstado: (u: Usuario) => void;
   onEdit: (u: Usuario) => void;
+  /** Tipo + número de documento del usuario, o null si todavía no tiene uno registrado.
+   *  Lo resuelve useUsuariosData desde el conductor vinculado por `usuario_id`: la
+   *  cuenta en sí no guarda documento en la API real. */
+  documentoDe: (usuarioId: string) => { tipo: string; numero: string } | null;
   /** Id del único Admin activo que quede (no se puede desactivar), o null si hay más de uno. */
   idUltimoAdminActivo: string | null;
 }
 
 export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): ReactNode {
-  const { onToggleEstado, onEdit, idUltimoAdminActivo } = handlers;
+  const { onToggleEstado, onEdit, documentoDe, idUltimoAdminActivo } = handlers;
+  const documento = documentoDe(u.id);
   const protegido = USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo;
   const activo = u.estado === "activo";
   const rolNombre = nombreDeRol(u.rol);
@@ -117,6 +122,10 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
         {[
           { icon: <Mail size={12} />, text: u.correo },
           ...(u.numero ? [{ icon: <Phone size={12} />, text: u.numero }] : []),
+          {
+            icon: <IdCard size={12} />,
+            text: documento ? `${documento.tipo} ${documento.numero}` : "Sin documento registrado",
+          },
         ].map((row, i) => (
           <div
             key={i}
@@ -155,7 +164,7 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
 }
 
 export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn<Usuario>[] {
-  const { onToggleEstado, onEdit, idUltimoAdminActivo } = handlers;
+  const { onToggleEstado, onEdit, documentoDe, idUltimoAdminActivo } = handlers;
 
   return [
     {
@@ -203,6 +212,22 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
           {u.correo}
         </div>
       ),
+    },
+    {
+      header: "Documento",
+      width: "150px",
+      render: (u) => {
+        const documento = documentoDe(u.id);
+        return (
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 6, color: COLORS.textLight, minWidth: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+            title={documento ? `${documento.tipo} ${documento.numero}` : "Sin documento registrado"}
+          >
+            <IdCard size={11} style={{ flexShrink: 0 }} />
+            {documento ? `${documento.tipo} ${documento.numero}` : "—"}
+          </div>
+        );
+      },
     },
     {
       header: "Rol",

@@ -143,6 +143,18 @@ export function useIngresoVehiculo(
       return false;
     }
 
+    // La reserva no solo aparta la celda para un vehículo: también respalda a un conductor.
+    // Si quien llega es otra persona, no puede usar la reserva aunque traiga el vehículo
+    // correcto (y no hay forma de saltárselo eligiendo otro conductor a mano).
+    if (reservaDeLaCelda?.conductorId && conductorExistente && reservaDeLaCelda.conductorId !== conductorExistente.id) {
+      const conductorDeLaReserva = conductores.find((c) => c.id === reservaDeLaCelda.conductorId);
+      setPlacaError(
+        `Esta celda está reservada a nombre de ${conductorDeLaReserva?.nombre ?? "otro conductor"}. ` +
+        "Solo esa persona puede estacionar aquí mientras la reserva siga vigente."
+      );
+      return false;
+    }
+
     // Igual que al reservar: mientras el conductor tenga otro vehículo suyo ya estacionado o
     // con una reserva pendiente/activa en otra celda, no puede usar este para estacionar.
     if (conductorExistente) {
@@ -152,7 +164,16 @@ export function useIngresoVehiculo(
       if (otroEnUso) { setPlacaError(otroEnUso.motivo); return false; }
     }
 
-    const conductorId = conductorExistente?.id ?? "";
+    // Un vehículo no se estaciona sin una persona responsable detrás: si el nombre escrito no
+    // corresponde a ningún conductor registrado, el ingreso quedaría sin conductor y el
+    // vehículo se crearía huérfano (sin dueño al que reclamarle la celda, ni con quién
+    // comparar al llegar una reserva). El modal permite crear el conductor ahí mismo.
+    if (!conductorExistente) {
+      setPlacaError('Este conductor no está registrado. Búscalo o créalo con "Nuevo conductor" antes de registrar el ingreso.');
+      return false;
+    }
+
+    const conductorId = conductorExistente.id;
     // Se manda el ISO completo (con el offset UTC "Z"), igual que ya hace correctamente
     // `combinarFechaHora()` en services/api/reservas.ts — truncar a `.slice(0, 16)` deja un
     // string timezone-naive ("2026-01-01T14:30") que, si el backend lo interpreta como hora
@@ -195,6 +216,20 @@ export function useIngresoVehiculo(
   const resetWizardConductor = () => {
     setConductorSeleccionadoId(null);
     setConductorQuery("");
+  };
+
+  /**
+   * Registrar el ingreso del vehículo que tiene reservada la celda: abre el mismo asistente,
+   * pero con la placa y el conductor de la reserva ya puestos, porque son los únicos que
+   * `registrarEnCelda` acepta mientras la reserva siga vigente (no hay que buscarlos a mano
+   * para acabar chocando con esa validación).
+   */
+  const abrirIngresoReservado = (vehiculo: Vehiculo, conductor?: Conductor | null) => {
+    setVehiculoForm({ ...emptyVehiculoForm(false), placa: vehiculo.placa, conductor: conductor?.nombre ?? "" });
+    setConductorSeleccionadoId(conductor?.id ?? null);
+    setConductorQuery("");
+    setPlacaError(null);
+    setOpenModal("ingreso");
   };
 
   const abrirIngresoOficial = () => { setVehiculoForm(emptyVehiculoForm(true)); resetWizardConductor(); setOpenModal("ingreso"); };
@@ -256,8 +291,13 @@ export function useIngresoVehiculo(
 
   const sugerenciasPlaca = useMemo(() => {
     if (!placaDebounced || vehiculoEncontrado) return [];
-    return vehiculos.filter((v) => v.placa.startsWith(placaDebounced)).slice(0, 6);
-  }, [placaDebounced, vehiculos, vehiculoEncontrado]);
+    // Solo se sugieren vehículos que caben en ESTA celda: ofrecer un carro para una celda de
+    // moto solo lleva a un error al confirmar (la validación de placa vs tipo de celda ya lo
+    // rechaza más abajo), así que se filtra desde la sugerencia.
+    return vehiculos
+      .filter((v) => v.placa.startsWith(placaDebounced) && (!celdaActiva || v.tipo === celdaActiva.tipo))
+      .slice(0, 6);
+  }, [placaDebounced, vehiculos, vehiculoEncontrado, celdaActiva]);
 
   /* Chequeo en vivo de "vehículo ya estacionado en otra celda": los datos (controlesSalida,
      vehículos) ya están cargados en memoria, así que no hace falta esperar al envío del
@@ -344,8 +384,12 @@ export function useIngresoVehiculo(
 
   const vehiculosConductor = useMemo(() => {
     if (!conductorIdentificado) return [];
-    return vehiculos.filter((v) => v.conductorId === conductorIdentificado.id);
-  }, [conductorIdentificado, vehiculos]);
+    // Mismo criterio que en las sugerencias de placa: de los vehículos del conductor solo se
+    // listan los compatibles con el tipo de la celda que se está ocupando.
+    return vehiculos.filter(
+      (v) => v.conductorId === conductorIdentificado.id && (!celdaActiva || v.tipo === celdaActiva.tipo)
+    );
+  }, [conductorIdentificado, vehiculos, celdaActiva]);
 
   /* Validación en vivo del formulario de registro de vehículo: la placa debe coincidir
      con el tipo de la celda seleccionada (carro/moto) y el conductor debe tener nombre completo
@@ -378,7 +422,7 @@ export function useIngresoVehiculo(
 
   return {
     vehiculoForm, setVehiculoForm, placaError, setPlacaError,
-    registrarEnCelda, registrarVehiculo, abrirIngresoOficial, abrirIngresoVisitante,
+    registrarEnCelda, registrarVehiculo, abrirIngresoOficial, abrirIngresoVisitante, abrirIngresoReservado,
     conductoresSugeridos, vehiculoEncontrado, sugerenciasPlaca, conductorEncontrado, conductorIdentificado, vehiculosConductor,
     ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo, placaYaEstacionada,
     motivoBloqueoLive,
