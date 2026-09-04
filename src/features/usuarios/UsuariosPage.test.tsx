@@ -84,7 +84,7 @@ describe('Usuarios', () => {
 
     // El rol 3 se llama "Comunidad SENA" en el backend; la tabla estática del front lo
     // llamaba "Conductor".
-    expect(screen.getAllByText('Comunidad SENA').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Conductor').length).toBeGreaterThan(0);
     expect(screen.queryByText('Desconocido')).not.toBeInTheDocument();
   });
 
@@ -235,7 +235,12 @@ describe('Usuarios', () => {
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), correo);
     await user.type(screen.getByPlaceholderText('••••••••'), 'Pass1234');
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'Pass1234');
-    await user.selectOptions(screen.getByLabelText('Rol del sistema'), 'Comunidad SENA');
+    await user.selectOptions(screen.getByLabelText('Rol del sistema'), 'Conductor');
+
+    // Al elegir el rol Conductor aparece su perfil SENA: el backend le crea de paso el
+    // perfil de conductor, y ese campo va ahí.
+    const tipoUsuario = await screen.findByLabelText('Tipo de usuario');
+    await user.selectOptions(tipoUsuario, (tipoUsuario.querySelectorAll('option')[1] as HTMLOptionElement).value);
 
     await user.click(screen.getByRole('button', { name: 'Crear Usuario' }));
 
@@ -258,6 +263,26 @@ describe('Usuarios', () => {
     await waitFor(() => {
       expect(screen.getAllByText(`CC ${documento}`).length).toBeGreaterThan(0);
     });
+  }, 15000);
+
+  it('el tipo de usuario solo se pide para el rol Conductor', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByText('Nuevo Usuario'));
+    await screen.findByRole('heading', { level: 2, name: 'Nuevo Usuario' });
+
+    // Sin rol elegido todavía no aparece.
+    expect(screen.queryByLabelText('Tipo de usuario')).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Rol del sistema'), 'Vigilante');
+    expect(screen.queryByLabelText('Tipo de usuario')).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Rol del sistema'), 'Conductor');
+    expect(await screen.findByLabelText('Tipo de usuario')).toBeInTheDocument();
   }, 15000);
 
   it('avisa en el formulario si la contraseña no cumple los requisitos de la API', async () => {

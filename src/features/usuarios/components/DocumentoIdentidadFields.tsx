@@ -1,6 +1,7 @@
 import { IconId as IdCard } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import { TIPOS_DOCUMENTO } from "@/utils/validation";
+import { useTiposUsuario } from "@/features/conductores";
 import { COLORS, inputErrorStyle, inputIconStyle, inputStyle } from "../lib/helpers";
 
 const iconColor = COLORS.textLight;
@@ -9,9 +10,14 @@ interface DocumentoIdentidadFieldsProps {
   tipoDocumento: string;
   numeroDocumento: string;
   numeroDocumentoError?: string;
+  /** true solo al CREAR una cuenta de rol Conductor: entonces se pide su perfil SENA. */
+  pedirTipoUsuario?: boolean;
+  tipoUsuarioId?: string;
+  tipoUsuarioIdError?: string;
   onTipoDocumentoChange: (value: string) => void;
   onNumeroDocumentoChange: (value: string) => void;
   onNumeroDocumentoBlur: () => void;
+  onTipoUsuarioIdChange?: (value: string) => void;
 }
 
 /**
@@ -21,15 +27,19 @@ interface DocumentoIdentidadFieldsProps {
  * backend), así que se guardan con la cuenta y ya no hace falta crear un conductor para
  * tener dónde ponerlas.
  *
- * Aquí también se pedía el "tipo de usuario" (Aprendiz/Instructor/…). Se quitó: es un campo
- * del CONDUCTOR, no de la cuenta — la tabla `usuario` no tiene nada equivalente, lo único
- * que clasifica a una cuenta es su rol. Se sigue pidiendo donde corresponde: en el módulo de
- * Conductores y en el registro público, donde la persona se da de alta a sí misma.
+ * El "tipo de usuario" (Aprendiz/Instructor/…) no es un dato de la cuenta: `usuario` no
+ * tiene nada equivalente, lo único que la clasifica es su rol. Se pide solo al CREAR una
+ * cuenta de rol Conductor, porque el backend le crea de paso su perfil de conductor y ahí sí
+ * existe ese campo. Para los demás roles no aparece, y al editar tampoco: ese perfil se
+ * corrige desde el módulo de Conductores.
  */
 export function DocumentoIdentidadFields({
   tipoDocumento, numeroDocumento, numeroDocumentoError,
-  onTipoDocumentoChange, onNumeroDocumentoChange, onNumeroDocumentoBlur,
+  pedirTipoUsuario = false, tipoUsuarioId = "", tipoUsuarioIdError,
+  onTipoDocumentoChange, onNumeroDocumentoChange, onNumeroDocumentoBlur, onTipoUsuarioIdChange,
 }: DocumentoIdentidadFieldsProps) {
+  const { data: tiposUsuario = [] } = useTiposUsuario();
+
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
       <div style={{ padding: "10px 14px", background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
@@ -67,6 +77,26 @@ export function DocumentoIdentidadFields({
             />
           </div>
         </FormField>
+
+        {pedirTipoUsuario && tiposUsuario.length > 0 && (
+          <div style={{ gridColumn: "1 / -1" }}>
+            <FormField label="Tipo de usuario" error={tipoUsuarioIdError}>
+              <select
+                value={tipoUsuarioId}
+                aria-label="Tipo de usuario"
+                onChange={(e) => onTipoUsuarioIdChange?.(e.target.value)}
+                style={tipoUsuarioIdError
+                  ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" }
+                  : { ...inputStyle, appearance: "none", cursor: "pointer" }}
+              >
+                <option value="">Seleccionar tipo…</option>
+                {tiposUsuario.map((t) => (
+                  <option key={t.id} value={t.id}>{t.nombre}</option>
+                ))}
+              </select>
+            </FormField>
+          </div>
+        )}
       </div>
     </section>
   );

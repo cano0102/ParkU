@@ -31,7 +31,7 @@ const ESTADOS_GESTIONABLES: Incidente["estado"][] = ["pendiente"];
 // elimina el código) para que se habilite solo con este flag el día que el backend abra esa
 // ruta para que un Conductor gestione sus propios recursos.
 const ACCIONES_BACKEND_DISPONIBLES = false;
-const TOOLTIP_ACCION_NO_DISPONIBLE = "Disponible próximamente: el backend aún no permite esta acción a Comunidad SENA.";
+const TOOLTIP_ACCION_NO_DISPONIBLE = "Disponible próximamente: el backend aún no permite esta acción al rol Conductor.";
 
 /** Tarjeta de "Mis incidentes" (rol Comunidad SENA): resumen de solo lo que el propio
  *  conductor reportó, sin las acciones de gestión que sí ve Admin/Vigilante. */

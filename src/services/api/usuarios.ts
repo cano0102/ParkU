@@ -28,6 +28,9 @@ export interface Usuario {
   /** Documento de identidad de la cuenta (columnas reales de `usuario`). */
   tipoDocumento?: string;
   numeroDocumento?: string;
+  /** Solo al crear una cuenta de rol Conductor: el backend se lo pone al perfil de
+   *  conductor que crea con ella. No es columna de `usuario` y no vuelve en las lecturas. */
+  tipoUsuarioId?: string;
   /** Solo se usa al crear; vacío en las respuestas y al editar. */
   password: string;
   /** Repetición de la contraseña. La API la EXIGE al crear (`confirmar_contrasena`):
@@ -118,6 +121,9 @@ export async function create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
       ...(data.numeroDocumento?.trim()
         ? { tipo_documento: data.tipoDocumento || 'CC', numero_documento: data.numeroDocumento.trim() }
         : {}),
+      // Solo lo usa el backend si el rol es Conductor (es del perfil de conductor que crea
+      // junto a la cuenta); para cualquier otro rol lo ignora.
+      ...(data.tipoUsuarioId ? { tipo_usuario_id: Number(data.tipoUsuarioId) } : {}),
     },
   });
   return toFrontend(created);

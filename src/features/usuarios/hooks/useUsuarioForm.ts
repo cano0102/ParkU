@@ -5,6 +5,7 @@ import type { Conductor } from "@/services/api/conductores";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { validarNumeroDocumento } from "@/utils/validation";
+import { useTiposUsuario } from "@/features/conductores";
 import {
   FormState, NOMBRE_MIN, NOMBRE_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono, validarPassword,
 } from "../lib/helpers";
@@ -36,6 +37,12 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
   // Solo el súper admin real (SUPER_ADMIN_CORREO) puede asignarle el rol Administrador a
   // alguien — cualquier otro Admin gestionando usuarios ni siquiera ve esa opción en el
   // selector, así que no puede crear ni promover a otro Admin.
+  // El perfil SENA solo se pide al crear una cuenta de rol Conductor (ver más abajo). Si su
+  // catálogo no llegó a cargar no se puede exigir elegir una opción que no existe: eso
+  // dejaría el formulario permanentemente inválido y sin forma de crear la cuenta.
+  const { data: tiposUsuario = [] } = useTiposUsuario();
+  const hayTiposUsuario = tiposUsuario.length > 0;
+
   const { user } = useAuth();
   const esSuperAdmin = user?.correo?.trim().toLowerCase() === SUPER_ADMIN_CORREO;
 
@@ -113,6 +120,12 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       nextErrors.rol = "Solo el súper administrador puede asignar el rol Administrador";
     }
 
+    // Tipo de usuario: solo al CREAR una cuenta de rol Conductor. Es entonces cuando el
+    // backend le crea su perfil de conductor, que es donde vive ese campo.
+    if (!isEdit && Number(f.rol) === ROLES.CONDUCTOR && hayTiposUsuario && !f.tipoUsuarioId) {
+      nextErrors.tipoUsuarioId = "Selecciona un tipo de usuario";
+    }
+
     // Documento: obligatorio para toda cuenta, sin importar el rol. Es columna de `usuario`
     // (migración 002), así que se guarda con la cuenta y no hace falta ningún conductor.
     const numeroDocumento = f.numeroDocumento.trim();
@@ -146,7 +159,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     }
 
     return nextErrors;
-  }, [isEdit, usuarios, editingId, esSuperAdmin, documentosOcupados]);
+  }, [isEdit, usuarios, editingId, esSuperAdmin, documentosOcupados, hayTiposUsuario]);
 
   // Validación en tiempo real: recalcula los errores en cada cambio del formulario;
   // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
@@ -165,7 +178,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     setErrors(nextErrors);
     setTouched({
       nombre: true, correo: true, numero: true, rol: true,
-      password: true, confirmPassword: true, numeroDocumento: true,
+      password: true, confirmPassword: true, numeroDocumento: true, tipoUsuarioId: true,
     });
     const camposConError = Object.keys(nextErrors);
     if (camposConError.length > 0) {
@@ -175,7 +188,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       const etiquetas: Record<string, string> = {
         nombre: "Nombre completo", correo: "Correo", numero: "Teléfono", rol: "Rol",
         password: "Contraseña", confirmPassword: "Confirmar contraseña",
-        numeroDocumento: "Número de documento",
+        numeroDocumento: "Número de documento", tipoUsuarioId: "Tipo de usuario",
       };
       toast.error(`Falta corregir: ${camposConError.map((c) => etiquetas[c] ?? c).join(", ")}`);
       return;

@@ -79,10 +79,13 @@ export interface FormState {
   rol: string;
   estado: "activo" | "inactivo";
   /** Documento de identidad, obligatorio para toda cuenta. Son columnas de `usuario`
-   *  (migración 002 del backend), así que viajan en el mismo POST/PUT que el resto.
-   *  El "tipo de usuario" (Aprendiz/Instructor/…) NO se pide aquí: es del conductor. */
+   *  (migración 002 del backend), así que viajan en el mismo POST/PUT que el resto. */
   tipoDocumento: string;
   numeroDocumento: string;
+  /** Perfil SENA (Aprendiz/Instructor/…). NO es un dato de la cuenta: solo se pide al CREAR
+   *  una de rol Conductor, porque el backend le crea de paso su perfil de conductor y ese
+   *  campo va ahí. Para el resto de roles ni se muestra ni se envía. */
+  tipoUsuarioId: string;
   /** Foto de perfil (data URL) para reconocer a la persona en el listado. Opcional, y como
    *  `usuario` tampoco tiene columna de foto en la API, se guarda en este navegador —
    *  ver services/core/fotosPerfil.ts. */
@@ -99,5 +102,6 @@ export const emptyForm = (): FormState => ({
   estado: "activo",
   tipoDocumento: "CC",
   numeroDocumento: "",
+  tipoUsuarioId: "",
   foto: "",
 });

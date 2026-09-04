@@ -42,6 +42,9 @@ export function useUsuarioFormState(
       // El documento viene en la propia cuenta (migración 002 del backend).
       tipoDocumento: u.tipoDocumento || "CC",
       numeroDocumento: u.numeroDocumento ?? "",
+      // Al editar no se pregunta (el formulario ni lo pinta): el perfil de conductor se
+      // corrige desde su propio módulo. Se deja vacío para no enviar nada.
+      tipoUsuarioId: "",
       // La foto no viene de la API (no hay columna): se precarga de este navegador para que
       // editar cualquier otro campo no la borre. Ver useUsuariosData.fotoDe.
       foto: data.fotoDe(u.id) ?? "",

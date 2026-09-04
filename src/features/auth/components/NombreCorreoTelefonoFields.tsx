@@ -101,7 +101,7 @@ export function NombreCorreoTelefonoFields({
 
       <div>
         <label htmlFor="register-telefono" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
-          Teléfono
+          Teléfono <span style={{ fontWeight: 500, color: COLORS.textLight }}>(opcional)</span>
         </label>
         <div style={{ position: "relative" }}>
           <Phone size={16} color={COLORS.textLight} style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", pointerEvents: "none" }} />

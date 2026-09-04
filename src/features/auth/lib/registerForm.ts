@@ -69,9 +69,10 @@ export function validate(f: FormState, exigirTipoUsuario = false): ValidationErr
     nextErrors.correo = "Ingresa un correo electrónico válido";
   }
 
-  if (!numero) {
-    nextErrors.numero = "El teléfono es obligatorio";
-  } else if (!validarTelefono(numero)) {
+  // El teléfono es OPCIONAL (igual que en el backend y en el resto de formularios): mucha
+  // gente no lo da, y bloquear el registro por eso no protege nada. Si se escribe, sí tiene
+  // que ser válido -- un número a medias sería peor que ninguno.
+  if (numero && !validarTelefono(numero)) {
     nextErrors.numero = "Ingresa un número de teléfono colombiano válido (10 dígitos)";
   }
 

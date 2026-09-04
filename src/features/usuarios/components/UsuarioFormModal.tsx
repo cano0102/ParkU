@@ -7,6 +7,7 @@ import { CredencialesAccesoFields } from "./CredencialesAccesoFields";
 import { DocumentoIdentidadFields } from "./DocumentoIdentidadFields";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Conductor } from "@/services/api/conductores";
+import { ROLES } from "@/services/core/roles";
 import { COLORS, FormState } from "../lib/helpers";
 import { useUsuarioForm } from "../hooks/useUsuarioForm";
 
@@ -27,6 +28,11 @@ interface UsuarioFormModalProps {
 export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conductores, editingId, onSave, onCancel }: UsuarioFormModalProps) => {
   const isEdit = title.startsWith("Editar");
   const f = useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, editingId, onSave });
+
+  // El perfil SENA (Aprendiz/Instructor/…) solo se pregunta al CREAR una cuenta de rol
+  // Conductor: es entonces cuando el backend le crea su perfil de conductor, y ese campo va
+  // ahí. Al editar se corrige desde el módulo de Conductores.
+  const pedirTipoUsuario = !isEdit && Number(f.form.rol) === ROLES.CONDUCTOR;
 
   return (
     <EntityFormModal
@@ -67,9 +73,13 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
         tipoDocumento={f.form.tipoDocumento}
         numeroDocumento={f.form.numeroDocumento}
         numeroDocumentoError={f.err("numeroDocumento")}
+        pedirTipoUsuario={pedirTipoUsuario}
+        tipoUsuarioId={f.form.tipoUsuarioId}
+        tipoUsuarioIdError={f.err("tipoUsuarioId")}
         onTipoDocumentoChange={(v) => f.set("tipoDocumento", v)}
         onNumeroDocumentoChange={(v) => f.set("numeroDocumento", v)}
         onNumeroDocumentoBlur={() => f.markTouched("numeroDocumento")}
+        onTipoUsuarioIdChange={(v) => { f.set("tipoUsuarioId", v); f.markTouched("tipoUsuarioId"); }}
       />
 
       <DatosPersonalesFields

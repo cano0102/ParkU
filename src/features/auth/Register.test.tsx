@@ -49,7 +49,7 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, overrides
   await user.selectOptions(tipoUsuario, primeraOpcion.value);
   await user.type(screen.getByLabelText('Nombre Completo'), 'Usuario de Prueba');
   await user.type(screen.getByLabelText('Correo Electrónico'), correo);
-  await user.type(screen.getByLabelText('Teléfono'), '3101234567');
+  await user.type(screen.getByLabelText(/Teléfono/), '3101234567');
   await user.type(screen.getByLabelText('Contraseña'), 'Pass1234');
   await user.type(screen.getByLabelText('Confirmar Contraseña'), 'Pass1234');
   await user.click(screen.getByLabelText(/Acepto los términos/));
@@ -91,6 +91,25 @@ describe('Register', () => {
     expect(toast.success).toHaveBeenCalled();
   }, 15000);
 
+  it('deja registrarse sin teléfono: es opcional', async () => {
+    const user = userEvent.setup();
+    renderRegister();
+
+    const identificacion = String(Date.now());
+    await user.type(screen.getByLabelText('N.º de identificación'), identificacion);
+    const tipoUsuario = await screen.findByLabelText('Tipo de usuario');
+    await user.selectOptions(tipoUsuario, (tipoUsuario.querySelectorAll('option')[1] as HTMLOptionElement).value);
+    await user.type(screen.getByLabelText('Nombre Completo'), 'Sin Telefono');
+    await user.type(screen.getByLabelText('Correo Electrónico'), `sin-tel-${identificacion}@sena.edu.co`);
+    await user.type(screen.getByLabelText('Contraseña'), 'Pass1234');
+    await user.type(screen.getByLabelText('Confirmar Contraseña'), 'Pass1234');
+    await user.click(screen.getByLabelText(/Acepto los términos/));
+
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard'));
+  }, 15000);
+
   it('muestra un error si el correo ya está registrado', async () => {
     const user = userEvent.setup();
     renderRegister();
@@ -121,7 +140,7 @@ describe('Register', () => {
     renderRegister();
 
     // El admin (id 1) tiene numero_telefonico '3101234567' en la semilla.
-    await user.type(screen.getByLabelText('Teléfono'), '3101234567');
+    await user.type(screen.getByLabelText(/Teléfono/), '3101234567');
 
     expect(await screen.findByText('Este número ya está registrado')).toBeInTheDocument();
   });
@@ -142,7 +161,7 @@ describe('Register', () => {
     renderRegister();
 
     await user.type(screen.getByLabelText('Correo Electrónico'), `libre-${Date.now()}@sena.edu.co`);
-    await user.type(screen.getByLabelText('Teléfono'), '3009998877');
+    await user.type(screen.getByLabelText(/Teléfono/), '3009998877');
     await user.type(screen.getByLabelText('N.º de identificación'), '9999999999');
 
     // Primero confirma que el chequeo en vivo realmente arrancó (el debounce

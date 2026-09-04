@@ -23,7 +23,7 @@ const baseUsuario = (over: Partial<Usuario>): Usuario => ({
 const formConductor = {
   correo: 'nuevo@sena.edu.co', password: 'Pass1234', confirmPassword: 'Pass1234', nombre: 'Nuevo Conductor', numero: '3101234567',
   rol: String(ROLES.CONDUCTOR), estado: 'activo' as const,
-  tipoDocumento: 'CC', numeroDocumento: '1001234567', foto: '',
+  tipoDocumento: 'CC', numeroDocumento: '1001234567', tipoUsuarioId: '', foto: '',
 };
 
 describe('useUsuarioFormState — documento de la cuenta', () => {

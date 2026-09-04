@@ -107,7 +107,7 @@ describe("features/conductores", () => {
     // La cuenta rellena nombre, correo y teléfono, y su ficha resume lo que aporta.
     await waitFor(() => expect(correo.value).toBe("maria.diaz@ext.com"));
     expect((within(dialog).getByPlaceholderText("ej. María García López") as HTMLInputElement).value).toBe("María Díaz P.");
-    expect(within(dialog).getByText("Comunidad SENA")).toBeInTheDocument();
+    expect(within(dialog).getByText("Conductor")).toBeInTheDocument();
 
     // Y el correo pasa a ser de solo lectura: se gestiona desde la cuenta, no aquí.
     expect(correo.readOnly).toBe(true);
