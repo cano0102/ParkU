@@ -47,6 +47,41 @@ describe('useUsuarioFormState — documento de la cuenta', () => {
     });
   });
 
+  it('crea la cuenta aunque falle el guardado del documento, y avisa qué quedó pendiente', async () => {
+    const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '79' }));
+    const guardarDocumentoDeUsuario = vi.fn().mockRejectedValue(new Error('No autorizado'));
+    const { result } = renderHook(() =>
+      useUsuarioFormState({
+        usuarios: [], addUsuario, updateUsuario: vi.fn(),
+        conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
+      })
+    );
+
+    await act(async () => result.current.handleSave(formConductor));
+
+    // La cuenta se creó de verdad: el fallo del documento no puede anularla ni ocultarla.
+    expect(addUsuario).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith('Usuario creado correctamente');
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('La cuenta se guardó, pero el documento no'));
+  });
+
+  it('no intenta guardar el documento si no hay tipo de usuario (catálogo no disponible)', async () => {
+    const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '80' }));
+    const guardarDocumentoDeUsuario = vi.fn();
+    const { result } = renderHook(() =>
+      useUsuarioFormState({
+        usuarios: [], addUsuario, updateUsuario: vi.fn(),
+        conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
+      })
+    );
+
+    await act(async () => result.current.handleSave({ ...formConductor, tipoUsuarioId: '' }));
+
+    expect(addUsuario).toHaveBeenCalled();
+    expect(guardarDocumentoDeUsuario).not.toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalledWith('Usuario creado correctamente');
+  });
+
   it('no guarda documento cuando el campo llega vacío', async () => {
     const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '78' }));
     const guardarDocumentoDeUsuario = vi.fn();

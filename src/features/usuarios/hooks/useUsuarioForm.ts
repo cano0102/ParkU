@@ -5,6 +5,7 @@ import type { Conductor } from "@/services/api/conductores";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { validarNumeroDocumento } from "@/utils/validation";
+import { useTiposUsuario } from "@/features/conductores";
 import {
   FormState, NOMBRE_MIN, NOMBRE_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono, validarPassword,
 } from "../lib/helpers";
@@ -36,6 +37,13 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
   // Solo el súper admin real (SUPER_ADMIN_CORREO) puede asignarle el rol Administrador a
   // alguien — cualquier otro Admin gestionando usuarios ni siquiera ve esa opción en el
   // selector, así que no puede crear ni promover a otro Admin.
+  // El "tipo de usuario" es una FK del catálogo del backend: si esa lista viene vacía (el
+  // endpoint falló, o el catálogo aún no tiene filas) NO se puede exigir elegir una opción
+  // que no existe — antes eso dejaba el formulario permanentemente inválido y sin forma de
+  // crear la cuenta. En ese caso el campo deja de ser obligatorio y se avisa en pantalla.
+  const { data: tiposUsuario = [] } = useTiposUsuario();
+  const hayTiposUsuario = tiposUsuario.length > 0;
+
   const { user } = useAuth();
   const esSuperAdmin = user?.correo?.trim().toLowerCase() === SUPER_ADMIN_CORREO;
 
@@ -120,7 +128,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     } else if (documentosOcupados.has(`${f.tipoDocumento}|${numeroDocumento}`)) {
       nextErrors.numeroDocumento = "Ya existe otra persona registrada con este tipo y número de documento.";
     }
-    if (!f.tipoUsuarioId) {
+    if (hayTiposUsuario && !f.tipoUsuarioId) {
       nextErrors.tipoUsuarioId = "Selecciona un tipo de usuario";
     }
 
@@ -146,7 +154,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     }
 
     return nextErrors;
-  }, [isEdit, usuarios, editingId, esSuperAdmin, documentosOcupados]);
+  }, [isEdit, usuarios, editingId, esSuperAdmin, documentosOcupados, hayTiposUsuario]);
 
   // Validación en tiempo real: recalcula los errores en cada cambio del formulario;
   // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
@@ -167,8 +175,17 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       nombre: true, correo: true, numero: true, rol: true,
       password: true, confirmPassword: true, numeroDocumento: true, tipoUsuarioId: true,
     });
-    if (Object.keys(nextErrors).length > 0) {
-      toast.error("Revisa los campos marcados en rojo");
+    const camposConError = Object.keys(nextErrors);
+    if (camposConError.length > 0) {
+      // Se nombran los campos que faltan en vez de un genérico "revisa los campos": con el
+      // formulario largo (documento arriba, credenciales abajo) el campo en rojo puede
+      // quedar fuera de la vista y parecer que el botón "no hace nada".
+      const etiquetas: Record<string, string> = {
+        nombre: "Nombre completo", correo: "Correo", numero: "Teléfono", rol: "Rol",
+        password: "Contraseña", confirmPassword: "Confirmar contraseña",
+        numeroDocumento: "Número de documento", tipoUsuarioId: "Tipo de usuario",
+      };
+      toast.error(`Falta corregir: ${camposConError.map((c) => etiquetas[c] ?? c).join(", ")}`);
       return;
     }
 
@@ -179,6 +196,9 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
 
   return {
     form, set, showPass, setShowPass,
+    /** false si el catálogo de tipos de usuario no trajo opciones: el documento no se podrá
+     *  guardar (es FK obligatoria del conductor), pero la cuenta sí se puede crear. */
+    hayTiposUsuario,
     rolesDisponibles, markTouched, err, handleSubmit,
     isValid: Object.keys(errors).length === 0,
   };

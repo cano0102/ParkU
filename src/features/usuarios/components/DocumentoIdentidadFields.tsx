@@ -71,6 +71,16 @@ export function DocumentoIdentidadFields({
           </div>
         </FormField>
 
+        {tiposUsuario.length === 0 && (
+          <div style={{ gridColumn: "1 / -1", padding: "9px 12px", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
+            <p style={{ fontSize: 11, color: "#92400E", lineHeight: 1.5, margin: 0 }}>
+              No se pudo cargar el catálogo de tipos de usuario, así que el documento no se
+              podrá guardar todavía. La cuenta sí se puede crear; el documento se registra
+              después desde el módulo Conductores.
+            </p>
+          </div>
+        )}
+
         <div style={{ gridColumn: "1 / -1" }}>
           <FormField label="Tipo de usuario" error={tipoUsuarioIdError}>
             <select

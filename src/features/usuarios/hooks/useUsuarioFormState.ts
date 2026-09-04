@@ -102,22 +102,32 @@ export function useUsuarioFormState(
           usuarioId = creado.id;
         }
 
-        // El documento es obligatorio para toda cuenta y se guarda en el `conductor`
-        // vinculado (la tabla `usuario` no tiene esas columnas). Se hace DESPUÉS de tener
-        // el id de la cuenta, y antes del toast de éxito: si falla, el error del manejador
-        // central es lo único que debe verse.
-        if (usuarioId && form.numeroDocumento.trim()) {
-          await data.guardarDocumentoDeUsuario(usuarioId, {
-            tipoDocumento: form.tipoDocumento,
-            numeroDocumento: form.numeroDocumento.trim(),
-            tipoUsuarioId: form.tipoUsuarioId,
-            nombre: payload.nombre,
-            correo: payload.correo,
-            numeroTelefonico: payload.numero,
-          });
+        toast.success(editingUsuario ? "Usuario actualizado correctamente" : "Usuario creado correctamente");
+
+        // El documento se guarda en el `conductor` vinculado (la tabla `usuario` no tiene
+        // esas columnas) y requiere `tipoUsuarioId`, que es FK obligatoria de ese modelo.
+        // Va en su PROPIO try: la cuenta ya está creada en el backend, así que si este paso
+        // falla no puede propagarse como si hubiera fallado todo — se avisa exactamente qué
+        // quedó pendiente, en vez de dejar creer que no se creó nada.
+        if (usuarioId && form.numeroDocumento.trim() && form.tipoUsuarioId) {
+          try {
+            await data.guardarDocumentoDeUsuario(usuarioId, {
+              tipoDocumento: form.tipoDocumento,
+              numeroDocumento: form.numeroDocumento.trim(),
+              tipoUsuarioId: form.tipoUsuarioId,
+              nombre: payload.nombre,
+              correo: payload.correo,
+              numeroTelefonico: payload.numero,
+            });
+          } catch (error) {
+            console.error("Error saving user document:", error);
+            const motivo = error instanceof Error && error.message ? `: ${error.message}` : ".";
+            toast.error(`La cuenta se guardó, pero el documento no${motivo} Puedes registrarlo desde el módulo Conductores.`);
+          }
+        } else if (usuarioId && form.numeroDocumento.trim() && !form.tipoUsuarioId) {
+          toast.error("La cuenta se guardó, pero el documento no: falta el tipo de usuario (no se pudo cargar su catálogo).");
         }
 
-        toast.success(editingUsuario ? "Usuario actualizado correctamente" : "Usuario creado correctamente");
         setDialogOpen(false);
       } catch (error) {
         // El toast de error ya lo muestra el manejador centralizado de mutaciones
