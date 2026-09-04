@@ -28,12 +28,15 @@ export interface RegisterInput {
   nombre: string;
   numero: string;
   /** El formulario los valida (formato + duplicado en vivo vía `existeDocumento`) pero
-   *  `register()` más abajo NO los envía: `POST /auth/registro` no tiene ningún campo para
-   *  persistirlos — el modelo real de Usuario no tiene columna de documento (esa información
-   *  vive en Conductor, una entidad aparte que este endpoint público no crea). Pendiente de
-   *  que el backend agregue soporte; documentado también en el informe de esta auditoría. */
+   *  Sí se envían: `POST /auth/registro` los guarda en la cuenta y además crea el perfil de
+   *  Conductor vinculado. Aquí sí corresponde crearlo automáticamente — quien se registra es
+   *  la propia persona que va a parquear, no un tercero al que un admin le abre cuenta. */
   tipoDocumento: string;
   identificacion: string;
+  /** Perfil dentro del SENA (Aprendiz/Instructor/…), del catálogo /catalogos/tipos-usuario.
+   *  Es un dato del CONDUCTOR que se crea con el registro. Opcional: si el catálogo no
+   *  cargó, la cuenta se crea igual y el perfil queda por completar. */
+  tipoUsuarioId?: string;
 }
 
 interface ApiUsuario {
@@ -79,10 +82,13 @@ export async function login(correo: string, password: string): Promise<AuthUser>
 }
 
 /**
- * El registro público (`POST /api/auth/registro`) solo acepta
- * correo/contrasena/nombre (siempre crea rol Conductor) y no devuelve token
- * — para mantener el "queda logueado" que ya tenía el mock, se hace login
+ * El registro público (`POST /api/auth/registro`) siempre crea rol Conductor y no devuelve
+ * token — para mantener el "queda logueado" que ya tenía el mock, se hace login
  * inmediatamente después con las mismas credenciales.
+ *
+ * Con el documento, el backend crea también el Conductor de esa misma persona, vinculado a
+ * la cuenta, en la misma transacción: si el documento ya estaba registrado responde 409 y no
+ * queda ni cuenta ni conductor.
  */
 export async function register(data: RegisterInput): Promise<AuthUser> {
   await apiFetch('/auth/registro', {
@@ -98,6 +104,14 @@ export async function register(data: RegisterInput): Promise<AuthUser> {
       confirmar_contrasena: data.password,
       nombre: data.nombre.trim(),
       numero: data.numero?.trim() || undefined,
+      // Los dos van juntos o no van: el backend responde 400 si llega solo uno.
+      ...(data.identificacion?.trim()
+        ? {
+            tipo_documento: data.tipoDocumento || 'CC',
+            numero_documento: data.identificacion.trim(),
+            ...(data.tipoUsuarioId ? { tipo_usuario_id: Number(data.tipoUsuarioId) } : {}),
+          }
+        : {}),
     },
   });
   return login(data.correo, data.password);

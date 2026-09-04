@@ -13,6 +13,8 @@ export interface FormState {
   numero: string;
   tipoDocumento: string;
   identificacion: string;
+  /** Perfil SENA del conductor que se crea con el registro (catálogo del backend). */
+  tipoUsuarioId: string;
   password: string;
   confirmPassword: string;
   aceptaTerminos: boolean;
@@ -24,6 +26,7 @@ export const emptyForm = (): FormState => ({
   numero: "",
   tipoDocumento: "CC",
   identificacion: "",
+  tipoUsuarioId: "",
   password: "",
   confirmPassword: "",
   aceptaTerminos: false,
@@ -34,12 +37,18 @@ export interface ValidationErrors {
   correo?: string;
   numero?: string;
   identificacion?: string;
+  tipoUsuarioId?: string;
   password?: string;
   confirmPassword?: string;
   aceptaTerminos?: string;
 }
 
-export function validate(f: FormState): ValidationErrors {
+/**
+ * @param exigirTipoUsuario - Solo se exige elegir un tipo de usuario si su catálogo llegó a
+ *   cargar. Si el endpoint falla, obligar a elegir una opción que no existe dejaría el
+ *   formulario permanentemente inválido y nadie podría registrarse.
+ */
+export function validate(f: FormState, exigirTipoUsuario = false): ValidationErrors {
   const nextErrors: ValidationErrors = {};
   const nombre = f.nombre.trim();
   const correo = f.correo.trim();
@@ -82,6 +91,10 @@ export function validate(f: FormState): ValidationErrors {
     nextErrors.confirmPassword = "Confirma tu contraseña";
   } else if (f.confirmPassword !== f.password) {
     nextErrors.confirmPassword = "Las contraseñas no coinciden";
+  }
+
+  if (exigirTipoUsuario && !f.tipoUsuarioId) {
+    nextErrors.tipoUsuarioId = "Selecciona tu tipo de usuario";
   }
 
   if (!f.aceptaTerminos) {

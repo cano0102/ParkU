@@ -5,7 +5,6 @@ import type { Conductor } from "@/services/api/conductores";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { validarNumeroDocumento } from "@/utils/validation";
-import { useTiposUsuario } from "@/features/conductores";
 import {
   FormState, NOMBRE_MIN, NOMBRE_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono, validarPassword,
 } from "../lib/helpers";
@@ -37,13 +36,6 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
   // Solo el súper admin real (SUPER_ADMIN_CORREO) puede asignarle el rol Administrador a
   // alguien — cualquier otro Admin gestionando usuarios ni siquiera ve esa opción en el
   // selector, así que no puede crear ni promover a otro Admin.
-  // El "tipo de usuario" es una FK del catálogo del backend: si esa lista viene vacía (el
-  // endpoint falló, o el catálogo aún no tiene filas) NO se puede exigir elegir una opción
-  // que no existe — antes eso dejaba el formulario permanentemente inválido y sin forma de
-  // crear la cuenta. En ese caso el campo deja de ser obligatorio y se avisa en pantalla.
-  const { data: tiposUsuario = [] } = useTiposUsuario();
-  const hayTiposUsuario = tiposUsuario.length > 0;
-
   const { user } = useAuth();
   const esSuperAdmin = user?.correo?.trim().toLowerCase() === SUPER_ADMIN_CORREO;
 
@@ -53,17 +45,21 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     return esSuperAdmin ? activos : activos.filter((r) => r.id !== String(ROLES.ADMIN));
   }, [roles, esSuperAdmin]);
 
-  /** Documentos ya usados por OTRO conductor (el de la cuenta en edición se excluye, para que
-   *  guardar sin cambiar el documento no choque consigo mismo). Mismo criterio que
-   *  useConductorForm.ts, contra la lista ya cargada en vez de una consulta extra. */
+  /** Documentos ya usados por OTRA persona: los de las cuentas (el documento es columna de
+   *  `usuario`) y los de los conductores sin cuenta. El de la cuenta en edición se excluye,
+   *  para que guardar sin cambiar el documento no choque consigo mismo. Es el mismo 409 que
+   *  daría el backend, avisado antes de enviar. */
   const documentosOcupados = useMemo(
     () =>
-      new Set(
-        conductores
+      new Set([
+        ...usuarios
+          .filter((u) => u.numeroDocumento && u.id !== editingId)
+          .map((u) => `${u.tipoDocumento || "CC"}|${(u.numeroDocumento ?? "").trim()}`),
+        ...conductores
           .filter((c) => !editingId || c.usuarioId !== editingId)
-          .map((c) => `${c.tipoDocumento}|${c.numeroDocumento.trim()}`)
-      ),
-    [conductores, editingId]
+          .map((c) => `${c.tipoDocumento}|${c.numeroDocumento.trim()}`),
+      ]),
+    [usuarios, conductores, editingId]
   );
 
   // Los errores se recalculan en tiempo real vía el `useEffect` sobre `form` (ver más abajo),
@@ -117,9 +113,8 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       nextErrors.rol = "Solo el súper administrador puede asignar el rol Administrador";
     }
 
-    // Documento: obligatorio para toda cuenta, sin importar el rol. No es una columna de
-    // `usuario`: se persiste en el `conductor` vinculado, y ese modelo exige además el tipo
-    // de usuario (FK a /catalogos/tipos-usuario), que por eso también se pide aquí.
+    // Documento: obligatorio para toda cuenta, sin importar el rol. Es columna de `usuario`
+    // (migración 002), así que se guarda con la cuenta y no hace falta ningún conductor.
     const numeroDocumento = f.numeroDocumento.trim();
     if (!numeroDocumento) {
       nextErrors.numeroDocumento = "El número de documento es obligatorio";
@@ -127,9 +122,6 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       nextErrors.numeroDocumento = "El número de documento debe tener entre 6 y 10 dígitos.";
     } else if (documentosOcupados.has(`${f.tipoDocumento}|${numeroDocumento}`)) {
       nextErrors.numeroDocumento = "Ya existe otra persona registrada con este tipo y número de documento.";
-    }
-    if (hayTiposUsuario && !f.tipoUsuarioId) {
-      nextErrors.tipoUsuarioId = "Selecciona un tipo de usuario";
     }
 
     // Contraseña: obligatoria al crear. Se validan aquí los MISMOS requisitos que exige la
@@ -154,7 +146,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     }
 
     return nextErrors;
-  }, [isEdit, usuarios, editingId, esSuperAdmin, documentosOcupados, hayTiposUsuario]);
+  }, [isEdit, usuarios, editingId, esSuperAdmin, documentosOcupados]);
 
   // Validación en tiempo real: recalcula los errores en cada cambio del formulario;
   // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
@@ -173,7 +165,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     setErrors(nextErrors);
     setTouched({
       nombre: true, correo: true, numero: true, rol: true,
-      password: true, confirmPassword: true, numeroDocumento: true, tipoUsuarioId: true,
+      password: true, confirmPassword: true, numeroDocumento: true,
     });
     const camposConError = Object.keys(nextErrors);
     if (camposConError.length > 0) {
@@ -183,7 +175,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       const etiquetas: Record<string, string> = {
         nombre: "Nombre completo", correo: "Correo", numero: "Teléfono", rol: "Rol",
         password: "Contraseña", confirmPassword: "Confirmar contraseña",
-        numeroDocumento: "Número de documento", tipoUsuarioId: "Tipo de usuario",
+        numeroDocumento: "Número de documento",
       };
       toast.error(`Falta corregir: ${camposConError.map((c) => etiquetas[c] ?? c).join(", ")}`);
       return;
@@ -196,9 +188,6 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
 
   return {
     form, set, showPass, setShowPass,
-    /** false si el catálogo de tipos de usuario no trajo opciones: el documento no se podrá
-     *  guardar (es FK obligatoria del conductor), pero la cuenta sí se puede crear. */
-    hayTiposUsuario,
     rolesDisponibles, markTouched, err, handleSubmit,
     isValid: Object.keys(errors).length === 0,
   };

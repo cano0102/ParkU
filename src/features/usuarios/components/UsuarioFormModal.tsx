@@ -66,13 +66,10 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
       <DocumentoIdentidadFields
         tipoDocumento={f.form.tipoDocumento}
         numeroDocumento={f.form.numeroDocumento}
-        tipoUsuarioId={f.form.tipoUsuarioId}
         numeroDocumentoError={f.err("numeroDocumento")}
-        tipoUsuarioIdError={f.err("tipoUsuarioId")}
         onTipoDocumentoChange={(v) => f.set("tipoDocumento", v)}
         onNumeroDocumentoChange={(v) => f.set("numeroDocumento", v)}
         onNumeroDocumentoBlur={() => f.markTouched("numeroDocumento")}
-        onTipoUsuarioIdChange={(v) => { f.set("tipoUsuarioId", v); f.markTouched("tipoUsuarioId"); }}
       />
 
       <DatosPersonalesFields

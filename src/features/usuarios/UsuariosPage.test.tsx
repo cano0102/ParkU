@@ -46,14 +46,14 @@ describe('Usuarios', () => {
     expect(screen.getAllByText('admin@sena.edu.co').length).toBeGreaterThan(0);
   });
 
-  it('muestra el documento del usuario, tomado del conductor vinculado por usuario_id', async () => {
+  it('muestra el documento del usuario, que es un dato de la propia cuenta', async () => {
     renderUsuarios();
     await waitFor(() => {
       expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
     });
 
-    // El conductor semilla con usuario_id 2 es el que aporta el documento de Ana Martínez:
-    // la cuenta en sí no guarda documento en la API real.
+    // El documento sale de la cuenta (columnas tipo_documento/numero_documento de `usuario`),
+    // no del conductor vinculado: antes había que ir a buscarlo allí.
     expect(screen.getAllByText('CC 2345678901').length).toBeGreaterThan(0);
     // Y un usuario sin conductor vinculado lo dice explícitamente en vez de omitir el dato.
     expect(screen.getAllByText('Sin documento registrado').length).toBeGreaterThan(0);
@@ -226,11 +226,10 @@ describe('Usuarios', () => {
     const nombre = `Usuario Prueba Nuevo`;
     const correo = `usuario.prueba.${suffix}@sena.edu.co`;
 
-    // El documento es obligatorio para toda cuenta y se guarda en el conductor vinculado
-    // (ver useUsuariosData.guardarDocumentoDeUsuario).
+    // El documento es obligatorio para toda cuenta y viaja en el MISMO alta (es columna de
+    // `usuario`). El "tipo de usuario" ya no se pide aquí: es un dato del conductor.
     const documento = String(suffix).slice(-6);
     await user.type(screen.getByLabelText('Número de documento'), documento);
-    await user.selectOptions(screen.getByLabelText('Tipo de usuario'), 'Aprendiz');
 
     await user.type(screen.getByPlaceholderText('ej. María García López'), nombre);
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), correo);
@@ -254,8 +253,8 @@ describe('Usuarios', () => {
       expect(screen.getAllByText(nombre).length).toBeGreaterThan(0);
     });
     expect(screen.getAllByText(correo).length).toBeGreaterThan(0);
-    // Ciclo completo: el documento se guardó en el conductor vinculado y vuelve a leerse
-    // desde ahí para mostrarse en la tarjeta del usuario recién creado.
+    // Ciclo completo: el documento se guardó en la cuenta y vuelve a leerse de ahí para
+    // mostrarse en la tarjeta del usuario recién creado.
     await waitFor(() => {
       expect(screen.getAllByText(`CC ${documento}`).length).toBeGreaterThan(0);
     });
@@ -410,8 +409,8 @@ describe('Usuarios', () => {
   });
 
   it('sube una foto desde el formulario y queda visible en la tarjeta del usuario', async () => {
-    // Se edita Ana (no Laura): el formulario exige documento, y Ana es la que tiene uno en el
-    // conductor vinculado — con Laura el guardado se bloquearía por ese campo, no por la foto.
+    // Se edita Ana (no Laura): el formulario exige documento, y Ana es la que lo tiene en su
+    // cuenta — con Laura el guardado se bloquearía por ese campo, no por la foto.
     procesarFotoCuadrada.mockResolvedValue('data:image/jpeg;base64,anaSubida');
     const user = userEvent.setup();
     renderUsuarios();

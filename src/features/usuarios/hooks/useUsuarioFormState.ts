@@ -9,7 +9,7 @@ import type { UsuariosData } from "./useUsuariosData";
 export function useUsuarioFormState(
   data: Pick<
     UsuariosData,
-    "usuarios" | "addUsuario" | "updateUsuario" | "conductorDeUsuario" | "guardarDocumentoDeUsuario" | "fotoDe" | "guardarFotoUsuario"
+    "usuarios" | "addUsuario" | "updateUsuario" | "fotoDe" | "guardarFotoUsuario"
   >
 ) {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -28,9 +28,6 @@ export function useUsuarioFormState(
       return;
     }
     setEditingUsuario(u);
-    // El documento no está en la cuenta: se precarga desde el conductor vinculado
-    // (useUsuariosData) para que editar sin tocarlo no lo borre.
-    const conductor = data.conductorDeUsuario(u.id);
     setFormInitial({
       correo: u.correo,
       // Se deja vacío a propósito: el hint del formulario dice
@@ -42,9 +39,9 @@ export function useUsuarioFormState(
       numero: u.numero,
       rol: String(u.rol),
       estado: u.estado,
-      tipoDocumento: conductor?.tipoDocumento ?? "CC",
-      numeroDocumento: conductor?.numeroDocumento ?? "",
-      tipoUsuarioId: conductor?.tipoUsuarioId ?? "",
+      // El documento viene en la propia cuenta (migración 002 del backend).
+      tipoDocumento: u.tipoDocumento || "CC",
+      numeroDocumento: u.numeroDocumento ?? "",
       // La foto no viene de la API (no hay columna): se precarga de este navegador para que
       // editar cualquier otro campo no la borre. Ver useUsuariosData.fotoDe.
       foto: data.fotoDe(u.id) ?? "",
@@ -115,29 +112,9 @@ export function useUsuarioFormState(
         // llave que usa la pantalla de Perfil — ver services/core/fotosPerfil.ts.
         if (usuarioId) data.guardarFotoUsuario(usuarioId, form.foto);
 
-        // El documento se guarda en el `conductor` vinculado (la tabla `usuario` no tiene
-        // esas columnas) y requiere `tipoUsuarioId`, que es FK obligatoria de ese modelo.
-        // Va en su PROPIO try: la cuenta ya está creada en el backend, así que si este paso
-        // falla no puede propagarse como si hubiera fallado todo — se avisa exactamente qué
-        // quedó pendiente, en vez de dejar creer que no se creó nada.
-        if (usuarioId && form.numeroDocumento.trim() && form.tipoUsuarioId) {
-          try {
-            await data.guardarDocumentoDeUsuario(usuarioId, {
-              tipoDocumento: form.tipoDocumento,
-              numeroDocumento: form.numeroDocumento.trim(),
-              tipoUsuarioId: form.tipoUsuarioId,
-              nombre: payload.nombre,
-              correo: payload.correo,
-              numeroTelefonico: payload.numero,
-            });
-          } catch (error) {
-            console.error("Error saving user document:", error);
-            const motivo = error instanceof Error && error.message ? `: ${error.message}` : ".";
-            toast.error(`La cuenta se guardó, pero el documento no${motivo} Puedes registrarlo desde el módulo Conductores.`);
-          }
-        } else if (usuarioId && form.numeroDocumento.trim() && !form.tipoUsuarioId) {
-          toast.error("La cuenta se guardó, pero el documento no: falta el tipo de usuario (no se pudo cargar su catálogo).");
-        }
+        // El documento ya viajó dentro de `payload`: es columna de la cuenta. Antes había
+        // aquí un segundo guardado (un POST a /api/conductores) que creaba un perfil de
+        // conductor solo para tener dónde ponerlo — ver useUsuariosData.
 
         setDialogOpen(false);
       } catch (error) {

@@ -1,7 +1,6 @@
 import { IconId as IdCard } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import { TIPOS_DOCUMENTO } from "@/utils/validation";
-import { useTiposUsuario } from "@/features/conductores";
 import { COLORS, inputErrorStyle, inputIconStyle, inputStyle } from "../lib/helpers";
 
 const iconColor = COLORS.textLight;
@@ -9,30 +8,28 @@ const iconColor = COLORS.textLight;
 interface DocumentoIdentidadFieldsProps {
   tipoDocumento: string;
   numeroDocumento: string;
-  tipoUsuarioId: string;
   numeroDocumentoError?: string;
-  tipoUsuarioIdError?: string;
   onTipoDocumentoChange: (value: string) => void;
   onNumeroDocumentoChange: (value: string) => void;
   onNumeroDocumentoBlur: () => void;
-  onTipoUsuarioIdChange: (value: string) => void;
 }
 
 /**
- * Sección "Documento de identidad", visible solo para cuentas con rol Comunidad SENA.
+ * Sección "Documento de identidad" del formulario de cuenta.
  *
- * La tabla `usuario` de la API no tiene columnas de documento: ese dato vive en el
- * `conductor` vinculado por `usuario_id` (ver services/api/usuarios.ts). Por eso aquí
- * también se pide el tipo de usuario (Aprendiz/Instructor/…), que es una FK obligatoria
- * de `conductor`. No se piden regional/centro/programa de formación: son opcionales en
- * el modelo y se gestionan desde el módulo de Conductores.
+ * `tipo_documento` y `numero_documento` son columnas de `usuario` (migración 002 del
+ * backend), así que se guardan con la cuenta y ya no hace falta crear un conductor para
+ * tener dónde ponerlas.
+ *
+ * Aquí también se pedía el "tipo de usuario" (Aprendiz/Instructor/…). Se quitó: es un campo
+ * del CONDUCTOR, no de la cuenta — la tabla `usuario` no tiene nada equivalente, lo único
+ * que clasifica a una cuenta es su rol. Se sigue pidiendo donde corresponde: en el módulo de
+ * Conductores y en el registro público, donde la persona se da de alta a sí misma.
  */
 export function DocumentoIdentidadFields({
-  tipoDocumento, numeroDocumento, tipoUsuarioId, numeroDocumentoError, tipoUsuarioIdError,
-  onTipoDocumentoChange, onNumeroDocumentoChange, onNumeroDocumentoBlur, onTipoUsuarioIdChange,
+  tipoDocumento, numeroDocumento, numeroDocumentoError,
+  onTipoDocumentoChange, onNumeroDocumentoChange, onNumeroDocumentoBlur,
 }: DocumentoIdentidadFieldsProps) {
-  const { data: tiposUsuario = [] } = useTiposUsuario();
-
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
       <div style={{ padding: "10px 14px", background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
@@ -70,32 +67,6 @@ export function DocumentoIdentidadFields({
             />
           </div>
         </FormField>
-
-        {tiposUsuario.length === 0 && (
-          <div style={{ gridColumn: "1 / -1", padding: "9px 12px", borderRadius: 10, background: "#FFFBEB", border: "1px solid #FDE68A" }}>
-            <p style={{ fontSize: 11, color: "#92400E", lineHeight: 1.5, margin: 0 }}>
-              No se pudo cargar el catálogo de tipos de usuario, así que el documento no se
-              podrá guardar todavía. La cuenta sí se puede crear; el documento se registra
-              después desde el módulo Conductores.
-            </p>
-          </div>
-        )}
-
-        <div style={{ gridColumn: "1 / -1" }}>
-          <FormField label="Tipo de usuario" error={tipoUsuarioIdError}>
-            <select
-              value={tipoUsuarioId}
-              aria-label="Tipo de usuario"
-              onChange={(e) => onTipoUsuarioIdChange(e.target.value)}
-              style={tipoUsuarioIdError ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" } : { ...inputStyle, appearance: "none", cursor: "pointer" }}
-            >
-              <option value="">Seleccionar tipo…</option>
-              {tiposUsuario.map((t) => (
-                <option key={t.id} value={t.id}>{t.nombre}</option>
-              ))}
-            </select>
-          </FormField>
-        </div>
       </div>
     </section>
   );

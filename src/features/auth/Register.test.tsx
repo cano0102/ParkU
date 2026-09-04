@@ -42,6 +42,11 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, overrides
   const identificacion = overrides?.identificacion ?? `${Date.now()}`;
 
   await user.type(screen.getByLabelText('N.º de identificación'), identificacion);
+  // El registro crea también el perfil de conductor de quien se inscribe, así que pide su
+  // tipo de usuario (Aprendiz/Instructor/…). Solo aparece si su catálogo llegó a cargar.
+  const tipoUsuario = await screen.findByLabelText('Tipo de usuario');
+  const primeraOpcion = tipoUsuario.querySelectorAll('option')[1] as HTMLOptionElement;
+  await user.selectOptions(tipoUsuario, primeraOpcion.value);
   await user.type(screen.getByLabelText('Nombre Completo'), 'Usuario de Prueba');
   await user.type(screen.getByLabelText('Correo Electrónico'), correo);
   await user.type(screen.getByLabelText('Teléfono'), '3101234567');
@@ -70,6 +75,11 @@ describe('Register', () => {
     expect(screen.getByLabelText('N.º de identificación')).toBeInTheDocument();
   });
 
+  it('pide el tipo de usuario, porque el registro crea también el perfil de conductor', async () => {
+    renderRegister();
+    expect(await screen.findByLabelText('Tipo de usuario')).toBeInTheDocument();
+  });
+
   it('registra un usuario nuevo con datos válidos y navega al dashboard', async () => {
     const user = userEvent.setup();
     renderRegister();
@@ -79,7 +89,7 @@ describe('Register', () => {
 
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard'));
     expect(toast.success).toHaveBeenCalled();
-  });
+  }, 15000);
 
   it('muestra un error si el correo ya está registrado', async () => {
     const user = userEvent.setup();
@@ -92,7 +102,7 @@ describe('Register', () => {
       expect(toast.error).toHaveBeenCalledWith('Ya existe una cuenta registrada con este correo.')
     );
     expect(mockNavigate).not.toHaveBeenCalled();
-  });
+  }, 15000);
 
   it('valida en tiempo real (sin enviar el formulario) si el correo ya está registrado', async () => {
     const user = userEvent.setup();

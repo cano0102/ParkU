@@ -9,12 +9,9 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 afterEach(() => vi.clearAllMocks());
 
-/** El hook también recibe el acceso al conductor vinculado (documento de la cuenta) y a la
- *  foto de perfil guardada en el navegador; estos tests no los ejercitan, así que se pasan
- *  stubs neutros. */
+/** El hook también guarda la foto de perfil en el navegador; estos tests no la ejercitan,
+ *  así que se pasan stubs neutros. */
 const documentoStubs = () => ({
-  conductorDeUsuario: () => null,
-  guardarDocumentoDeUsuario: vi.fn(),
   fotoDe: () => undefined,
   guardarFotoUsuario: vi.fn(),
 });
@@ -26,88 +23,55 @@ const baseUsuario = (over: Partial<Usuario>): Usuario => ({
 const formConductor = {
   correo: 'nuevo@sena.edu.co', password: 'Pass1234', confirmPassword: 'Pass1234', nombre: 'Nuevo Conductor', numero: '3101234567',
   rol: String(ROLES.CONDUCTOR), estado: 'activo' as const,
-  tipoDocumento: 'CC', numeroDocumento: '1001234567', tipoUsuarioId: '1', foto: '',
+  tipoDocumento: 'CC', numeroDocumento: '1001234567', foto: '',
 };
 
 describe('useUsuarioFormState — documento de la cuenta', () => {
-  it('guarda el documento en el conductor vinculado al crear una cuenta de Comunidad SENA', async () => {
+  it('manda el documento DENTRO del alta de la cuenta, sin crear ningún conductor', async () => {
+    // El documento es columna de `usuario` (migración 002 del backend). Antes esta pantalla
+    // hacía un segundo POST a /api/conductores para tener dónde guardarlo, y eso hacía
+    // aparecer un conductor que nadie había pedido cada vez que se creaba una cuenta.
     const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '77', correo: formConductor.correo }));
-    const guardarDocumentoDeUsuario = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
-      useUsuarioFormState({
-        usuarios: [], addUsuario, updateUsuario: vi.fn(),
-        conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
-        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
-      })
+      useUsuarioFormState({ usuarios: [], addUsuario, updateUsuario: vi.fn(), ...documentoStubs() })
     );
 
     await act(async () => result.current.handleSave(formConductor));
 
-    expect(addUsuario).toHaveBeenCalled();
-    expect(guardarDocumentoDeUsuario).toHaveBeenCalledWith('77', {
-      tipoDocumento: 'CC',
-      numeroDocumento: '1001234567',
-      tipoUsuarioId: '1',
-      nombre: 'Nuevo Conductor',
-      correo: 'nuevo@sena.edu.co',
-      numeroTelefonico: '3101234567',
-    });
+    expect(addUsuario).toHaveBeenCalledWith(
+      expect.objectContaining({ tipoDocumento: 'CC', numeroDocumento: '1001234567' })
+    );
+    expect(toast.success).toHaveBeenCalledWith('Usuario creado correctamente');
+    // Ya no hay ningún aviso de "la cuenta se guardó, pero el documento no": no hay un
+    // segundo guardado que pueda fallar por su cuenta.
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
-  it('crea la cuenta aunque falle el guardado del documento, y avisa qué quedó pendiente', async () => {
-    const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '79' }));
-    const guardarDocumentoDeUsuario = vi.fn().mockRejectedValue(new Error('No autorizado'));
+  it('al editar, el documento viaja en la misma actualización', async () => {
+    const editado = baseUsuario({ id: '77', correo: formConductor.correo });
+    const updateUsuario = vi.fn().mockResolvedValue(editado);
     const { result } = renderHook(() =>
-      useUsuarioFormState({
-        usuarios: [], addUsuario, updateUsuario: vi.fn(),
-        conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
-        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
-      })
+      useUsuarioFormState({ usuarios: [editado], addUsuario: vi.fn(), updateUsuario, ...documentoStubs() })
     );
 
-    await act(async () => result.current.handleSave(formConductor));
+    act(() => result.current.openEdit(editado));
+    await act(async () => result.current.handleSave({ ...formConductor, numeroDocumento: '1009999999' }));
 
-    // La cuenta se creó de verdad: el fallo del documento no puede anularla ni ocultarla.
-    expect(addUsuario).toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith('Usuario creado correctamente');
-    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('La cuenta se guardó, pero el documento no'));
+    expect(updateUsuario).toHaveBeenCalledWith('77', expect.objectContaining({ numeroDocumento: '1009999999' }));
   });
 
-  it('no intenta guardar el documento si no hay tipo de usuario (catálogo no disponible)', async () => {
-    const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '80' }));
-    const guardarDocumentoDeUsuario = vi.fn();
-    const { result } = renderHook(() =>
-      useUsuarioFormState({
-        usuarios: [], addUsuario, updateUsuario: vi.fn(),
-        conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
-        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
-      })
-    );
-
-    await act(async () => result.current.handleSave({ ...formConductor, tipoUsuarioId: '' }));
-
-    expect(addUsuario).toHaveBeenCalled();
-    expect(guardarDocumentoDeUsuario).not.toHaveBeenCalled();
-    expect(toast.success).toHaveBeenCalledWith('Usuario creado correctamente');
-  });
-
-  it('no guarda documento cuando el campo llega vacío', async () => {
+  it('una cuenta sin documento se crea igual', async () => {
     const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '78' }));
-    const guardarDocumentoDeUsuario = vi.fn();
     const { result } = renderHook(() =>
-      useUsuarioFormState({
-        usuarios: [], addUsuario, updateUsuario: vi.fn(),
-        conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
-        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
-      })
+      useUsuarioFormState({ usuarios: [], addUsuario, updateUsuario: vi.fn(), ...documentoStubs() })
     );
 
     await act(async () =>
       result.current.handleSave({ ...formConductor, rol: String(ROLES.VIGILANTE), numeroDocumento: '' })
     );
 
-    expect(addUsuario).toHaveBeenCalled();
-    expect(guardarDocumentoDeUsuario).not.toHaveBeenCalled();
+    expect(addUsuario).toHaveBeenCalledWith(expect.objectContaining({ numeroDocumento: '' }));
+    expect(toast.success).toHaveBeenCalledWith('Usuario creado correctamente');
   });
 });
 

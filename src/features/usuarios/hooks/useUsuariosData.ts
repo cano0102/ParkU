@@ -3,7 +3,7 @@ import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "./useUsuarios";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Conductor } from "@/services/api/conductores";
 import { useRoles } from "@/features/roles";
-import { useConductores, useCreateConductor, useUpdateConductor } from "@/features/conductores";
+import { useConductores } from "@/features/conductores";
 import { nombreDeRol, ROLES } from "@/services/core/roles";
 import { useFotos } from "@/hooks/useFotos";
 
@@ -20,23 +20,18 @@ export function useUsuariosData() {
     updateUsuarioMutation.mutateAsync({ id, data });
 
   /**
-   * Documento de identidad por usuario. La cuenta (`usuario`) NO tiene columnas de
-   * documento en la API real: ese dato de persona vive en el `conductor` vinculado
-   * por `usuario_id` (ver el encabezado de services/api/usuarios.ts y de
-   * services/api/conductores.ts). Se resuelve desde ahí en vez de duplicarlo en la
-   * cuenta; un usuario sin conductor vinculado simplemente no tiene documento aún.
+   * Documento de identidad: se lee de la PROPIA cuenta. `usuario` ya tiene columnas
+   * `tipo_documento`/`numero_documento` (migración 002 del backend); antes no las tenía y
+   * había que ir a buscarlo al conductor vinculado.
    */
+  const documentoDe = (usuarioId: string) => {
+    const u = usuarios.find((x) => x.id === usuarioId);
+    return u?.numeroDocumento ? { tipo: u.tipoDocumento ?? "CC", numero: u.numeroDocumento } : null;
+  };
+
+  // La lista de conductores se sigue cargando, pero solo para AVISAR de documentos
+  // repetidos en el formulario (useUsuarioForm) — ya no para guardar nada.
   const { data: conductores = [] } = useConductores();
-  const documentoPorUsuarioId = useMemo(
-    () =>
-      new Map(
-        conductores
-          .filter((c) => c.usuarioId && c.numeroDocumento)
-          .map((c) => [c.usuarioId, { tipo: c.tipoDocumento, numero: c.numeroDocumento }])
-      ),
-    [conductores]
-  );
-  const documentoDe = (usuarioId: string) => documentoPorUsuarioId.get(usuarioId) ?? null;
 
   const conductorPorUsuarioId = useMemo(
     () => new Map(conductores.filter((c) => c.usuarioId).map((c) => [c.usuarioId, c])),
@@ -44,61 +39,16 @@ export function useUsuariosData() {
   );
   const conductorDeUsuario = (usuarioId: string) => conductorPorUsuarioId.get(usuarioId) ?? null;
 
-  const createConductorMutation = useCreateConductor();
-  const updateConductorMutation = useUpdateConductor();
-
-  /**
-   * Persiste el documento de una cuenta de Comunidad SENA. Como `usuario` no tiene columnas
-   * de documento, se escribe en el `conductor` vinculado: se actualiza si esa cuenta ya
-   * tiene uno, y si no, se crea con `usuario_id` apuntando a ella. Al actualizar solo se
-   * tocan documento y tipo de usuario — nombre/correo/teléfono del conductor pueden haber
-   * sido editados desde su propio módulo y no deben pisarse desde aquí.
-   */
-  const guardarDocumentoDeUsuario = async (
-    usuarioId: string,
-    datos: {
-      tipoDocumento: string;
-      numeroDocumento: string;
-      tipoUsuarioId: string;
-      nombre: string;
-      correo: string;
-      numeroTelefonico: string;
-    }
-  ) => {
-    const existente = conductorPorUsuarioId.get(usuarioId);
-    const tipoDocumento = datos.tipoDocumento as Conductor["tipoDocumento"];
-
-    if (existente) {
-      await updateConductorMutation.mutateAsync({
-        id: existente.id,
-        data: {
-          tipoDocumento,
-          numeroDocumento: datos.numeroDocumento,
-          tipoUsuarioId: datos.tipoUsuarioId,
-        },
-      });
-      return;
-    }
-
-    await createConductorMutation.mutateAsync({
-      usuarioId,
-      tipoDocumento,
-      numeroDocumento: datos.numeroDocumento,
-      nombre: datos.nombre,
-      correo: datos.correo,
-      numeroTelefonico: datos.numeroTelefonico,
-      tipoUsuarioId: datos.tipoUsuarioId,
-      direccion: "",
-      tipoUsuarioNombre: "",
-      regionalFormacion: "",
-      centroFormacion: "",
-      programaFormacion: "",
-      vigencia: "",
-      movilidadReducida: false,
-      tipoDiscapacidad: "",
-      estado: "activo",
-    });
-  };
+  // Esta pantalla YA NO crea ni edita conductores. Aquí vivía `guardarDocumentoDeUsuario`,
+  // que tras guardar la cuenta hacía un POST /api/conductores para dejar ahí el documento
+  // (la cuenta no tenía dónde guardarlo). El efecto era que crear un usuario hacía aparecer
+  // un conductor que nadie pidió, y esa cuenta quedaba "ya vinculada" y desaparecía del
+  // selector del módulo Conductores. Con el documento en la propia cuenta, el rodeo sobra:
+  // viaja en el mismo POST/PUT de /api/usuarios (ver services/api/usuarios.ts).
+  //
+  // El perfil de conductor se crea donde de verdad corresponde: al registrarse uno mismo
+  // (POST /api/auth/registro), al darlo de alta en Conductores, o al registrar su vehículo
+  // para parquearlo.
 
   /**
    * Foto de perfil por cuenta. Tampoco es una columna de `usuario` en la API real (igual que
@@ -131,7 +81,7 @@ export function useUsuariosData() {
   return {
     usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, nombreDeRolReal,
     idUltimoAdminActivo, isLoading, documentoDe, fotoDe, guardarFotoUsuario,
-    conductores, conductorDeUsuario, guardarDocumentoDeUsuario,
+    conductores, conductorDeUsuario,
   };
 }
 

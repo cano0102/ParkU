@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { existeCorreo, existeDocumento, existeNumero } from "@/services/api/auth";
+import { useTiposUsuario } from "@/features/conductores";
 import { filtrarTelefono, quitarDigitos } from "@/utils/validation";
 import { emptyForm, validate, type FormState, type ValidationErrors } from "../lib/registerForm";
 
@@ -31,6 +32,13 @@ export function useRegisterForm() {
 
   const navigate = useNavigate();
   const { register } = useAuth();
+
+  // Catálogo del perfil SENA (Aprendiz/Instructor/…). Es un dato del CONDUCTOR, y el
+  // registro sí crea uno: quien se inscribe es la misma persona que va a parquear. Si el
+  // catálogo no llega a cargar no se exige elegir, para no dejar el formulario inválido sin
+  // salida — la cuenta se crea igual y el perfil se completa después.
+  const { data: tiposUsuario = [] } = useTiposUsuario();
+  const hayTiposUsuario = tiposUsuario.length > 0;
 
   const set = (field: keyof FormState, value: string | boolean) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -62,8 +70,8 @@ export function useRegisterForm() {
   // Validación en tiempo real: se recalcula en cada cambio del formulario;
   // la visibilidad de cada mensaje se sigue controlando con `touched` (ver `err`).
   useEffect(() => {
-    setErrors(validate(form));
-  }, [form]);
+    setErrors(validate(form, hayTiposUsuario));
+  }, [form, hayTiposUsuario]);
 
   // Al dejar de escribir (pausa sin cambios), revela la validación de los
   // campos que el usuario ya editó — sin esperar a que salga del campo (blur)
@@ -74,7 +82,7 @@ export function useRegisterForm() {
     const timer = setTimeout(() => {
       setTouched((prev) => ({ ...prev, ...dirty }));
 
-      const syncErrors = validate(form);
+      const syncErrors = validate(form, hayTiposUsuario);
 
       if (dirty.correo && !syncErrors.correo) {
         const id = ++correoCheckId.current;
@@ -125,7 +133,7 @@ export function useRegisterForm() {
       }
     }, VALIDATION_DEBOUNCE_MS);
     return () => clearTimeout(timer);
-  }, [form, dirty]);
+  }, [form, dirty, hayTiposUsuario]);
 
   const handleBlur = (field: keyof FormState) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -134,13 +142,14 @@ export function useRegisterForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const nextErrors = validate(form);
+    const nextErrors = validate(form, hayTiposUsuario);
     setErrors(nextErrors);
     setTouched({
       nombre: true,
       correo: true,
       numero: true,
       identificacion: true,
+      tipoUsuarioId: true,
       password: true,
       confirmPassword: true,
       aceptaTerminos: true,
@@ -168,6 +177,8 @@ export function useRegisterForm() {
         numero: form.numero.trim(),
         tipoDocumento: form.tipoDocumento,
         identificacion: form.identificacion.trim(),
+        // Con esto el backend crea el Conductor de esta persona junto con su cuenta.
+        tipoUsuarioId: form.tipoUsuarioId || undefined,
       });
 
       toast.success("¡Cuenta creada correctamente! Bienvenido a ParkU.");
@@ -189,6 +200,7 @@ export function useRegisterForm() {
 
   return {
     form,
+    tiposUsuario,
     set,
     setNombre,
     setTelefono,

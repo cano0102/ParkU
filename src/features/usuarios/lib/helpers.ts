@@ -78,13 +78,11 @@ export interface FormState {
   /** Id del Rol (string, p. ej. "1") — se convierte a rol_id numérico al guardar. */
   rol: string;
   estado: "activo" | "inactivo";
-  /** Documento de identidad, obligatorio para toda cuenta. La tabla `usuario` no tiene
-   *  columnas de documento: el dato se guarda en el `conductor` vinculado por `usuario_id`
-   *  — ver useUsuariosData.guardarDocumentoDeUsuario. */
+  /** Documento de identidad, obligatorio para toda cuenta. Son columnas de `usuario`
+   *  (migración 002 del backend), así que viajan en el mismo POST/PUT que el resto.
+   *  El "tipo de usuario" (Aprendiz/Instructor/…) NO se pide aquí: es del conductor. */
   tipoDocumento: string;
   numeroDocumento: string;
-  /** FK obligatoria de `conductor` (Aprendiz/Instructor/…), del catálogo /catalogos/tipos-usuario. */
-  tipoUsuarioId: string;
   /** Foto de perfil (data URL) para reconocer a la persona en el listado. Opcional, y como
    *  `usuario` tampoco tiene columna de foto en la API, se guarda en este navegador —
    *  ver services/core/fotosPerfil.ts. */
@@ -101,6 +99,5 @@ export const emptyForm = (): FormState => ({
   estado: "activo",
   tipoDocumento: "CC",
   numeroDocumento: "",
-  tipoUsuarioId: "",
   foto: "",
 });

@@ -12,16 +12,28 @@ interface IdentidadFieldsProps {
   identificacionError?: string;
   /** Hay una consulta en curso a /auth/existe-documento (chequeo de disponibilidad en vivo). */
   checkingDocumento?: boolean;
+  /** Catálogo /catalogos/tipos-usuario. Vacío si no cargó: entonces el campo no se muestra. */
+  tiposUsuario?: { id: string; nombre: string }[];
+  tipoUsuarioId?: string;
+  tipoUsuarioIdError?: string;
   onTipoDocumentoChange: (value: string) => void;
   onIdentificacionChange: (value: string) => void;
   onIdentificacionBlur: () => void;
+  onTipoUsuarioIdChange?: (value: string) => void;
 }
 
-/** Documento (tipo + número) del formulario de registro. */
+/**
+ * Documento (tipo + número) y perfil SENA del formulario de registro.
+ *
+ * El "tipo de usuario" (Aprendiz/Instructor/Administrativo) se pide AQUÍ y no en el alta de
+ * cuentas del panel: es un dato del conductor, y el registro crea el perfil de conductor de
+ * quien se inscribe. Si el catálogo no cargó, el campo no se pinta y la cuenta se crea igual.
+ */
 export function IdentidadFields({
   tipoDocumento, identificacion, identificacionRef,
   identificacionError, checkingDocumento,
-  onTipoDocumentoChange, onIdentificacionChange, onIdentificacionBlur,
+  tiposUsuario = [], tipoUsuarioId = "", tipoUsuarioIdError,
+  onTipoDocumentoChange, onIdentificacionChange, onIdentificacionBlur, onTipoUsuarioIdChange,
 }: IdentidadFieldsProps) {
   return (
     <>
@@ -79,6 +91,36 @@ export function IdentidadFields({
       ) : checkingDocumento ? (
         <p style={{ marginTop: -6, fontSize: 12, color: COLORS.textLight }}>Verificando disponibilidad…</p>
       ) : null}
+
+      {tiposUsuario.length > 0 && (
+        <div>
+          <label htmlFor="register-tipo-usuario" style={{ display: "block", marginBottom: 6, fontWeight: 700, color: COLORS.text, fontSize: 13 }}>
+            Tipo de usuario
+          </label>
+          <select
+            id="register-tipo-usuario"
+            value={tipoUsuarioId}
+            onChange={(e) => onTipoUsuarioIdChange?.(e.target.value)}
+            aria-invalid={!!tipoUsuarioIdError}
+            style={{
+              width: "100%", padding: "13px 12px", borderRadius: 12,
+              border: `1px solid ${tipoUsuarioIdError ? COLORS.danger : COLORS.border}`,
+              background: "#fff", fontSize: 14, outline: "none", cursor: "pointer", appearance: "none",
+            }}
+          >
+            <option value="">Seleccionar…</option>
+            {tiposUsuario.map((t) => (
+              <option key={t.id} value={t.id}>{t.nombre}</option>
+            ))}
+          </select>
+          {tipoUsuarioIdError && (
+            <p role="alert" style={{ marginTop: 6, fontSize: 12, color: COLORS.danger, fontWeight: 600, display: "flex", alignItems: "center", gap: 5 }}>
+              <AlertCircle size={13} />
+              {tipoUsuarioIdError}
+            </p>
+          )}
+        </div>
+      )}
     </>
   );
 }

@@ -34,6 +34,7 @@ interface AuthContextType {
     numero: string;
     tipoDocumento: string;
     identificacion: string;
+    tipoUsuarioId?: string;
   }) => Promise<boolean>;
 
   googleLogin: (userData: any) => void;
@@ -189,6 +190,7 @@ export function AuthProvider({
     numero: string;
     tipoDocumento: string;
     identificacion: string;
+    tipoUsuarioId?: string;
   }): Promise<boolean> => {
     const loggedUser = await authService.register(data);
     persistUser(loggedUser);

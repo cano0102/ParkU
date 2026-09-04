@@ -38,13 +38,17 @@ export const rolesPermisosSeed = [
 // `toFrontend` de services/api/usuarios.ts la lee así). El endpoint de login
 // sí anida el rol como `rol` en su respuesta (confirmado en vivo también);
 // `createAuthBackend` traduce el nombre al construir esa respuesta.
+// `tipo_documento`/`numero_documento` son columnas de `usuario` en la API real (migración
+// 002): el documento es de la cuenta, no del conductor vinculado. Se dejan dos cuentas sin
+// él a propósito, para cubrir el "Sin documento registrado" del listado.
 export const usuariosSeed: Array<{
   id: number; correo: string; contrasena: string; nombre: string;
   numero_telefonico?: string | null; rol_id: number; estado: string; createdAt?: string;
+  tipo_documento?: string | null; numero_documento?: string | null;
 }> = [
   { id: 1, correo: 'admin@sena.edu.co', contrasena: 'Pass1234', nombre: 'Administrador ParkU', numero_telefonico: '3101234567', rol_id: 1, estado: 'ACTIVO', createdAt: '2025-01-10T08:00:00.000Z' },
-  { id: 2, correo: 'ana.martinez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Ana Martínez R.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-06-01T08:00:00.000Z' },
-  { id: 3, correo: 'pedro.ruiz@sena.edu.co', contrasena: 'Pass1234', nombre: 'Pedro Ruiz G.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-03-20T08:00:00.000Z' },
+  { id: 2, correo: 'ana.martinez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Ana Martínez R.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-06-01T08:00:00.000Z', tipo_documento: 'CC', numero_documento: '2345678901' },
+  { id: 3, correo: 'pedro.ruiz@sena.edu.co', contrasena: 'Pass1234', nombre: 'Pedro Ruiz G.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-03-20T08:00:00.000Z', tipo_documento: 'CC', numero_documento: '3456789012' },
   { id: 4, correo: 'maria.diaz@ext.com', contrasena: 'Pass1234', nombre: 'María Díaz P.', rol_id: 3, estado: 'ACTIVO', createdAt: '2026-02-14T08:00:00.000Z' },
 ];
 

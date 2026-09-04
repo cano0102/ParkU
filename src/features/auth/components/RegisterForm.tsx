@@ -66,9 +66,13 @@ export function RegisterForm({ identificacionRef, formState: f }: RegisterFormPr
           identificacionRef={identificacionRef}
           identificacionError={f.err("identificacion")}
           checkingDocumento={f.checkingDocumento}
+          tiposUsuario={f.tiposUsuario}
+          tipoUsuarioId={f.form.tipoUsuarioId}
+          tipoUsuarioIdError={f.err("tipoUsuarioId")}
           onTipoDocumentoChange={(v) => f.set("tipoDocumento", v)}
           onIdentificacionChange={f.setIdentificacion}
           onIdentificacionBlur={() => f.handleBlur("identificacion")}
+          onTipoUsuarioIdChange={(v) => { f.set("tipoUsuarioId", v); f.handleBlur("tipoUsuarioId"); }}
         />
 
         <NombreCorreoTelefonoFields
