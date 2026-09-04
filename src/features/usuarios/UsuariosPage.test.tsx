@@ -11,6 +11,12 @@ import { createTestQueryClient } from '@/test/queryWrapper';
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
 
+// El recorte real usa <canvas>, que jsdom no implementa: se sustituye por su resultado para
+// poder ejercitar el flujo completo de la pantalla (elegir archivo → guardar → verlo en el
+// listado). El recorte en sí se prueba aparte, en utils/imagen.test.ts.
+const procesarFotoCuadrada = vi.hoisted(() => vi.fn());
+vi.mock('@/utils/imagen', () => ({ procesarFotoCuadrada, FOTO_PERFIL_LADO: 256, FOTO_PERFIL_MAX_MB: 5 }));
+
 // Usuario NO protegido con teléfono propio, para probar edición (el admin de la semilla base
 // ahora está protegido — ver USUARIOS_PROTEGIDOS — y ya no se puede editar).
 usuariosSeed.push({
@@ -391,9 +397,54 @@ describe('Usuarios', () => {
       const sinFoto = screen.getByText('Pedro Ruiz G.').closest('.u-card') as HTMLElement;
       expect(within(sinFoto).queryByRole('img')).not.toBeInTheDocument();
       expect(within(sinFoto).getByText('PR')).toBeInTheDocument();
+
+      // La vista de lista (la otra forma de ver el listado) muestra la misma foto.
+      await userEvent.setup().click(screen.getByRole('button', { name: 'Lista' }));
+      expect(await screen.findByRole('img', { name: 'Foto de Ana Martínez R.' })).toHaveAttribute(
+        'src',
+        'data:image/jpeg;base64,anafoto'
+      );
     } finally {
       guardarFoto('usuario', '2', '');
     }
+  });
+
+  it('sube una foto desde el formulario y queda visible en la tarjeta del usuario', async () => {
+    // Se edita Ana (no Laura): el formulario exige documento, y Ana es la que tiene uno en el
+    // conductor vinculado — con Laura el guardado se bloquearía por ese campo, no por la foto.
+    procesarFotoCuadrada.mockResolvedValue('data:image/jpeg;base64,anaSubida');
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    // Antes de subir nada, la tarjeta muestra las iniciales (no un hueco ni una imagen rota).
+    const card = screen.getByText('Ana Martínez R.').closest('.u-card') as HTMLElement;
+    expect(within(card).queryByRole('img')).not.toBeInTheDocument();
+
+    await user.click(within(card).getByLabelText('Editar'));
+    expect(await screen.findByRole('heading', { level: 2, name: 'Editar Usuario' })).toBeInTheDocument();
+
+    const archivo = new File(['imagen'], 'ana.png', { type: 'image/png' });
+    await user.upload(screen.getByLabelText('Subir foto de Ana Martínez R.'), archivo);
+    // La vista previa aparece dentro del formulario antes de guardar.
+    expect(await screen.findByRole('img', { name: 'Foto de Ana Martínez R.' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { level: 2, name: 'Editar Usuario' })).not.toBeInTheDocument();
+    });
+    const cardActualizada = screen.getByText('Ana Martínez R.').closest('.u-card') as HTMLElement;
+    expect(within(cardActualizada).getByRole('img', { name: 'Foto de Ana Martínez R.' })).toHaveAttribute(
+      'src',
+      'data:image/jpeg;base64,anaSubida'
+    );
+    // Y quedó persistida donde la busca el resto de la app (Perfil, Conductores).
+    expect(localStorage.getItem('parkuFotoPerfil:2')).toBe('data:image/jpeg;base64,anaSubida');
+
+    guardarFoto('usuario', '2', '');
   });
 
   it('no permite desactivar al único Administrador activo del sistema', async () => {
