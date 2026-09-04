@@ -52,6 +52,23 @@ describe('Usuarios', () => {
     expect(screen.getAllByText('Sin documento registrado').length).toBeGreaterThan(0);
   });
 
+  it('lista primero a los usuarios creados más recientemente', async () => {
+    const { container } = renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    const nombres = Array.from(container.querySelectorAll('.u-card')).map(
+      (card) => card.querySelector('p')?.textContent ?? ''
+    );
+    const posicion = (nombre: string) => nombres.findIndex((n) => n.includes(nombre));
+
+    // Fechas semilla: María (2026-02) > Ana (2025-06) > Pedro (2025-03) > Administrador (2025-01).
+    expect(posicion('María Díaz')).toBeLessThan(posicion('Ana Martínez'));
+    expect(posicion('Ana Martínez')).toBeLessThan(posicion('Pedro Ruiz'));
+    expect(posicion('Pedro Ruiz')).toBeLessThan(posicion('Administrador ParkU'));
+  });
+
   it('muestra el nombre real del rol que devuelve la API, no el de la tabla estática', async () => {
     renderUsuarios();
     await waitFor(() => {
@@ -219,6 +236,11 @@ describe('Usuarios', () => {
     await waitFor(() => {
       expect(screen.queryByRole('heading', { level: 2, name: 'Nuevo Usuario' })).not.toBeInTheDocument();
     });
+    // Un usuario recién creado encabeza el listado, sin necesidad de buscarlo.
+    await waitFor(() => {
+      expect(document.querySelector('.u-card p')?.textContent ?? '').toContain(nombre);
+    });
+
     await user.type(screen.getByLabelText('Buscar usuarios'), correo);
 
     await waitFor(() => {

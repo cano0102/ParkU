@@ -35,6 +35,9 @@ export interface Usuario {
    *  Roles, y esas cuentas deben conservar SU rol, no caer a uno por defecto. */
   rol: number;
   estado: 'activo' | 'inactivo';
+  /** Fecha de creación que devuelva la API. Solo llega en las lecturas: nadie la envía
+   *  al crear o actualizar, por eso es opcional. */
+  fechaCreacion?: string;
 }
 
 interface ApiUsuario {
@@ -47,6 +50,13 @@ interface ApiUsuario {
    *  caía siempre al rol por defecto sin importar el suyo real. */
   rol_id: number;
   estado: string;
+  /** Fecha de alta de la cuenta. El nombre depende de cómo la exponga la API (Sequelize
+   *  suele dar `createdAt`; una columna manual, `created_at` o `fecha_creacion`), así que
+   *  se aceptan las variantes en vez de asumir una: si no llega ninguna, el listado ordena
+   *  por id (ver compararUsuariosPorRecientes). */
+  createdAt?: string | null;
+  created_at?: string | null;
+  fecha_creacion?: string | null;
 }
 
 function toFrontend(u: ApiUsuario): Usuario {
@@ -60,6 +70,7 @@ function toFrontend(u: ApiUsuario): Usuario {
     // un usuario con un rol creado por el Admin aparecía (y se guardaba) como otro rol.
     rol: u.rol_id,
     estado: u.estado === 'ACTIVO' ? 'activo' : 'inactivo',
+    fechaCreacion: u.createdAt ?? u.created_at ?? u.fecha_creacion ?? '',
   };
 }
 

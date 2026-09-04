@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { UsuariosData } from "./useUsuariosData";
+import { compararUsuariosPorRecientes } from "../lib/helpers";
 
 /** Búsqueda/filtros, modo de vista y paginación del listado de usuarios. */
 export function useUsuariosFilters(usuarios: UsuariosData["usuarios"]) {
@@ -27,7 +28,9 @@ export function useUsuariosFilters(usuarios: UsuariosData["usuarios"]) {
         const matchEstado = filterEstado === "todos" || u.estado === filterEstado;
         const matchRol = filterRol === "todos" || String(u.rol) === filterRol;
         return matchSearch && matchEstado && matchRol;
-      }),
+      })
+      // Más recientes primero; la paginación se aplica después sobre esta lista ya ordenada.
+      .sort(compararUsuariosPorRecientes),
     [usuarios, search, filterEstado, filterRol]
   );
 

@@ -38,6 +38,26 @@ export const inputStyle: React.CSSProperties = {
   color: COLORS.text,
 };
 
+/**
+ * Orden del listado: los usuarios creados más recientemente primero.
+ *
+ * Se usa la fecha de creación que devuelva la API cuando está disponible. Si el backend no
+ * la expone, se ordena por id descendente: en una tabla con id autoincremental un id mayor
+ * significa dado de alta después, así que sigue siendo el dato del backend y no un
+ * reordenamiento inventado en pantalla.
+ */
+export function compararUsuariosPorRecientes(
+  a: { id: string; fechaCreacion?: string },
+  b: { id: string; fechaCreacion?: string }
+): number {
+  const fechaA = a.fechaCreacion ? new Date(a.fechaCreacion).getTime() : NaN;
+  const fechaB = b.fechaCreacion ? new Date(b.fechaCreacion).getTime() : NaN;
+  if (!Number.isNaN(fechaA) && !Number.isNaN(fechaB) && fechaA !== fechaB) {
+    return fechaB - fechaA;
+  }
+  return Number(b.id) - Number(a.id);
+}
+
 export const inputErrorStyle: React.CSSProperties = {
   borderColor: "#DC2626",
 };
