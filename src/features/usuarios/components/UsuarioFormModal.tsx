@@ -1,6 +1,7 @@
 import { memo } from "react";
 import { UserCheck } from "lucide-react";
 import { EntityFormModal } from "@/components/data";
+import { AvatarUploader } from "@/components/shared";
 import { DatosPersonalesFields } from "./DatosPersonalesFields";
 import { CredencialesAccesoFields } from "./CredencialesAccesoFields";
 import { DocumentoIdentidadFields } from "./DocumentoIdentidadFields";
@@ -37,6 +38,29 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
       isValid={f.isValid}
       submitLabel={isEdit ? "Guardar cambios" : "Crear Usuario"}
     >
+      {/* Foto de perfil: es lo primero con lo que se reconoce a la persona en el listado
+          (Admin, Vigilante, Operador…). Opcional — sin ella se siguen mostrando las iniciales. */}
+      <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
+        <div style={{ padding: "10px 14px", background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
+          <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: COLORS.textLight, textTransform: "uppercase" }}>
+            Foto de perfil
+          </p>
+        </div>
+        <div style={{ padding: "1rem 1.2rem", display: "flex", alignItems: "center", gap: 14 }}>
+          <AvatarUploader
+            nombre={f.form.nombre.trim() || "Nuevo usuario"}
+            foto={f.form.foto}
+            onChange={(foto) => f.set("foto", foto)}
+            size={64}
+          />
+          <p style={{ fontSize: 11, color: COLORS.textLight, lineHeight: 1.5 }}>
+            Opcional. Ayuda a reconocer a la persona en los listados de Usuarios y Conductores.
+            La imagen se recorta a un cuadrado y se guarda en este equipo: la API todavía no
+            almacena fotos de cuenta.
+          </p>
+        </div>
+      </section>
+
       {/* El documento va primero: es el dato con el que se identifica a la persona
           (y el que el listado y las tarjetas muestran). */}
       <DocumentoIdentidadFields

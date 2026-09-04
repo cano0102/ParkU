@@ -1,10 +1,11 @@
 import { Pencil, Car, Plus, Building2, Accessibility, Eye } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
+import { Avatar } from "@/components/shared";
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle } from "../lib/helpers";
+import { COLORS, getTipoUsuarioStyle, getTipoVehiculoStyle } from "../lib/helpers";
 
 /**
  * Antes ConductoresGrid.tsx y ConductoresList.tsx: el layout de cuadrícula y
@@ -20,14 +21,15 @@ export interface ConductorCardHandlers {
   onViewDetail: (c: Conductor) => void;
   onEdit: (c: Conductor) => void;
   onAgregarVehiculo: (c: Conductor) => void;
+  /** Foto del conductor (la propia, o la de su cuenta vinculada), guardada en este navegador
+   *  — ver useConductoresData.fotoDeConductor. Sin foto se muestran las iniciales. */
+  fotoDe: (c: Conductor) => string | undefined;
 }
 
 export function renderConductorCard(conductor: Conductor, handlers: ConductorCardHandlers): ReactNode {
-  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo } = handlers;
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, fotoDe } = handlers;
   const vehiculosCond = getVehiculosConductor(conductor.id);
 
-  const [g1, g2] = getAvatarGradient(conductor.nombre);
-  const initials = getInitials(conductor.nombre);
   const tipoStyle = getTipoUsuarioStyle(conductor.tipoUsuarioNombre);
   const activo = conductor.estado === "activo";
   const TipoIcon = tipoStyle.icon;
@@ -39,9 +41,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
       <div className="status-rail" style={{ background: activo ? COLORS.primary : "#CBD5E1" }} />
 
       <div className="card-top">
-        <div className="card-avatar" style={{ background: `linear-gradient(135deg, ${g1}, ${g2})` }}>
-          {initials}
-        </div>
+        <Avatar className="card-avatar" nombre={conductor.nombre} foto={fotoDe(conductor)} size={46} radius={13} fontSize={15} />
 
         <div className="card-identity">
           <p className="card-name">{conductor.nombre}</p>
@@ -151,27 +151,16 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
 }
 
 export function getConductorColumns(handlers: ConductorCardHandlers): DataListColumn<Conductor>[] {
-  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo } = handlers;
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, fotoDe } = handlers;
 
   return [
     {
       header: "Conductor",
       width: "2fr",
       render: (conductor) => {
-        const [g1, g2] = getAvatarGradient(conductor.nombre);
-        const initials = getInitials(conductor.nombre);
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <div
-              style={{
-                width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-                background: `linear-gradient(135deg,${g1},${g2})`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, fontWeight: 900, color: "#fff",
-              }}
-            >
-              {initials}
-            </div>
+            <Avatar nombre={conductor.nombre} foto={fotoDe(conductor)} size={32} radius={9} fontSize={12} />
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 800, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {conductor.nombre}

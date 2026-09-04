@@ -10,6 +10,7 @@ import { useUsuarios } from "@/features/usuarios";
 import type { Usuario } from "@/services/api/usuarios";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
+import { useFotos } from "@/hooks/useFotos";
 
 // Referencias ESTABLES para cuando la query todavía no resolvió: `data: x = []` con un
 // literal inline crea un array NUEVO en cada render mientras `data` sigue `undefined`, lo que
@@ -66,6 +67,20 @@ export function useConductoresData() {
     [vehiculos]
   );
 
+  /**
+   * Foto de perfil del conductor. `conductor` tampoco tiene columna de foto en la API real,
+   * así que vive en este navegador (services/core/fotosPerfil.ts). Si el conductor no tiene
+   * una propia pero SÍ está vinculado a una cuenta, se usa la de esa cuenta: es la misma
+   * persona, y así la foto que alguien se puso desde Perfil (o que un Admin le cargó en
+   * Usuarios) también lo identifica aquí, sin volver a subirla.
+   */
+  const { fotos: fotosConductores, guardarFoto: guardarFotoConductor } = useFotos("conductor");
+  const { fotos: fotosUsuarios } = useFotos("usuario");
+  const fotoDeConductor = useCallback(
+    (c: Conductor) => fotosConductores.get(c.id) ?? (c.usuarioId ? fotosUsuarios.get(c.usuarioId) : undefined),
+    [fotosConductores, fotosUsuarios]
+  );
+
   const totalActivos = useMemo(() => conductores.filter((c) => c.estado === "activo").length, [conductores]);
   const totalVehiculos = useMemo(() => vehiculos.length, [vehiculos]);
   const totalConductores = useMemo(() => conductores.length, [conductores]);
@@ -75,7 +90,7 @@ export function useConductoresData() {
   return {
     conductores, usuarios, vehiculos,
     addConductor, updateConductor, addVehiculo, updateVehiculo, agregarPropietario, quitarPropietario,
-    getUsuario, getVehiculosConductor,
+    getUsuario, getVehiculosConductor, fotoDeConductor, guardarFotoConductor,
     totalActivos, totalVehiculos, totalConductores, totalCarros, totalMotos,
     isLoading,
   };

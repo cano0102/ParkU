@@ -3,11 +3,14 @@ import { Pencil, Plus, X, Mail, Phone, IdCard, Building2, Accessibility, Car } f
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, getAvatarGradient, getInitials, getTipoUsuarioStyle, getTipoVehiculoStyle } from "../lib/helpers";
+import { Avatar } from "@/components/shared";
+import { COLORS, getAvatarGradient, getTipoUsuarioStyle, getTipoVehiculoStyle } from "../lib/helpers";
 
 interface ConductorDetailModalProps {
   conductor: Conductor;
   usuario: Usuario | undefined;
+  /** Foto del conductor (propia o la de su cuenta vinculada), si tiene una registrada. */
+  foto?: string;
   vehiculos: Vehiculo[];
   onEdit: () => void;
   onViewVehiculo: (v: Vehiculo) => void;
@@ -15,7 +18,7 @@ interface ConductorDetailModalProps {
   onClose: () => void;
 }
 
-export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdit, onViewVehiculo, onAgregarVehiculo, onClose }: ConductorDetailModalProps) => {
+export const ConductorDetailModal = memo(({ conductor, usuario, foto, vehiculos, onEdit, onViewVehiculo, onAgregarVehiculo, onClose }: ConductorDetailModalProps) => {
   const [g1, g2] = getAvatarGradient(conductor.nombre);
   const tipoStyle = getTipoUsuarioStyle(conductor.tipoUsuarioNombre);
   const TipoIcon = tipoStyle.icon;
@@ -53,21 +56,19 @@ export const ConductorDetailModal = memo(({ conductor, usuario, vehiculos, onEdi
         />
         <div style={{ position: "relative", zIndex: 2 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-            <div
+            <Avatar
+              nombre={conductor.nombre}
+              foto={foto}
+              size={52}
+              radius={14}
+              fontSize={18}
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 14,
+                // Sobre el encabezado de color, las iniciales van sobre un velo claro: el
+                // degradado propio del avatar se perdería contra un fondo del mismo tono.
                 background: "rgba(255,255,255,.18)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 18,
-                fontWeight: 900,
+                border: "1px solid rgba(255,255,255,.25)",
               }}
-            >
-              {getInitials(conductor.nombre)}
-            </div>
+            />
             <button
               onClick={onClose}
               style={{

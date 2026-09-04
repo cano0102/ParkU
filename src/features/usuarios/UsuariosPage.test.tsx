@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createAppBackends, usuariosSeed } from '@/test/appFakeApi';
 import { AuthProvider } from '@/context/AuthContext';
+import { guardarFoto } from '@/services/core/fotosPerfil';
 import Usuarios from './UsuariosPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
 
@@ -368,6 +369,31 @@ describe('Usuarios', () => {
     await waitFor(() => {
       expect(within(card).getByLabelText('Activar usuario')).toBeInTheDocument();
     });
+  });
+
+  it('muestra la foto de perfil de la cuenta que tenga una guardada, y las iniciales en las demás', async () => {
+    // La API no guarda fotos (no hay columna): se registran en este navegador, en la misma
+    // llave que usa la pantalla de Perfil — ver services/core/fotosPerfil.ts.
+    guardarFoto('usuario', '2', 'data:image/jpeg;base64,anafoto');
+    try {
+      renderUsuarios();
+      await waitFor(() => {
+        expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+      });
+
+      const card = screen.getByText('Ana Martínez R.').closest('.u-card') as HTMLElement;
+      expect(within(card).getByRole('img', { name: 'Foto de Ana Martínez R.' })).toHaveAttribute(
+        'src',
+        'data:image/jpeg;base64,anafoto'
+      );
+
+      // Una cuenta sin foto sigue mostrando sus iniciales, no un hueco.
+      const sinFoto = screen.getByText('Pedro Ruiz G.').closest('.u-card') as HTMLElement;
+      expect(within(sinFoto).queryByRole('img')).not.toBeInTheDocument();
+      expect(within(sinFoto).getByText('PR')).toBeInTheDocument();
+    } finally {
+      guardarFoto('usuario', '2', '');
+    }
   });
 
   it('no permite desactivar al único Administrador activo del sistema', async () => {

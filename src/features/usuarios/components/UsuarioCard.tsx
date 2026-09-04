@@ -1,8 +1,9 @@
 import { IdCard, Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
+import { Avatar } from "@/components/shared";
 import type { Usuario } from "@/services/api/usuarios";
-import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials } from "../lib/helpers";
+import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors } from "../lib/helpers";
 
 /**
  * Antes UsuariosGrid.tsx y UsuariosList.tsx. Mismo criterio que
@@ -18,19 +19,21 @@ export interface UsuarioCardHandlers {
   documentoDe: (usuarioId: string) => { tipo: string; numero: string } | null;
   /** Nombre real del rol (viene de `/api/roles`), no la tabla estática de 3 roles fijos. */
   nombreDeRolReal: (rolId: number) => string;
+  /** Foto de perfil de la cuenta, o undefined si no tiene una registrada en este navegador
+   *  (la API no guarda fotos) — en ese caso la tarjeta sigue mostrando las iniciales. */
+  fotoDe: (usuarioId: string) => string | undefined;
   /** Id del único Admin activo que quede (no se puede desactivar), o null si hay más de uno. */
   idUltimoAdminActivo: string | null;
 }
 
 export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): ReactNode {
-  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo } = handlers;
+  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo, fotoDe } = handlers;
   const documento = documentoDe(u.id);
   const protegido = USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo;
   const activo = u.estado === "activo";
   const rolNombre = nombreDeRolReal(u.rol);
   const roleStyle = getRoleAccent(rolNombre);
-  const [c1, c2] = avatarColors(u.nombre);
-  const ini = initials(u.nombre);
+  const [c1] = avatarColors(u.nombre);
 
   return (
     <div
@@ -46,16 +49,14 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
       <div style={{ height: 3, background: `linear-gradient(90deg,${roleStyle.dot},${roleStyle.dot}66)` }} />
 
       <div style={{ padding: "14px 14px 10px", display: "flex", alignItems: "flex-start", gap: 12 }}>
-        <div
-          style={{
-            width: 46, height: 46, borderRadius: 12, flexShrink: 0,
-            background: `linear-gradient(135deg,${c1},${c2})`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: 16, fontWeight: 900, color: "#fff", boxShadow: `0 3px 10px ${c1}44`,
-          }}
-        >
-          {ini}
-        </div>
+        <Avatar
+          nombre={u.nombre}
+          foto={fotoDe(u.id)}
+          size={46}
+          radius={12}
+          fontSize={16}
+          style={{ boxShadow: `0 3px 10px ${c1}44` }}
+        />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
@@ -165,7 +166,7 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
 }
 
 export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn<Usuario>[] {
-  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo } = handlers;
+  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo, fotoDe } = handlers;
 
   return [
     {
@@ -173,20 +174,9 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
       width: "minmax(200px,2fr)",
       render: (u) => {
         const protegido = USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo;
-        const [c1, c2] = avatarColors(u.nombre);
-        const ini = initials(u.nombre);
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-            <div
-              style={{
-                width: 32, height: 32, borderRadius: 9, flexShrink: 0,
-                background: `linear-gradient(135deg,${c1},${c2})`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 12, fontWeight: 900, color: "#fff",
-              }}
-            >
-              {ini}
-            </div>
+            <Avatar nombre={u.nombre} foto={fotoDe(u.id)} size={32} radius={9} fontSize={12} />
             <div style={{ minWidth: 0 }}>
               <p style={{ fontWeight: 800, color: COLORS.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {u.nombre}

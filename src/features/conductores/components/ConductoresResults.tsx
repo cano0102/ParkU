@@ -20,6 +20,8 @@ interface ConductoresResultsProps {
   onViewDetail: (conductor: Conductor) => void;
   onEdit: (conductor: Conductor) => void;
   onAgregarVehiculo: (conductor: Conductor) => void;
+  /** Foto del conductor (propia o la de su cuenta vinculada) — ver useConductoresData. */
+  fotoDe: (conductor: Conductor) => string | undefined;
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (n: number) => void;
 }
@@ -28,7 +30,7 @@ interface ConductoresResultsProps {
 export function ConductoresResults({
   conductores, viewMode, currentPage, totalPages, itemsPerPage, totalItems,
   getUsuario, getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo,
-  onPageChange, onItemsPerPageChange,
+  fotoDe, onPageChange, onItemsPerPageChange,
 }: ConductoresResultsProps) {
   if (conductores.length === 0) {
     return (
@@ -48,7 +50,7 @@ export function ConductoresResults({
 
   const cardHandlers = {
     getUsuario, getVehiculosConductor,
-    onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo,
+    onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, fotoDe,
   };
 
   return (

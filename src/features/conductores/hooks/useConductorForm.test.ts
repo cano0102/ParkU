@@ -41,6 +41,10 @@ function buildData(overrides: Partial<ConductoresData> = {}): ConductoresData {
     quitarPropietario: vi.fn().mockResolvedValue(vehiculoExistente),
     getUsuario: () => undefined,
     getVehiculosConductor: (id: string) => vehiculos.filter((v) => v.conductorId === id),
+    // La foto de perfil no viaja a la API (se guarda en el navegador): estos tests no la
+    // ejercitan, así que basta con stubs neutros.
+    fotoDeConductor: () => undefined,
+    guardarFotoConductor: vi.fn(),
     totalActivos: conductores.filter((c) => c.estado === 'activo').length,
     totalVehiculos: vehiculos.length,
     totalConductores: conductores.length,

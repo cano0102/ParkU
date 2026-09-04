@@ -68,6 +68,7 @@ export function Conductores() {
             onViewDetail={openConductorDetail}
             onEdit={form.openEdit}
             onAgregarVehiculo={agregarVehiculo.abrir}
+            fotoDe={data.fotoDeConductor}
             onPageChange={f.setCurrentPage}
             onItemsPerPageChange={(n) => {
               f.setItemsPerPage(n);
@@ -123,6 +124,7 @@ export function Conductores() {
           <ConductorDetailModal
             conductor={viewingConductor}
             usuario={data.getUsuario(viewingConductor.usuarioId)}
+            foto={data.fotoDeConductor(viewingConductor)}
             vehiculos={data.getVehiculosConductor(viewingConductor.id)}
             onEdit={() => {
               setViewDetailOpen(false);

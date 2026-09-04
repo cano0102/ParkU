@@ -7,3 +7,5 @@ export { ErrorBoundary } from './ErrorBoundary';
 export { ModalHeader } from './ModalHeader';
 export { Banner } from './Banner';
 export { LoadingState } from './LoadingState';
+export { Avatar } from './Avatar';
+export { AvatarUploader } from './AvatarUploader';

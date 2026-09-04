@@ -6,6 +6,7 @@ import React, {
 } from 'react';
 import * as authService from '../services/api/auth';
 import { getToken, clearTokens } from '../services/core/tokenStorage';
+import { leerFoto, guardarFoto } from '../services/core/fotosPerfil';
 import { AUTH_EXPIRED_EVENT } from '../services/core/http';
 import { ROLES, permisosDeRol, type RolId, type PermisosRol } from '../services/core/roles';
 
@@ -81,31 +82,15 @@ const USER_STORAGE_KEY = 'parkUUser';
  *  abajo), así que `logout()` no puede "guardarla en el backend" antes de borrar la sesión.
  *  Guardándola por separado, sobrevive a `persistUser(null)` (logout) y se puede volver a
  *  fusionar en el próximo login de la MISMA cuenta en este mismo navegador — antes vivía solo
- *  dentro de `parkUUser`, así que cada logout la borraba sin remedio. */
-const fotoStorageKey = (userId: string) => `parkuFotoPerfil:${userId}`;
-
-function leerFotoGuardada(userId: string): string | undefined {
-  try {
-    return localStorage.getItem(fotoStorageKey(userId)) || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function guardarFotoGuardada(userId: string, foto: string) {
-  try {
-    if (foto) localStorage.setItem(fotoStorageKey(userId), foto);
-    else localStorage.removeItem(fotoStorageKey(userId));
-  } catch {
-    // localStorage no disponible — la foto solo dura esta pestaña, igual que el resto de la sesión.
-  }
-}
+ *  dentro de `parkUUser`, así que cada logout la borraba sin remedio. El almacén concreto vive
+ *  en services/core/fotosPerfil.ts, compartido con los listados de Usuarios y Conductores:
+ *  la foto que alguien se pone acá es la que esas pantallas muestran para su cuenta. */
 
 /** Completa `foto` desde el almacenamiento propio si el usuario recién resuelto (login/registro/
  *  hidratación inicial) no trae una — pasa exactamente igual si ya la tenía. */
 function conFotoGuardada(u: User): User {
   if (u.foto) return u;
-  const foto = leerFotoGuardada(u.id);
+  const foto = leerFoto('usuario', u.id);
   return foto ? { ...u, foto } : u;
 }
 
@@ -232,9 +217,10 @@ export function AuthProvider({
   // ACTUALIZAR PERFIL (usado por la página Perfil, incl. la foto) — solo local, ver nota en el tipo.
   const updateUser = (data: Partial<Pick<User, 'nombre' | 'numero' | 'foto'>>) => {
     if (!user) return;
-    // La foto, además de vivir en `parkUUser`, se guarda aparte para sobrevivir a un logout
-    // (ver `guardarFotoGuardada` arriba) — con `foto: ''` (quitar foto) se borra de ambos lados.
-    if (data.foto !== undefined) guardarFotoGuardada(user.id, data.foto);
+    // La foto, además de vivir en `parkUUser`, se guarda en el almacén compartido para
+    // sobrevivir a un logout (ver la nota de arriba) y para que los listados de Usuarios y
+    // Conductores la vean — con `foto: ''` (quitar foto) se borra de ambos lados.
+    if (data.foto !== undefined) guardarFoto('usuario', user.id, data.foto);
     persistUser({ ...user, ...data });
   };
 

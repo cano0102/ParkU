@@ -5,6 +5,7 @@ import type { Conductor } from "@/services/api/conductores";
 import { useRoles } from "@/features/roles";
 import { useConductores, useCreateConductor, useUpdateConductor } from "@/features/conductores";
 import { nombreDeRol, ROLES } from "@/services/core/roles";
+import { useFotos } from "@/hooks/useFotos";
 
 /** Queries, mutaciones y totales de la página de Usuarios. */
 export function useUsuariosData() {
@@ -99,6 +100,15 @@ export function useUsuariosData() {
     });
   };
 
+  /**
+   * Foto de perfil por cuenta. Tampoco es una columna de `usuario` en la API real (igual que
+   * el documento), pero a diferencia de aquel no hay ninguna otra tabla donde vivir: se
+   * guarda en este navegador (services/core/fotosPerfil.ts), en la MISMA llave que usa la
+   * pantalla de Perfil — así, la foto que alguien se puso en su propio perfil es la que
+   * aparece aquí para su cuenta, sin pedírsela de nuevo a un Admin.
+   */
+  const { fotoDe, guardarFoto: guardarFotoUsuario } = useFotos("usuario");
+
   const totalActivos = useMemo(() => usuarios.filter((u) => u.estado === "activo").length, [usuarios]);
   const totalInactivos = useMemo(() => usuarios.filter((u) => u.estado === "inactivo").length, [usuarios]);
   /**
@@ -120,7 +130,7 @@ export function useUsuariosData() {
 
   return {
     usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, nombreDeRolReal,
-    idUltimoAdminActivo, isLoading, documentoDe,
+    idUltimoAdminActivo, isLoading, documentoDe, fotoDe, guardarFotoUsuario,
     conductores, conductorDeUsuario, guardarDocumentoDeUsuario,
   };
 }

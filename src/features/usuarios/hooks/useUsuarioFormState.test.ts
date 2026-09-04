@@ -9,9 +9,15 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
 
 afterEach(() => vi.clearAllMocks());
 
-/** El hook también recibe el acceso al conductor vinculado (documento de la cuenta); estos
- *  tests no lo ejercitan, así que se pasan stubs neutros. */
-const documentoStubs = () => ({ conductorDeUsuario: () => null, guardarDocumentoDeUsuario: vi.fn() });
+/** El hook también recibe el acceso al conductor vinculado (documento de la cuenta) y a la
+ *  foto de perfil guardada en el navegador; estos tests no los ejercitan, así que se pasan
+ *  stubs neutros. */
+const documentoStubs = () => ({
+  conductorDeUsuario: () => null,
+  guardarDocumentoDeUsuario: vi.fn(),
+  fotoDe: () => undefined,
+  guardarFotoUsuario: vi.fn(),
+});
 
 const baseUsuario = (over: Partial<Usuario>): Usuario => ({
   id: '1', correo: 'x@sena.edu.co', password: '', nombre: 'X', numero: '', rol: ROLES.CONDUCTOR, estado: 'activo', ...over,
@@ -20,7 +26,7 @@ const baseUsuario = (over: Partial<Usuario>): Usuario => ({
 const formConductor = {
   correo: 'nuevo@sena.edu.co', password: 'Pass1234', confirmPassword: 'Pass1234', nombre: 'Nuevo Conductor', numero: '3101234567',
   rol: String(ROLES.CONDUCTOR), estado: 'activo' as const,
-  tipoDocumento: 'CC', numeroDocumento: '1001234567', tipoUsuarioId: '1',
+  tipoDocumento: 'CC', numeroDocumento: '1001234567', tipoUsuarioId: '1', foto: '',
 };
 
 describe('useUsuarioFormState — documento de la cuenta', () => {
@@ -31,6 +37,7 @@ describe('useUsuarioFormState — documento de la cuenta', () => {
       useUsuarioFormState({
         usuarios: [], addUsuario, updateUsuario: vi.fn(),
         conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
+        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
       })
     );
 
@@ -54,6 +61,7 @@ describe('useUsuarioFormState — documento de la cuenta', () => {
       useUsuarioFormState({
         usuarios: [], addUsuario, updateUsuario: vi.fn(),
         conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
+        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
       })
     );
 
@@ -72,6 +80,7 @@ describe('useUsuarioFormState — documento de la cuenta', () => {
       useUsuarioFormState({
         usuarios: [], addUsuario, updateUsuario: vi.fn(),
         conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
+        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
       })
     );
 
@@ -89,6 +98,7 @@ describe('useUsuarioFormState — documento de la cuenta', () => {
       useUsuarioFormState({
         usuarios: [], addUsuario, updateUsuario: vi.fn(),
         conductorDeUsuario: () => null, guardarDocumentoDeUsuario,
+        fotoDe: () => undefined, guardarFotoUsuario: vi.fn(),
       })
     );
 

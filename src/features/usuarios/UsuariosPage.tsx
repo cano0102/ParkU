@@ -70,6 +70,7 @@ export default function Usuarios() {
               onToggleEstado={form.handleToggleEstado}
               onEdit={form.openEdit}
               documentoDe={data.documentoDe}
+              fotoDe={data.fotoDe}
               nombreDeRolReal={data.nombreDeRolReal}
               idUltimoAdminActivo={data.idUltimoAdminActivo}
               onPageChange={f.setCurrentPage}

@@ -85,6 +85,10 @@ export interface FormState {
   numeroDocumento: string;
   /** FK obligatoria de `conductor` (Aprendiz/Instructor/…), del catálogo /catalogos/tipos-usuario. */
   tipoUsuarioId: string;
+  /** Foto de perfil (data URL) para reconocer a la persona en el listado. Opcional, y como
+   *  `usuario` tampoco tiene columna de foto en la API, se guarda en este navegador —
+   *  ver services/core/fotosPerfil.ts. */
+  foto: string;
 }
 
 export const emptyForm = (): FormState => ({
@@ -98,4 +102,5 @@ export const emptyForm = (): FormState => ({
   tipoDocumento: "CC",
   numeroDocumento: "",
   tipoUsuarioId: "",
+  foto: "",
 });

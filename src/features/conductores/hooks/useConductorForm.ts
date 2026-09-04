@@ -69,6 +69,9 @@ export function useConductorForm(
         movilidadReducida: conductor.movilidadReducida,
         tipoDiscapacidad: conductor.tipoDiscapacidad,
         estado: conductor.estado,
+        // La foto no viene de la API (no hay columna): se precarga de este navegador para que
+        // guardar cualquier otro cambio no la borre. Ver useConductoresData.fotoDeConductor.
+        foto: data.fotoDeConductor(conductor) ?? "",
         placa: v?.placa || "",
         tipoVehiculo: v?.tipo || "carro",
         marca: v?.marca || "",
@@ -80,7 +83,7 @@ export function useConductorForm(
       setUsuarioSearch("");
       setDialogOpen(true);
     },
-    [data.vehiculos]
+    [data]
   );
 
   // Placas ya registradas en otros vehículos (para evitar duplicados), excluyendo el vehículo puntual en edición
@@ -206,6 +209,8 @@ export function useConductorForm(
     try {
       if (editingConductor) {
         await data.updateConductor(editingConductor.id, conductorData);
+        // La foto no viaja a la API: se guarda en este navegador (services/core/fotosPerfil.ts).
+        data.guardarFotoConductor(editingConductor.id, formData.foto);
 
         const vehiculoData = {
           conductorId: editingConductor.id,
@@ -232,6 +237,8 @@ export function useConductorForm(
       } else {
         const created = await data.addConductor(conductorData);
         if (created?.id) {
+          // Igual que al editar, pero solo ahora se conoce el id que asignó el backend.
+          data.guardarFotoConductor(created.id, formData.foto);
           const vehiculoCreado = await data.addVehiculo({
             conductorId: created.id,
             conductorNombre: created.nombre,

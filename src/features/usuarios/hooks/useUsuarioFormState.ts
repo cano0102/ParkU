@@ -7,7 +7,10 @@ import type { UsuariosData } from "./useUsuariosData";
 
 /** El diálogo de crear/editar usuario (con detección de duplicados) y el toggle de estado. */
 export function useUsuarioFormState(
-  data: Pick<UsuariosData, "usuarios" | "addUsuario" | "updateUsuario" | "conductorDeUsuario" | "guardarDocumentoDeUsuario">
+  data: Pick<
+    UsuariosData,
+    "usuarios" | "addUsuario" | "updateUsuario" | "conductorDeUsuario" | "guardarDocumentoDeUsuario" | "fotoDe" | "guardarFotoUsuario"
+  >
 ) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
@@ -42,6 +45,9 @@ export function useUsuarioFormState(
       tipoDocumento: conductor?.tipoDocumento ?? "CC",
       numeroDocumento: conductor?.numeroDocumento ?? "",
       tipoUsuarioId: conductor?.tipoUsuarioId ?? "",
+      // La foto no viene de la API (no hay columna): se precarga de este navegador para que
+      // editar cualquier otro campo no la borre. Ver useUsuariosData.fotoDe.
+      foto: data.fotoDe(u.id) ?? "",
     });
     setDialogOpen(true);
   }, [data]);
@@ -103,6 +109,11 @@ export function useUsuarioFormState(
         }
 
         toast.success(editingUsuario ? "Usuario actualizado correctamente" : "Usuario creado correctamente");
+
+        // La foto va después de tener id confirmado (al crear, el id solo existe tras la
+        // respuesta del backend). No viaja a la API: se guarda en este navegador, en la misma
+        // llave que usa la pantalla de Perfil — ver services/core/fotosPerfil.ts.
+        if (usuarioId) data.guardarFotoUsuario(usuarioId, form.foto);
 
         // El documento se guarda en el `conductor` vinculado (la tabla `usuario` no tiene
         // esas columnas) y requiere `tipoUsuarioId`, que es FK obligatoria de ese modelo.

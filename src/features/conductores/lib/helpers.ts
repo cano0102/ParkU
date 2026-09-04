@@ -75,6 +75,10 @@ export interface FormState {
   movilidadReducida: boolean;
   tipoDiscapacidad: string;
   estado: "activo" | "inactivo";
+  /** Foto de perfil (data URL) para reconocer al conductor en el listado. Opcional: el modelo
+   *  real de `conductor` no tiene columna de foto, así que se guarda en este navegador
+   *  — ver services/core/fotosPerfil.ts. */
+  foto: string;
   placa: string;
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
@@ -96,6 +100,7 @@ export const emptyForm = (): FormState => ({
   movilidadReducida: false,
   tipoDiscapacidad: "",
   estado: "activo",
+  foto: "",
   placa: "",
   tipoVehiculo: "carro",
   marca: "",
