@@ -66,3 +66,40 @@ export const PERMISO_LABELS: Record<string, string> = Object.values(PERMISOS).re
 );
 
 export const countActive = (p: PermisosState): number => Object.values(p).filter(Boolean).length;
+
+/** Verbos que usa el backend en la parte de acción de `modulo.accion`. */
+const ACCIONES_LABEL: Record<string, string> = {
+  consultar: "Consultar",
+  gestionar: "Gestionar",
+  crear: "Crear",
+  editar: "Editar",
+  actualizar: "Actualizar",
+  eliminar: "Eliminar",
+  ver: "Ver",
+  registrar: "Registrar",
+  aprobar: "Aprobar",
+  reportar: "Reportar",
+};
+
+/**
+ * Texto legible de un permiso del catálogo. El backend nombra los permisos en clave técnica
+ * (`parqueaderos.gestionar`), que no dice gran cosa en pantalla:
+ *
+ *   1. Si el permiso trae `descripcion` (la mayoría la traen: "Gestionar parqueaderos y
+ *      celdas"), esa es la etiqueta — viene del propio backend, no se inventa nada.
+ *   2. Si no, se construye a partir de la clave: la acción traducida más el módulo
+ *      ("Consultar reservas"), en vez de mostrar el punto y las minúsculas.
+ *
+ * La clave técnica sigue disponible en el tooltip, para poder rastrear qué permiso es.
+ */
+export function etiquetaDePermiso(permiso: { nombre: string; descripcion?: string }): string {
+  const descripcion = permiso.descripcion?.trim();
+  if (descripcion) return descripcion;
+
+  const [modulo, accion] = permiso.nombre.split(".");
+  const moduloLegible = (modulo ?? permiso.nombre).replace(/[_-]/g, " ");
+  if (!accion) return moduloLegible.charAt(0).toUpperCase() + moduloLegible.slice(1);
+
+  const accionLegible = ACCIONES_LABEL[accion] ?? accion.charAt(0).toUpperCase() + accion.slice(1);
+  return `${accionLegible} ${moduloLegible}`;
+}

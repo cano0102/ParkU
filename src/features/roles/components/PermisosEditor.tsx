@@ -1,4 +1,5 @@
 import { theme } from "@/styles/theme";
+import { etiquetaDePermiso } from "../lib/permisos";
 import type { PermisoCatalogo } from "@/services/api/roles";
 
 const COLORS = theme;
@@ -72,7 +73,7 @@ export function PermisosEditor({ isCreating, isLoading, permisosCatalogo, selecc
                     return (
                       <label
                         key={permiso.id}
-                        title={permiso.descripcion}
+                        title={`${permiso.nombre}${permiso.descripcion ? ` — ${permiso.descripcion}` : ""}`}
                         style={{
                           display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8,
                           padding: "6px 10px", borderRadius: 9, cursor: "pointer",
@@ -81,7 +82,7 @@ export function PermisosEditor({ isCreating, isLoading, permisosCatalogo, selecc
                           fontSize: 11, fontWeight: 600, color: checked ? COLORS.text : COLORS.textLight,
                         }}
                       >
-                        <span>{permiso.nombre}</span>
+                        <span>{etiquetaDePermiso(permiso)}</span>
                         <input
                           type="checkbox"
                           checked={checked}

@@ -175,7 +175,7 @@ describe('Roles', () => {
     await waitFor(() => {
       expect(screen.getByText('2 / 3 seleccionados')).toBeInTheDocument();
     });
-    expect(screen.getByText('configuracion.gestionar')).toBeInTheDocument();
+    expect(screen.getByText('Gestionar roles y permisos')).toBeInTheDocument();
     expect(screen.getByText('Configuración')).toBeInTheDocument();
 
     // Y ahora sí se pueden cambiar: al desmarcar uno, el contador baja.
