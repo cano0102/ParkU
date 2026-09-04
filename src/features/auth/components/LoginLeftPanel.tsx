@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ShieldCheck } from "lucide-react";
+import { IconArrowLeft as ArrowLeft, IconShieldCheck as ShieldCheck } from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 
 const HIGHLIGHTS = ["Control de acceso seguro", "Monitoreo en tiempo real", "Gestión automatizada"];

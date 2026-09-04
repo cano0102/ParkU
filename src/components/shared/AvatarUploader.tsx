@@ -1,5 +1,5 @@
 import { useId, useState } from 'react';
-import { Camera, Loader2, X } from 'lucide-react';
+import { IconCamera as Camera, IconLoader2 as Loader2, IconX as X } from "@tabler/icons-react";
 import { toast } from 'sonner';
 import { theme } from '@/styles/theme';
 import { procesarFotoCuadrada } from '@/utils/imagen';

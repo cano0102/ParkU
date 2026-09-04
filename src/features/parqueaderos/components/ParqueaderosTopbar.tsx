@@ -1,4 +1,11 @@
-import { LayoutGrid, Map as MapIcon, Plus, Search, X, Zap } from "lucide-react";
+import {
+  IconLayoutGrid as LayoutGrid,
+  IconMap as MapIcon,
+  IconPlus as Plus,
+  IconSearch as Search,
+  IconX as X,
+  IconBolt as Zap,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { TIPOS_PARQUEADERO, capitalizar } from "../lib/helpers";
 

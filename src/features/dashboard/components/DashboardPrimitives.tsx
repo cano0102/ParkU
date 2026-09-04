@@ -1,6 +1,11 @@
 import { forwardRef, type ElementType, type ReactNode } from "react";
 import { motion, type Variants } from "framer-motion";
-import { Bike, Car, ChevronRight, ParkingCircle } from "lucide-react";
+import {
+  IconBike as Bike,
+  IconCar as Car,
+  IconChevronRight as ChevronRight,
+  IconCircleLetterP as ParkingCircle,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { occupancyOf, statusColor, type ParkingLot } from "../lib/helpers";
 

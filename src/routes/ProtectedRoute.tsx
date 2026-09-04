@@ -1,5 +1,5 @@
 import { Link, Navigate } from 'react-router-dom';
-import { ShieldAlert } from 'lucide-react';
+import { IconShieldExclamation as ShieldAlert } from "@tabler/icons-react";
 import { useAuth } from '../context/AuthContext';
 import type { PermisosRol } from '../services/core/roles';
 import { theme } from '../styles/theme';

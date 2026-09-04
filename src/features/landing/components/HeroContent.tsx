@@ -1,4 +1,4 @@
-import { BadgeCheck } from "lucide-react";
+import { IconRosetteDiscountCheck as BadgeCheck } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { trustBadges } from "../lib/content";
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Ban } from "lucide-react";
+import { IconBan as Ban } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const C = theme;

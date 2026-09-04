@@ -1,6 +1,11 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Car, DoorOpen, ParkingCircle, Users } from "lucide-react";
+import {
+  IconCar as Car,
+  IconDoorExit as DoorOpen,
+  IconCircleLetterP as ParkingCircle,
+  IconUsers as Users,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { LoadingState } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";

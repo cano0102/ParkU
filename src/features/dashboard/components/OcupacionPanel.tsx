@@ -1,4 +1,4 @@
-import { Building2 } from "lucide-react";
+import { IconBuilding as Building2 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { ParkingLot } from "../lib/helpers";
 import { Card, HorizontalBars, SectionTitle } from "./DashboardPrimitives";

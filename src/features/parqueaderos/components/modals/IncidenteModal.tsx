@@ -1,4 +1,4 @@
-import { AlertTriangle, FileText } from "lucide-react";
+import { IconAlertTriangle as AlertTriangle, IconFileText as FileText } from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Usuario } from "@/services/api/usuarios";

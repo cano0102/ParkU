@@ -1,5 +1,15 @@
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, Car, CheckCircle, Clock, Edit, MapPin, ParkingCircle, User, X } from "lucide-react";
+import {
+  IconAlertTriangle as AlertTriangle,
+  IconCar as Car,
+  IconCircleCheck as CheckCircle,
+  IconClock as Clock,
+  IconEdit as Edit,
+  IconMapPin as MapPin,
+  IconCircleLetterP as ParkingCircle,
+  IconUser as User,
+  IconX as X,
+} from "@tabler/icons-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";

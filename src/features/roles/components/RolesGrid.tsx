@@ -1,4 +1,4 @@
-import { Shield } from "lucide-react";
+import { IconShield as Shield } from "@tabler/icons-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
 import { RoleCard } from "./RoleCard";

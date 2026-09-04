@@ -1,4 +1,8 @@
-import { Activity, DoorClosed, DoorOpen } from "lucide-react";
+import {
+  IconActivity as Activity,
+  IconDoor as DoorClosed,
+  IconDoorExit as DoorOpen,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { Card, SectionTitle } from "./DashboardPrimitives";
 

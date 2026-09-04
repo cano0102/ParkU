@@ -1,4 +1,8 @@
-import { AlertTriangle, Plus, ShieldAlert } from "lucide-react";
+import {
+  IconAlertTriangle as AlertTriangle,
+  IconPlus as Plus,
+  IconShieldExclamation as ShieldAlert,
+} from "@tabler/icons-react";
 import { Modal } from "@/components/shared";
 import { theme } from "@/styles/theme";
 import { useConductorIncidentesData } from "../hooks/useConductorIncidentesData";

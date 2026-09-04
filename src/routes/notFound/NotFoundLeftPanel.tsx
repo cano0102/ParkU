@@ -1,4 +1,8 @@
-import { ArrowLeft, BadgeCheck, ShieldCheck } from "lucide-react";
+import {
+  IconArrowLeft as ArrowLeft,
+  IconRosetteDiscountCheck as BadgeCheck,
+  IconShieldCheck as ShieldCheck,
+} from "@tabler/icons-react";
 
 const HIGHLIGHTS = ["Sistema institucional seguro", "Navegación protegida", "Plataforma ParkU SENA"];
 

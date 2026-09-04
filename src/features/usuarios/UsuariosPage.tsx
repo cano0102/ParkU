@@ -1,4 +1,9 @@
-import { Shield, UserCheck, Users, UserX } from "lucide-react";
+import {
+  IconShield as Shield,
+  IconUserCheck as UserCheck,
+  IconUsers as Users,
+  IconUserX as UserX,
+} from "@tabler/icons-react";
 import { Modal, LoadingState } from "@/components/shared";
 import { StatsPanel } from "@/components/data";
 import { COLORS } from "./lib/helpers";

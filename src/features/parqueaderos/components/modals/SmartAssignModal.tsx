@@ -1,5 +1,5 @@
 import { memo, useEffect, useState } from "react";
-import { Camera, Sparkles } from "lucide-react";
+import { IconCamera as Camera, IconSparkles as Sparkles } from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";

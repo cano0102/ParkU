@@ -1,4 +1,11 @@
-import { Bell, Calendar, Car, Check, MapPin, X } from "lucide-react";
+import {
+  IconBell as Bell,
+  IconCalendar as Calendar,
+  IconCar as Car,
+  IconCheck as Check,
+  IconMapPin as MapPin,
+  IconX as X,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";

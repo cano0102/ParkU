@@ -1,4 +1,4 @@
-import { Accessibility, GraduationCap } from "lucide-react";
+import { IconWheelchair as Accessibility, IconSchool as GraduationCap } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { Card, DistributionChart, SectionTitle } from "./DashboardPrimitives";
 

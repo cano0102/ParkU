@@ -1,4 +1,7 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  IconChevronLeft as ChevronLeft,
+  IconChevronRight as ChevronRight,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { PAGE_SIZE } from "../lib/helpers";
 

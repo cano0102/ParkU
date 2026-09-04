@@ -1,4 +1,11 @@
-import { Pencil, Car, Plus, Building2, Accessibility, Eye } from "lucide-react";
+import {
+  IconPencil as Pencil,
+  IconCar as Car,
+  IconPlus as Plus,
+  IconBuilding as Building2,
+  IconWheelchair as Accessibility,
+  IconEye as Eye,
+} from "@tabler/icons-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import { Avatar } from "@/components/shared";

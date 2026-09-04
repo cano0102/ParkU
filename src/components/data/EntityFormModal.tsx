@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { AlertCircle, X } from "lucide-react";
+import { IconAlertCircle as AlertCircle, IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

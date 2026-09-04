@@ -1,4 +1,4 @@
-import { Car, Plus, Users } from "lucide-react";
+import { IconCar as Car, IconPlus as Plus, IconUsers as Users } from "@tabler/icons-react";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS } from "../lib/helpers";

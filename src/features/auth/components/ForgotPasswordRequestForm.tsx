@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
-import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
+import {
+  IconAlertCircle as AlertCircle,
+  IconArrowLeft as ArrowLeft,
+  IconMail as Mail,
+} from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 import { theme } from "@/styles/theme";
 import type { useForgotPasswordForm } from "../hooks/useForgotPasswordForm";

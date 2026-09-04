@@ -1,4 +1,4 @@
-import { ShieldCheck } from "lucide-react";
+import { IconShieldCheck as ShieldCheck } from "@tabler/icons-react";
 
 interface RolesHeroProps {
   stats: {

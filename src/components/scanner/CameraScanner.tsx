@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { X } from "lucide-react";
+import { IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 

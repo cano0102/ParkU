@@ -1,5 +1,13 @@
 import { useNavigate } from "react-router-dom";
-import { Ban, Calendar, Car, Clock, MapPin, UserCircle2, X } from "lucide-react";
+import {
+  IconBan as Ban,
+  IconCalendar as Calendar,
+  IconCar as Car,
+  IconClock as Clock,
+  IconMapPin as MapPin,
+  IconUserCircle as UserCircle2,
+  IconX as X,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";

@@ -1,5 +1,5 @@
 import type { Ref } from "react";
-import { AlertCircle, IdCard } from "lucide-react";
+import { IconAlertCircle as AlertCircle, IconId as IdCard } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { TIPOS_DOCUMENTO } from "@/utils/validation";
 

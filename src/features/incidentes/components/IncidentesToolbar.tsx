@@ -1,4 +1,4 @@
-import { Plus, Search, X } from "lucide-react";
+import { IconPlus as Plus, IconSearch as Search, IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { EstadoIncidente } from "../lib/constants";
 

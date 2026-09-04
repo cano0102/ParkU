@@ -1,4 +1,4 @@
-import { Sparkles, X } from "lucide-react";
+import { IconSparkles as Sparkles, IconX as X } from "@tabler/icons-react";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Usuario } from "@/services/api/usuarios";

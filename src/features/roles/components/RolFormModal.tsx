@@ -1,5 +1,5 @@
 import { memo, useMemo } from "react";
-import { ShieldCheck, X } from "lucide-react";
+import { IconShieldCheck as ShieldCheck, IconX as X } from "@tabler/icons-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
 import { useRolForm } from "../hooks/useRolForm";

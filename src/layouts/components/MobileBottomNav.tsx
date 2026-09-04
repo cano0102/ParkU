@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { IconMenu2 as Menu } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { MenuItem } from "../lib/menu";
 

@@ -1,5 +1,5 @@
 import type { Ref } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { IconCircleCheck as CheckCircle2 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { heroStats } from "../lib/content";
 import { StatCard } from "./StatCard";

@@ -1,4 +1,4 @@
-import { User } from "lucide-react";
+import { IconUser as User } from "@tabler/icons-react";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Usuario } from "@/services/api/usuarios";

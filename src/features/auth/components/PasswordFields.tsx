@@ -1,4 +1,9 @@
-import { AlertCircle, Eye, EyeOff, Lock } from "lucide-react";
+import {
+  IconAlertCircle as AlertCircle,
+  IconEye as Eye,
+  IconEyeOff as EyeOff,
+  IconLock as Lock,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { PASSWORD_MIN } from "@/utils/validation";
 

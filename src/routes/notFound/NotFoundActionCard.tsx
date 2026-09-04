@@ -1,4 +1,4 @@
-import { Home, ShieldCheck } from "lucide-react";
+import { IconHome as Home, IconShieldCheck as ShieldCheck } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

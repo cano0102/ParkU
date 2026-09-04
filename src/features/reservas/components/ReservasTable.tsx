@@ -1,4 +1,4 @@
-import { Calendar } from "lucide-react";
+import { IconCalendar as Calendar } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";

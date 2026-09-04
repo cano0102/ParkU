@@ -1,4 +1,8 @@
-import { CheckCircle2, ClipboardList, FileWarning } from "lucide-react";
+import {
+  IconCircleCheck as CheckCircle2,
+  IconClipboardList as ClipboardList,
+  IconFileAlert as FileWarning,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { daysAgo, type ParkingLot } from "../lib/helpers";
 import type { Incidente } from "@/services/api/incidentes";

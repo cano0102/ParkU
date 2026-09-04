@@ -1,5 +1,9 @@
 import { motion } from "framer-motion";
-import { DoorClosed, DoorOpen, Zap } from "lucide-react";
+import {
+  IconDoor as DoorClosed,
+  IconDoorExit as DoorOpen,
+  IconBolt as Zap,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { formatMovementTime, type Movement, type ParkingLot } from "../lib/helpers";
 import { Card, SectionTitle } from "./DashboardPrimitives";

@@ -1,14 +1,14 @@
 import {
-  ShieldCheck,
-  BarChart3,
-  ScanLine,
-  Activity,
-  Clock,
-  Users,
-  Sparkles,
-  UserPlus,
-  DoorOpen,
-} from "lucide-react";
+  IconShieldCheck as ShieldCheck,
+  IconChartBar as BarChart3,
+  IconScan as ScanLine,
+  IconActivity as Activity,
+  IconClock as Clock,
+  IconUsers as Users,
+  IconSparkles as Sparkles,
+  IconUserPlus as UserPlus,
+  IconDoorExit as DoorOpen,
+} from "@tabler/icons-react";
 
 export const features = [
   {

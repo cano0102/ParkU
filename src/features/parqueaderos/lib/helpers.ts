@@ -1,4 +1,11 @@
-import { Car, Bike, Accessibility, Wind, Truck, Bus as BusIcon } from "lucide-react";
+import {
+  IconCar as Car,
+  IconBike as Bike,
+  IconWheelchair as Accessibility,
+  IconWind as Wind,
+  IconTruck as Truck,
+  IconBus as BusIcon,
+} from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero, TipoParqueadero, AccesoParqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";

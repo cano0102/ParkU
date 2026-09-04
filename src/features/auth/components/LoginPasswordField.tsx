@@ -1,4 +1,10 @@
-import { AlertCircle, AlertTriangle, Eye, EyeOff, Lock } from "lucide-react";
+import {
+  IconAlertCircle as AlertCircle,
+  IconAlertTriangle as AlertTriangle,
+  IconEye as Eye,
+  IconEyeOff as EyeOff,
+  IconLock as Lock,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

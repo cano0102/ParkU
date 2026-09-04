@@ -1,4 +1,4 @@
-import { Plus, Search } from "lucide-react";
+import { IconPlus as Plus, IconSearch as Search } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

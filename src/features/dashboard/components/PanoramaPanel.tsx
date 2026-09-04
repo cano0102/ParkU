@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { AlertTriangle, Gauge } from "lucide-react";
+import { IconAlertTriangle as AlertTriangle, IconGauge as Gauge } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { statusColor } from "../lib/helpers";
 import { Card, Donut, SectionTitle } from "./DashboardPrimitives";

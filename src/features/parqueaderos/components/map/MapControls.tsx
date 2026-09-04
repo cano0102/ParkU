@@ -1,4 +1,8 @@
-import { Maximize2, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  IconArrowsMaximize as Maximize2,
+  IconZoomIn as ZoomIn,
+  IconZoomOut as ZoomOut,
+} from "@tabler/icons-react";
 
 interface MapControlsProps {
   onZoomIn: () => void;

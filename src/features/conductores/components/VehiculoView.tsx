@@ -1,5 +1,14 @@
 import { memo } from "react";
-import { Pencil, X, GaugeCircle, Palette, Calendar, Users, UserMinus, Crown } from "lucide-react";
+import {
+  IconPencil as Pencil,
+  IconX as X,
+  IconGaugeFilled as GaugeCircle,
+  IconPalette as Palette,
+  IconCalendar as Calendar,
+  IconUsers as Users,
+  IconUserMinus as UserMinus,
+  IconCrown as Crown,
+} from "@tabler/icons-react";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS, getTipoVehiculoStyle } from "../lib/helpers";
 

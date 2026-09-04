@@ -1,4 +1,9 @@
-import { Car, LogOut, ParkingCircle, Trash2 } from "lucide-react";
+import {
+  IconCar as Car,
+  IconLogout as LogOut,
+  IconCircleLetterP as ParkingCircle,
+  IconTrash as Trash2,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Vehiculo } from "@/services/api/vehiculos";

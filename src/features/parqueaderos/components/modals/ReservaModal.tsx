@@ -1,5 +1,11 @@
 import { useMemo, useState } from "react";
-import { Calendar, Car, MapPin, Search, X } from "lucide-react";
+import {
+  IconCalendar as Calendar,
+  IconCar as Car,
+  IconMapPin as MapPin,
+  IconSearch as Search,
+  IconX as X,
+} from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";

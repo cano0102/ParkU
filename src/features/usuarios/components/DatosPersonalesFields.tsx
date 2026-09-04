@@ -1,4 +1,4 @@
-import { Mail, Phone } from "lucide-react";
+import { IconMail as Mail, IconPhone as Phone } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import { COLORS, NOMBRE_MAX, inputErrorStyle, inputIconStyle, inputStyle, quitarDigitos, filtrarTelefono } from "../lib/helpers";
 

@@ -1,5 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { Bike, Calendar, Car, MapPin, ParkingCircle } from "lucide-react";
+import {
+  IconBike as Bike,
+  IconCalendar as Calendar,
+  IconCar as Car,
+  IconMapPin as MapPin,
+  IconCircleLetterP as ParkingCircle,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { LoadingState } from "@/components/shared";
 import { useConductorDashboardData } from "../hooks/useConductorDashboardData";

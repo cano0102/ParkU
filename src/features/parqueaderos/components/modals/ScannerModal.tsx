@@ -1,4 +1,10 @@
-import { Camera, CheckCircle2, Loader2, ScanLine, Upload } from "lucide-react";
+import {
+  IconCamera as Camera,
+  IconCircleCheck as CheckCircle2,
+  IconLoader2 as Loader2,
+  IconScan as ScanLine,
+  IconUpload as Upload,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { CameraScanner } from "@/components/scanner";
 import { Banner } from "@/components/shared";

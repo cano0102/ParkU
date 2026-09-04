@@ -1,4 +1,11 @@
-import { ArrowLeftRight, Car, LogIn, LogOut as LogOutIcon, MapPin, User } from "lucide-react";
+import {
+  IconArrowsLeftRight as ArrowLeftRight,
+  IconCar as Car,
+  IconLogin as LogIn,
+  IconLogout as LogOutIcon,
+  IconMapPin as MapPin,
+  IconUser as User,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Vehiculo } from "@/services/api/vehiculos";

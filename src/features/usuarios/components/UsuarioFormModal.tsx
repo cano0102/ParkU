@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { UserCheck } from "lucide-react";
+import { IconUserCheck as UserCheck } from "@tabler/icons-react";
 import { EntityFormModal } from "@/components/data";
 import { AvatarUploader } from "@/components/shared";
 import { DatosPersonalesFields } from "./DatosPersonalesFields";

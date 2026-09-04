@@ -1,4 +1,10 @@
-import { Search, LayoutGrid, List, Plus, X } from "lucide-react";
+import {
+  IconSearch as Search,
+  IconLayoutGrid as LayoutGrid,
+  IconList as List,
+  IconPlus as Plus,
+  IconX as X,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

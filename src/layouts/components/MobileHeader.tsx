@@ -1,4 +1,4 @@
-import { Menu, User } from "lucide-react";
+import { IconMenu2 as Menu, IconUser as User } from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 import { SIDEBAR_GRADIENT, onDark } from "../lib/sidebarTheme";
 

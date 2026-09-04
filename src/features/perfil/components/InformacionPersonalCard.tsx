@@ -1,5 +1,15 @@
 import type React from "react";
-import { CheckCircle2, IdCard, Mail, Pencil, Phone, Save, Shield, User, X } from "lucide-react";
+import {
+  IconCircleCheck as CheckCircle2,
+  IconId as IdCard,
+  IconMail as Mail,
+  IconPencil as Pencil,
+  IconPhone as Phone,
+  IconDeviceFloppy as Save,
+  IconShield as Shield,
+  IconUser as User,
+  IconX as X,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import { nombreDeRol } from "@/services/core/roles";

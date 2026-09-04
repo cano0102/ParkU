@@ -1,4 +1,4 @@
-import { Key, Lock, Shield } from "lucide-react";
+import { IconKey as Key, IconLock as Lock, IconShield as Shield } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const C = theme;

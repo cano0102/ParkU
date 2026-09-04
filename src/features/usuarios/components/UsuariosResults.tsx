@@ -1,4 +1,4 @@
-import { UserCircle } from "lucide-react";
+import { IconUserCircle as UserCircle } from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { DataGrid, DataList, DataPagination } from "@/components/data";
 import { COLORS } from "../lib/helpers";

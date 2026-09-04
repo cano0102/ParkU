@@ -1,4 +1,11 @@
-import { CheckCircle2, Eye, EyeOff, Key, Lock, Save } from "lucide-react";
+import {
+  IconCircleCheck as CheckCircle2,
+  IconEye as Eye,
+  IconEyeOff as EyeOff,
+  IconKey as Key,
+  IconLock as Lock,
+  IconDeviceFloppy as Save,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { PASSWORD_MAX, PASSWORD_MIN } from "@/utils/validation";
 import type { usePasswordChange } from "../hooks/usePasswordChange";

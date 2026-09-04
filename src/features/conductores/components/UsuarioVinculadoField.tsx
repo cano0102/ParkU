@@ -1,4 +1,11 @@
-import { Mail, Phone, Shield, ShieldCheck, UserCheck, X } from "lucide-react";
+import {
+  IconMail as Mail,
+  IconPhone as Phone,
+  IconShield as Shield,
+  IconShieldCheck as ShieldCheck,
+  IconUserCheck as UserCheck,
+  IconX as X,
+} from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { FormField } from "@/components/shared";
 import { useRoles } from "@/features/roles";

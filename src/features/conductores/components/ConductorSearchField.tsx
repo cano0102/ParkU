@@ -1,4 +1,9 @@
-import { IdCard, Mail, Search, User } from "lucide-react";
+import {
+  IconId as IdCard,
+  IconMail as Mail,
+  IconSearch as Search,
+  IconUser as User,
+} from "@tabler/icons-react";
 import type { Conductor } from "@/services/api/conductores";
 import { COLORS, getAvatarGradient, getInitials, inputStyle } from "../lib/helpers";
 

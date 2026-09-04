@@ -1,4 +1,4 @@
-import { IdCard } from "lucide-react";
+import { IconId as IdCard } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import { TIPOS_DOCUMENTO } from "@/utils/validation";
 import { useTiposUsuario } from "@/features/conductores";

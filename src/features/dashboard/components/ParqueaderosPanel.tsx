@@ -1,5 +1,5 @@
 import { AnimatePresence } from "framer-motion";
-import { LayoutDashboard } from "lucide-react";
+import { IconLayoutDashboard as LayoutDashboard } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { ParkingLot } from "../lib/helpers";
 import { Card, LotRow, SectionTitle } from "./DashboardPrimitives";

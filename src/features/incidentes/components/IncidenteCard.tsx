@@ -1,4 +1,15 @@
-import { AlertTriangle, Car, CheckCircle, Clock, Edit, Eye, Lock, MapPin, Trash2, User } from "lucide-react";
+import {
+  IconAlertTriangle as AlertTriangle,
+  IconCar as Car,
+  IconCircleCheck as CheckCircle,
+  IconClock as Clock,
+  IconEdit as Edit,
+  IconEye as Eye,
+  IconLock as Lock,
+  IconMapPin as MapPin,
+  IconTrash as Trash2,
+  IconUser as User,
+} from "@tabler/icons-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";

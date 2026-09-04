@@ -1,4 +1,9 @@
-import { AlertTriangle, CheckCircle, Clock, ShieldAlert } from "lucide-react";
+import {
+  IconAlertTriangle as AlertTriangle,
+  IconCircleCheck as CheckCircle,
+  IconClock as Clock,
+  IconShieldExclamation as ShieldAlert,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const C = theme;

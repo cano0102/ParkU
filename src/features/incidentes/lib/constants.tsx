@@ -1,5 +1,11 @@
 import type { ReactNode } from "react";
-import { AlertTriangle, Clock, CheckCircle, Archive, XCircle } from "lucide-react";
+import {
+  IconAlertTriangle as AlertTriangle,
+  IconClock as Clock,
+  IconCircleCheck as CheckCircle,
+  IconArchive as Archive,
+  IconCircleX as XCircle,
+} from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { EstadoNovedad, TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
 

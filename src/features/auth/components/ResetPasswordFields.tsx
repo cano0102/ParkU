@@ -1,4 +1,8 @@
-import { AlertCircle, Eye, EyeOff } from "lucide-react";
+import {
+  IconAlertCircle as AlertCircle,
+  IconEye as Eye,
+  IconEyeOff as EyeOff,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

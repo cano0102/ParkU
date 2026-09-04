@@ -1,6 +1,6 @@
 import type { Ref } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { IconArrowLeft as ArrowLeft, IconLoader2 as Loader2 } from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 import { theme } from "@/styles/theme";
 import { useRegisterForm } from "../hooks/useRegisterForm";

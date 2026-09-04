@@ -1,5 +1,10 @@
 import type { ReactNode } from "react";
-import { CheckCircle2, Clock3, XCircle, Ban } from "lucide-react";
+import {
+  IconCircleCheck as CheckCircle2,
+  IconClockHour3 as Clock3,
+  IconCircleX as XCircle,
+  IconBan as Ban,
+} from "@tabler/icons-react";
 import type { EstadoReserva } from "@/services/api/reservas";
 
 export type { EstadoReserva };

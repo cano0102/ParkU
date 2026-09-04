@@ -1,5 +1,5 @@
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
-import { AlertTriangle } from 'lucide-react';
+import { IconAlertTriangle as AlertTriangle } from "@tabler/icons-react";
 import { theme } from '../styles/theme';
 
 const C = theme;

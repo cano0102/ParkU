@@ -1,4 +1,4 @@
-import { Pencil, Sparkles } from "lucide-react";
+import { IconPencil as Pencil, IconSparkles as Sparkles } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle } from 'lucide-react';
+import { IconAlertTriangle as AlertTriangle } from "@tabler/icons-react";
 import { theme } from '../../styles/theme';
 
 const C = theme;

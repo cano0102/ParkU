@@ -1,4 +1,4 @@
-import { CarFront } from "lucide-react";
+import { IconCarSuv as CarFront } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { Reveal } from "./Reveal";
 

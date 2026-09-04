@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { IconArrowLeft as ArrowLeft } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { useForgotPasswordForm } from "./hooks/useForgotPasswordForm";
 import { forgotPasswordStyles } from "./lib/styles";

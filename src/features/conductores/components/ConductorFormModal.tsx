@@ -1,4 +1,4 @@
-import { Sparkles } from "lucide-react";
+import { IconSparkles as Sparkles } from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { EntityFormModal } from "@/components/data";
 import { AvatarUploader } from "@/components/shared";

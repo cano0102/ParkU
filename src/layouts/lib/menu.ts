@@ -1,13 +1,13 @@
 import {
-  LayoutDashboard,
-  Users,
-  ParkingCircle,
-  UserCog,
-  ShieldCheck,
-  ArrowLeftRight,
-  Calendar,
-  AlertTriangle,
-} from "lucide-react";
+  IconLayoutDashboard as LayoutDashboard,
+  IconUsers as Users,
+  IconCircleLetterP as ParkingCircle,
+  IconUserCog as UserCog,
+  IconShieldCheck as ShieldCheck,
+  IconArrowsLeftRight as ArrowLeftRight,
+  IconCalendar as Calendar,
+  IconAlertTriangle as AlertTriangle,
+} from "@tabler/icons-react";
 import type { PermisosRol } from "@/services/core/roles";
 
 export interface MenuItem {

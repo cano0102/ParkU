@@ -1,4 +1,11 @@
-import { Calendar, CheckCircle2, Clock3, Plus, Shield, XCircle } from "lucide-react";
+import {
+  IconCalendar as Calendar,
+  IconCircleCheck as CheckCircle2,
+  IconClockHour3 as Clock3,
+  IconPlus as Plus,
+  IconShield as Shield,
+  IconCircleX as XCircle,
+} from "@tabler/icons-react";
 import type { EstadoReserva } from "../lib/constants";
 
 interface ReservasHeroProps {

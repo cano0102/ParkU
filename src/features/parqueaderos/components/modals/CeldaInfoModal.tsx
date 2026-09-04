@@ -1,4 +1,15 @@
-import { AlertTriangle, Car, Calendar, Clock as ClockIcon, ChevronRight, Clock, MapPin, UserCircle2, Wrench, X } from "lucide-react";
+import {
+  IconAlertTriangle as AlertTriangle,
+  IconCar as Car,
+  IconCalendar as Calendar,
+  IconClock as ClockIcon,
+  IconChevronRight as ChevronRight,
+  IconClock as Clock,
+  IconMapPin as MapPin,
+  IconUserCircle as UserCircle2,
+  IconTool as Wrench,
+  IconX as X,
+} from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Reserva } from "@/services/api/reservas";

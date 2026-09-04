@@ -1,5 +1,9 @@
 import { motion } from "framer-motion";
-import { CalendarDays, Clock3, LayoutDashboard } from "lucide-react";
+import {
+  IconCalendarMonth as CalendarDays,
+  IconClockHour3 as Clock3,
+  IconLayoutDashboard as LayoutDashboard,
+} from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 import { formatClock, formatDate } from "../lib/helpers";
 import { fadeUp } from "./DashboardPrimitives";

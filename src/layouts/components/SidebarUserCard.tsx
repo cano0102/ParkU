@@ -1,4 +1,4 @@
-import { LogOut, User } from "lucide-react";
+import { IconLogout as LogOut, IconUser as User } from "@tabler/icons-react";
 import { onDark } from "../lib/sidebarTheme";
 
 interface SidebarUserCardProps {

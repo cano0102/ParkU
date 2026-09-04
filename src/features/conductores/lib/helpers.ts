@@ -1,5 +1,17 @@
 import type React from "react";
-import { Car, Bike, Truck, Bus as BusIcon, Wind, GraduationCap, BookOpen, Briefcase, Handshake, Contact, type LucideIcon } from "lucide-react";
+import {
+  IconCar as Car,
+  IconBike as Bike,
+  IconTruck as Truck,
+  IconBus as BusIcon,
+  IconWind as Wind,
+  IconSchool as GraduationCap,
+  IconBook2 as BookOpen,
+  IconBriefcase as Briefcase,
+  IconHeartHandshake as Handshake,
+  IconAddressBook as Contact,
+  type TablerIcon,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import {
   validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO,
@@ -17,7 +29,7 @@ export const COLORS = theme;
 /** Estilo por tipo de usuario (catálogo real `/api/catalogos/tipos-usuario`:
  * Aprendiz, Instructor, Administrativo, Contratista, Visitante). Se indexa
  * por el nombre en minúscula; cualquier valor no listado cae al genérico. */
-const TIPO_USUARIO_STYLES: Record<string, { bg: string; text: string; border: string; dot: string; icon: LucideIcon }> = {
+const TIPO_USUARIO_STYLES: Record<string, { bg: string; text: string; border: string; dot: string; icon: TablerIcon }> = {
   instructor:     { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#2563EB", icon: GraduationCap },
   aprendiz:       { bg: "#FFFBEB", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", icon: BookOpen },
   administrativo: { bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE", dot: "#8B5CF6", icon: Briefcase },

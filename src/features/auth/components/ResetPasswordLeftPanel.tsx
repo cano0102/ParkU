@@ -1,5 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BadgeCheck, ShieldCheck } from "lucide-react";
+import {
+  IconArrowLeft as ArrowLeft,
+  IconRosetteDiscountCheck as BadgeCheck,
+  IconShieldCheck as ShieldCheck,
+} from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 
 const HIGHLIGHTS = ["Acceso institucional seguro", "Protección de credenciales", "Sistema protegido ParkU"];

@@ -1,4 +1,13 @@
-import { AlertTriangle, Camera, Car, ChevronRight, IdCard, Plus, UserCheck, UserPlus } from "lucide-react";
+import {
+  IconAlertTriangle as AlertTriangle,
+  IconCamera as Camera,
+  IconCar as Car,
+  IconChevronRight as ChevronRight,
+  IconId as IdCard,
+  IconPlus as Plus,
+  IconUserCheck as UserCheck,
+  IconUserPlus as UserPlus,
+} from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";

@@ -1,4 +1,12 @@
-import { IdCard, Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-react";
+import {
+  IconId as IdCard,
+  IconMail as Mail,
+  IconPhone as Phone,
+  IconShield as Shield,
+  IconLock as Lock,
+  IconUserCheck as UserCheck,
+  IconPencil as Pencil,
+} from "@tabler/icons-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import { Avatar } from "@/components/shared";

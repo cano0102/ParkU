@@ -1,4 +1,10 @@
-import { BadgeCheck, Camera, Shield, Sparkles, X } from "lucide-react";
+import {
+  IconRosetteDiscountCheck as BadgeCheck,
+  IconCamera as Camera,
+  IconShield as Shield,
+  IconSparkles as Sparkles,
+  IconX as X,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import { nombreDeRol } from "@/services/core/roles";

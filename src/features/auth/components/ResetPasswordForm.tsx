@@ -1,5 +1,9 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft, LockKeyhole, ShieldCheck } from "lucide-react";
+import {
+  IconArrowLeft as ArrowLeft,
+  IconLockPassword as LockKeyhole,
+  IconShieldCheck as ShieldCheck,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { useResetPasswordForm } from "../hooks/useResetPasswordForm";
 import { ResetPasswordFields } from "./ResetPasswordFields";

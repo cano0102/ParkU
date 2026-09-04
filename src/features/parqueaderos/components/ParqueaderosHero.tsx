@@ -1,4 +1,4 @@
-import { Shield } from "lucide-react";
+import { IconShield as Shield } from "@tabler/icons-react";
 import { CELDA_CONFIG } from "../lib/helpers";
 
 interface ParqueaderosHeroProps {

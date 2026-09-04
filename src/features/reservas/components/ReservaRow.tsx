@@ -1,4 +1,11 @@
-import { AlertCircle, Calendar, Car, Eye, MapPin, Trash2 } from "lucide-react";
+import {
+  IconAlertCircle as AlertCircle,
+  IconCalendar as Calendar,
+  IconCar as Car,
+  IconEye as Eye,
+  IconMapPin as MapPin,
+  IconTrash as Trash2,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";

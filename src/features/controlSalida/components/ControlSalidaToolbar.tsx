@@ -1,4 +1,4 @@
-import { Search, X } from "lucide-react";
+import { IconSearch as Search, IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 

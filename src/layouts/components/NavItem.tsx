@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { IconChevronRight as ChevronRight } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { onDark } from "../lib/sidebarTheme";
 import type { MenuItem } from "../lib/menu";

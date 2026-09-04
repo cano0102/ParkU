@@ -1,6 +1,11 @@
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowLeft, Copy, Link2, Mail } from "lucide-react";
+import {
+  IconArrowLeft as ArrowLeft,
+  IconCopy as Copy,
+  IconLink as Link2,
+  IconMail as Mail,
+} from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 import { theme } from "@/styles/theme";
 

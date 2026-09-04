@@ -1,5 +1,12 @@
 import { memo, useMemo } from "react";
-import { CheckCircle2, Lock, Pencil, Shield, XCircle, X } from "lucide-react";
+import {
+  IconCircleCheck as CheckCircle2,
+  IconLock as Lock,
+  IconPencil as Pencil,
+  IconShield as Shield,
+  IconCircleX as XCircle,
+  IconX as X,
+} from "@tabler/icons-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
 import { countActive, PERMISO_LABELS } from "../lib/permisos";

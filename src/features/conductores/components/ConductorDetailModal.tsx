@@ -1,5 +1,15 @@
 import { memo } from "react";
-import { Pencil, Plus, X, Mail, Phone, IdCard, Building2, Accessibility, Car } from "lucide-react";
+import {
+  IconPencil as Pencil,
+  IconPlus as Plus,
+  IconX as X,
+  IconMail as Mail,
+  IconPhone as Phone,
+  IconId as IdCard,
+  IconBuilding as Building2,
+  IconWheelchair as Accessibility,
+  IconCar as Car,
+} from "@tabler/icons-react";
 import type { Conductor } from "@/services/api/conductores";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Vehiculo } from "@/services/api/vehiculos";

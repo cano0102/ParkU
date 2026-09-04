@@ -1,4 +1,10 @@
-import { ArrowLeftRight, Clock, LogIn, LogOut as LogOutIcon, ParkingCircle } from "lucide-react";
+import {
+  IconArrowsLeftRight as ArrowLeftRight,
+  IconClock as Clock,
+  IconLogin as LogIn,
+  IconLogout as LogOutIcon,
+  IconCircleLetterP as ParkingCircle,
+} from "@tabler/icons-react";
 
 interface ControlSalidaHeroProps {
   enParqueadero: number;

@@ -1,4 +1,4 @@
-import { ParkingCircle } from "lucide-react";
+import { IconCircleLetterP as ParkingCircle } from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
 import { CELDA_ESTADO_CONFIG, ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";

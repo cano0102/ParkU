@@ -1,4 +1,9 @@
-import { AlertCircle, Mail, Phone, User } from "lucide-react";
+import {
+  IconAlertCircle as AlertCircle,
+  IconMail as Mail,
+  IconPhone as Phone,
+  IconUser as User,
+} from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

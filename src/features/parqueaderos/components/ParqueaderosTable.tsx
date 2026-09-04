@@ -1,5 +1,11 @@
 import React, { memo, useState } from "react";
-import { Car, Eye, Pencil, MapPin, Trash2 } from "lucide-react";
+import {
+  IconCar as Car,
+  IconEye as Eye,
+  IconPencil as Pencil,
+  IconMapPin as MapPin,
+  IconTrash as Trash2,
+} from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";

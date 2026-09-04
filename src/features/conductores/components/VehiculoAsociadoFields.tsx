@@ -1,4 +1,4 @@
-import { Car } from "lucide-react";
+import { IconCar as Car } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS, TIPOS_VEHICULO, getTipoVehiculoStyle, inputStyle } from "../lib/helpers";

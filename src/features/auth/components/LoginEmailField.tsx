@@ -1,5 +1,5 @@
 import type { Ref } from "react";
-import { AlertCircle, Mail } from "lucide-react";
+import { IconAlertCircle as AlertCircle, IconMail as Mail } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 
 const COLORS = theme;

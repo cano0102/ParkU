@@ -1,4 +1,10 @@
-import { Shield, Layers3, Sparkles, ShieldCheck, type LucideIcon } from "lucide-react";
+import {
+  IconShield as Shield,
+  IconStack3 as Layers3,
+  IconSparkles as Sparkles,
+  IconShieldCheck as ShieldCheck,
+  type TablerIcon,
+} from "@tabler/icons-react";
 
 export const PERMISOS = {
   administracion: { usuarios: "Usuarios", roles: "Roles", dashboard: "Dashboard" },
@@ -9,7 +15,7 @@ export const PERMISOS = {
 
 export type PermisosKeys = keyof typeof PERMISOS;
 
-export const GRUPO_ICON_COMPONENTS: Record<PermisosKeys, LucideIcon> = {
+export const GRUPO_ICON_COMPONENTS: Record<PermisosKeys, TablerIcon> = {
   administracion: Shield,
   operaciones: Layers3,
   parqueadero: Sparkles,

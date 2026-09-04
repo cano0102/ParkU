@@ -1,4 +1,10 @@
-import { ShieldCheck, Users, UserCheck, Car as CarIcon, Bike as BikeIcon } from "lucide-react";
+import {
+  IconShieldCheck as ShieldCheck,
+  IconUsers as Users,
+  IconUserCheck as UserCheck,
+  IconCar as CarIcon,
+  IconBike as BikeIcon,
+} from "@tabler/icons-react";
 import { Modal, LoadingState, ConfirmDialog } from "@/components/shared";
 import { StatsPanel } from "@/components/data";
 import { ConductorFormModal } from "./components/ConductorFormModal";

@@ -1,4 +1,4 @@
-import { Download, Search, X } from "lucide-react";
+import { IconDownload as Download, IconSearch as Search, IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { EstadoReserva } from "../lib/constants";
 

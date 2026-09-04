@@ -1,4 +1,9 @@
-import { Eye as EyeIcon, EyeOff, Info, KeyRound } from "lucide-react";
+import {
+  IconEye as EyeIcon,
+  IconEyeOff as EyeOff,
+  IconInfoCircle as Info,
+  IconPassword as KeyRound,
+} from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import {
   COLORS, PASSWORD_MAX, PASSWORD_REQUISITOS, PASSWORD_AYUDA,

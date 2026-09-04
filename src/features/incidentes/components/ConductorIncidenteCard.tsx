@@ -1,4 +1,9 @@
-import { Clock, Edit, MapPin, XCircle } from "lucide-react";
+import {
+  IconClock as Clock,
+  IconEdit as Edit,
+  IconMapPin as MapPin,
+  IconCircleX as XCircle,
+} from "@tabler/icons-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
