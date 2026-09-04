@@ -232,6 +232,24 @@ describe('Usuarios', () => {
     });
   }, 15000);
 
+  it('avisa en el formulario si la contraseña no cumple los requisitos de la API', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByText('Nuevo Usuario'));
+    await screen.findByRole('heading', { level: 2, name: 'Nuevo Usuario' });
+
+    // 8 caracteres pero sin mayúscula: el backend la rechaza, así que el formulario debe
+    // avisarlo antes de enviar en vez de dejar que falle la petición.
+    await user.type(screen.getByPlaceholderText('••••••••'), 'clave123');
+    await user.tab();
+
+    expect(await screen.findByText('La contraseña debe tener al menos una mayúscula')).toBeInTheDocument();
+  }, 15000);
+
   it('no deja crear el usuario si la confirmación de contraseña no coincide', async () => {
     const user = userEvent.setup();
     renderUsuarios();

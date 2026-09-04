@@ -6,7 +6,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { validarNumeroDocumento } from "@/utils/validation";
 import {
-  FormState, NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono,
+  FormState, NOMBRE_MIN, NOMBRE_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono, validarPassword,
 } from "../lib/helpers";
 
 interface UseUsuarioFormArgs {
@@ -124,11 +124,15 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       nextErrors.tipoUsuarioId = "Selecciona un tipo de usuario";
     }
 
-    // Contraseña: obligatoria al crear; si se escribe (crear o editar), validar longitud
+    // Contraseña: obligatoria al crear. Se validan aquí los MISMOS requisitos que exige la
+    // API (longitud + mayúscula + minúscula + número, ver validarPassword en
+    // @/utils/validation): antes solo se comprobaba la longitud, así que el formulario daba
+    // por buena una contraseña que el backend rechazaba al enviar y la cuenta no se creaba.
     if (!isEdit && !f.password) {
       nextErrors.password = "La contraseña es obligatoria";
-    } else if (f.password && (f.password.length < PASSWORD_MIN || f.password.length > PASSWORD_MAX)) {
-      nextErrors.password = `La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`;
+    } else if (f.password) {
+      const errorPassword = validarPassword(f.password);
+      if (errorPassword) nextErrors.password = errorPassword;
     }
 
     // Confirmación: solo aplica al crear (al editar no hay campo de contraseña, ver

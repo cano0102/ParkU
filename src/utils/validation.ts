@@ -48,6 +48,27 @@ export const NOMBRE_MIN = 3;
 export const NOMBRE_MAX = 100;
 export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 64;
+/**
+ * Requisitos REALES de la API para una contraseña, comprobados contra
+ * `POST /api/auth/registro`, que responde 400 con estos mismos mensajes:
+ * mínimo 8 caracteres, y al menos una mayúscula, una minúscula y un número.
+ *
+ * El front solo validaba la longitud, así que una contraseña como "clave123"
+ * pasaba el formulario y el backend la rechazaba al enviar — el usuario veía un
+ * error de validación y la cuenta no llegaba a crearse. Devuelve el mensaje a
+ * mostrar, o `null` si la contraseña es válida.
+ */
+export const PASSWORD_REQUISITOS = `mín. ${PASSWORD_MIN} caracteres, con mayúscula, minúscula y número`;
+
+export const validarPassword = (valor: string): string | null => {
+  if (valor.length < PASSWORD_MIN) return `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`;
+  if (valor.length > PASSWORD_MAX) return `La contraseña no puede superar ${PASSWORD_MAX} caracteres`;
+  if (!/[A-Z]/.test(valor)) return "La contraseña debe tener al menos una mayúscula";
+  if (!/[a-z]/.test(valor)) return "La contraseña debe tener al menos una minúscula";
+  if (!/[0-9]/.test(valor)) return "La contraseña debe tener al menos un número";
+  return null;
+};
+
 export const TELEFONO_REGEX = /^[0-9()+\-\s]{7,15}$/;
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -1,7 +1,7 @@
 import { Eye as EyeIcon, EyeOff, Info, KeyRound } from "lucide-react";
 import { FormField } from "@/components/shared";
 import {
-  COLORS, PASSWORD_MAX, PASSWORD_MIN,
+  COLORS, PASSWORD_MAX, PASSWORD_REQUISITOS,
   inputErrorStyle, inputIconStyle, inputStyle,
 } from "../lib/helpers";
 
@@ -54,7 +54,7 @@ export function CredencialesAccesoFields({
             </p>
           </div>
         ) : (
-          <FormField label="Contraseña" hint={`mín. ${PASSWORD_MIN} caracteres`} error={passwordError}>
+          <FormField label="Contraseña" hint={PASSWORD_REQUISITOS} error={passwordError}>
             <div style={{ position: "relative" }}>
               <KeyRound size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
               <input

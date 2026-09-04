@@ -3,8 +3,7 @@ import {
   validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,
   validarPlacaPorTipo, tipoVehiculoDesdePlaca, esPlacaOficial,
   NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX,
-  TELEFONO_REGEX, validarTelefono, EMAIL_REGEX,
-} from './validation';
+  TELEFONO_REGEX, validarTelefono, EMAIL_REGEX, validarPassword } from './validation';
 
 describe('utils/validation — placas', () => {
   it('valida placa de carro (3 letras + 3 números)', () => {
@@ -115,4 +114,18 @@ describe('utils/validation — campos de usuario', () => {
       expect(EMAIL_REGEX.test('admin')).toBe(false);
     });
   });
+
+  describe('validarPassword (mismos requisitos que la API)', () => {
+    it('acepta una contraseña con longitud, mayúscula, minúscula y número', () => {
+      expect(validarPassword('Pass1234')).toBeNull();
+    });
+
+    it('rechaza por longitud, por falta de mayúscula, de minúscula o de número', () => {
+      expect(validarPassword('Ab1')).toBe('La contraseña debe tener al menos 8 caracteres');
+      expect(validarPassword('clave123')).toBe('La contraseña debe tener al menos una mayúscula');
+      expect(validarPassword('CLAVE123')).toBe('La contraseña debe tener al menos una minúscula');
+      expect(validarPassword('ClaveSinNumero')).toBe('La contraseña debe tener al menos un número');
+    });
+  });
+
 });
