@@ -37,6 +37,20 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
       isValid={f.isValid}
       submitLabel={isEdit ? "Guardar cambios" : "Crear Usuario"}
     >
+      {/* El documento va primero: es el dato con el que se identifica a la persona
+          (y el que el listado y las tarjetas muestran). */}
+      <DocumentoIdentidadFields
+        tipoDocumento={f.form.tipoDocumento}
+        numeroDocumento={f.form.numeroDocumento}
+        tipoUsuarioId={f.form.tipoUsuarioId}
+        numeroDocumentoError={f.err("numeroDocumento")}
+        tipoUsuarioIdError={f.err("tipoUsuarioId")}
+        onTipoDocumentoChange={(v) => f.set("tipoDocumento", v)}
+        onNumeroDocumentoChange={(v) => f.set("numeroDocumento", v)}
+        onNumeroDocumentoBlur={() => f.markTouched("numeroDocumento")}
+        onTipoUsuarioIdChange={(v) => { f.set("tipoUsuarioId", v); f.markTouched("tipoUsuarioId"); }}
+      />
+
       <DatosPersonalesFields
         nombre={f.form.nombre}
         correo={f.form.correo}
@@ -55,32 +69,23 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
       <CredencialesAccesoFields
         isEdit={isEdit}
         password={f.form.password}
+        confirmPassword={f.form.confirmPassword}
         showPass={f.showPass}
         rol={f.form.rol}
         estado={f.form.estado}
         passwordError={f.err("password")}
+        confirmPasswordError={f.err("confirmPassword")}
         rolError={f.err("rol")}
         rolesDisponibles={f.rolesDisponibles}
         onPasswordChange={(v) => f.set("password", v)}
         onPasswordBlur={() => f.markTouched("password")}
+        onConfirmPasswordChange={(v) => f.set("confirmPassword", v)}
+        onConfirmPasswordBlur={() => f.markTouched("confirmPassword")}
         onToggleShowPass={() => f.setShowPass((v) => !v)}
         onRolChange={(v) => { f.set("rol", v); f.markTouched("rol"); }}
         onEstadoChange={(v) => f.set("estado", v)}
       />
 
-      {f.esRolConductor && (
-        <DocumentoIdentidadFields
-          tipoDocumento={f.form.tipoDocumento}
-          numeroDocumento={f.form.numeroDocumento}
-          tipoUsuarioId={f.form.tipoUsuarioId}
-          numeroDocumentoError={f.err("numeroDocumento")}
-          tipoUsuarioIdError={f.err("tipoUsuarioId")}
-          onTipoDocumentoChange={(v) => f.set("tipoDocumento", v)}
-          onNumeroDocumentoChange={(v) => f.set("numeroDocumento", v)}
-          onNumeroDocumentoBlur={() => f.markTouched("numeroDocumento")}
-          onTipoUsuarioIdChange={(v) => { f.set("tipoUsuarioId", v); f.markTouched("tipoUsuarioId"); }}
-        />
-      )}
     </EntityFormModal>
   );
 });

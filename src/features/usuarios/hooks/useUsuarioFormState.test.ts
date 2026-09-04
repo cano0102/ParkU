@@ -18,7 +18,7 @@ const baseUsuario = (over: Partial<Usuario>): Usuario => ({
 });
 
 const formConductor = {
-  correo: 'nuevo@sena.edu.co', password: 'Pass1234', nombre: 'Nuevo Conductor', numero: '3101234567',
+  correo: 'nuevo@sena.edu.co', password: 'Pass1234', confirmPassword: 'Pass1234', nombre: 'Nuevo Conductor', numero: '3101234567',
   rol: String(ROLES.CONDUCTOR), estado: 'activo' as const,
   tipoDocumento: 'CC', numeroDocumento: '1001234567', tipoUsuarioId: '1',
 };
@@ -47,7 +47,7 @@ describe('useUsuarioFormState — documento de la cuenta', () => {
     });
   });
 
-  it('no crea ningún conductor cuando la cuenta es de otro rol', async () => {
+  it('no guarda documento cuando el campo llega vacío', async () => {
     const addUsuario = vi.fn().mockResolvedValue(baseUsuario({ id: '78' }));
     const guardarDocumentoDeUsuario = vi.fn();
     const { result } = renderHook(() =>

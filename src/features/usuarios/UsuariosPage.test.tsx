@@ -170,19 +170,17 @@ describe('Usuarios', () => {
     const nombre = `Usuario Prueba Nuevo`;
     const correo = `usuario.prueba.${suffix}@sena.edu.co`;
 
+    // El documento es obligatorio para toda cuenta y se guarda en el conductor vinculado
+    // (ver useUsuariosData.guardarDocumentoDeUsuario).
+    const documento = String(suffix).slice(-6);
+    await user.type(screen.getByLabelText('Número de documento'), documento);
+    await user.selectOptions(screen.getByLabelText('Tipo de usuario'), 'Aprendiz');
+
     await user.type(screen.getByPlaceholderText('ej. María García López'), nombre);
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), correo);
     await user.type(screen.getByPlaceholderText('••••••••'), 'Pass1234');
-    // Mientras no se elige rol, el único combobox del formulario es el selector de rol.
-    await user.selectOptions(screen.getByRole('combobox'), 'Comunidad SENA');
-
-    // Al elegir Comunidad SENA aparece la sección de documento: para esas cuentas el
-    // documento es obligatorio y se guarda en el conductor vinculado (ver
-    // useUsuariosData.guardarDocumentoDeUsuario). Los otros roles no la ven.
-    const documento = String(suffix).slice(-6);
-    await user.type(screen.getByPlaceholderText('1001234567'), documento);
-    const combos = screen.getAllByRole('combobox');
-    await user.selectOptions(combos[combos.length - 1], 'Aprendiz');
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Pass1234');
+    await user.selectOptions(screen.getByLabelText('Rol del sistema'), 'Comunidad SENA');
 
     await user.click(screen.getByRole('button', { name: 'Crear Usuario' }));
 
@@ -200,6 +198,45 @@ describe('Usuarios', () => {
     await waitFor(() => {
       expect(screen.getAllByText(`CC ${documento}`).length).toBeGreaterThan(0);
     });
+  }, 15000);
+
+  it('no deja crear el usuario si la confirmación de contraseña no coincide', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByText('Nuevo Usuario'));
+    await screen.findByRole('heading', { level: 2, name: 'Nuevo Usuario' });
+
+    await user.type(screen.getByPlaceholderText('••••••••'), 'Pass1234');
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Pass9999');
+    await user.tab();
+
+    expect(await screen.findByText('Las contraseñas no coinciden')).toBeInTheDocument();
+
+    // Y el envío no prospera: el modal sigue abierto.
+    await user.click(screen.getByRole('button', { name: 'Crear Usuario' }));
+    expect(screen.getByRole('heading', { level: 2, name: 'Nuevo Usuario' })).toBeInTheDocument();
+  }, 15000);
+
+  it('exige el número de documento sea cual sea el rol', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByText('Nuevo Usuario'));
+    await screen.findByRole('heading', { level: 2, name: 'Nuevo Usuario' });
+
+    // El documento se pide de entrada, antes que los datos personales, y para cualquier rol.
+    await user.selectOptions(screen.getByLabelText('Rol del sistema'), 'Vigilante');
+    await user.click(screen.getByLabelText('Número de documento'));
+    await user.tab();
+
+    expect(await screen.findByText('El número de documento es obligatorio')).toBeInTheDocument();
   }, 15000);
 
   it('abre el modal de edición con los datos del usuario precargados', async () => {

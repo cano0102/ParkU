@@ -109,22 +109,19 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       nextErrors.rol = "Solo el súper administrador puede asignar el rol Administrador";
     }
 
-    // Documento: solo se pide a las cuentas de Comunidad SENA (rol Conductor). El documento
-    // no es una columna de `usuario`, se persiste en el `conductor` vinculado, y ese modelo
-    // exige además el tipo de usuario (FK). Para Admin/Vigilante no se pide nada de esto: no
-    // se les crea un registro de conductor.
-    if (f.rol === String(ROLES.CONDUCTOR)) {
-      const numeroDocumento = f.numeroDocumento.trim();
-      if (!numeroDocumento) {
-        nextErrors.numeroDocumento = "El número de documento es obligatorio";
-      } else if (!validarNumeroDocumento(numeroDocumento)) {
-        nextErrors.numeroDocumento = "El número de documento debe tener entre 6 y 10 dígitos.";
-      } else if (documentosOcupados.has(`${f.tipoDocumento}|${numeroDocumento}`)) {
-        nextErrors.numeroDocumento = "Ya existe un conductor registrado con este tipo y número de documento.";
-      }
-      if (!f.tipoUsuarioId) {
-        nextErrors.tipoUsuarioId = "Selecciona un tipo de usuario";
-      }
+    // Documento: obligatorio para toda cuenta, sin importar el rol. No es una columna de
+    // `usuario`: se persiste en el `conductor` vinculado, y ese modelo exige además el tipo
+    // de usuario (FK a /catalogos/tipos-usuario), que por eso también se pide aquí.
+    const numeroDocumento = f.numeroDocumento.trim();
+    if (!numeroDocumento) {
+      nextErrors.numeroDocumento = "El número de documento es obligatorio";
+    } else if (!validarNumeroDocumento(numeroDocumento)) {
+      nextErrors.numeroDocumento = "El número de documento debe tener entre 6 y 10 dígitos.";
+    } else if (documentosOcupados.has(`${f.tipoDocumento}|${numeroDocumento}`)) {
+      nextErrors.numeroDocumento = "Ya existe otra persona registrada con este tipo y número de documento.";
+    }
+    if (!f.tipoUsuarioId) {
+      nextErrors.tipoUsuarioId = "Selecciona un tipo de usuario";
     }
 
     // Contraseña: obligatoria al crear; si se escribe (crear o editar), validar longitud
@@ -132,6 +129,16 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
       nextErrors.password = "La contraseña es obligatoria";
     } else if (f.password && (f.password.length < PASSWORD_MIN || f.password.length > PASSWORD_MAX)) {
       nextErrors.password = `La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`;
+    }
+
+    // Confirmación: solo aplica al crear (al editar no hay campo de contraseña, ver
+    // CredencialesAccesoFields: la API no permite que un Admin cambie la de otra persona).
+    if (!isEdit) {
+      if (!f.confirmPassword) {
+        nextErrors.confirmPassword = "Confirma la contraseña";
+      } else if (f.confirmPassword !== f.password) {
+        nextErrors.confirmPassword = "Las contraseñas no coinciden";
+      }
     }
 
     return nextErrors;
@@ -152,7 +159,10 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
   const handleSubmit = useCallback(() => {
     const nextErrors = validate(form);
     setErrors(nextErrors);
-    setTouched({ nombre: true, correo: true, numero: true, rol: true, password: true, numeroDocumento: true, tipoUsuarioId: true });
+    setTouched({
+      nombre: true, correo: true, numero: true, rol: true,
+      password: true, confirmPassword: true, numeroDocumento: true, tipoUsuarioId: true,
+    });
     if (Object.keys(nextErrors).length > 0) {
       toast.error("Revisa los campos marcados en rojo");
       return;
@@ -166,8 +176,6 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
   return {
     form, set, showPass, setShowPass,
     rolesDisponibles, markTouched, err, handleSubmit,
-    /** El rol elegido es Comunidad SENA: la sección de documento solo aplica en ese caso. */
-    esRolConductor: form.rol === String(ROLES.CONDUCTOR),
     isValid: Object.keys(errors).length === 0,
   };
 }

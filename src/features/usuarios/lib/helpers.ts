@@ -50,15 +50,17 @@ export const inputIconStyle: React.CSSProperties = {
 export interface FormState {
   correo: string;
   password: string;
+  /** Repetición de la contraseña al crear; debe coincidir con `password`. No viaja a la API. */
+  confirmPassword: string;
   nombre: string;
   /** Teléfono de contacto de la cuenta (opcional). */
   numero: string;
   /** Id del Rol (string, p. ej. "1") — se convierte a rol_id numérico al guardar. */
   rol: string;
   estado: "activo" | "inactivo";
-  /** Documento de identidad. Solo se pide (y se guarda) cuando el rol es Comunidad SENA:
-   *  la tabla `usuario` no tiene columnas de documento, el dato vive en el `conductor`
-   *  vinculado por `usuario_id` — ver useUsuariosData.guardarDocumentoDeUsuario. */
+  /** Documento de identidad, obligatorio para toda cuenta. La tabla `usuario` no tiene
+   *  columnas de documento: el dato se guarda en el `conductor` vinculado por `usuario_id`
+   *  — ver useUsuariosData.guardarDocumentoDeUsuario. */
   tipoDocumento: string;
   numeroDocumento: string;
   /** FK obligatoria de `conductor` (Aprendiz/Instructor/…), del catálogo /catalogos/tipos-usuario. */
@@ -68,6 +70,7 @@ export interface FormState {
 export const emptyForm = (): FormState => ({
   correo: "",
   password: "",
+  confirmPassword: "",
   nombre: "",
   numero: "",
   rol: "",

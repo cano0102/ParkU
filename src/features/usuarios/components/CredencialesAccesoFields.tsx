@@ -10,15 +10,19 @@ const iconColor = COLORS.textLight;
 interface CredencialesAccesoFieldsProps {
   isEdit: boolean;
   password: string;
+  confirmPassword: string;
   showPass: boolean;
   rol: string;
   estado: "activo" | "inactivo";
   passwordError?: string;
+  confirmPasswordError?: string;
   rolError?: string;
   /** Roles reales (`/api/roles`) — se selecciona por `id`, no por nombre. */
   rolesDisponibles: { id: string; nombre: string }[];
   onPasswordChange: (value: string) => void;
   onPasswordBlur: () => void;
+  onConfirmPasswordChange: (value: string) => void;
+  onConfirmPasswordBlur: () => void;
   onToggleShowPass: () => void;
   onRolChange: (value: string) => void;
   onEstadoChange: (value: "activo" | "inactivo") => void;
@@ -26,8 +30,8 @@ interface CredencialesAccesoFieldsProps {
 
 /** Sección "Credenciales y acceso": contraseña, rol y (al editar) estado de la cuenta. */
 export function CredencialesAccesoFields({
-  isEdit, password, showPass, rol, estado, passwordError, rolError, rolesDisponibles,
-  onPasswordChange, onPasswordBlur, onToggleShowPass, onRolChange, onEstadoChange,
+  isEdit, password, confirmPassword, showPass, rol, estado, passwordError, confirmPasswordError, rolError, rolesDisponibles,
+  onPasswordChange, onPasswordBlur, onConfirmPasswordChange, onConfirmPasswordBlur, onToggleShowPass, onRolChange, onEstadoChange,
 }: CredencialesAccesoFieldsProps) {
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
@@ -77,9 +81,28 @@ export function CredencialesAccesoFields({
           </FormField>
         )}
 
+        {!isEdit && (
+          <FormField label="Confirmar contraseña" error={confirmPasswordError}>
+            <div style={{ position: "relative" }}>
+              <KeyRound size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
+              <input
+                type={showPass ? "text" : "password"}
+                placeholder="Repite la contraseña"
+                aria-label="Confirmar contraseña"
+                value={confirmPassword}
+                maxLength={PASSWORD_MAX}
+                onChange={(e) => onConfirmPasswordChange(e.target.value)}
+                onBlur={onConfirmPasswordBlur}
+                style={confirmPasswordError ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
+              />
+            </div>
+          </FormField>
+        )}
+
         <FormField label="Rol del sistema" error={rolError}>
           <select
             value={rol}
+            aria-label="Rol del sistema"
             onChange={(e) => onRolChange(e.target.value)}
             style={rolError ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" } : { ...inputStyle, appearance: "none", cursor: "pointer" }}
           >

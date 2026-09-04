@@ -34,6 +34,7 @@ export function useUsuarioFormState(
       // "vacío = sin cambios", así que no debe pre-cargarse la
       // contraseña real (ver handleSave, que omite este campo si llega vacío).
       password: "",
+      confirmPassword: "",
       nombre: u.nombre,
       numero: u.numero,
       rol: String(u.rol),
@@ -102,11 +103,11 @@ export function useUsuarioFormState(
           usuarioId = creado.id;
         }
 
-        // El documento solo existe para cuentas de Comunidad SENA y se guarda en el
-        // `conductor` vinculado (la tabla `usuario` no tiene esas columnas). Se hace
-        // DESPUÉS de tener el id de la cuenta, y antes del toast de éxito: si falla,
-        // el error del manejador central es lo único que debe verse.
-        if (usuarioId && payload.rol === ROLES.CONDUCTOR && form.numeroDocumento.trim()) {
+        // El documento es obligatorio para toda cuenta y se guarda en el `conductor`
+        // vinculado (la tabla `usuario` no tiene esas columnas). Se hace DESPUÉS de tener
+        // el id de la cuenta, y antes del toast de éxito: si falla, el error del manejador
+        // central es lo único que debe verse.
+        if (usuarioId && form.numeroDocumento.trim()) {
           await data.guardarDocumentoDeUsuario(usuarioId, {
             tipoDocumento: form.tipoDocumento,
             numeroDocumento: form.numeroDocumento.trim(),

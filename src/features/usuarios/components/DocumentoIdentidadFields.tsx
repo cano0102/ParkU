@@ -37,13 +37,14 @@ export function DocumentoIdentidadFields({
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
       <div style={{ padding: "10px 14px", background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
         <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: COLORS.textLight, textTransform: "uppercase" }}>
-          Documento de identidad
+          Documento de identidad *
         </p>
       </div>
       <div className="uf-modal-grid" style={{ padding: "1rem 1.2rem", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <FormField label="Tipo de documento">
           <select
             value={tipoDocumento}
+            aria-label="Tipo de documento"
             onChange={(e) => onTipoDocumentoChange(e.target.value)}
             style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
           >
@@ -59,6 +60,7 @@ export function DocumentoIdentidadFields({
             <input
               inputMode="numeric"
               placeholder="1001234567"
+              aria-label="Número de documento"
               value={numeroDocumento}
               /* Solo dígitos y máximo 10: el mismo formato que valida
                  `validarNumeroDocumento` (6-10 dígitos) en @/utils/validation. */
@@ -73,6 +75,7 @@ export function DocumentoIdentidadFields({
           <FormField label="Tipo de usuario" error={tipoUsuarioIdError}>
             <select
               value={tipoUsuarioId}
+              aria-label="Tipo de usuario"
               onChange={(e) => onTipoUsuarioIdChange(e.target.value)}
               style={tipoUsuarioIdError ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" } : { ...inputStyle, appearance: "none", cursor: "pointer" }}
             >
