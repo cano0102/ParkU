@@ -24,6 +24,9 @@ export interface Usuario {
   correo: string;
   /** Solo se usa al crear; vacío en las respuestas y al editar. */
   password: string;
+  /** Repetición de la contraseña. La API la EXIGE al crear (`confirmar_contrasena`):
+   *  sin ella responde 400 "Debes confirmar la contraseña". Solo se usa al crear. */
+  confirmPassword?: string;
   nombre: string;
   /** Teléfono de contacto de la cuenta (opcional). */
   numero: string;
@@ -79,6 +82,10 @@ export async function create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
     body: {
       correo: data.correo.trim().toLowerCase(),
       contrasena: data.password,
+      // Requerido por la API: sin este campo responde 400 "Debes confirmar la contraseña
+      // (envía confirmar_contrasena)" y la cuenta no se crea. Se manda la confirmación que
+      // escribió el usuario; si quien llama no la trae, se repite la contraseña.
+      confirmar_contrasena: data.confirmPassword ?? data.password,
       nombre: data.nombre,
       numero_telefonico: data.numero.trim() || undefined,
       rol_id: data.rol,

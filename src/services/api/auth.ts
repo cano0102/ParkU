@@ -91,6 +91,11 @@ export async function register(data: RegisterInput): Promise<AuthUser> {
     body: {
       correo: data.correo.trim().toLowerCase(),
       contrasena: data.password,
+      // Igual que en `/usuarios`: la API exige repetir la contraseña o responde 400
+      // "Debes confirmar la contraseña (envía confirmar_contrasena)" — sin esto el
+      // registro público no funcionaba para nadie. El formulario ya valida que la
+      // confirmación coincida antes de llegar aquí (ver useRegisterForm).
+      confirmar_contrasena: data.password,
       nombre: data.nombre.trim(),
       numero: data.numero?.trim() || undefined,
     },

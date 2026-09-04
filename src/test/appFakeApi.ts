@@ -176,6 +176,10 @@ function createAuthBackend() {
     }
 
     if (method === 'POST' && path === '/auth/registro') {
+      // La API real exige repetir la contraseña (400 "Debes confirmar la contraseña").
+      if (!body.confirmar_contrasena || body.confirmar_contrasena !== body.contrasena) {
+        throw new Error('Debes confirmar la contraseña (envía confirmar_contrasena)');
+      }
       if (findAccount(body.correo)) {
         throw new Error('Ya existe una cuenta registrada con este correo.');
       }

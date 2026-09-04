@@ -57,6 +57,28 @@ describe('services/usuarios', () => {
     expect(updateCall).toBeDefined();
     expect((updateCall?.[1] as any).body.rol).toBeUndefined();
   });
+
+  it('envía confirmar_contrasena al crear (la API lo exige: 400 "Debes confirmar la contraseña")', async () => {
+    await usuarios.create({
+      correo: 'confirma@sena.edu.co', password: 'Pass1234', confirmPassword: 'Pass1234',
+      nombre: 'Con Confirmación', numero: '', rol: 3, estado: 'activo',
+    });
+    const call = apiFetchMock.mock.calls.find(([path, opts]) => path === '/usuarios' && (opts as any)?.method === 'POST');
+    const body = (call?.[1] as any).body;
+    expect(body.contrasena).toBe('Pass1234');
+    expect(body.confirmar_contrasena).toBe('Pass1234');
+  });
+
+  it('repite la contraseña como confirmación si quien llama no la trae', async () => {
+    await usuarios.create({
+      correo: 'sin-confirmacion@sena.edu.co', password: 'Pass1234',
+      nombre: 'Sin Confirmación', numero: '', rol: 3, estado: 'activo',
+    });
+    const call = apiFetchMock.mock.calls
+      .filter(([path, opts]) => path === '/usuarios' && (opts as any)?.method === 'POST')
+      .pop();
+    expect((call?.[1] as any).body.confirmar_contrasena).toBe('Pass1234');
+  });
 });
 
 describeCrudContract<Usuario>(
