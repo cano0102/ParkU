@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
 import { useRoles, useCreateRol, useUpdateRol, useRemoveRol, useGuardarPermisosDeRol } from "./useRoles";
 import type { Rol } from "@/services/api/roles";
 import { ROLES_PROTEGIDOS, emptyForm, type FormState } from "../lib/helpers";
@@ -7,6 +8,8 @@ import { initialPermisos } from "../lib/permisos";
 
 /** Estado y handlers de la página de Roles: filtrado, modales y mutaciones. */
 export function useRolesPage() {
+  // Para releer los permisos de la sesión en cuanto se guarden (ver handleSave).
+  const { refrescarPermisos } = useAuth();
   const { data: roles = [], isLoading } = useRoles();
   const createRolMutation = useCreateRol();
   const updateRolMutation = useUpdateRol();
@@ -139,6 +142,11 @@ export function useRolesPage() {
         // lo que hay en el backend y solo asigna o quita las diferencias.
         await guardarPermisosMutation.mutateAsync({ rolId, permisoIds });
 
+        // Si los permisos que acaban de cambiar son los del rol de quien está usando la
+        // aplicación, su menú y sus guardas de ruta tienen que enterarse ya: sin esto había
+        // que cerrar sesión y volver a entrar para ver la pestaña recién concedida.
+        await refrescarPermisos();
+
         toast.success(editingRol ? "Rol actualizado correctamente" : "Rol creado correctamente");
         setDialogOpen(false);
       } catch (error) {
@@ -147,7 +155,7 @@ export function useRolesPage() {
         console.error("Error saving role:", error);
       }
     },
-    [editingRol, addRol, updateRol, guardarPermisosMutation]
+    [editingRol, addRol, updateRol, guardarPermisosMutation, refrescarPermisos]
   );
 
   return {

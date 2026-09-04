@@ -1,20 +1,29 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
+import { AuthProvider } from '@/context/AuthContext';
 import { createAppBackends } from '@/test/appFakeApi';
 import { Roles } from './RolesPage';
 import { createTestQueryClient, withQueryClient } from '@/test/queryWrapper';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
+/** La pantalla vive dentro de AuthProvider en la aplicación real: al guardar los permisos
+ *  le pide releer los de la sesión (refrescarPermisos), para que un permiso recién concedido
+ *  se refleje sin cerrar sesión. */
 function renderRoles() {
   const client = createTestQueryClient();
   const Wrapper = withQueryClient(client);
   return render(
     <Wrapper>
-      <Roles />
+      <MemoryRouter>
+        <AuthProvider>
+          <Roles />
+        </AuthProvider>
+      </MemoryRouter>
     </Wrapper>
   );
 }

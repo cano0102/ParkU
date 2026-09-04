@@ -8,7 +8,7 @@ import * as authService from '../services/api/auth';
 import { getToken, clearTokens } from '../services/core/tokenStorage';
 import { leerFoto, guardarFoto } from '../services/core/fotosPerfil';
 import { AUTH_EXPIRED_EVENT } from '../services/core/http';
-import { ROLES, permisosDeRol, type RolId, type PermisosRol } from '../services/core/roles';
+import { ROLES, permisosDeVistas, type RolId, type PermisosRol } from '../services/core/roles';
 
 interface User {
   id: string;
@@ -17,6 +17,9 @@ interface User {
   numero: string;
   rol: RolId;
   foto?: string;
+  /** Permisos del rol tal como los nombra la API ("reservas.gestionar"…). De ellos salen
+   *  las pantallas visibles -- ver permisosDeVistas en services/core/roles.ts. */
+  permisos?: string[];
 }
 
 interface AuthContextType {
@@ -64,11 +67,16 @@ interface AuthContextType {
 
   isAuthenticated: boolean;
 
-  // Permisos del rol del usuario autenticado, según la matriz estática que
-  // refleja los `verificarRol([...])` reales de la API (ver services/core/roles.ts).
+  // Pantallas que puede abrir el usuario autenticado: su rol más los permisos que la API
+  // le devuelve (ver permisosDeVistas en services/core/roles.ts).
   permisos: PermisosRol | null;
 
   hasPermission: (key: keyof PermisosRol) => boolean;
+
+  /** Vuelve a preguntar a la API por el rol y los permisos de esta sesión. La pantalla de
+   *  Roles la llama tras guardar, para que un permiso recién concedido se vea sin tener
+   *  que cerrar sesión. */
+  refrescarPermisos: () => Promise<void>;
 }
 
 const AuthContext =
@@ -150,7 +158,9 @@ export function AuthProvider({
       // en cada recarga de página.
       setUser((actual) => {
         if (!actual) return actual;
-        const next = { ...actual, rol: usuarioReal.rol };
+        // Los permisos también se resincronizan: si a este rol le concedieron (o quitaron)
+        // uno mientras la sesión estaba abierta, la siguiente carga ya lo refleja.
+        const next = { ...actual, rol: usuarioReal.rol, permisos: usuarioReal.permisos ?? [] };
         try {
           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
         } catch {
@@ -241,10 +251,31 @@ export function AuthProvider({
     return authService.resetPasswordWithToken(token, newPassword);
   };
 
-  // PERMISOS — matriz estática por rol_id (ver services/core/roles.ts).
-  const permisos = user ? permisosDeRol(user.rol) : null;
+  // PERMISOS — rol + permisos reales de la API (ver permisosDeVistas).
+  const permisos = user ? permisosDeVistas(user.rol, user.permisos ?? []) : null;
 
   const hasPermission = (key: keyof PermisosRol): boolean => !!permisos?.[key];
+
+  /**
+   * Relee rol y permisos de la sesión desde la API. Se usa justo después de guardar los
+   * permisos de un rol: si es el rol de quien está usando la aplicación (o el suyo propio),
+   * el menú y los guardas de ruta se actualizan al momento, sin cerrar sesión.
+   */
+  const refrescarPermisos = async (): Promise<void> => {
+    if (!getToken()) return;
+    const usuarioReal = await authService.verificarToken();
+    if (!usuarioReal) return;
+    setUser((actual) => {
+      if (!actual) return actual;
+      const next = { ...actual, rol: usuarioReal.rol, permisos: usuarioReal.permisos ?? [] };
+      try {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        // localStorage no disponible — la sesión sigue funcionando en memoria.
+      }
+      return next;
+    });
+  };
 
   return (
     <AuthContext.Provider
@@ -260,7 +291,8 @@ export function AuthProvider({
         resetPasswordWithToken,
         isAuthenticated: !!user,
         permisos,
-        hasPermission
+        hasPermission,
+        refrescarPermisos
       }}
     >
       {children}

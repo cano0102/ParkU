@@ -5,6 +5,7 @@ import { AvatarUploader } from "@/components/shared";
 import { DatosPersonalesFields } from "./DatosPersonalesFields";
 import { CredencialesAccesoFields } from "./CredencialesAccesoFields";
 import { DocumentoIdentidadFields } from "./DocumentoIdentidadFields";
+import { RolSistemaField } from "./RolSistemaField";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Conductor } from "@/services/api/conductores";
 import { ROLES } from "@/services/core/roles";
@@ -67,7 +68,16 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
         </div>
       </section>
 
-      {/* El documento va primero: es el dato con el que se identifica a la persona
+      {/* El rol va antes que nada: de él depende qué campos aparecen después (el "Tipo de
+          usuario" del documento solo se pide para el rol Conductor). */}
+      <RolSistemaField
+        rol={f.form.rol}
+        rolError={f.err("rol")}
+        rolesDisponibles={f.rolesDisponibles}
+        onRolChange={(v) => { f.set("rol", v); f.markTouched("rol"); }}
+      />
+
+      {/* Después el documento: es el dato con el que se identifica a la persona
           (y el que el listado y las tarjetas muestran). */}
       <DocumentoIdentidadFields
         tipoDocumento={f.form.tipoDocumento}
@@ -102,18 +112,14 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
         password={f.form.password}
         confirmPassword={f.form.confirmPassword}
         showPass={f.showPass}
-        rol={f.form.rol}
         estado={f.form.estado}
         passwordError={f.err("password")}
         confirmPasswordError={f.err("confirmPassword")}
-        rolError={f.err("rol")}
-        rolesDisponibles={f.rolesDisponibles}
         onPasswordChange={(v) => f.set("password", v)}
         onPasswordBlur={() => f.markTouched("password")}
         onConfirmPasswordChange={(v) => f.set("confirmPassword", v)}
         onConfirmPasswordBlur={() => f.markTouched("confirmPassword")}
         onToggleShowPass={() => f.setShowPass((v) => !v)}
-        onRolChange={(v) => { f.set("rol", v); f.markTouched("rol"); }}
         onEstadoChange={(v) => f.set("estado", v)}
       />
 

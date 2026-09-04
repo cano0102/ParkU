@@ -17,26 +17,26 @@ interface CredencialesAccesoFieldsProps {
   password: string;
   confirmPassword: string;
   showPass: boolean;
-  rol: string;
   estado: "activo" | "inactivo";
   passwordError?: string;
   confirmPasswordError?: string;
-  rolError?: string;
-  /** Roles reales (`/api/roles`) — se selecciona por `id`, no por nombre. */
-  rolesDisponibles: { id: string; nombre: string }[];
   onPasswordChange: (value: string) => void;
   onPasswordBlur: () => void;
   onConfirmPasswordChange: (value: string) => void;
   onConfirmPasswordBlur: () => void;
   onToggleShowPass: () => void;
-  onRolChange: (value: string) => void;
   onEstadoChange: (value: "activo" | "inactivo") => void;
 }
 
-/** Sección "Credenciales y acceso": contraseña, rol y (al editar) estado de la cuenta. */
+/**
+ * Sección "Credenciales y acceso": contraseña y (al editar) estado de la cuenta.
+ *
+ * El rol ya no está aquí: se subió al principio del formulario (RolSistemaField), porque
+ * condiciona campos que vienen antes que esta sección.
+ */
 export function CredencialesAccesoFields({
-  isEdit, password, confirmPassword, showPass, rol, estado, passwordError, confirmPasswordError, rolError, rolesDisponibles,
-  onPasswordChange, onPasswordBlur, onConfirmPasswordChange, onConfirmPasswordBlur, onToggleShowPass, onRolChange, onEstadoChange,
+  isEdit, password, confirmPassword, showPass, estado, passwordError, confirmPasswordError,
+  onPasswordChange, onPasswordBlur, onConfirmPasswordChange, onConfirmPasswordBlur, onToggleShowPass, onEstadoChange,
 }: CredencialesAccesoFieldsProps) {
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
@@ -109,20 +109,6 @@ export function CredencialesAccesoFields({
             </div>
           </FormField>
         )}
-
-        <FormField label="Rol del sistema" error={rolError}>
-          <select
-            value={rol}
-            aria-label="Rol del sistema"
-            onChange={(e) => onRolChange(e.target.value)}
-            style={rolError ? { ...inputStyle, ...inputErrorStyle, appearance: "none", cursor: "pointer" } : { ...inputStyle, appearance: "none", cursor: "pointer" }}
-          >
-            <option value="">Seleccionar rol…</option>
-            {rolesDisponibles.map((r) => (
-              <option key={r.id} value={r.id}>{r.nombre}</option>
-            ))}
-          </select>
-        </FormField>
 
         {isEdit && (
           <div style={{ gridColumn: "1 / -1" }}>

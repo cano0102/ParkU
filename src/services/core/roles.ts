@@ -137,3 +137,69 @@ const NOMBRES_ROL: Record<RolId, string> = {
 export function nombreDeRol(rolId: number | null | undefined): string {
   return esRolId(rolId) ? NOMBRES_ROL[rolId] : 'Desconocido';
 }
+
+/**
+ * Qué vista habilita cada permiso REAL del backend (tabla `permiso`, catálogo en
+ * GET /api/permisos). Es la traducción entre las dos vocabularios: el backend nombra
+ * acciones sobre módulos ("reservas.gestionar") y esta interfaz nombra pantallas
+ * ("reservas").
+ *
+ * Sin este mapa, marcar casillas en el editor de roles no cambiaba nada de lo que se ve:
+ * el menú se decidía SOLO con la matriz estática de los tres roles del sistema, así que un
+ * rol creado a medida entraba sin ninguna pestaña por muchos permisos que se le dieran.
+ *
+ * Cada permiso de `.gestionar` habilita también lo que su pantalla necesita para actuar
+ * (crear celdas, asignar…). Un permiso que el backend añada y no esté aquí simplemente no
+ * abre ninguna vista: no rompe nada, solo no se refleja hasta que se le dé su sitio.
+ */
+export const VISTAS_POR_PERMISO: Record<string, (keyof PermisosRol)[]> = {
+  'configuracion.gestionar': ['roles'],
+  'usuarios.consultar': ['usuarios'],
+  'usuarios.gestionar': ['usuarios'],
+  'conductores.consultar': ['conductores', 'vehiculos'],
+  'conductores.gestionar': ['conductores', 'vehiculos'],
+  'parqueaderos.consultar': ['parqueaderos'],
+  'parqueaderos.gestionar': ['parqueaderos', 'celdas', 'asignaciones'],
+  'ingreso.consultar': ['entradaSalida'],
+  'ingreso.gestionar': ['entradaSalida', 'asignaciones'],
+  'salida.consultar': ['entradaSalida'],
+  'salida.gestionar': ['entradaSalida'],
+  'reservas.consultar': ['reservas'],
+  'reservas.gestionar': ['reservas'],
+  'novedades.consultar': ['incidentes'],
+  'novedades.gestionar': ['incidentes', 'reconocimientoPlacas'],
+  'reportes.consultar': ['dashboard'],
+};
+
+/**
+ * Las vistas que puede abrir alguien, combinando lo que le da su ROL con lo que le dan sus
+ * PERMISOS.
+ *
+ * - Administrador: todo, sin mirar la tabla (el backend le deja pasar igual, por rol).
+ * - Los otros dos roles del sistema: parten de su matriz estática, porque el backend sigue
+ *   autorizándolos por rol en muchas rutas (`verificarAcceso({ roles: [...] })`); los
+ *   permisos solo pueden SUMAR.
+ * - Cualquier rol creado a medida: parte de cero y ve exactamente lo que sus permisos digan.
+ *
+ * El Dashboard queda siempre abierto: es la pantalla a la que se entra al iniciar sesión, y
+ * sin ella un rol recién creado aterrizaba en una redirección sin salida.
+ *
+ * @param rolId - Rol del usuario.
+ * @param permisosBackend - Nombres de permiso tal como los devuelve la API (login,
+ *   /auth/verificar y /auth/perfil los incluyen).
+ */
+export function permisosDeVistas(
+  rolId: number | null | undefined,
+  permisosBackend: readonly string[] = []
+): PermisosRol {
+  if (rolId === ROLES.ADMIN) return { ...TODO_PERMITIDO };
+
+  const vistas: PermisosRol = esRolId(rolId)
+    ? { ...PERMISOS_POR_ROL[rolId] }
+    : { ...PERMISOS_VACIOS, dashboard: true };
+
+  for (const permiso of permisosBackend) {
+    for (const vista of VISTAS_POR_PERMISO[permiso] ?? []) vistas[vista] = true;
+  }
+  return vistas;
+}

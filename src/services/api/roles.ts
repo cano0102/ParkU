@@ -5,13 +5,16 @@
  * hardcodeada por rol_id en el servidor (`verificarRol([...])`), no
  * consultada desde una tabla editable (ver `services/core/roles.ts`).
  *
- * Por eso `permisos` en el `Rol` que ve la UI es un campo **derivado, no
- * persistido**: para los 3 roles fijos (Admin=1/Vigilante=2/Conductor=3) se
- * completa con la matriz estática real; para cualquier rol adicional que un
- * Admin cree desde esta pantalla, se muestra en blanco (esos roles no tienen
- * ningún efecto de autorización en el backend actual). El formulario de
- * Roles se mantiene sin cambios — solo `nombre/descripcion/estado` viajan
- * de verdad a la API en `create`/`update`.
+ * `permisos` en el `Rol` que ve la UI es un campo **derivado**: se calcula con
+ * `permisosDeVistas` a partir de los permisos REALES que el rol tiene asignados
+ * (`permiso_ids`, traducidos a nombre con el catálogo) más lo que su rol le dé por sí
+ * mismo. Antes salía de la matriz estática, así que un rol creado a medida se mostraba
+ * siempre en blanco por muchos permisos que se le hubieran marcado.
+ *
+ * Los tres roles del sistema parten de su matriz: el backend los sigue autorizando por rol
+ * en muchas rutas, así que enseñar solo sus filas de `rol_permiso` mentiría por defecto.
+ * En `create`/`update` siguen viajando solo `nombre/descripcion/estado`; los permisos van
+ * por su propio endpoint (`guardarPermisosDeRol`).
  *
  * El backend tiene un modelo `permiso`/`rol_permiso` real (M:N, con catálogo
  * agrupado por módulo). `getPermisosCatalogo` lee el catálogo y
@@ -24,13 +27,16 @@
  * como respaldo si esa respuesta no lo incluyera.
  */
 import { apiFetch } from '../core/http';
-import { PERMISOS_POR_ROL, PERMISOS_VACIOS, esRolId, type PermisosRol } from '../core/roles';
+import { permisosDeVistas, type PermisosRol } from '../core/roles';
 
 export interface Rol {
   id: string;
   nombre: string;
   descripcion: string;
+  /** Pantallas que abre este rol (derivado de sus permisos reales + su propio rol). */
   permisos: PermisosRol;
+  /** Ids de los permisos asignados, tal cual están en `rol_permiso`. */
+  permisoIds?: string[];
   estado: 'activo' | 'inactivo';
 }
 
@@ -43,14 +49,34 @@ interface ApiRol {
   permiso_ids?: number[];
 }
 
-function toFrontend(r: ApiRol): Rol {
+function toFrontend(r: ApiRol, nombrePorPermisoId?: Map<string, string>): Rol {
+  // Los ids asignados se traducen a nombres con el catálogo ("reservas.gestionar"), que es
+  // el vocabulario que entiende permisosDeVistas. Sin catálogo (una lectura suelta) queda
+  // lo que dé el rol por sí mismo, que es como se comportaba antes.
+  const nombres = (r.permiso_ids ?? [])
+    .map((id) => nombrePorPermisoId?.get(String(id)))
+    .filter((n): n is string => !!n);
+
   return {
     id: String(r.id),
     nombre: r.nombre,
     descripcion: r.descripcion ?? '',
-    permisos: esRolId(r.id) ? PERMISOS_POR_ROL[r.id] : { ...PERMISOS_VACIOS },
+    permisos: permisosDeVistas(r.id, nombres),
     estado: r.estado ? 'activo' : 'inactivo',
+    permisoIds: (r.permiso_ids ?? []).map(String),
   };
+}
+
+/** id de permiso -> nombre, para traducir `permiso_ids` a lo que entiende permisosDeVistas. */
+async function nombresDePermisos(): Promise<Map<string, string>> {
+  try {
+    const catalogo = await getPermisosCatalogo();
+    return new Map(catalogo.map((p) => [p.id, p.nombre]));
+  } catch {
+    // El catálogo es un extra para pintar mejor la tarjeta: si falla, la pantalla de Roles
+    // debe seguir funcionando en vez de quedarse en blanco.
+    return new Map();
+  }
 }
 
 function toApiPayload(data: Partial<Omit<Rol, 'id'>>): Record<string, unknown> {
@@ -62,13 +88,20 @@ function toApiPayload(data: Partial<Omit<Rol, 'id'>>): Record<string, unknown> {
 }
 
 export async function getAll(): Promise<Rol[]> {
-  const rows = await apiFetch<ApiRol[]>('/roles');
-  return rows.map(toFrontend);
+  const [rows, nombrePorId] = await Promise.all([
+    apiFetch<ApiRol[]>('/roles'),
+    nombresDePermisos(),
+  ]);
+  return rows.map((r) => toFrontend(r, nombrePorId));
 }
 
 export async function getById(id: string): Promise<Rol | undefined> {
   try {
-    return toFrontend(await apiFetch<ApiRol>(`/roles/${id}`));
+    const [rol, nombrePorId] = await Promise.all([
+      apiFetch<ApiRol>(`/roles/${id}`),
+      nombresDePermisos(),
+    ]);
+    return toFrontend(rol, nombrePorId);
   } catch {
     return undefined;
   }

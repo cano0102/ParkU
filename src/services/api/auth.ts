@@ -20,6 +20,10 @@ export interface AuthUser {
   numero: string;
   rol: RolId;
   foto?: string;
+  /** Permisos efectivos del rol, tal como los nombra el backend ("reservas.gestionar"…).
+   *  Los devuelven el login, /auth/verificar y /auth/perfil. Con ellos se decide qué
+   *  pantallas se ven -- ver permisosDeVistas en services/core/roles.ts. */
+  permisos?: string[];
 }
 
 export interface RegisterInput {
@@ -46,6 +50,7 @@ interface ApiUsuario {
   numero?: string | null;
   rol: number;
   estado: string;
+  permisos?: string[];
 }
 
 interface LoginResponseData {
@@ -68,6 +73,7 @@ function toAuthUser(u: ApiUsuario): AuthUser {
     nombre: u.nombre,
     numero: u.numero ?? '',
     rol: u.rol as RolId,
+    permisos: Array.isArray(u.permisos) ? u.permisos : [],
   };
 }
 
