@@ -1,6 +1,8 @@
-import { Mail, ShieldCheck, X } from "lucide-react";
+import { Mail, Phone, Shield, ShieldCheck, UserCheck, X } from "lucide-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { FormField } from "@/components/shared";
+import { useRoles } from "@/features/roles";
+import { nombreDeRol } from "@/services/core/roles";
 import { COLORS, getAvatarGradient, getInitials, inputStyle } from "../lib/helpers";
 
 interface UsuarioVinculadoFieldProps {
@@ -22,6 +24,10 @@ export function UsuarioVinculadoField({
   error, usuarioSearch, onUsuarioSearchChange, usuariosFiltrados, usuariosConConductorIds,
   usuarioIdSeleccionado, usuarioSeleccionado, onSelectUsuario, onQuitarUsuario,
 }: UsuarioVinculadoFieldProps) {
+  // Nombre real del rol de la cuenta (`/api/roles`), no la tabla estática de 3 roles fijos.
+  const { data: roles = [] } = useRoles();
+  const nombreRol = (rolId: number) => roles.find((r) => r.id === String(rolId))?.nombre ?? nombreDeRol(rolId);
+
   return (
     <FormField label="Cuenta de acceso vinculada (opcional)" error={error}>
       <input
@@ -80,33 +86,63 @@ export function UsuarioVinculadoField({
       {usuarioSeleccionado && (
         <div
           style={{
-            marginTop: 8, display: "flex", alignItems: "center", gap: 10,
-            padding: "8px 12px", borderRadius: 10, background: "#F0FDF4", border: `1px solid ${COLORS.primary}33`,
+            marginTop: 8, padding: "10px 12px", borderRadius: 10,
+            background: "#F0FDF4", border: `1px solid ${COLORS.primary}33`,
+            display: "flex", flexDirection: "column", gap: 7,
           }}
         >
-          <Mail size={13} color={COLORS.primaryDark} />
-          <span style={{ fontSize: 11, color: COLORS.primaryDark, fontWeight: 700 }}>
-            {usuarioSeleccionado.correo}
-          </span>
-          <span style={{ marginLeft: "auto", fontSize: 10, color: COLORS.textLight }}>
-            Seleccionado: {usuarioSeleccionado.nombre}
-          </span>
-          <button
-            type="button"
-            onClick={onQuitarUsuario}
-            aria-label="Quitar la cuenta vinculada"
-            title="Quitar la cuenta vinculada (no cancela el registro del conductor)"
-            style={{
-              flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "4px 8px",
-              borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff",
-              color: COLORS.textLight, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-            }}
-          >
-            <X size={11} />
-            Quitar
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <UserCheck size={13} color={COLORS.primaryDark} style={{ flexShrink: 0 }} />
+            <span style={{ fontSize: 11.5, fontWeight: 800, color: COLORS.primaryDark, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {usuarioSeleccionado.nombre}
+            </span>
+            <span
+              style={{
+                marginLeft: "auto", flexShrink: 0, padding: "2px 8px", borderRadius: 999,
+                fontSize: 9.5, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.3,
+                background: usuarioSeleccionado.estado === "activo" ? "rgba(57,169,0,.12)" : "rgba(239,68,68,.1)",
+                color: usuarioSeleccionado.estado === "activo" ? "#166534" : "#B91C1C",
+              }}
+            >
+              {usuarioSeleccionado.estado}
+            </span>
+            <button
+              type="button"
+              onClick={onQuitarUsuario}
+              aria-label="Quitar la cuenta vinculada"
+              title="Quitar la cuenta vinculada (no cancela el registro del conductor)"
+              style={{
+                flexShrink: 0, display: "flex", alignItems: "center", gap: 4, padding: "3px 8px",
+                borderRadius: 8, border: `1px solid ${COLORS.border}`, background: "#fff",
+                color: COLORS.textLight, fontSize: 10, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <X size={11} />
+              Quitar
+            </button>
+          </div>
+
+          {/* Datos que aporta la cuenta y que ya quedaron puestos en el formulario. El
+              documento no aparece aquí porque la tabla `usuario` no lo guarda: es un dato
+              del conductor, y se escribe en los campos de arriba. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(180px, 100%), 1fr))", gap: 5 }}>
+            {[
+              { icon: <Mail size={11} />, valor: usuarioSeleccionado.correo },
+              ...(usuarioSeleccionado.numero ? [{ icon: <Phone size={11} />, valor: usuarioSeleccionado.numero }] : []),
+              { icon: <Shield size={11} />, valor: nombreRol(usuarioSeleccionado.rol) },
+            ].map((dato, i) => (
+              <span
+                key={i}
+                style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: COLORS.primaryDark, minWidth: 0 }}
+              >
+                <span style={{ flexShrink: 0, display: "flex" }}>{dato.icon}</span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{dato.valor}</span>
+              </span>
+            ))}
+          </div>
         </div>
       )}
+
     </FormField>
   );
 }

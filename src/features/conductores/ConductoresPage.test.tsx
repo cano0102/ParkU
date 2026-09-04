@@ -89,6 +89,36 @@ describe("features/conductores", () => {
     await waitFor(() => expect(screen.queryByText("Centro de formación")).not.toBeInTheDocument());
   });
 
+  it("al vincular una cuenta muestra sus datos y deja el correo no editable", async () => {
+    const user = userEvent.setup();
+    renderConductores();
+    await waitFor(() => expect(screen.getAllByText("Carlos López M.").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole("button", { name: /Nuevo Conductor/ }));
+    const dialog = await screen.findByRole("dialog");
+
+    // Antes de vincular, el correo del conductor se escribe a mano.
+    const correo = within(dialog).getByPlaceholderText("correo@sena.edu.co") as HTMLInputElement;
+    expect(correo.readOnly).toBe(false);
+
+    await user.type(within(dialog).getByPlaceholderText("Buscar por nombre o correo..."), "maria");
+    await user.click(await within(dialog).findByText("María Díaz P."));
+
+    // La cuenta rellena nombre, correo y teléfono, y su ficha resume lo que aporta.
+    await waitFor(() => expect(correo.value).toBe("maria.diaz@ext.com"));
+    expect((within(dialog).getByPlaceholderText("ej. María García López") as HTMLInputElement).value).toBe("María Díaz P.");
+    expect(within(dialog).getByText("Comunidad SENA")).toBeInTheDocument();
+
+    // Y el correo pasa a ser de solo lectura: se gestiona desde la cuenta, no aquí.
+    expect(correo.readOnly).toBe(true);
+    expect(within(dialog).getByText("Correo * (de la cuenta vinculada)")).toBeInTheDocument();
+
+    // Al quitar la vinculación vuelve a editarse, sin perder el resto del formulario.
+    await user.click(within(dialog).getByLabelText("Quitar la cuenta vinculada"));
+    await waitFor(() => expect(correo.readOnly).toBe(false));
+    expect((within(dialog).getByPlaceholderText("ej. María García López") as HTMLInputElement).value).toBe("María Díaz P.");
+  }, 20000);
+
   it("abre el modal de creación al hacer clic en Nuevo Conductor", async () => {
     const user = userEvent.setup();
     renderConductores();

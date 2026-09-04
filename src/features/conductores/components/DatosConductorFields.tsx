@@ -20,6 +20,8 @@ interface DatosConductorFieldsProps {
 export function DatosConductorFields({ isEdit, form, errors, touched, onChange, onBlur, onToggleEstado, mostrarFormacion = true }: DatosConductorFieldsProps) {
   const { data: tiposUsuario = [] } = useTiposUsuario();
   const err = (field: keyof typeof errors) => (touched[field] ? errors[field] : undefined);
+  /** El correo viene de la cuenta de acceso vinculada, así que no se edita desde aquí. */
+  const correoDeLaCuenta = !!form.usuarioId;
 
   return (
     <div className="cf-modal-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 10 }}>
@@ -58,14 +60,27 @@ export function DatosConductorFields({ isEdit, form, errors, touched, onChange, 
         />
       </FormField>
 
-      <FormField label="Correo *" error={err("correo")}>
+      {/* Con una cuenta vinculada el correo lo aporta esa cuenta y no se edita aquí: no se
+          añade un segundo campo, es el mismo en modo lectura. Se cambia desde el módulo de
+          Usuarios, o quitando la vinculación. */}
+      <FormField
+        label={correoDeLaCuenta ? "Correo * (de la cuenta vinculada)" : "Correo *"}
+        error={err("correo")}
+      >
         <input
           type="email"
           placeholder="correo@sena.edu.co"
           value={form.correo}
+          readOnly={correoDeLaCuenta}
+          aria-readonly={correoDeLaCuenta}
+          title={correoDeLaCuenta ? "Se toma de la cuenta vinculada; quita la vinculación para editarlo" : undefined}
           onChange={(e) => onChange({ correo: e.target.value })}
           onBlur={() => onBlur("correo")}
-          style={{ ...inputStyle, ...(err("correo") ? inputErrorStyle : {}) }}
+          style={{
+            ...inputStyle,
+            ...(err("correo") ? inputErrorStyle : {}),
+            ...(correoDeLaCuenta ? { background: COLORS.bg, color: COLORS.textLight, cursor: "not-allowed" } : {}),
+          }}
         />
       </FormField>
 
