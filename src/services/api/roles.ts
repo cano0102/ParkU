@@ -14,11 +14,14 @@
  * de verdad a la API en `create`/`update`.
  *
  * El backend tiene un modelo `permiso`/`rol_permiso` real (M:N, con catálogo
- * agrupado por módulo). `getPermisosCatalogo`/`getPermisosDeRol` lo leen y
- * `guardarPermisosDeRol` lo escribe, con las rutas que la API expone de verdad:
- * `POST /roles-permisos` para asignar y `DELETE /roles-permisos/:id` para quitar
- * (no existe ningún PUT masivo por rol, comprobado contra la API), así que el
- * guardado se hace por diferencia contra lo que el rol ya tenía.
+ * agrupado por módulo). `getPermisosCatalogo` lee el catálogo y
+ * `guardarPermisosDeRol` escribe la asignación de un rol con
+ * `PUT /roles/:id/permisos`, que recibe el CONJUNTO COMPLETO
+ * (`{ permisos: [1, 2, 4] }`) y retira lo que no esté en la lista.
+ *
+ * Es la única vía para desmarcar: `POST /roles-permisos` solo sabe añadir. La
+ * lectura sale de `permiso_ids` del propio rol, con `GET /roles-permisos/rol/:id`
+ * como respaldo si esa respuesta no lo incluyera.
  */
 import { apiFetch } from '../core/http';
 import { PERMISOS_POR_ROL, PERMISOS_VACIOS, esRolId, type PermisosRol } from '../core/roles';
@@ -36,6 +39,8 @@ interface ApiRol {
   nombre: string;
   descripcion: string | null;
   estado: boolean;
+  /** Ids de los permisos asignados al rol; es lo que hay que marcar al editarlo. */
+  permiso_ids?: number[];
 }
 
 function toFrontend(r: ApiRol): Rol {
@@ -123,38 +128,30 @@ interface ApiRolPermiso {
 }
 
 /**
- * Permisos que un rol tiene asignados en `rol_permiso`, como mapa
- * `idDelPermiso -> idDeLaFila`. Hace falta el id de la FILA (no el del permiso) porque
- * quitar una asignación es `DELETE /roles-permisos/:id` sobre esa fila.
+ * Ids de los permisos que el rol tiene asignados. La fuente principal es `permiso_ids`
+ * del propio rol; si esa respuesta no lo trae (backend anterior), se recurre a la tabla
+ * intermedia `GET /roles-permisos/rol/:id`.
  */
-export async function getPermisosDeRol(rolId: string): Promise<Map<string, string>> {
+export async function getPermisosDeRol(rolId: string): Promise<Set<string>> {
+  const rol = await apiFetch<ApiRol>(`/roles/${rolId}`);
+  if (Array.isArray(rol?.permiso_ids)) {
+    return new Set(rol.permiso_ids.map(String));
+  }
+
   const rows = await apiFetch<ApiRolPermiso[]>(`/roles-permisos/rol/${rolId}`);
-  return new Map(rows.map((r) => [String(r.permiso), String(r.id)]));
+  return new Set(rows.map((r) => String(r.permiso)));
 }
 
 /**
- * Deja el rol exactamente con los permisos indicados: asigna los que faltan y quita los
- * que sobran, comparando contra lo que el backend tiene guardado ahora mismo (no contra
- * lo que la pantalla creía tener, que puede estar desactualizado).
+ * Deja el rol exactamente con los permisos indicados, en UNA sola llamada:
+ * `PUT /roles/:id/permisos` recibe el conjunto completo y retira lo que no esté en él.
  *
- * La API no expone una ruta que reemplace todo el conjunto de una vez, así que se hace
- * con las dos que sí existen: `POST /roles-permisos` y `DELETE /roles-permisos/:id`.
+ * Es la única forma de desmarcar una casilla: `POST /roles-permisos` solo añade, así que
+ * hacerlo por diferencia (un POST/DELETE por permiso) no llegaba a quitar nada.
  */
 export async function guardarPermisosDeRol(rolId: string, permisoIds: string[]): Promise<void> {
-  const actuales = await getPermisosDeRol(rolId);
-  const deseados = new Set(permisoIds);
-
-  const porAsignar = [...deseados].filter((permisoId) => !actuales.has(permisoId));
-  const porQuitar = [...actuales.entries()].filter(([permisoId]) => !deseados.has(permisoId));
-
-  for (const permisoId of porAsignar) {
-    await apiFetch('/roles-permisos', {
-      method: 'POST',
-      body: { rol: Number(rolId), permiso: Number(permisoId) },
-    });
-  }
-
-  for (const [, rolPermisoId] of porQuitar) {
-    await apiFetch(`/roles-permisos/${rolPermisoId}`, { method: 'DELETE' });
-  }
+  await apiFetch(`/roles/${rolId}/permisos`, {
+    method: 'PUT',
+    body: { permisos: permisoIds.map(Number) },
+  });
 }

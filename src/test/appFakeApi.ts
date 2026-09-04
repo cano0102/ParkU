@@ -291,7 +291,45 @@ function createIncidentesBackend(rolActual?: RolId) {
  * `ROLES.CONDUCTOR` (ver `createIncidentesBackend`).
  */
 export function createAppBackends(opciones?: { rolActual?: RolId }) {
-  const roles = createFakeRestBackend('/roles', rolesSeed);
+  const rolesPermisos = createFakeRestBackend('/roles-permisos', rolesPermisosSeed, {
+    actions: [{
+      method: 'GET', pattern: /^\/rol\/(\d+)$/,
+      handle: (m, _body, items) => items.filter((i: any) => i.rol === Number(m[1])),
+    }],
+  });
+
+  /** Ids de permiso asignados a un rol, leídos del estado vivo de `rol_permiso`. */
+  const permisoIdsDeRol = (rolId: number) =>
+    (rolesPermisos.items as any[]).filter((rp) => rp.rol === rolId).map((rp) => rp.permiso);
+
+  const roles = createFakeRestBackend('/roles', rolesSeed, {
+    actions: [
+      {
+        // Reemplazo COMPLETO del conjunto de permisos del rol, igual que la API real: lo
+        // que no venga en `permisos` se retira (es la única forma de desmarcar una casilla).
+        method: 'PUT', pattern: /^\/(\d+)\/permisos$/,
+        handle: (m, body) => {
+          const rolId = Number(m[1]);
+          const deseados: number[] = ((body as any)?.permisos ?? []).map(Number);
+          const filas = rolesPermisos.items as any[];
+          for (let i = filas.length - 1; i >= 0; i--) {
+            if (filas[i].rol === rolId) filas.splice(i, 1);
+          }
+          let nextId = filas.reduce((max: number, f: any) => Math.max(max, f.id), 0);
+          for (const permiso of deseados) filas.push({ id: ++nextId, rol: rolId, permiso });
+          return { success: true, message: 'Permisos actualizados' };
+        },
+      },
+      {
+        // El rol trae sus `permiso_ids`: de ahí lee el front qué casillas marcar.
+        method: 'GET', pattern: /^\/(\d+)$/,
+        handle: (m, _body, items) => {
+          const rol = items.find((r: any) => r.id === Number(m[1]));
+          return rol ? { ...rol, permiso_ids: permisoIdsDeRol(rol.id) } : undefined;
+        },
+      },
+    ],
+  });
   const usuarios = createFakeRestBackend('/usuarios', usuariosSeed.map(({ contrasena: _c, ...u }) => u), {
     actions: [{
       method: 'PATCH', pattern: /^\/(\d+)\/contrasena$/,
@@ -440,13 +478,6 @@ export function createAppBackends(opciones?: { rolActual?: RolId }) {
   const incidentes = createIncidentesBackend(opciones?.rolActual);
   const catalogos = createFakeRestBackend('/catalogos/tipos-usuario', catalogosSeed);
   const auth = createAuthBackend();
-
-  const rolesPermisos = createFakeRestBackend('/roles-permisos', rolesPermisosSeed, {
-    actions: [{
-      method: 'GET', pattern: /^\/rol\/(\d+)$/,
-      handle: (m, _body, items) => items.filter((i: any) => i.rol === Number(m[1])),
-    }],
-  });
 
   const backends: [string, ReturnType<typeof createFakeRestBackend>][] = [
     ['/catalogos/tipos-usuario', catalogos],

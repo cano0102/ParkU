@@ -24,9 +24,7 @@ interface RolFormModalProps {
 export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing = false, existingRoles, editingRolId = null }: RolFormModalProps) => {
   const { data: permisosCatalogo = [], isLoading: catalogoLoading } = usePermisosCatalogo();
   const { data: permisosGuardados, isLoading: asignadosLoading } = usePermisosDeRol(editingRolId);
-  // El mapa que devuelve la API es `permisoId -> idDeLaFila`; para la selección basta con
-  // los ids de permiso.
-  const idsGuardados = useMemo(() => new Set(permisosGuardados ? [...permisosGuardados.keys()] : []), [permisosGuardados]);
+  const idsGuardados = useMemo(() => permisosGuardados ?? new Set<string>(), [permisosGuardados]);
   const {
     form, permisosSeleccionados, togglePermiso, toggleModulo,
     setDescripcion, setEstado, nombreErrorVisible, formInvalido,
