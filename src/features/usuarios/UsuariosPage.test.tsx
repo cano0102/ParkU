@@ -265,6 +265,32 @@ describe('Usuarios', () => {
     });
   }, 15000);
 
+  it('elimina un usuario: pide confirmación y lo quita de la lista', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('María Díaz P.').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByLabelText('Eliminar María Díaz P.'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/María Díaz P./)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole('button', { name: 'Eliminar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('María Díaz P.')).not.toBeInTheDocument());
+  }, 15000);
+
+  it('no ofrece eliminar a un usuario protegido', async () => {
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThan(0);
+    });
+
+    expect(screen.queryByLabelText('Eliminar Administrador ParkU')).not.toBeInTheDocument();
+  });
+
   it('el tipo de usuario solo se pide para el rol Conductor', async () => {
     const user = userEvent.setup();
     renderUsuarios();

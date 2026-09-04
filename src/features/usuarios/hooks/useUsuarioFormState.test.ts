@@ -12,6 +12,7 @@ afterEach(() => vi.clearAllMocks());
 /** El hook también guarda la foto de perfil en el navegador; estos tests no la ejercitan,
  *  así que se pasan stubs neutros. */
 const documentoStubs = () => ({
+  removeUsuario: vi.fn(),
   fotoDe: () => undefined,
   guardarFotoUsuario: vi.fn(),
 });
@@ -72,6 +73,94 @@ describe('useUsuarioFormState — documento de la cuenta', () => {
 
     expect(addUsuario).toHaveBeenCalledWith(expect.objectContaining({ numeroDocumento: '' }));
     expect(toast.success).toHaveBeenCalledWith('Usuario creado correctamente');
+  });
+});
+
+describe('useUsuarioFormState — eliminar la cuenta', () => {
+  it('pide confirmación: el primer clic no borra nada', () => {
+    const removeUsuario = vi.fn();
+    const objetivo = baseUsuario({ id: '5', correo: 'alguien@sena.edu.co' });
+    const { result } = renderHook(() =>
+      useUsuarioFormState({
+        usuarios: [objetivo], addUsuario: vi.fn(), updateUsuario: vi.fn(),
+        ...documentoStubs(), removeUsuario,
+      })
+    );
+
+    act(() => result.current.handleDeleteRequest(objetivo));
+
+    expect(removeUsuario).not.toHaveBeenCalled();
+    expect(result.current.usuarioAEliminar).toEqual(objetivo);
+  });
+
+  it('al confirmar, borra de verdad', async () => {
+    const removeUsuario = vi.fn().mockResolvedValue(undefined);
+    const objetivo = baseUsuario({ id: '5', correo: 'alguien@sena.edu.co', nombre: 'Alguien' });
+    const { result } = renderHook(() =>
+      useUsuarioFormState({
+        usuarios: [objetivo], addUsuario: vi.fn(), updateUsuario: vi.fn(),
+        ...documentoStubs(), removeUsuario,
+      })
+    );
+
+    act(() => result.current.handleDeleteRequest(objetivo));
+    await act(async () => result.current.confirmDelete());
+
+    expect(removeUsuario).toHaveBeenCalledWith('5');
+    expect(toast.success).toHaveBeenCalledWith('Usuario "Alguien" eliminado.');
+    expect(result.current.usuarioAEliminar).toBeNull();
+  });
+
+  it('no ofrece borrar un usuario protegido', () => {
+    const removeUsuario = vi.fn();
+    const protegido = baseUsuario({ id: '1', correo: 'admin@sena.edu.co', rol: ROLES.ADMIN });
+    const { result } = renderHook(() =>
+      useUsuarioFormState({
+        usuarios: [protegido], addUsuario: vi.fn(), updateUsuario: vi.fn(),
+        ...documentoStubs(), removeUsuario,
+      })
+    );
+
+    act(() => result.current.handleDeleteRequest(protegido));
+
+    expect(result.current.usuarioAEliminar).toBeNull();
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('protegido'));
+  });
+
+  it('no deja borrar al único administrador activo', () => {
+    // Borrar es peor que desactivar: no se puede deshacer y dejaría el sistema sin nadie
+    // que pueda administrarlo.
+    const unicoAdmin = baseUsuario({ id: '9', correo: 'nuevo.admin@empresa.com', rol: ROLES.ADMIN, estado: 'activo' });
+    const removeUsuario = vi.fn();
+    const { result } = renderHook(() =>
+      useUsuarioFormState({
+        usuarios: [unicoAdmin], addUsuario: vi.fn(), updateUsuario: vi.fn(),
+        ...documentoStubs(), removeUsuario,
+      })
+    );
+
+    act(() => result.current.handleDeleteRequest(unicoAdmin));
+
+    expect(result.current.usuarioAEliminar).toBeNull();
+    expect(removeUsuario).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('único administrador activo'));
+  });
+
+  it('si el backend lo rechaza (tiene actividad), no se pierde la cuenta ni se queda el diálogo abierto', async () => {
+    const removeUsuario = vi.fn().mockRejectedValue(new Error('su actividad quedaría sin autor'));
+    const objetivo = baseUsuario({ id: '5', correo: 'conhistoria@sena.edu.co' });
+    const { result } = renderHook(() =>
+      useUsuarioFormState({
+        usuarios: [objetivo], addUsuario: vi.fn(), updateUsuario: vi.fn(),
+        ...documentoStubs(), removeUsuario,
+      })
+    );
+
+    act(() => result.current.handleDeleteRequest(objetivo));
+    await act(async () => result.current.confirmDelete());
+
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(result.current.usuarioAEliminar).toBeNull();
   });
 });
 

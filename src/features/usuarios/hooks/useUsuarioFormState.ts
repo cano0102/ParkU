@@ -9,10 +9,11 @@ import type { UsuariosData } from "./useUsuariosData";
 export function useUsuarioFormState(
   data: Pick<
     UsuariosData,
-    "usuarios" | "addUsuario" | "updateUsuario" | "fotoDe" | "guardarFotoUsuario"
+    "usuarios" | "addUsuario" | "updateUsuario" | "removeUsuario" | "fotoDe" | "guardarFotoUsuario"
   >
 ) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [usuarioAEliminar, setUsuarioAEliminar] = useState<Usuario | null>(null);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
 
@@ -157,5 +158,46 @@ export function useUsuarioFormState(
     [data]
   );
 
-  return { dialogOpen, setDialogOpen, editingUsuario, formInitial, openCreate, openEdit, handleSave, handleToggleEstado };
+  /**
+   * Pide confirmación antes de borrar. Las mismas dos barreras que el toggle de estado: un
+   * usuario protegido no se toca, y el último Admin activo tampoco -- borrarlo dejaría al
+   * sistema sin nadie que pueda administrarlo, y esto no se puede deshacer.
+   */
+  const handleDeleteRequest = useCallback(
+    (u: Usuario) => {
+      if (USUARIOS_PROTEGIDOS.includes(u.correo)) {
+        toast.error("Este usuario está protegido y no se puede eliminar");
+        return;
+      }
+      if (u.rol === ROLES.ADMIN && u.estado === "activo") {
+        const adminsActivos = data.usuarios.filter((x) => x.rol === ROLES.ADMIN && x.estado === "activo");
+        if (adminsActivos.length <= 1) {
+          toast.error("No puedes eliminar al único administrador activo del sistema.");
+          return;
+        }
+      }
+      setUsuarioAEliminar(u);
+    },
+    [data.usuarios]
+  );
+
+  const confirmDelete = useCallback(async () => {
+    if (!usuarioAEliminar) return;
+    try {
+      await data.removeUsuario(usuarioAEliminar.id);
+      toast.success(`Usuario "${usuarioAEliminar.nombre}" eliminado.`);
+      setUsuarioAEliminar(null);
+    } catch (error) {
+      // El 409 del backend explica qué actividad lo impide (ingresos, novedades,
+      // auditoría…) y lo muestra el manejador central de mutaciones. El diálogo se cierra
+      // igual: reintentar daría exactamente el mismo error.
+      console.error("Error deleting user:", error);
+      setUsuarioAEliminar(null);
+    }
+  }, [usuarioAEliminar, data]);
+
+  return {
+    dialogOpen, setDialogOpen, editingUsuario, formInitial, openCreate, openEdit, handleSave,
+    handleToggleEstado, usuarioAEliminar, setUsuarioAEliminar, handleDeleteRequest, confirmDelete,
+  };
 }

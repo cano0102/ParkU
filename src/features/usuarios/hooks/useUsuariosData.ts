@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useUsuarios, useCreateUsuario, useUpdateUsuario } from "./useUsuarios";
+import { useUsuarios, useCreateUsuario, useUpdateUsuario, useRemoveUsuario } from "./useUsuarios";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Conductor } from "@/services/api/conductores";
 import { useRoles } from "@/features/roles";
@@ -13,11 +13,17 @@ export function useUsuariosData() {
   const { data: roles = [] } = useRoles();
   const createUsuarioMutation = useCreateUsuario();
   const updateUsuarioMutation = useUpdateUsuario();
+  const removeUsuarioMutation = useRemoveUsuario();
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación en realidad falla.
   const addUsuario = (data: Omit<Usuario, "id">) => createUsuarioMutation.mutateAsync(data);
   const updateUsuario = (id: string, data: Partial<Omit<Usuario, "id">>) =>
     updateUsuarioMutation.mutateAsync({ id, data });
+  // Borrado real: la fila desaparece de la tabla `usuario` (DELETE /api/usuarios/:id). El
+  // backend se lleva lo que era solo de la cuenta, suelta al conductor -- que sobrevive con
+  // su documento y sus vehículos -- y responde 409 si la cuenta tiene actividad que quedaría
+  // sin autor.
+  const removeUsuario = (id: string) => removeUsuarioMutation.mutateAsync(id);
 
   /**
    * Documento de identidad: se lee de la PROPIA cuenta. `usuario` ya tiene columnas
@@ -79,7 +85,7 @@ export function useUsuariosData() {
   }, [usuarios]);
 
   return {
-    usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, nombreDeRolReal,
+    usuarios, roles, addUsuario, updateUsuario, removeUsuario, totalActivos, totalInactivos, nombreDeRolReal,
     idUltimoAdminActivo, isLoading, documentoDe, fotoDe, guardarFotoUsuario,
     conductores, conductorDeUsuario,
   };

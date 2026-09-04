@@ -6,6 +6,7 @@ import {
   IconLock as Lock,
   IconUserCheck as UserCheck,
   IconPencil as Pencil,
+  IconTrash as Trash,
 } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
@@ -21,6 +22,9 @@ import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors } from "../lib
 export interface UsuarioCardHandlers {
   onToggleEstado: (u: Usuario) => void;
   onEdit: (u: Usuario) => void;
+  /** Borrado real: la cuenta desaparece de la base de datos. No se ofrece para los usuarios
+   *  protegidos ni para el último Admin activo (mismo criterio que desactivar). */
+  onDelete: (u: Usuario) => void;
   /** Tipo + número de documento del usuario, o null si todavía no tiene uno registrado.
    *  Lo resuelve useUsuariosData desde el conductor vinculado por `usuario_id`: la
    *  cuenta en sí no guarda documento en la API real. */
@@ -35,7 +39,7 @@ export interface UsuarioCardHandlers {
 }
 
 export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): ReactNode {
-  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo, fotoDe } = handlers;
+  const { onToggleEstado, onEdit, onDelete, documentoDe, nombreDeRolReal, idUltimoAdminActivo, fotoDe } = handlers;
   const documento = documentoDe(u.id);
   const protegido = USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo;
   const activo = u.estado === "activo";
@@ -155,26 +159,43 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
           <UserCheck size={12} color={COLORS.primary} />
           Registrado
         </div>
-        <button
-          title="Editar"
-          onClick={() => onEdit(u)}
-          className="u-btn"
-          style={{
-            width: 28, height: 28, borderRadius: 8, border: `1px solid ${COLORS.border}`,
-            background: COLORS.bg, color: COLORS.textLight, cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}
-          aria-label="Editar"
-        >
-          <Pencil size={12} />
-        </button>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            title="Editar"
+            onClick={() => onEdit(u)}
+            className="u-btn"
+            style={{
+              width: 28, height: 28, borderRadius: 8, border: `1px solid ${COLORS.border}`,
+              background: COLORS.bg, color: COLORS.textLight, cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+            aria-label="Editar"
+          >
+            <Pencil size={12} />
+          </button>
+          {!protegido && (
+            <button
+              title="Eliminar"
+              onClick={() => onDelete(u)}
+              className="u-btn"
+              style={{
+                width: 28, height: 28, borderRadius: 8, border: "1px solid #FECACA",
+                background: "#FEF2F2", color: "#B91C1C", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              aria-label={`Eliminar ${u.nombre}`}
+            >
+              <Trash size={12} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn<Usuario>[] {
-  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo, fotoDe } = handlers;
+  const { onToggleEstado, onEdit, onDelete, documentoDe, nombreDeRolReal, idUltimoAdminActivo, fotoDe } = handlers;
 
   return [
     {
@@ -272,7 +293,7 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
     },
     {
       header: "Acciones",
-      width: "90px",
+      width: "120px",
       align: "right",
       render: (u) => (
         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
@@ -289,6 +310,21 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
           >
             <Pencil size={12} />
           </button>
+          {!(USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo) && (
+            <button
+              title="Eliminar"
+              onClick={() => onDelete(u)}
+              className="u-btn"
+              style={{
+                width: 26, height: 26, borderRadius: 7, border: "1px solid #FECACA",
+                background: "#FEF2F2", color: "#B91C1C", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+              aria-label={`Eliminar ${u.nombre}`}
+            >
+              <Trash size={12} />
+            </button>
+          )}
         </div>
       ),
     },

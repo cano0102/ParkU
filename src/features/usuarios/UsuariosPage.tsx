@@ -4,7 +4,7 @@ import {
   IconUsers as Users,
   IconUserX as UserX,
 } from "@tabler/icons-react";
-import { Modal, LoadingState } from "@/components/shared";
+import { Modal, LoadingState, ConfirmDialog } from "@/components/shared";
 import { StatsPanel } from "@/components/data";
 import { COLORS } from "./lib/helpers";
 import { UsuarioFormModal } from "./components/UsuarioFormModal";
@@ -74,6 +74,7 @@ export default function Usuarios() {
               totalItems={f.filtered.length}
               onToggleEstado={form.handleToggleEstado}
               onEdit={form.openEdit}
+              onDelete={form.handleDeleteRequest}
               documentoDe={data.documentoDe}
               fotoDe={data.fotoDe}
               nombreDeRolReal={data.nombreDeRolReal}
@@ -101,6 +102,15 @@ export default function Usuarios() {
           onCancel={() => form.setDialogOpen(false)}
         />
       </Modal>
+
+      <ConfirmDialog
+        open={!!form.usuarioAEliminar}
+        onConfirm={form.confirmDelete}
+        onCancel={() => form.setUsuarioAEliminar(null)}
+        title="Eliminar usuario"
+        message={`¿Eliminar la cuenta de "${form.usuarioAEliminar?.nombre ?? ""}"? Se borra de la base de datos y no se puede deshacer. Si esta persona tiene un perfil de conductor, ese perfil y sus vehículos se conservan; solo pierde el acceso.`}
+        confirmLabel="Eliminar"
+      />
     </>
   );
 }
