@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { nombreDeRol } from "@/services/core/roles";
 import type { UsuariosData } from "./useUsuariosData";
 
 /** Búsqueda/filtros, modo de vista y paginación del listado de usuarios. */
@@ -26,7 +25,7 @@ export function useUsuariosFilters(usuarios: UsuariosData["usuarios"]) {
           u.nombre.toLowerCase().includes(q) ||
           u.correo.toLowerCase().includes(q);
         const matchEstado = filterEstado === "todos" || u.estado === filterEstado;
-        const matchRol = filterRol === "todos" || nombreDeRol(u.rol) === filterRol;
+        const matchRol = filterRol === "todos" || String(u.rol) === filterRol;
         return matchSearch && matchEstado && matchRol;
       }),
     [usuarios, search, filterEstado, filterRol]

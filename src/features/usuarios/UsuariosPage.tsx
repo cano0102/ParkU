@@ -26,7 +26,7 @@ export default function Usuarios() {
             { label: "Total", value: data.usuarios.length, icon: <Users size={11} /> },
             { label: "Activos", value: data.totalActivos, icon: <UserCheck size={11} /> },
             { label: "Inactivos", value: data.totalInactivos, icon: <UserX size={11} /> },
-            { label: "Roles", value: data.uniqueRoles.length, icon: <Shield size={11} /> },
+            { label: "Roles", value: data.roles.length, icon: <Shield size={11} /> },
           ]}
         />
 
@@ -37,7 +37,7 @@ export default function Usuarios() {
           onFilterEstadoChange={f.setFilterEstado}
           filterRol={f.filterRol}
           onFilterRolChange={f.setFilterRol}
-          uniqueRoles={data.uniqueRoles}
+          roles={data.roles}
           viewMode={f.viewMode}
           onViewModeChange={f.handleViewModeChange}
           onCreate={form.openCreate}
@@ -70,6 +70,7 @@ export default function Usuarios() {
               onToggleEstado={form.handleToggleEstado}
               onEdit={form.openEdit}
               documentoDe={data.documentoDe}
+              nombreDeRolReal={data.nombreDeRolReal}
               idUltimoAdminActivo={data.idUltimoAdminActivo}
               onPageChange={f.setCurrentPage}
               onItemsPerPageChange={(n) => {

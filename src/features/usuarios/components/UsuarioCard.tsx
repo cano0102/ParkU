@@ -2,7 +2,6 @@ import { IdCard, Mail, Phone, Shield, Lock, UserCheck, Pencil } from "lucide-rea
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
 import type { Usuario } from "@/services/api/usuarios";
-import { nombreDeRol } from "@/services/core/roles";
 import { COLORS, USUARIOS_PROTEGIDOS, getRoleAccent, avatarColors, initials } from "../lib/helpers";
 
 /**
@@ -17,16 +16,18 @@ export interface UsuarioCardHandlers {
    *  Lo resuelve useUsuariosData desde el conductor vinculado por `usuario_id`: la
    *  cuenta en sí no guarda documento en la API real. */
   documentoDe: (usuarioId: string) => { tipo: string; numero: string } | null;
+  /** Nombre real del rol (viene de `/api/roles`), no la tabla estática de 3 roles fijos. */
+  nombreDeRolReal: (rolId: number) => string;
   /** Id del único Admin activo que quede (no se puede desactivar), o null si hay más de uno. */
   idUltimoAdminActivo: string | null;
 }
 
 export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): ReactNode {
-  const { onToggleEstado, onEdit, documentoDe, idUltimoAdminActivo } = handlers;
+  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo } = handlers;
   const documento = documentoDe(u.id);
   const protegido = USUARIOS_PROTEGIDOS.includes(u.correo) || u.id === idUltimoAdminActivo;
   const activo = u.estado === "activo";
-  const rolNombre = nombreDeRol(u.rol);
+  const rolNombre = nombreDeRolReal(u.rol);
   const roleStyle = getRoleAccent(rolNombre);
   const [c1, c2] = avatarColors(u.nombre);
   const ini = initials(u.nombre);
@@ -164,7 +165,7 @@ export function renderUsuarioCard(u: Usuario, handlers: UsuarioCardHandlers): Re
 }
 
 export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn<Usuario>[] {
-  const { onToggleEstado, onEdit, documentoDe, idUltimoAdminActivo } = handlers;
+  const { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo } = handlers;
 
   return [
     {
@@ -233,7 +234,7 @@ export function getUsuarioColumns(handlers: UsuarioCardHandlers): DataListColumn
       header: "Rol",
       width: "110px",
       render: (u) => {
-        const rolNombre = nombreDeRol(u.rol);
+        const rolNombre = nombreDeRolReal(u.rol);
         const roleStyle = getRoleAccent(rolNombre);
         return (
           <span

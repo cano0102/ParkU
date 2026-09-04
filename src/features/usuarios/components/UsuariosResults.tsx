@@ -15,6 +15,8 @@ interface UsuariosResultsProps {
   onEdit: (u: Usuario) => void;
   /** Documento del usuario, resuelto desde el conductor vinculado (useUsuariosData). */
   documentoDe: (usuarioId: string) => { tipo: string; numero: string } | null;
+  /** Nombre del rol resuelto contra los roles reales del backend (useUsuariosData). */
+  nombreDeRolReal: (rolId: number) => string;
   onPageChange: (page: number) => void;
   onItemsPerPageChange: (n: number) => void;
   idUltimoAdminActivo: string | null;
@@ -23,7 +25,7 @@ interface UsuariosResultsProps {
 /** Estado vacío, o el grid/lista de usuarios paginado. */
 export function UsuariosResults({
   usuarios, viewMode, currentPage, totalPages, itemsPerPage, totalItems,
-  onToggleEstado, onEdit, documentoDe, onPageChange, onItemsPerPageChange, idUltimoAdminActivo,
+  onToggleEstado, onEdit, documentoDe, nombreDeRolReal, onPageChange, onItemsPerPageChange, idUltimoAdminActivo,
 }: UsuariosResultsProps) {
   if (usuarios.length === 0) {
     return (
@@ -41,7 +43,7 @@ export function UsuariosResults({
     );
   }
 
-  const handlers = { onToggleEstado, onEdit, documentoDe, idUltimoAdminActivo };
+  const handlers = { onToggleEstado, onEdit, documentoDe, nombreDeRolReal, idUltimoAdminActivo };
 
   return (
     <>

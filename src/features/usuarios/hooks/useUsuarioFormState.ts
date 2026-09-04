@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import type { Usuario } from "@/services/api/usuarios";
-import { esRolId, ROLES } from "@/services/core/roles";
+import { ROLES } from "@/services/core/roles";
 import { USUARIOS_PROTEGIDOS, emptyForm, type FormState } from "../lib/helpers";
 import type { UsuariosData } from "./useUsuariosData";
 
@@ -65,11 +65,10 @@ export function useUsuarioFormState(
         return;
       }
 
-      const rolId = Number(form.rol);
-      const payload = {
-        ...form,
-        rol: esRolId(rolId) ? rolId : ROLES.CONDUCTOR,
-      } as Omit<Usuario, "id">;
+      // El rol se guarda tal como se eligió: antes, cualquier rol distinto de los 3 fijos
+      // (uno creado desde la pantalla de Roles) se sustituía por Conductor al guardar, así
+      // que "el rol seleccionado" no se mantenía.
+      const payload = { ...form, rol: Number(form.rol) } as Omit<Usuario, "id">;
 
       // Misma protección que handleToggleEstado, pero para el otro camino que puede dejar
       // al sistema sin Admin: editar el rol o el estado del único Admin activo desde este

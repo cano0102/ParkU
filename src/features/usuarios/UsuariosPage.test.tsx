@@ -52,6 +52,38 @@ describe('Usuarios', () => {
     expect(screen.getAllByText('Sin documento registrado').length).toBeGreaterThan(0);
   });
 
+  it('muestra el nombre real del rol que devuelve la API, no el de la tabla estática', async () => {
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('María Díaz P.').length).toBeGreaterThan(0);
+    });
+
+    // El rol 3 se llama "Comunidad SENA" en el backend; la tabla estática del front lo
+    // llamaba "Conductor".
+    expect(screen.getAllByText('Comunidad SENA').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Desconocido')).not.toBeInTheDocument();
+  });
+
+  it('carga en el filtro todos los roles existentes, incluso uno sin usuarios', async () => {
+    const user = userEvent.setup();
+    renderUsuarios();
+    await waitFor(() => {
+      expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+    });
+
+    const filtroRol = screen.getByLabelText('Filtrar por rol');
+    // "Supervisor" existe en /api/roles pero ningún usuario lo tiene: aun así debe ofrecerse.
+    expect(within(filtroRol).getByRole('option', { name: 'Supervisor' })).toBeInTheDocument();
+    expect(within(filtroRol).getByRole('option', { name: 'Administrador' })).toBeInTheDocument();
+
+    // Y filtrar por rol sigue funcionando (se compara por id, no por nombre).
+    await user.selectOptions(filtroRol, 'Vigilante');
+    await waitFor(() => {
+      expect(screen.queryByText('María Díaz P.')).not.toBeInTheDocument();
+    });
+    expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThan(0);
+  }, 15000);
+
   it('filtra la lista al escribir en el buscador', async () => {
     const user = userEvent.setup();
     renderUsuarios();

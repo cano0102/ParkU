@@ -68,7 +68,7 @@ export function PermisosEditor({ isCreating, isLoading, permisosCatalogo, permis
           El backend no tiene ningún permiso definido en su catálogo todavía.
         </p>
       ) : (
-        <div className="roles-permiso-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, alignItems: "start" }}>
+        <div className="roles-permiso-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 8, alignItems: "start" }}>
           {Array.from(porModulo.entries()).map(([moduloNombre, permisos]) => {
             const on = permisos.filter((p) => permisosAsignadosIds.has(p.id)).length;
             return (

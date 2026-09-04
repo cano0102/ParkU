@@ -18,6 +18,7 @@ export const rolesSeed = [
   { id: 1, nombre: 'Administrador', descripcion: 'Acceso total al sistema', estado: true },
   { id: 2, nombre: 'Vigilante', descripcion: 'Gestión de entradas y salidas', estado: true },
   { id: 3, nombre: 'Comunidad SENA', descripcion: 'Acceso básico', estado: true },
+  { id: 5, nombre: 'Supervisor', descripcion: 'Rol creado desde la pantalla de Roles', estado: true },
 ];
 
 // Catálogo real de permisos (`/api/permisos`) y su asignación por rol

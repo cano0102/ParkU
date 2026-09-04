@@ -17,7 +17,7 @@
  * simplemente se ignora (no hay endpoint real para esa acción).
  */
 import { apiFetch } from '../core/http';
-import { esRolId, ROLES, type RolId } from '../core/roles';
+import type { RolId } from '../core/roles';
 
 export interface Usuario {
   id: string;
@@ -27,7 +27,10 @@ export interface Usuario {
   nombre: string;
   /** Teléfono de contacto de la cuenta (opcional). */
   numero: string;
-  rol: RolId;
+  /** Id del rol tal como lo devuelve la API. No se limita a los 3 roles fijos
+   *  (Admin/Vigilante/Conductor): un Admin puede crear roles nuevos desde la pantalla de
+   *  Roles, y esas cuentas deben conservar SU rol, no caer a uno por defecto. */
+  rol: number;
   estado: 'activo' | 'inactivo';
 }
 
@@ -50,7 +53,9 @@ function toFrontend(u: ApiUsuario): Usuario {
     password: '',
     nombre: u.nombre,
     numero: u.numero_telefonico ?? '',
-    rol: esRolId(u.rol_id) ? u.rol_id : ROLES.CONDUCTOR,
+    // Antes, cualquier rol que no fuera 1/2/3 se convertía silenciosamente en Conductor:
+    // un usuario con un rol creado por el Admin aparecía (y se guardaba) como otro rol.
+    rol: u.rol_id,
     estado: u.estado === 'ACTIVO' ? 'activo' : 'inactivo',
   };
 }

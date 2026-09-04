@@ -7,7 +7,9 @@ interface UsuariosToolbarProps {
   onFilterEstadoChange: (value: "todos" | "activo" | "inactivo") => void;
   filterRol: string;
   onFilterRolChange: (value: string) => void;
-  uniqueRoles: string[];
+  /** TODOS los roles existentes en el backend (no solo los que ya tienen usuarios), para
+   *  que un rol recién creado aparezca en el filtro de inmediato. */
+  roles: { id: string; nombre: string }[];
   viewMode: "grid" | "list";
   onViewModeChange: (mode: "grid" | "list") => void;
   onCreate: () => void;
@@ -16,7 +18,7 @@ interface UsuariosToolbarProps {
 /** Buscador + filtros (estado, rol) + modo de vista + "Nuevo Usuario". */
 export function UsuariosToolbar({
   search, onSearchChange, filterEstado, onFilterEstadoChange, filterRol, onFilterRolChange,
-  uniqueRoles, viewMode, onViewModeChange, onCreate,
+  roles, viewMode, onViewModeChange, onCreate,
 }: UsuariosToolbarProps) {
   return (
     <DataToolbar
@@ -41,7 +43,7 @@ export function UsuariosToolbar({
           ariaLabel: "Filtrar por rol",
           options: [
             { value: "todos", label: "Todos los roles" },
-            ...uniqueRoles.map((r) => ({ value: r, label: r })),
+            ...roles.map((r) => ({ value: r.id, label: r.nombre })),
           ],
         },
       ]}

@@ -101,7 +101,14 @@ export function useUsuariosData() {
 
   const totalActivos = useMemo(() => usuarios.filter((u) => u.estado === "activo").length, [usuarios]);
   const totalInactivos = useMemo(() => usuarios.filter((u) => u.estado === "inactivo").length, [usuarios]);
-  const uniqueRoles = useMemo(() => Array.from(new Set(usuarios.map((u) => nombreDeRol(u.rol)))), [usuarios]);
+  /**
+   * Nombre del rol resuelto contra los roles REALES del backend (`/api/roles`), no contra la
+   * tabla estática de los 3 roles fijos: así un rol creado desde la pantalla de Roles se
+   * muestra con su nombre (antes salía "Desconocido") y un rol renombrado deja de mostrarse
+   * con el nombre viejo. `nombreDeRol` queda solo como respaldo mientras la lista carga.
+   */
+  const nombreDeRolReal = (rolId: number) =>
+    roles.find((r) => r.id === String(rolId))?.nombre ?? nombreDeRol(rolId);
 
   // El sistema siempre debe quedar con al menos un Admin activo — si solo queda uno, ese es
   // el único que no se puede desactivar (evita que el equipo se quede sin nadie que pueda
@@ -112,7 +119,7 @@ export function useUsuariosData() {
   }, [usuarios]);
 
   return {
-    usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, uniqueRoles,
+    usuarios, roles, addUsuario, updateUsuario, totalActivos, totalInactivos, nombreDeRolReal,
     idUltimoAdminActivo, isLoading, documentoDe,
     conductores, conductorDeUsuario, guardarDocumentoDeUsuario,
   };
