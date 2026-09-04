@@ -139,7 +139,7 @@ describe('Roles', () => {
     });
   });
 
-  it('no ofrece permisos para un rol nuevo (todavía no existe en el backend real)', async () => {
+  it('permite marcar permisos al crear un rol nuevo', async () => {
     const user = userEvent.setup();
     renderRoles();
     await waitFor(() => {
@@ -149,12 +149,16 @@ describe('Roles', () => {
     await user.click(screen.getByText('Nuevo Rol'));
     await screen.findByLabelText('Nombre del rol');
 
-    expect(screen.getByText(/todavía no tiene permisos asignados en el backend/)).toBeInTheDocument();
-    // Nada clickeable: es de solo lectura, no un editor.
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    // Un rol nuevo empieza sin permisos marcados, pero se pueden elegir desde ya.
+    const casillas = await screen.findAllByRole('checkbox');
+    expect(casillas.length).toBeGreaterThan(0);
+    expect(casillas.every((c) => !(c as HTMLInputElement).checked)).toBe(true);
+
+    await user.click(casillas[0]);
+    expect((casillas[0] as HTMLInputElement).checked).toBe(true);
   });
 
-  it('muestra los permisos reales del rol (solo lectura) al editar uno existente', async () => {
+  it('precarga los permisos guardados del rol y permite cambiarlos al editar', async () => {
     const user = userEvent.setup();
     renderRoles();
     await waitFor(() => {
@@ -169,13 +173,50 @@ describe('Roles', () => {
     // rolesPermisosSeed (ver appFakeApi.ts) — "configuracion.gestionar" y
     // "parqueaderos.consultar", agrupados por sus módulos reales.
     await waitFor(() => {
-      expect(screen.getByText('2 / 3 asignados')).toBeInTheDocument();
+      expect(screen.getByText('2 / 3 seleccionados')).toBeInTheDocument();
     });
     expect(screen.getByText('configuracion.gestionar')).toBeInTheDocument();
     expect(screen.getByText('Configuración')).toBeInTheDocument();
-    // Nada clickeable: ver el permiso guardado no significa poder cambiarlo desde aquí.
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
-  });
+
+    // Y ahora sí se pueden cambiar: al desmarcar uno, el contador baja.
+    const marcados = screen.getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked);
+    expect(marcados).toHaveLength(2);
+    await user.click(marcados[0]);
+    await waitFor(() => {
+      expect(screen.getByText('1 / 3 seleccionados')).toBeInTheDocument();
+    });
+  }, 15000);
+
+  it('guarda los permisos desmarcados al editar el rol', async () => {
+    const user = userEvent.setup();
+    renderRoles();
+    await waitFor(() => {
+      expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
+    });
+
+    await user.click(screen.getByLabelText('Ver detalle de Administrador'));
+    await user.click(await screen.findByText('Editar este rol'));
+    await screen.findByRole('heading', { level: 2, name: 'Editar Rol' });
+    await waitFor(() => {
+      expect(screen.getByText('2 / 3 seleccionados')).toBeInTheDocument();
+    });
+
+    // Se quita un permiso y se guarda: debe persistirse (DELETE sobre rol_permiso).
+    const marcados = screen.getAllByRole('checkbox').filter((c) => (c as HTMLInputElement).checked);
+    await user.click(marcados[0]);
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { level: 2, name: 'Editar Rol' })).not.toBeInTheDocument();
+    });
+
+    // Al reabrir, el backend ya devuelve solo el permiso que quedó.
+    await user.click(screen.getByLabelText('Ver detalle de Administrador'));
+    await user.click(await screen.findByText('Editar este rol'));
+    await waitFor(() => {
+      expect(screen.getByText('1 / 3 seleccionados')).toBeInTheDocument();
+    });
+  }, 20000);
 
   it('no ofrece el botón Eliminar para un rol protegido (Administrador)', async () => {
     renderRoles();

@@ -58,7 +58,9 @@ export const PASSWORD_MAX = 64;
  * error de validación y la cuenta no llegaba a crearse. Devuelve el mensaje a
  * mostrar, o `null` si la contraseña es válida.
  */
-export const PASSWORD_REQUISITOS = `mín. ${PASSWORD_MIN} caracteres, con mayúscula, minúscula y número`;
+export const PASSWORD_REQUISITOS = `${PASSWORD_MIN}-${PASSWORD_MAX} caracteres`;
+/** Detalle de los requisitos, para mostrar bajo el campo (no cabe bien junto al label). */
+export const PASSWORD_AYUDA = "Debe incluir mayúscula, minúscula y número.";
 
 export const validarPassword = (valor: string): string | null => {
   if (valor.length < PASSWORD_MIN) return `La contraseña debe tener al menos ${PASSWORD_MIN} caracteres`;

@@ -34,7 +34,25 @@ export function usePermisosCatalogo() {
   return useQuery({ queryKey: ['permisos-catalogo'], queryFn: rolesService.getPermisosCatalogo });
 }
 
-/** Ids de los permisos que un rol puntual tiene realmente asignados en `rol_permiso`.
+/**
+ * Guarda el conjunto de permisos de un rol (asigna los nuevos y quita los desmarcados).
+ * Invalida la consulta de ese rol para que el formulario y la tarjeta reflejen lo guardado.
+ */
+export function useGuardarPermisosDeRol() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rolId, permisoIds }: { rolId: string; permisoIds: string[] }) =>
+      rolesService.guardarPermisosDeRol(rolId, permisoIds),
+    onSuccess: (_data, { rolId }) => {
+      queryClient.invalidateQueries({ queryKey: ['permisos-de-rol', rolId] });
+      queryClient.invalidateQueries({ queryKey: ['roles'] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof Error ? error.message : 'No se pudieron guardar los permisos del rol.'),
+  });
+}
+
+/** Permisos que un rol puntual tiene asignados (`permisoId -> idDeLaFila`).
  *  `enabled: !!rolId` porque un rol recién creado (sin id todavía) no tiene nada que consultar. */
 export function usePermisosDeRol(rolId: string | null) {
   return useQuery({

@@ -13,16 +13,12 @@
  * Roles se mantiene sin cambios — solo `nombre/descripcion/estado` viajan
  * de verdad a la API en `create`/`update`.
  *
- * El backend SÍ tiene un modelo `permiso`/`rol_permiso` real (M:N, con
- * catálogo agrupado por módulo) — `getPermisosCatalogo`/`getPermisosDeRol`
- * más abajo lo consultan de solo lectura para `PermisosEditor.tsx`. Pero
- * ningún endpoint lo usa para autorizar nada: las 67 rutas de la API siguen
- * gateadas por `verificarRol([...])` hardcodeado, y el middleware que sí
- * leería `rol_permiso` (`verificarPermiso`) existe pero no está enganchado
- * a ninguna ruta todavía (confirmado leyendo `Api-ParkU/src/middlewares/
- * auth.middleware.js`). Por eso el editor es de solo lectura: lo que
- * muestra ya está guardado de verdad, pero cambiarlo hoy no cambiaría el
- * acceso real de nadie.
+ * El backend tiene un modelo `permiso`/`rol_permiso` real (M:N, con catálogo
+ * agrupado por módulo). `getPermisosCatalogo`/`getPermisosDeRol` lo leen y
+ * `guardarPermisosDeRol` lo escribe, con las rutas que la API expone de verdad:
+ * `POST /roles-permisos` para asignar y `DELETE /roles-permisos/:id` para quitar
+ * (no existe ningún PUT masivo por rol, comprobado contra la API), así que el
+ * guardado se hace por diferencia contra lo que el rol ya tenía.
  */
 import { apiFetch } from '../core/http';
 import { PERMISOS_POR_ROL, PERMISOS_VACIOS, esRolId, type PermisosRol } from '../core/roles';
@@ -126,8 +122,39 @@ interface ApiRolPermiso {
   permiso: number;
 }
 
-/** Ids de los permisos que un rol tiene realmente asignados en `rol_permiso`. */
-export async function getPermisosDeRol(rolId: string): Promise<Set<string>> {
+/**
+ * Permisos que un rol tiene asignados en `rol_permiso`, como mapa
+ * `idDelPermiso -> idDeLaFila`. Hace falta el id de la FILA (no el del permiso) porque
+ * quitar una asignación es `DELETE /roles-permisos/:id` sobre esa fila.
+ */
+export async function getPermisosDeRol(rolId: string): Promise<Map<string, string>> {
   const rows = await apiFetch<ApiRolPermiso[]>(`/roles-permisos/rol/${rolId}`);
-  return new Set(rows.map((r) => String(r.permiso)));
+  return new Map(rows.map((r) => [String(r.permiso), String(r.id)]));
+}
+
+/**
+ * Deja el rol exactamente con los permisos indicados: asigna los que faltan y quita los
+ * que sobran, comparando contra lo que el backend tiene guardado ahora mismo (no contra
+ * lo que la pantalla creía tener, que puede estar desactualizado).
+ *
+ * La API no expone una ruta que reemplace todo el conjunto de una vez, así que se hace
+ * con las dos que sí existen: `POST /roles-permisos` y `DELETE /roles-permisos/:id`.
+ */
+export async function guardarPermisosDeRol(rolId: string, permisoIds: string[]): Promise<void> {
+  const actuales = await getPermisosDeRol(rolId);
+  const deseados = new Set(permisoIds);
+
+  const porAsignar = [...deseados].filter((permisoId) => !actuales.has(permisoId));
+  const porQuitar = [...actuales.entries()].filter(([permisoId]) => !deseados.has(permisoId));
+
+  for (const permisoId of porAsignar) {
+    await apiFetch('/roles-permisos', {
+      method: 'POST',
+      body: { rol: Number(rolId), permiso: Number(permisoId) },
+    });
+  }
+
+  for (const [, rolPermisoId] of porQuitar) {
+    await apiFetch(`/roles-permisos/${rolPermisoId}`, { method: 'DELETE' });
+  }
 }

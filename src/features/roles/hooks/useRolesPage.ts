@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useRoles, useCreateRol, useUpdateRol, useRemoveRol } from "./useRoles";
+import { useRoles, useCreateRol, useUpdateRol, useRemoveRol, useGuardarPermisosDeRol } from "./useRoles";
 import type { Rol } from "@/services/api/roles";
 import { ROLES_PROTEGIDOS, emptyForm, type FormState } from "../lib/helpers";
 import { initialPermisos } from "../lib/permisos";
@@ -19,6 +19,7 @@ export function useRolesPage() {
     [updateRolMutation]
   );
   const removeRol = useCallback((id: string) => removeRolMutation.mutateAsync(id), [removeRolMutation]);
+  const guardarPermisosMutation = useGuardarPermisosDeRol();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -122,21 +123,31 @@ export function useRolesPage() {
   }, [rolAEliminar, removeRol]);
 
   const handleSave = useCallback(
-    async (data: FormState) => {
+    async (data: FormState, permisoIds: string[]) => {
       try {
+        // Al crear hace falta el id que devuelve la API para poder asignarle los permisos:
+        // `rol_permiso` es una tabla aparte y solo se puede escribir con el rol ya existente.
+        let rolId: string;
         if (editingRol) {
           await updateRol(editingRol.id, data);
-          toast.success("Rol actualizado correctamente");
+          rolId = editingRol.id;
         } else {
-          await addRol(data);
-          toast.success("Rol creado correctamente");
+          rolId = (await addRol(data)).id;
         }
+
+        // Los permisos se guardan también al editar: `guardarPermisosDeRol` compara contra
+        // lo que hay en el backend y solo asigna o quita las diferencias.
+        await guardarPermisosMutation.mutateAsync({ rolId, permisoIds });
+
+        toast.success(editingRol ? "Rol actualizado correctamente" : "Rol creado correctamente");
         setDialogOpen(false);
       } catch (error) {
+        // El toast de error lo muestra el manejador centralizado de mutaciones
+        // (services/core/queryFactory.ts) o el propio useGuardarPermisosDeRol.
         console.error("Error saving role:", error);
       }
     },
-    [editingRol, addRol, updateRol]
+    [editingRol, addRol, updateRol, guardarPermisosMutation]
   );
 
   return {

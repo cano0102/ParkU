@@ -1,7 +1,7 @@
 import { Eye as EyeIcon, EyeOff, Info, KeyRound } from "lucide-react";
 import { FormField } from "@/components/shared";
 import {
-  COLORS, PASSWORD_MAX, PASSWORD_REQUISITOS,
+  COLORS, PASSWORD_MAX, PASSWORD_REQUISITOS, PASSWORD_AYUDA,
   inputErrorStyle, inputIconStyle, inputStyle,
 } from "../lib/helpers";
 
@@ -69,6 +69,7 @@ export function CredencialesAccesoFields({
               <button
                 type="button"
                 onClick={onToggleShowPass}
+                tabIndex={-1}
                 style={{
                   position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
                   background: "none", border: "none", cursor: "pointer", color: iconColor, display: "flex", alignItems: "center",
@@ -78,6 +79,11 @@ export function CredencialesAccesoFields({
                 {showPass ? <EyeOff size={14} /> : <EyeIcon size={14} />}
               </button>
             </div>
+            {!passwordError && (
+              <span style={{ fontSize: 10.5, color: COLORS.textLight, lineHeight: 1.4 }}>
+                {PASSWORD_AYUDA}
+              </span>
+            )}
           </FormField>
         )}
 

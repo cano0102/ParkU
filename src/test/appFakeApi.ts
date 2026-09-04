@@ -22,7 +22,8 @@ export const rolesSeed = [
 ];
 
 // Catálogo real de permisos (`/api/permisos`) y su asignación por rol
-// (`/api/roles-permisos`) — de solo lectura en la UI, ver PermisosEditor.tsx.
+// (`/api/roles-permisos`): la UI los edita con POST (asignar) y DELETE (quitar),
+// ver guardarPermisosDeRol en services/api/roles.ts.
 export const permisosSeed = [
   { id: 1, modulo_id: 1, nombre: 'configuracion.gestionar', descripcion: 'Gestionar roles y permisos', estado: true, modulo: { id: 1, nombre: 'Configuración' } },
   { id: 4, modulo_id: 3, nombre: 'parqueaderos.consultar', descripcion: 'Consultar parqueaderos y celdas', estado: true, modulo: { id: 3, nombre: 'Parqueaderos' } },

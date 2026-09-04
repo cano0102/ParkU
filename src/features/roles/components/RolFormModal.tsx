@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { ShieldCheck, X } from "lucide-react";
 import type { Rol } from "@/services/api/roles";
 import { theme } from "@/styles/theme";
@@ -12,7 +12,7 @@ const COLORS = theme;
 
 interface RolFormModalProps {
   initial: FormState;
-  onSave: (data: FormState) => void;
+  onSave: (data: FormState, permisoIds: string[]) => void;
   onCancel: () => void;
   title: string;
   isEditing?: boolean;
@@ -22,12 +22,16 @@ interface RolFormModalProps {
 
 /** Formulario de creación/edición de rol: header, campos básicos, permisos y acciones. */
 export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing = false, existingRoles, editingRolId = null }: RolFormModalProps) => {
-  const {
-    form, setDescripcion, setEstado, nombreErrorVisible, formInvalido,
-    handleNombreChange, markNombreTocado, handleSubmit,
-  } = useRolForm({ initial, onSave, existingRoles, editingRolId });
   const { data: permisosCatalogo = [], isLoading: catalogoLoading } = usePermisosCatalogo();
-  const { data: permisosAsignadosIds = new Set<string>(), isLoading: asignadosLoading } = usePermisosDeRol(editingRolId);
+  const { data: permisosGuardados, isLoading: asignadosLoading } = usePermisosDeRol(editingRolId);
+  // El mapa que devuelve la API es `permisoId -> idDeLaFila`; para la selección basta con
+  // los ids de permiso.
+  const idsGuardados = useMemo(() => new Set(permisosGuardados ? [...permisosGuardados.keys()] : []), [permisosGuardados]);
+  const {
+    form, permisosSeleccionados, togglePermiso, toggleModulo,
+    setDescripcion, setEstado, nombreErrorVisible, formInvalido,
+    handleNombreChange, markNombreTocado, handleSubmit,
+  } = useRolForm({ initial, onSave, existingRoles, editingRolId, permisosGuardados: idsGuardados });
 
   return (
     <form onSubmit={handleSubmit}>
@@ -105,7 +109,9 @@ export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing 
           isCreating={!editingRolId}
           isLoading={catalogoLoading || asignadosLoading}
           permisosCatalogo={permisosCatalogo}
-          permisosAsignadosIds={permisosAsignadosIds}
+          seleccionados={permisosSeleccionados}
+          onToggle={togglePermiso}
+          onToggleModulo={toggleModulo}
         />
       </div>
 
