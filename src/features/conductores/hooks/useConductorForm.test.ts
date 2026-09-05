@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { withQueryClient } from '@/test/queryWrapper';
 import { toast } from 'sonner';
 import type { Conductor } from '@/services/api/conductores';
 import type { Vehiculo } from '@/services/api/vehiculos';
@@ -37,6 +38,7 @@ function buildData(overrides: Partial<ConductoresData> = {}): ConductoresData {
     updateConductor: vi.fn().mockResolvedValue(conductorExistente),
     addVehiculo: vi.fn().mockResolvedValue({ ...vehiculoExistente, id: 'v2' }),
     updateVehiculo: vi.fn().mockResolvedValue(vehiculoExistente),
+    removeVehiculo: vi.fn().mockResolvedValue(undefined),
     agregarPropietario: vi.fn().mockResolvedValue(vehiculoExistente),
     quitarPropietario: vi.fn().mockResolvedValue(vehiculoExistente),
     getUsuario: () => undefined,
@@ -56,11 +58,12 @@ function buildData(overrides: Partial<ConductoresData> = {}): ConductoresData {
 }
 
 /** Completa el formulario con los campos obligatorios restantes, dejando `numeroDocumento`
- *  como lo haya dejado el test — así cada aserción prueba solo esa validación en aislamiento. */
+ *  como lo haya dejado el test — así cada aserción prueba solo esa validación en aislamiento.
+ *  `usuarioId` va puesto porque un conductor necesita cuenta salvo que sea visitante. */
 function llenarCamposObligatorios(result: { current: ReturnType<typeof useConductorForm> }) {
   act(() => result.current.setFormData({
     ...result.current.formData,
-    nombre: 'Nuevo Conductor', tipoUsuarioId: '1',
+    nombre: 'Nuevo Conductor', tipoUsuarioId: '1', usuarioId: '7',
     correo: 'nuevo.conductor@sena.edu.co', numeroTelefonico: '3105559876',
     placa: 'XYZ789', marca: 'Renault', color: 'Azul',
   }));
@@ -71,7 +74,7 @@ afterEach(() => vi.clearAllMocks());
 describe('useConductorForm — validación de numeroDocumento', () => {
   it('rechaza un número de documento ya registrado en otro conductor con el mismo tipo de documento', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -86,7 +89,7 @@ describe('useConductorForm — validación de numeroDocumento', () => {
 
   it('permite el mismo número de documento si el tipo de documento es distinto (p. ej. CC vs. CE)', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -99,7 +102,7 @@ describe('useConductorForm — validación de numeroDocumento', () => {
 
   it('no marca como duplicado el propio documento del conductor que se está editando', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openEdit(conductorExistente, vehiculoExistente));
     // El formulario ya carga con el numeroDocumento del propio conductor — no debería
@@ -112,7 +115,7 @@ describe('useConductorForm — validación de numeroDocumento', () => {
 
   it('rechaza un número de documento con menos de 6 dígitos', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -125,7 +128,7 @@ describe('useConductorForm — validación de numeroDocumento', () => {
 
   it('exige el número de documento', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -137,24 +140,24 @@ describe('useConductorForm — validación de numeroDocumento', () => {
 });
 
 describe('useConductorForm — validación de numeroTelefonico', () => {
-  // El teléfono pasó de opcional a OBLIGATORIO: junto con el correo es el dato con el que el
-  // backend resuelve (o crea) el Usuario asociado al conductor.
-  it('es obligatorio: no deja guardar sin teléfono', async () => {
+  // El teléfono es OPCIONAL, igual que en el resto del sistema: mucha gente no lo da, y
+  // bloquear el alta por eso no protegía nada. Si se escribe, sí tiene que ser válido.
+  it('es opcional: se puede guardar sin teléfono', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
     act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776', numeroTelefonico: '' }));
     await act(async () => result.current.handleSave());
 
-    expect(result.current.formErrors.numeroTelefonico).toBe('El teléfono es obligatorio');
-    expect(data.addConductor).not.toHaveBeenCalled();
+    expect(result.current.formErrors.numeroTelefonico).toBeUndefined();
+    expect(data.addConductor).toHaveBeenCalled();
   });
 
   it('rechaza un teléfono con letras (antes ni siquiera se filtraban las teclas)', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -169,7 +172,7 @@ describe('useConductorForm — validación de numeroTelefonico', () => {
 
   it('rechaza un teléfono con menos de 10 dígitos', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -184,7 +187,7 @@ describe('useConductorForm — validación de numeroTelefonico', () => {
 
   it('acepta un teléfono colombiano válido de 10 dígitos', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -198,16 +201,37 @@ describe('useConductorForm — validación de numeroTelefonico', () => {
   });
 });
 
-describe('useConductorForm — validación de placa (referencia, ya existente)', () => {
-  it('rechaza una placa ya registrada en otro vehículo', async () => {
+describe('useConductorForm — el vehículo solo va en el asistente de parqueo', () => {
+  // En el módulo de Conductores el formulario ya no lleva vehículo (se gestiona desde la
+  // tarjeta), así que su placa no se valida ni se envía. El asistente de Estacionar Vehículo
+  // sí lo incluye: allí la persona está delante con el carro.
+  it('sin la sección de vehículo, la placa no se valida', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
     act(() => result.current.setFormData({
-      ...result.current.formData,
-      nombre: 'Nuevo Conductor', tipoUsuarioId: '1', numeroDocumento: '9998887776',
-      placa: 'ABC123', marca: 'Renault', color: 'Azul',
+      ...result.current.formData, numeroDocumento: '9998887776', placa: 'ABC123',
+    }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.placa).toBeUndefined();
+    expect(data.addConductor).toHaveBeenCalled();
+    expect(data.addVehiculo).not.toHaveBeenCalled();
+  });
+
+  it('con la sección de vehículo, rechaza una placa ya registrada en otro', async () => {
+    const data = buildData();
+    const { result } = renderHook(
+      () => useConductorForm(data, undefined, { conVehiculo: true }),
+      { wrapper: withQueryClient() },
+    );
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', placa: 'ABC123',
     }));
     await act(async () => result.current.handleSave());
 
@@ -217,23 +241,76 @@ describe('useConductorForm — validación de placa (referencia, ya existente)',
   });
 });
 
-describe('useConductorForm — validación de correo', () => {
-  it('es obligatorio: no deja guardar sin correo', async () => {
+describe('useConductorForm — la cuenta de acceso', () => {
+  it('sin cuenta y sin ser visitante, no deja guardar', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
-    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776', correo: '' }));
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', usuarioId: '',
+    }));
     await act(async () => result.current.handleSave());
 
-    expect(result.current.formErrors.correo).toBe('El correo es obligatorio');
+    expect(result.current.formErrors.usuarioId).toContain('cuenta');
+    expect(data.addConductor).not.toHaveBeenCalled();
+  });
+
+  it('con "no tengo usuario" exige contraseña y confirmación', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', usuarioId: '', crearCuenta: true,
+      password: '', confirmPassword: '',
+    }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.password).toBeTruthy();
+    expect(data.addConductor).not.toHaveBeenCalled();
+  });
+
+  it('con contraseña válida, crea la cuenta junto al conductor', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', usuarioId: '', crearCuenta: true,
+      password: 'Prueba1234', confirmPassword: 'Prueba1234',
+    }));
+    await act(async () => result.current.handleSave());
+
+    expect(data.addConductor).toHaveBeenCalledWith(
+      expect.objectContaining({ modoCuenta: 'crear', password: 'Prueba1234' }),
+    );
+  });
+});
+
+describe('useConductorForm — validación de correo', () => {
+  it('es obligatorio solo para CREAR la cuenta', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
+
+    act(() => result.current.openCreate());
+    llenarCamposObligatorios(result);
+    act(() => result.current.setFormData({
+      ...result.current.formData, numeroDocumento: '9998887776', correo: '',
+      usuarioId: '', crearCuenta: true, password: 'Prueba1234', confirmPassword: 'Prueba1234',
+    }));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.formErrors.correo).toBe('El correo es obligatorio para crear la cuenta');
     expect(data.addConductor).not.toHaveBeenCalled();
   });
 
   it('rechaza un correo con formato inválido', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -246,7 +323,7 @@ describe('useConductorForm — validación de correo', () => {
 
   it('acepta un correo válido y guarda', async () => {
     const data = buildData();
-    const { result } = renderHook(() => useConductorForm(data));
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);

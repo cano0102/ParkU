@@ -9,6 +9,11 @@ interface VehiculoAsociadoFieldsProps {
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
   marcaError?: string;
+  /** Línea del vehículo ("Spark GT", "Boxer 150"). Columna real de `vehiculo`. */
+  linea: string;
+  /** Año del modelo: en Colombia el "modelo" de un vehículo ES su año. */
+  modelo: string;
+  modeloError?: string;
   color: string;
   colorError?: string;
   descripcionVehiculo: string;
@@ -17,15 +22,19 @@ interface VehiculoAsociadoFieldsProps {
   onTipoVehiculoChange: (tipo: Vehiculo["tipo"]) => void;
   onMarcaChange: (value: string) => void;
   onMarcaBlur: () => void;
+  onLineaChange: (value: string) => void;
+  onModeloChange: (value: string) => void;
+  onModeloBlur: () => void;
   onColorChange: (value: string) => void;
   onColorBlur: () => void;
   onDescripcionChange: (value: string) => void;
 }
 
-/** Sección "Vehículo asociado": placa, tipo, marca, color y descripción. */
+/** Sección "Vehículo asociado": placa, tipo, marca, línea, modelo (año), color y descripción. */
 export function VehiculoAsociadoFields({
-  placa, placaError, tipoVehiculo, marca, marcaError, color, colorError, descripcionVehiculo,
-  onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onMarcaBlur, onColorChange, onColorBlur, onDescripcionChange,
+  placa, placaError, tipoVehiculo, marca, marcaError, linea, modelo, modeloError, color, colorError, descripcionVehiculo,
+  onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onMarcaBlur,
+  onLineaChange, onModeloChange, onModeloBlur, onColorChange, onColorBlur, onDescripcionChange,
 }: VehiculoAsociadoFieldsProps) {
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
@@ -84,6 +93,30 @@ export function VehiculoAsociadoFields({
             onChange={(e) => onMarcaChange(e.target.value)}
             onBlur={onMarcaBlur}
             style={inputStyle}
+          />
+        </FormField>
+
+        <FormField label="Línea (opcional)">
+          <input
+            type="text"
+            placeholder="ej. Spark GT"
+            value={linea}
+            onChange={(e) => onLineaChange(e.target.value)}
+            style={inputStyle}
+          />
+        </FormField>
+
+        <FormField label="Modelo (año, opcional)" error={modeloError}>
+          <input
+            type="text"
+            inputMode="numeric"
+            placeholder="ej. 2020"
+            value={modelo}
+            /* Solo dígitos y cuatro como mucho: es un año, no un texto libre. */
+            onChange={(e) => onModeloChange(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            onBlur={onModeloBlur}
+            maxLength={4}
+            style={{ ...inputStyle, ...(modeloError ? { border: "1px solid #FCA5A5", background: "#FEF2F2" } : {}) }}
           />
         </FormField>
 

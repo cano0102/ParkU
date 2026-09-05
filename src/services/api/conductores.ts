@@ -9,9 +9,19 @@
  */
 import { apiFetch } from '../core/http';
 
+/** Cómo resolver la cuenta de acceso al CREAR un conductor. Lo elige el formulario:
+ *  - 'vincular'  : usa la cuenta que ya existe (usuarioId).
+ *  - 'crear'     : el "no tengo usuario" -- la crea con correo + contraseña.
+ *  - 'sin_cuenta': solo para visitantes; el backend rechaza el resto. */
+export type ModoCuenta = 'vincular' | 'crear' | 'sin_cuenta';
+
 export interface Conductor {
   id: string;
   usuarioId: string;
+  /** Solo de ida, al crear. No vuelve en las lecturas. */
+  modoCuenta?: ModoCuenta;
+  password?: string;
+  confirmPassword?: string;
   tipoDocumento: 'CC' | 'CE' | 'TI' | 'PASAPORTE' | 'PEP' | 'NIT';
   numeroDocumento: string;
   nombre: string;
@@ -83,10 +93,22 @@ function toApiPayload(data: Partial<Omit<Conductor, 'id'>>): Record<string, unkn
   if (data.direccion !== undefined) payload.direccion = data.direccion || null;
   if (data.numeroTelefonico !== undefined) payload.numero_telefonico = data.numeroTelefonico || null;
   if (data.tipoUsuarioId !== undefined) payload.tipo_usuario_id = Number(data.tipoUsuarioId);
-  if (data.regionalFormacion !== undefined) payload.regional_formacion = data.regionalFormacion || null;
-  if (data.centroFormacion !== undefined) payload.centro_formacion = data.centroFormacion || null;
-  if (data.programaFormacion !== undefined) payload.programa_formacion = data.programaFormacion || null;
+  // regional/centro/programa de formación salieron de los formularios: el backend los ignora
+  // desde el módulo 3, y seguir enviándolos solo servía para borrar lo que hubiera guardado.
   if (data.vigencia !== undefined) payload.vigencia = data.vigencia || null;
+
+  // Modo de cuenta (solo al crear). El backend decide con estas banderas si vincula la que
+  // llega en usuario_id, crea una nueva, o deja al conductor sin cuenta -- esto último solo
+  // se lo admite a los visitantes.
+  if (data.modoCuenta === 'crear') {
+    payload.crear_cuenta = true;
+    payload.contrasena = data.password;
+    payload.confirmar_contrasena = data.confirmPassword;
+    delete payload.usuario_id;
+  } else if (data.modoCuenta === 'sin_cuenta') {
+    payload.sin_cuenta = true;
+    delete payload.usuario_id;
+  }
   if (data.movilidadReducida !== undefined) payload.movilidad_reducida = data.movilidadReducida;
   if (data.tipoDiscapacidad !== undefined) payload.tipo_discapacidad = data.tipoDiscapacidad || null;
   if (data.estado !== undefined) payload.estado = data.estado === 'activo';

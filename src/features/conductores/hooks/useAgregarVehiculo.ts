@@ -11,11 +11,17 @@ interface AgregarVehiculoForm {
   placa: string;
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
+  /** Línea del vehículo. Columna real de `vehiculo`, hasta ahora nunca se pedía. */
+  linea: string;
+  /** Año del modelo: en Colombia el "modelo" de un vehículo ES su año. */
+  modelo: string;
   color: string;
   descripcionVehiculo: string;
 }
 
-const emptyForm = (): AgregarVehiculoForm => ({ placa: "", tipoVehiculo: "carro", marca: "", color: "", descripcionVehiculo: "" });
+const emptyForm = (): AgregarVehiculoForm => ({
+  placa: "", tipoVehiculo: "carro", marca: "", linea: "", modelo: "", color: "", descripcionVehiculo: "",
+});
 
 export type ModoAgregarVehiculo = "nuevo" | "existente";
 
@@ -64,6 +70,7 @@ export function useAgregarVehiculo(
   interface AgregarVehiculoErrors {
     placa?: string;
     marca?: string;
+    modelo?: string;
     color?: string;
   }
 
@@ -83,6 +90,14 @@ export function useAgregarVehiculo(
 
     if (!f.marca.trim()) errores.marca = "La marca es obligatoria";
     if (!f.color.trim()) errores.color = "El color es obligatorio";
+    const modelo = f.modelo.trim();
+    if (modelo) {
+      const anio = Number(modelo);
+      const anioMaximo = new Date().getFullYear() + 1;
+      if (!Number.isInteger(anio) || anio < 1950 || anio > anioMaximo) {
+        errores.modelo = `El modelo es el año del vehículo: entre 1950 y ${anioMaximo}`;
+      }
+    }
 
     return errores;
   }, [placasOcupadas]);
@@ -132,8 +147,8 @@ export function useAgregarVehiculo(
         placa: form.placa.trim().toUpperCase(),
         tipo: form.tipoVehiculo,
         marca: form.marca.trim(),
-        linea: "",
-        modelo: null,
+        linea: form.linea.trim(),
+        modelo: form.modelo ? Number(form.modelo) : null,
         color: form.color.trim(),
         descripcion: form.descripcionVehiculo.trim(),
         estado: "activo",

@@ -73,17 +73,19 @@ export const inputErrorStyle: React.CSSProperties = {
 };
 
 export interface FormState {
-  /** Cuenta de acceso vinculada (opcional). */
+  /** Cuenta de acceso vinculada. Obligatoria salvo que el tipo de usuario sea Visitante:
+   *  sin ella la persona no puede consultar sus reservas ni sus vehículos. */
   usuarioId: string;
+  /** El "no tengo usuario": en vez de buscar una cuenta, se crea con estos dos campos. */
+  crearCuenta: boolean;
+  password: string;
+  confirmPassword: string;
   nombre: string;
   tipoDocumento: (typeof TIPOS_DOCUMENTO)[number];
   numeroDocumento: string;
   correo: string;
   numeroTelefonico: string;
   tipoUsuarioId: string;
-  regionalFormacion: string;
-  centroFormacion: string;
-  programaFormacion: string;
   movilidadReducida: boolean;
   tipoDiscapacidad: string;
   estado: "activo" | "inactivo";
@@ -94,21 +96,25 @@ export interface FormState {
   placa: string;
   tipoVehiculo: Vehiculo["tipo"];
   marca: string;
+  /** Línea del vehículo ("Logan", "Boxer 150"…). Columna real de `vehiculo`. */
+  linea: string;
+  /** Año del modelo. En Colombia el "modelo" de un vehículo ES su año. */
+  modelo: string;
   color: string;
   descripcionVehiculo: string;
 }
 
 export const emptyForm = (): FormState => ({
   usuarioId: "",
+  crearCuenta: false,
+  password: "",
+  confirmPassword: "",
   nombre: "",
   tipoDocumento: "CC",
   numeroDocumento: "",
   correo: "",
   numeroTelefonico: "",
   tipoUsuarioId: "",
-  regionalFormacion: "",
-  centroFormacion: "",
-  programaFormacion: "",
   movilidadReducida: false,
   tipoDiscapacidad: "",
   estado: "activo",
@@ -116,6 +122,8 @@ export const emptyForm = (): FormState => ({
   placa: "",
   tipoVehiculo: "carro",
   marca: "",
+  linea: "",
+  modelo: "",
   color: "",
   descripcionVehiculo: "",
 });
@@ -126,7 +134,16 @@ export interface FormErrors {
   correo?: string;
   numeroTelefonico?: string;
   tipoUsuarioId?: string;
+  /** Falta decidir la cuenta: ni se seleccionó una ni se marcó "no tengo usuario". */
+  usuarioId?: string;
+  password?: string;
+  confirmPassword?: string;
   placa?: string;
   marca?: string;
+  modelo?: string;
   color?: string;
 }
+
+/** Nombre del tipo de usuario que puede ir sin cuenta de acceso. Se compara por nombre, no
+ *  por id: el catálogo es una tabla del backend y sus ids pueden variar. */
+export const TIPO_VISITANTE = "visitante";

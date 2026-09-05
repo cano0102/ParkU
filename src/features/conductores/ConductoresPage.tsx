@@ -10,6 +10,7 @@ import { StatsPanel } from "@/components/data";
 import { ConductorFormModal } from "./components/ConductorFormModal";
 import { ConductorDetailModal } from "./components/ConductorDetailModal";
 import { VehiculoView } from "./components/VehiculoView";
+import { VehiculoFormModal } from "./components/VehiculoFormModal";
 import { AgregarVehiculoModal } from "./components/AgregarVehiculoModal";
 import { ConductoresToolbar } from "./components/ConductoresToolbar";
 import { ConductoresResults } from "./components/ConductoresResults";
@@ -19,6 +20,10 @@ import { useConductoresPage } from "./hooks/useConductoresPage";
 export function Conductores() {
   const { data, filters: f, form, agregarVehiculo, viewVehiculoOpen, setViewVehiculoOpen, viewDetailOpen, setViewDetailOpen,
     viewingVehiculo, viewingConductor, openVehiculoView, openConductorDetail, handleToggleEstado,
+    vehiculoEditando, vehiculoForm, setVehiculoForm, vehiculoTouched, erroresVehiculo,
+    abrirEditarVehiculo, guardarVehiculo, cerrarEditarVehiculo,
+    vehiculoAEliminar, setVehiculoAEliminar, confirmEliminarVehiculo,
+    conductorSinCuenta, setConductorSinCuenta, vincularCuentaYActivar,
     confirmQuitarCopropietario, setConfirmQuitarCopropietario, solicitarQuitarPropietario, confirmQuitarCopropietarioAction,
   } = useConductoresPage();
 
@@ -116,6 +121,11 @@ export function Conductores() {
                 form.openEdit(conductor, viewingVehiculo);
               }
             }}
+            onEditarVehiculo={() => {
+              setViewVehiculoOpen(false);
+              abrirEditarVehiculo(viewingVehiculo);
+            }}
+            onEliminarVehiculo={() => setVehiculoAEliminar(viewingVehiculo)}
             onClose={() => setViewVehiculoOpen(false)}
             onQuitarPropietario={(conductorId, conductorNombre) =>
               solicitarQuitarPropietario(viewingVehiculo, conductorId, conductorNombre)
@@ -123,6 +133,42 @@ export function Conductores() {
           />
         )}
       </Modal>
+
+      {/* Editar el vehículo: es la vía para corregir placa, marca, línea o modelo, ya que el
+          formulario del conductor ya no incluye vehículo. */}
+      <Modal open={!!vehiculoEditando} onClose={cerrarEditarVehiculo} maxWidth={560}>
+        {vehiculoForm && (
+          <VehiculoFormModal
+            form={vehiculoForm}
+            errors={erroresVehiculo}
+            touched={vehiculoTouched}
+            isValid={Object.keys(erroresVehiculo).length === 0}
+            onChange={(patch) => setVehiculoForm({ ...vehiculoForm, ...patch })}
+            onMarkTouched={() => { /* marcado al enviar; el aviso llega ahí */ }}
+            onSubmit={guardarVehiculo}
+            onCancel={cerrarEditarVehiculo}
+          />
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={!!vehiculoAEliminar}
+        onConfirm={confirmEliminarVehiculo}
+        onCancel={() => setVehiculoAEliminar(null)}
+        title="Eliminar vehículo"
+        message={`¿Eliminar el vehículo ${vehiculoAEliminar?.placa ?? ""}? Se borra de la base de datos. Solo es posible si no tiene entradas, salidas, parqueos, novedades ni reservas registradas; sus dueños no se ven afectados.`}
+        confirmLabel="Eliminar"
+      />
+
+      {/* Reactivar a alguien cuya cuenta fue eliminada: primero hay que darle otra. */}
+      <ConfirmDialog
+        open={!!conductorSinCuenta}
+        onConfirm={vincularCuentaYActivar}
+        onCancel={() => setConductorSinCuenta(null)}
+        title="Este conductor se quedó sin cuenta"
+        message={`La cuenta de acceso de ${conductorSinCuenta?.nombre ?? ""} fue eliminada, por eso quedó desactivado. Para volver a activarlo hay que vincularle otra cuenta. ¿Abrir su ficha para hacerlo ahora?`}
+        confirmLabel="Vincular una cuenta"
+      />
 
       {/* Modal de detalle de conductor */}
       <Modal open={viewDetailOpen} onClose={() => setViewDetailOpen(false)} maxWidth={450}>
@@ -159,6 +205,8 @@ export function Conductores() {
             placa={agregarVehiculo.form.placa}
             tipoVehiculo={agregarVehiculo.form.tipoVehiculo}
             marca={agregarVehiculo.form.marca}
+            linea={agregarVehiculo.form.linea}
+            modelo={agregarVehiculo.form.modelo}
             color={agregarVehiculo.form.color}
             descripcionVehiculo={agregarVehiculo.form.descripcionVehiculo}
             errors={agregarVehiculo.errors}
@@ -166,6 +214,8 @@ export function Conductores() {
             onPlacaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, placa: v })}
             onTipoVehiculoChange={(tipo) => agregarVehiculo.setForm({ ...agregarVehiculo.form, tipoVehiculo: tipo })}
             onMarcaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, marca: v })}
+            onLineaChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, linea: v })}
+            onModeloChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, modelo: v })}
             onColorChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, color: v })}
             onDescripcionChange={(v) => agregarVehiculo.setForm({ ...agregarVehiculo.form, descripcionVehiculo: v })}
             onMarkTouched={agregarVehiculo.markTouched}

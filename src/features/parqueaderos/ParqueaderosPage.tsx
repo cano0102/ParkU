@@ -169,7 +169,12 @@ export default function Parqueaderos() {
         <ConductorFormModal
           /* Alta rápida desde portería: sin centro de formación ni regional — esos campos
              siguen disponibles en el módulo Conductores, que es donde se completan. */
-          mostrarFormacion={false}
+          /* El asistente de parqueo registra al conductor CON su vehículo en el mismo
+             formulario: la persona está delante con el carro y partir el trámite en dos
+             pantallas costaría más que el paso extra. En el módulo de Conductores el
+             vehículo se gestiona desde su tarjeta. */
+          conVehiculo
+          esVisitante={conductorForm.esVisitante}
           isEdit={false}
           formData={conductorForm.formData}
           setFormData={conductorForm.setFormData}
@@ -196,6 +201,8 @@ export default function Parqueaderos() {
             placa={agregarVehiculo.form.placa}
             tipoVehiculo={agregarVehiculo.form.tipoVehiculo}
             marca={agregarVehiculo.form.marca}
+            linea={agregarVehiculo.form.linea}
+            modelo={agregarVehiculo.form.modelo}
             color={agregarVehiculo.form.color}
             descripcionVehiculo={agregarVehiculo.form.descripcionVehiculo}
             errors={agregarVehiculo.errors}
@@ -203,6 +210,8 @@ export default function Parqueaderos() {
             onPlacaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, placa: v }))}
             onTipoVehiculoChange={(tipo) => agregarVehiculo.setForm((f) => ({ ...f, tipoVehiculo: tipo }))}
             onMarcaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, marca: v }))}
+            onLineaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, linea: v }))}
+            onModeloChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, modelo: v }))}
             onColorChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, color: v }))}
             onDescripcionChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, descripcionVehiculo: v }))}
             onMarkTouched={agregarVehiculo.markTouched}

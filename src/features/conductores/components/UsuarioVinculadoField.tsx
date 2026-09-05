@@ -4,6 +4,7 @@ import {
   IconShield as Shield,
   IconShieldCheck as ShieldCheck,
   IconUserCheck as UserCheck,
+  IconPassword as KeyRound,
   IconX as X,
 } from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
@@ -14,6 +15,20 @@ import { COLORS, getAvatarGradient, getInitials, inputStyle } from "../lib/helpe
 
 interface UsuarioVinculadoFieldProps {
   error?: string;
+  /** Un visitante puede quedarse sin cuenta; el resto no. Cambia la etiqueta y la ayuda. */
+  esVisitante?: boolean;
+  /** Ofrece el "No tengo usuario". Se apaga al editar: crear una cuenta desde la edición de
+   *  un conductor no está contemplado, ahí solo se cambia a cuál está vinculado. */
+  permitirCrearCuenta?: boolean;
+  crearCuenta?: boolean;
+  password?: string;
+  confirmPassword?: string;
+  passwordError?: string;
+  confirmPasswordError?: string;
+  onCrearCuentaChange?: (valor: boolean) => void;
+  onPasswordChange?: (valor: string) => void;
+  onConfirmPasswordChange?: (valor: string) => void;
+  onPasswordBlur?: () => void;
   usuarioSearch: string;
   onUsuarioSearchChange: (value: string) => void;
   usuariosFiltrados: Usuario[];
@@ -28,7 +43,10 @@ interface UsuarioVinculadoFieldProps {
 
 /** Buscador + lista de usuarios para vincular al conductor, con vista previa del seleccionado. */
 export function UsuarioVinculadoField({
-  error, usuarioSearch, onUsuarioSearchChange, usuariosFiltrados, usuariosConConductorIds,
+  error, esVisitante = false, permitirCrearCuenta = true,
+  crearCuenta = false, password = "", confirmPassword = "", passwordError, confirmPasswordError,
+  onCrearCuentaChange, onPasswordChange, onConfirmPasswordChange, onPasswordBlur,
+  usuarioSearch, onUsuarioSearchChange, usuariosFiltrados, usuariosConConductorIds,
   usuarioIdSeleccionado, usuarioSeleccionado, onSelectUsuario, onQuitarUsuario,
 }: UsuarioVinculadoFieldProps) {
   // Nombre real del rol de la cuenta (`/api/roles`), no la tabla estática de 3 roles fijos.
@@ -36,7 +54,69 @@ export function UsuarioVinculadoField({
   const nombreRol = (rolId: number) => roles.find((r) => r.id === String(rolId))?.nombre ?? nombreDeRol(rolId);
 
   return (
-    <FormField label="Cuenta de acceso vinculada (opcional)" error={error}>
+    <FormField
+      label={esVisitante ? "Cuenta de acceso vinculada (opcional para visitantes)" : "Cuenta de acceso vinculada *"}
+      error={error}
+    >
+      {permitirCrearCuenta && (
+        <label
+          style={{
+            display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8, padding: "9px 11px",
+            borderRadius: 10, border: `1px solid ${crearCuenta ? COLORS.primary : COLORS.border}`,
+            background: crearCuenta ? "rgba(57,169,0,.06)" : "#fff", cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={crearCuenta}
+            aria-label="No tengo usuario"
+            onChange={(e) => onCrearCuentaChange?.(e.target.checked)}
+            style={{ marginTop: 2, accentColor: COLORS.primary, cursor: "pointer" }}
+          />
+          <span style={{ minWidth: 0 }}>
+            <span style={{ display: "block", fontSize: 12, fontWeight: 700, color: COLORS.text }}>
+              No tengo usuario
+            </span>
+            <span style={{ display: "block", fontSize: 10.5, color: COLORS.textLight, lineHeight: 1.5 }}>
+              Se crea la cuenta con el correo de arriba y queda vinculada a este conductor.
+            </span>
+          </span>
+        </label>
+      )}
+
+      {crearCuenta ? (
+        <div className="cf-modal-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))", gap: 10 }}>
+          <FormField label="Contraseña *" error={passwordError}>
+            <div style={{ position: "relative" }}>
+              <KeyRound size={13} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: COLORS.textLight }} />
+              <input
+                type="password"
+                placeholder="••••••••"
+                aria-label="Contraseña"
+                value={password}
+                onChange={(e) => onPasswordChange?.(e.target.value)}
+                onBlur={onPasswordBlur}
+                style={{ ...inputStyle, paddingLeft: 34, ...(passwordError ? { border: "1px solid #FCA5A5", background: "#FEF2F2" } : {}) }}
+              />
+            </div>
+          </FormField>
+          <FormField label="Confirmar contraseña *" error={confirmPasswordError}>
+            <div style={{ position: "relative" }}>
+              <KeyRound size={13} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: COLORS.textLight }} />
+              <input
+                type="password"
+                placeholder="Repite la contraseña"
+                aria-label="Confirmar contraseña"
+                value={confirmPassword}
+                onChange={(e) => onConfirmPasswordChange?.(e.target.value)}
+                onBlur={onPasswordBlur}
+                style={{ ...inputStyle, paddingLeft: 34, ...(confirmPasswordError ? { border: "1px solid #FCA5A5", background: "#FEF2F2" } : {}) }}
+              />
+            </div>
+          </FormField>
+        </div>
+      ) : (
+      <>
       <input
         type="text"
         placeholder="Buscar por nombre o correo..."
@@ -149,7 +229,8 @@ export function UsuarioVinculadoField({
           </div>
         </div>
       )}
-
+      </>
+      )}
     </FormField>
   );
 }

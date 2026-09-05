@@ -12,13 +12,17 @@ interface AgregarVehiculoModalProps {
   placa: string;
   tipoVehiculo: "carro" | "moto" | "bicicleta" | "camion" | "bus";
   marca: string;
+  linea: string;
+  modelo: string;
   color: string;
   descripcionVehiculo: string;
-  errors: { placa?: string; marca?: string; color?: string };
+  errors: { placa?: string; marca?: string; modelo?: string; color?: string };
   touched: boolean;
   onPlacaChange: (v: string) => void;
   onTipoVehiculoChange: (tipo: AgregarVehiculoModalProps["tipoVehiculo"]) => void;
   onMarcaChange: (v: string) => void;
+  onLineaChange: (v: string) => void;
+  onModeloChange: (v: string) => void;
   onColorChange: (v: string) => void;
   onDescripcionChange: (v: string) => void;
   onMarkTouched: () => void;
@@ -34,8 +38,8 @@ interface AgregarVehiculoModalProps {
 /** Agregar un vehículo a un conductor que ya existe: uno NUEVO, o vincular uno YA EXISTENTE
  *  (de otro conductor) como copropietario — un vehículo puede tener más de un dueño. */
 export function AgregarVehiculoModal({
-  conductor, modo, onModoChange, placa, tipoVehiculo, marca, color, descripcionVehiculo, errors, touched,
-  onPlacaChange, onTipoVehiculoChange, onMarcaChange, onColorChange, onDescripcionChange, onMarkTouched,
+  conductor, modo, onModoChange, placa, tipoVehiculo, marca, linea, modelo, color, descripcionVehiculo, errors, touched,
+  onPlacaChange, onTipoVehiculoChange, onMarcaChange, onLineaChange, onModeloChange, onColorChange, onDescripcionChange, onMarkTouched,
   busquedaExistente, onBusquedaExistenteChange, vehiculoExistenteId, onVehiculoExistenteIdChange, vehiculosVinculables,
   onSubmit, onCancel,
 }: AgregarVehiculoModalProps) {
@@ -83,6 +87,9 @@ export function AgregarVehiculoModal({
             tipoVehiculo={tipoVehiculo}
             marca={marca}
             marcaError={touched ? errors.marca : undefined}
+            linea={linea}
+            modelo={modelo}
+            modeloError={touched ? errors.modelo : undefined}
             color={color}
             colorError={touched ? errors.color : undefined}
             descripcionVehiculo={descripcionVehiculo}
@@ -91,6 +98,9 @@ export function AgregarVehiculoModal({
             onTipoVehiculoChange={onTipoVehiculoChange}
             onMarcaChange={onMarcaChange}
             onMarcaBlur={onMarkTouched}
+            onLineaChange={onLineaChange}
+            onModeloChange={onModeloChange}
+            onModeloBlur={onMarkTouched}
             onColorChange={onColorChange}
             onColorBlur={onMarkTouched}
             onDescripcionChange={onDescripcionChange}

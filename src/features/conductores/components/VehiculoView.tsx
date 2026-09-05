@@ -8,20 +8,30 @@ import {
   IconUsers as Users,
   IconUserMinus as UserMinus,
   IconCrown as Crown,
+  IconTrash as Trash,
+  IconUserCog as UserCog,
 } from "@tabler/icons-react";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS, getTipoVehiculoStyle } from "../lib/helpers";
 
 interface VehiculoViewProps {
   vehiculo: Vehiculo;
+  /** Abre la ficha del CONDUCTOR dueño. */
   onEdit: () => void;
+  /** Edita este vehículo. Es la vía para cambiar su placa, marca, línea o modelo: el
+   *  formulario del conductor ya no los lleva. */
+  onEditarVehiculo?: () => void;
+  /** Borra este vehículo. El backend lo rechaza si tiene operaciones registradas. */
+  onEliminarVehiculo?: () => void;
   onClose: () => void;
   /** Desvincula a un copropietario (no al principal — el backend no lo permite). Ausente en
    *  llamadores que no necesitan esta acción (p. ej. una vista de solo lectura). */
   onQuitarPropietario?: (conductorId: string, conductorNombre: string) => void;
 }
 
-export const VehiculoView = memo(({ vehiculo, onEdit, onClose, onQuitarPropietario }: VehiculoViewProps) => {
+export const VehiculoView = memo(({
+  vehiculo, onEdit, onEditarVehiculo, onEliminarVehiculo, onClose, onQuitarPropietario,
+}: VehiculoViewProps) => {
   const tipoStyle = getTipoVehiculoStyle(vehiculo.tipo);
   const TipoIcon = tipoStyle.icon;
   // El backend ya resuelve todos los conductores vinculados (principal + copropietarios) en el
@@ -236,29 +246,51 @@ export const VehiculoView = memo(({ vehiculo, onEdit, onClose, onQuitarPropietar
           </div>
         )}
 
+        {/* El vehículo se gestiona desde su propia tarjeta: el formulario del conductor ya
+            no lo incluye. "Editar conductor" sigue a mano por si se llegó aquí buscando a la
+            persona. */}
+        <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
+          <button
+            onClick={onEditarVehiculo}
+            disabled={!onEditarVehiculo}
+            style={{
+              flex: 1, padding: "12px 16px", borderRadius: 12, border: "none",
+              background: tipoStyle.dot, color: "#fff", fontSize: 13, fontWeight: 800,
+              cursor: onEditarVehiculo ? "pointer" : "not-allowed", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              boxShadow: `0 6px 18px ${tipoStyle.dot}33`,
+            }}
+          >
+            <Pencil size={14} />
+            Editar vehículo
+          </button>
+          {onEliminarVehiculo && (
+            <button
+              onClick={onEliminarVehiculo}
+              aria-label={`Eliminar vehículo ${vehiculo.placa}`}
+              title="Eliminar este vehículo"
+              style={{
+                width: 46, borderRadius: 12, border: "1px solid #FECACA",
+                background: "#FEF2F2", color: "#B91C1C", cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <Trash size={15} />
+            </button>
+          )}
+        </div>
+
         <button
           onClick={onEdit}
           style={{
-            marginTop: 12,
-            width: "100%",
-            padding: "12px 20px",
-            borderRadius: 12,
-            border: "none",
-            background: tipoStyle.dot,
-            color: "#fff",
-            fontSize: 13,
-            fontWeight: 800,
-            cursor: "pointer",
-            fontFamily: "inherit",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 8,
-            boxShadow: `0 6px 18px ${tipoStyle.dot}33`,
+            marginTop: 8, width: "100%", padding: "10px 20px", borderRadius: 12,
+            border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.textLight,
+            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
           }}
         >
-          <Pencil size={14} />
-          Editar Conductor
+          <UserCog size={14} />
+          Ver conductor
         </button>
       </div>
     </div>

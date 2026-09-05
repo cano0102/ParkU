@@ -111,7 +111,7 @@ describe("features/conductores", () => {
 
     // Y el correo pasa a ser de solo lectura: se gestiona desde la cuenta, no aquí.
     expect(correo.readOnly).toBe(true);
-    expect(within(dialog).getByText("Correo * (de la cuenta vinculada)")).toBeInTheDocument();
+    expect(within(dialog).getByText("Correo (de la cuenta vinculada)")).toBeInTheDocument();
 
     // Al quitar la vinculación vuelve a editarse, sin perder el resto del formulario.
     await user.click(within(dialog).getByLabelText("Quitar la cuenta vinculada"));
@@ -129,7 +129,12 @@ describe("features/conductores", () => {
     const dialog = await screen.findByRole("dialog");
     expect(within(dialog).getByText("Nuevo Conductor")).toBeInTheDocument();
     expect(within(dialog).getByPlaceholderText("Buscar por nombre o correo...")).toBeInTheDocument();
-    expect(within(dialog).getByPlaceholderText("Ej: ABC123")).toBeInTheDocument();
+    // El tipo de usuario va primero: de él depende si hace falta cuenta de acceso.
+    expect(within(dialog).getByLabelText("Tipo de usuario")).toBeInTheDocument();
+    // Y se puede crear la cuenta desde aquí mismo.
+    expect(within(dialog).getByLabelText("No tengo usuario")).toBeInTheDocument();
+    // El vehículo ya NO se registra desde aquí: se gestiona desde su propia tarjeta.
+    expect(within(dialog).queryByPlaceholderText("Ej: ABC123")).not.toBeInTheDocument();
   });
 
   it("vincular un vehículo existente como copropietario lo muestra en la tarjeta del nuevo conductor", async () => {

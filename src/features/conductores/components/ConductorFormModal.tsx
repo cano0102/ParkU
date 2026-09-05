@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { IconSparkles as Sparkles } from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { EntityFormModal } from "@/components/data";
-import { AvatarUploader } from "@/components/shared";
+import { AvatarUploader, ConfirmDialog } from "@/components/shared";
 import { COLORS, FormState, FormErrors } from "../lib/helpers";
+import { TipoUsuarioField } from "./TipoUsuarioField";
 import { UsuarioVinculadoField } from "./UsuarioVinculadoField";
 import { DatosConductorFields } from "./DatosConductorFields";
 import { DiscapacidadFields } from "./DiscapacidadFields";
@@ -21,8 +23,13 @@ interface ConductorFormModalProps {
   usuariosFiltrados: Usuario[];
   usuariosConConductorIds: Set<string>;
   usuarioSeleccionado: Usuario | undefined;
-  /** Ver DatosConductorFields: se apaga en el alta rápida desde el panel de Parqueaderos. */
-  mostrarFormacion?: boolean;
+  /** El tipo de usuario elegido es Visitante: el único que puede quedarse sin cuenta. */
+  esVisitante?: boolean;
+  /** Incluye la sección del vehículo. Solo el asistente de Estacionar Vehículo la enciende:
+   *  allí se registra a la persona con el carro delante, y partir el trámite en dos pantallas
+   *  costaría más que el paso extra. En el módulo de Conductores el vehículo se gestiona
+   *  desde su propia tarjeta. */
+  conVehiculo?: boolean;
   onSubmit: () => void;
   onCancel: () => void;
 }
@@ -30,9 +37,38 @@ interface ConductorFormModalProps {
 export function ConductorFormModal({
   isEdit, formData, setFormData, formErrors, touched, markTouched, isValid,
   usuarioSearch, setUsuarioSearch, usuariosFiltrados, usuariosConConductorIds, usuarioSeleccionado,
-  mostrarFormacion, onSubmit, onCancel,
+  esVisitante = false, conVehiculo = false, onSubmit, onCancel,
 }: ConductorFormModalProps) {
+  // Cambiar la cuenta de un conductor que YA tiene una es una decisión con consecuencias
+  // (esa persona pierde el acceso y lo gana otra), así que se confirma antes.
+  const [cuentaPendiente, setCuentaPendiente] = useState<Usuario | null>(null);
+
+  const vincular = (id: string) => {
+    // Autocompleta con los datos que ya tiene la cuenta (nombre/correo/teléfono) para no
+    // hacer que se vuelvan a escribir a mano — solo pisa un campo si la cuenta trae valor.
+    const usuario = usuariosFiltrados.find((u) => u.id === id) ?? cuentaPendiente ?? undefined;
+    setFormData({
+      ...formData,
+      usuarioId: id,
+      crearCuenta: false,
+      nombre: usuario?.nombre || formData.nombre,
+      correo: usuario?.correo || formData.correo,
+      numeroTelefonico: usuario?.numero || formData.numeroTelefonico,
+    });
+    markTouched("usuarioId");
+  };
+
+  const alSeleccionar = (id: string) => {
+    // Solo se pregunta cuando se REEMPLAZA una cuenta ya vinculada, no al elegir la primera.
+    if (formData.usuarioId && formData.usuarioId !== id) {
+      setCuentaPendiente(usuariosFiltrados.find((u) => u.id === id) ?? null);
+      return;
+    }
+    vincular(id);
+  };
+
   return (
+    <>
     <EntityFormModal
       icon={<Sparkles size={18} color={COLORS.primary} />}
       eyebrow="Registro integral"
@@ -43,6 +79,15 @@ export function ConductorFormModal({
       submitLabel={isEdit ? "Guardar cambios" : "Crear Conductor"}
       showValidationMessage={!isValid && Object.keys(touched).length > 0}
     >
+      {/* El tipo de usuario va primero: de él depende si hace falta cuenta de acceso. */}
+      <TipoUsuarioField
+        value={formData.tipoUsuarioId}
+        error={touched.tipoUsuarioId ? formErrors.tipoUsuarioId : undefined}
+        soloLectura={isEdit}
+        onChange={(v) => setFormData({ ...formData, tipoUsuarioId: v })}
+        onBlur={() => markTouched("tipoUsuarioId")}
+      />
+
       <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>
         <div style={{ padding: "10px 14px", background: COLORS.bg, borderBottom: `1px solid ${COLORS.border}` }}>
           <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.5, color: COLORS.textLight, textTransform: "uppercase" }}>
@@ -66,7 +111,25 @@ export function ConductorFormModal({
           </div>
 
           <UsuarioVinculadoField
-            error={undefined}
+            error={touched.usuarioId ? formErrors.usuarioId : undefined}
+            esVisitante={esVisitante}
+            permitirCrearCuenta={!isEdit}
+            crearCuenta={formData.crearCuenta}
+            password={formData.password}
+            confirmPassword={formData.confirmPassword}
+            passwordError={touched.password ? formErrors.password : undefined}
+            confirmPasswordError={touched.confirmPassword ? formErrors.confirmPassword : undefined}
+            onCrearCuentaChange={(valor) => setFormData({
+              ...formData,
+              crearCuenta: valor,
+              // Las dos opciones son excluyentes: al crear una cuenta se suelta la vinculada.
+              usuarioId: valor ? "" : formData.usuarioId,
+              password: valor ? formData.password : "",
+              confirmPassword: valor ? formData.confirmPassword : "",
+            })}
+            onPasswordChange={(v) => setFormData({ ...formData, password: v })}
+            onConfirmPasswordChange={(v) => setFormData({ ...formData, confirmPassword: v })}
+            onPasswordBlur={() => { markTouched("password"); markTouched("confirmPassword"); }}
             usuarioSearch={usuarioSearch}
             onUsuarioSearchChange={setUsuarioSearch}
             usuariosFiltrados={usuariosFiltrados}
@@ -79,31 +142,18 @@ export function ConductorFormModal({
               setFormData({ ...formData, usuarioId: "" });
               setUsuarioSearch("");
             }}
-            onSelectUsuario={(id) => {
-              // Autocompleta con los datos que ya tiene la cuenta (nombre/correo/teléfono)
-              // para no hacer que se vuelvan a escribir a mano — solo pisa un campo si la
-              // cuenta trae valor para él, así no borra algo que el usuario ya haya escrito.
-              const usuario = usuariosFiltrados.find((u) => u.id === id);
-              setFormData({
-                ...formData,
-                usuarioId: id,
-                nombre: usuario?.nombre || formData.nombre,
-                correo: usuario?.correo || formData.correo,
-                numeroTelefonico: usuario?.numero || formData.numeroTelefonico,
-              });
-              markTouched("usuarioId");
-            }}
+            onSelectUsuario={alSeleccionar}
           />
 
           <DatosConductorFields
-            isEdit={isEdit}
             form={formData}
             errors={formErrors}
             touched={touched}
             onChange={(patch) => setFormData({ ...formData, ...patch })}
             onBlur={markTouched}
             onToggleEstado={() => setFormData({ ...formData, estado: formData.estado === "activo" ? "inactivo" : "activo" })}
-            mostrarFormacion={mostrarFormacion}
+            soloLectura={isEdit}
+            mostrarEstado={isEdit}
           />
 
           <DiscapacidadFields
@@ -115,24 +165,45 @@ export function ConductorFormModal({
         </div>
       </section>
 
-      <VehiculoAsociadoFields
-        placa={formData.placa}
-        placaError={touched.placa ? formErrors.placa : undefined}
-        tipoVehiculo={formData.tipoVehiculo}
-        marca={formData.marca}
-        marcaError={touched.marca ? formErrors.marca : undefined}
-        color={formData.color}
-        colorError={touched.color ? formErrors.color : undefined}
-        descripcionVehiculo={formData.descripcionVehiculo}
-        onPlacaChange={(v) => setFormData({ ...formData, placa: v })}
-        onPlacaBlur={() => markTouched("placa")}
-        onTipoVehiculoChange={(tipo) => setFormData({ ...formData, tipoVehiculo: tipo })}
-        onMarcaChange={(v) => setFormData({ ...formData, marca: v })}
-        onMarcaBlur={() => markTouched("marca")}
-        onColorChange={(v) => setFormData({ ...formData, color: v })}
-        onColorBlur={() => markTouched("color")}
-        onDescripcionChange={(v) => setFormData({ ...formData, descripcionVehiculo: v })}
-      />
+      {conVehiculo && (
+        <VehiculoAsociadoFields
+          placa={formData.placa}
+          placaError={touched.placa ? formErrors.placa : undefined}
+          tipoVehiculo={formData.tipoVehiculo}
+          marca={formData.marca}
+          marcaError={touched.marca ? formErrors.marca : undefined}
+          linea={formData.linea}
+          modelo={formData.modelo}
+          modeloError={touched.modelo ? formErrors.modelo : undefined}
+          color={formData.color}
+          colorError={touched.color ? formErrors.color : undefined}
+          descripcionVehiculo={formData.descripcionVehiculo}
+          onPlacaChange={(v) => setFormData({ ...formData, placa: v })}
+          onPlacaBlur={() => markTouched("placa")}
+          onTipoVehiculoChange={(tipo) => setFormData({ ...formData, tipoVehiculo: tipo })}
+          onMarcaChange={(v) => setFormData({ ...formData, marca: v })}
+          onMarcaBlur={() => markTouched("marca")}
+          onLineaChange={(v) => setFormData({ ...formData, linea: v })}
+          onModeloChange={(v) => setFormData({ ...formData, modelo: v })}
+          onModeloBlur={() => markTouched("modelo")}
+          onColorChange={(v) => setFormData({ ...formData, color: v })}
+          onColorBlur={() => markTouched("color")}
+          onDescripcionChange={(v) => setFormData({ ...formData, descripcionVehiculo: v })}
+        />
+      )}
     </EntityFormModal>
+
+    <ConfirmDialog
+      open={!!cuentaPendiente}
+      onConfirm={() => {
+        if (cuentaPendiente) vincular(cuentaPendiente.id);
+        setCuentaPendiente(null);
+      }}
+      onCancel={() => setCuentaPendiente(null)}
+      title="Cambiar la cuenta vinculada"
+      message={`Este conductor pasará a estar vinculado a "${cuentaPendiente?.nombre ?? ""}" (${cuentaPendiente?.correo ?? ""}). La cuenta anterior queda libre y pierde el acceso a esta ficha. ¿Continuar?`}
+      confirmLabel="Cambiar cuenta"
+    />
+    </>
   );
 }

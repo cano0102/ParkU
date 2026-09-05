@@ -62,5 +62,5 @@ describeCrudContract<Conductor>(
     tipoDiscapacidad: '',
     estado: 'activo',
   }),
-  () => ({ centroFormacion: 'Centro actualizado' }),
+  () => ({ direccion: 'Calle 45 #10-20' }),
 );

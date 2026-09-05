@@ -147,6 +147,49 @@ export async function update(id: string, data: Partial<Omit<Usuario, 'id'>>): Pr
   return toFrontend(updated);
 }
 
+/** Lo que responde GET /api/usuarios/disponibilidad para un campo. */
+export interface CampoDisponible {
+  disponible: boolean;
+  motivo?: string | null;
+  usuario_id?: number;
+  conductor_id?: number;
+  nombre?: string;
+}
+
+export interface Disponibilidad {
+  disponible: boolean;
+  correo?: CampoDisponible;
+  numero_telefonico?: CampoDisponible;
+  documento?: CampoDisponible;
+}
+
+/**
+ * Pregunta al backend si un correo, un teléfono o un documento ya están ocupados, mirando
+ * tanto las cuentas como los conductores. Es lo que permite avisar MIENTRAS se escribe en
+ * vez de dejar que se rellene todo y descubrir el choque al guardar.
+ *
+ * @param criterios - Al menos uno. excluirUsuarioId evita que una cuenta en edición se
+ *   marque a sí misma como ocupada.
+ */
+export async function comprobarDisponibilidad(criterios: {
+  correo?: string;
+  numeroTelefonico?: string;
+  tipoDocumento?: string;
+  numeroDocumento?: string;
+  excluirUsuarioId?: string;
+}): Promise<Disponibilidad> {
+  const params = new URLSearchParams();
+  if (criterios.correo) params.set('correo', criterios.correo.trim().toLowerCase());
+  if (criterios.numeroTelefonico) params.set('numero_telefonico', criterios.numeroTelefonico.trim());
+  if (criterios.tipoDocumento && criterios.numeroDocumento) {
+    params.set('tipo_documento', criterios.tipoDocumento);
+    params.set('numero_documento', criterios.numeroDocumento.trim());
+  }
+  if (criterios.excluirUsuarioId) params.set('excluir_usuario_id', criterios.excluirUsuarioId);
+  if (![...params.keys()].length) return { disponible: true };
+  return apiFetch<Disponibilidad>(`/usuarios/disponibilidad?${params.toString()}`);
+}
+
 export async function remove(id: string): Promise<void> {
   await apiFetch<void>(`/usuarios/${id}`, { method: 'DELETE' });
 }
