@@ -1,5 +1,5 @@
 import { FormField } from "@/components/shared";
-import { COLORS, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, inputStyle, inputErrorStyle, quitarDigitos, filtrarTelefono, type FormState } from "../lib/helpers";
+import { COLORS, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, TELEFONO_MAX, inputStyle, inputErrorStyle, quitarDigitos, filtrarTelefono, type FormState } from "../lib/helpers";
 
 interface DatosConductorFieldsProps {
   form: FormState;
@@ -109,7 +109,7 @@ export function DatosConductorFields({
           aria-readonly={bloqueado(deLaCuenta)}
           onChange={(e) => onChange({ numeroTelefonico: filtrarTelefono(e.target.value) })}
           onBlur={() => onBlur("numeroTelefonico")}
-          maxLength={15}
+          maxLength={TELEFONO_MAX}
           style={{ ...inputStyle, ...(err("numeroTelefonico") ? inputErrorStyle : {}), ...(bloqueado(deLaCuenta) ? estiloBloqueado : {}) }}
         />
       </FormField>

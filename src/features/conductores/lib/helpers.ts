@@ -15,13 +15,13 @@ import {
 import { theme } from "@/styles/theme";
 import {
   validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO,
-  validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, validarTelefono, filtrarTelefono, EMAIL_REGEX,
+  validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, TELEFONO_MAX, validarTelefono, filtrarTelefono, EMAIL_REGEX,
 } from "@/utils/validation";
 import { getAvatarGradient, getInitials } from "@/utils/format";
 import type { Vehiculo } from "@/services/api/vehiculos";
 
 export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO };
-export { validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, validarTelefono, filtrarTelefono, EMAIL_REGEX };
+export { validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, TELEFONO_MAX, validarTelefono, filtrarTelefono, EMAIL_REGEX };
 export { getAvatarGradient, getInitials };
 
 export const COLORS = theme;

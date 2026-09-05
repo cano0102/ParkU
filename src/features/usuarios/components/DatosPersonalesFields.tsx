@@ -1,6 +1,6 @@
 import { IconMail as Mail, IconPhone as Phone } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
-import { COLORS, NOMBRE_MAX, inputErrorStyle, inputIconStyle, inputStyle, quitarDigitos, filtrarTelefono } from "../lib/helpers";
+import { COLORS, NOMBRE_MAX, TELEFONO_MAX, inputErrorStyle, inputIconStyle, inputStyle, quitarDigitos, filtrarTelefono } from "../lib/helpers";
 
 const iconColor = COLORS.textLight;
 
@@ -64,6 +64,7 @@ export function DatosPersonalesFields({
               value={numero}
               onChange={(e) => onNumeroChange(filtrarTelefono(e.target.value))}
               onBlur={onNumeroBlur}
+              maxLength={TELEFONO_MAX}
               style={numeroError ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
             />
           </div>

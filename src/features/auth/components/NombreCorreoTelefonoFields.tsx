@@ -5,6 +5,7 @@ import {
   IconUser as User,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
+import { filtrarTelefono, TELEFONO_MAX } from "@/utils/validation";
 
 const COLORS = theme;
 
@@ -110,8 +111,9 @@ export function NombreCorreoTelefonoFields({
             type="tel"
             autoComplete="tel"
             value={numero}
-            onChange={(e) => onNumeroChange(e.target.value)}
+            onChange={(e) => onNumeroChange(filtrarTelefono(e.target.value))}
             onBlur={onNumeroBlur}
+            maxLength={TELEFONO_MAX}
             placeholder="3101234567"
             className={numeroError ? "input-error" : ""}
             aria-invalid={!!numeroError}

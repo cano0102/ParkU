@@ -47,7 +47,7 @@ export const esPlacaOficial = (placa: string) => /^(SNA|OFI)/.test(placa.trim().
 export const NOMBRE_MIN = 3;
 export const NOMBRE_MAX = 100;
 export const PASSWORD_MIN = 8;
-export const PASSWORD_MAX = 64;
+export const PASSWORD_MAX = 16;
 /**
  * Requisitos REALES de la API para una contraseña, comprobados contra
  * `POST /api/auth/registro`, que responde 400 con estos mismos mensajes:
@@ -72,6 +72,9 @@ export const validarPassword = (valor: string): string | null => {
 };
 
 export const TELEFONO_REGEX = /^[0-9()+\-\s]{7,15}$/;
+
+/** Un teléfono colombiano son 10 dígitos exactos: ese es el tope del campo. */
+export const TELEFONO_MAX = 10;
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Colombia (numeración unificada a 10 dígitos desde 2021): valida que, ignorando
@@ -88,8 +91,13 @@ export const validarTelefono = (valor: string): boolean => {
 /** Quita dígitos de un campo de nombre de persona a medida que se escribe (nombres no llevan números). */
 export const quitarDigitos = (valor: string): string => valor.replace(/[0-9]/g, "");
 
-/** Filtra un campo de teléfono a medida que se escribe: solo dígitos y los separadores usuales. */
-export const filtrarTelefono = (valor: string): string => valor.replace(/[^0-9()+\-\s]/g, "");
+/**
+ * Filtra un campo de teléfono a medida que se escribe: solo dígitos, y como mucho los diez
+ * que tiene un número colombiano. Antes admitía separadores (espacios, guiones, paréntesis)
+ * y hasta 15 caracteres, lo que dejaba escribir cosas que `validarTelefono` iba a rechazar
+ * después — ahora el campo solo deja teclear lo que de verdad se puede guardar.
+ */
+export const filtrarTelefono = (valor: string): string => valor.replace(/\D/g, "").slice(0, TELEFONO_MAX);
 
 /** Tipos de documento reales (ENUM `conductor.tipo_documento` en la API) — un
  *  valor fuera de este set no corresponde a ningún conductor posible. */

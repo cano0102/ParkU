@@ -13,6 +13,7 @@ import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 import { otroVehiculoDelConductorEnUso, esDeConductor, vehiculosOperables } from "@/features/conductores";
 import { MOTIVO_OFICIAL_SENA } from "@/features/reservas";
+import { motivoCeldaPreferencialNoApta } from "../lib/helpers";
 import type { Reserva } from "@/services/api/reservas";
 
 const emptyVehiculoForm = (esOficial = false): VehiculoForm => ({ placa: "", conductor: "", esOficial, marca: "", modelo: "", color: "" });
@@ -159,6 +160,12 @@ export function useIngresoVehiculo(
       );
       return false;
     }
+
+    // Una celda preferencial solo la usa quien tiene la condición registrada (lo exige
+    // también un trigger de la base): se avisa aquí para no descubrirlo al confirmar.
+    const celdaDelIngreso = data.celdas.find((c) => c.id === celda.id) ?? celda;
+    const noAptaPreferencial = motivoCeldaPreferencialNoApta(celdaDelIngreso, conductorExistente);
+    if (noAptaPreferencial) { setPlacaError(noAptaPreferencial); return false; }
 
     // Igual que al reservar: mientras el conductor tenga otro vehículo suyo ya estacionado o
     // con una reserva pendiente/activa en otra celda, no puede usar este para estacionar.

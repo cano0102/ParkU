@@ -1,6 +1,7 @@
 import { IconPassword as KeyRound } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import { COLORS, inputStyle, inputErrorStyle } from "../lib/helpers";
+import { PASSWORD_MAX } from "@/utils/validation";
 
 interface CuentaNuevaFieldsProps {
   password: string;
@@ -41,6 +42,7 @@ export function CuentaNuevaFields({
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}
               onBlur={onBlur}
+              maxLength={PASSWORD_MAX}
               style={{ ...inputStyle, paddingLeft: 34, ...(passwordError ? inputErrorStyle : {}) }}
             />
           </div>
@@ -55,6 +57,7 @@ export function CuentaNuevaFields({
               value={confirmPassword}
               onChange={(e) => onConfirmPasswordChange(e.target.value)}
               onBlur={onBlur}
+              maxLength={PASSWORD_MAX}
               style={{ ...inputStyle, paddingLeft: 34, ...(confirmPasswordError ? inputErrorStyle : {}) }}
             />
           </div>

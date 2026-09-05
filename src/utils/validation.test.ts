@@ -3,7 +3,7 @@ import {
   validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,
   validarPlacaPorTipo, tipoVehiculoDesdePlaca, esPlacaOficial,
   NOMBRE_MIN, NOMBRE_MAX, PASSWORD_MIN, PASSWORD_MAX,
-  TELEFONO_REGEX, validarTelefono, EMAIL_REGEX, validarPassword } from './validation';
+  TELEFONO_REGEX, TELEFONO_MAX, filtrarTelefono, validarTelefono, EMAIL_REGEX, validarPassword } from './validation';
 
 describe('utils/validation — placas', () => {
   it('valida placa de carro (3 letras + 3 números)', () => {
@@ -71,11 +71,26 @@ describe('utils/validation — placas', () => {
 });
 
 describe('utils/validation — campos de usuario', () => {
-  it('expone los límites de nombre y contraseña', () => {
+  it('expone los límites de nombre, contraseña y teléfono', () => {
     expect(NOMBRE_MIN).toBe(3);
     expect(NOMBRE_MAX).toBe(100);
     expect(PASSWORD_MIN).toBe(8);
-    expect(PASSWORD_MAX).toBe(64);
+    // Tope de la contraseña: es el que aplican como maxLength los formularios que la crean.
+    expect(PASSWORD_MAX).toBe(16);
+    // Un teléfono colombiano son 10 dígitos exactos.
+    expect(TELEFONO_MAX).toBe(10);
+  });
+
+  describe('filtrarTelefono', () => {
+    it('deja solo dígitos', () => {
+      expect(filtrarTelefono('(300) 123-4567')).toBe('3001234567');
+      expect(filtrarTelefono('300 abc 123')).toBe('300123');
+    });
+
+    it('no deja pasar de diez', () => {
+      expect(filtrarTelefono('30012345678999')).toBe('3001234567');
+      expect(filtrarTelefono('30012345678999')).toHaveLength(TELEFONO_MAX);
+    });
   });
 
   describe('TELEFONO_REGEX', () => {

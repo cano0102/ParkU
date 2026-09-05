@@ -6,11 +6,11 @@ import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 import { buscarConflictoHorario, validarFranja, franjaSugerida } from "@/features/reservas";
-import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../lib/helpers";
+import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN, motivoCeldaPreferencialNoApta } from "../lib/helpers";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
-  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "celdas" | "controlesSalida" | "parqueaderos" | "addReserva" | "updateReserva" | "updateCelda">,
+  data: Pick<ParqueaderosData, "reservas" | "vehiculos" | "celdas" | "conductores" | "controlesSalida" | "parqueaderos" | "addReserva" | "updateReserva" | "updateCelda">,
   celdaActiva: Celda | null,
   getOcupante: (celdaId: string) => { controlId: string } | null,
   updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => Promise<unknown>,
@@ -103,6 +103,15 @@ export function useReservaCelda(
         );
         return;
       }
+
+      // Una celda preferencial solo la puede reservar quien tiene la condición registrada:
+      // la base de datos lo exige con un trigger, y sin esto el aviso llegaba como un error
+      // crudo de Postgres después de rellenar el formulario entero.
+      const conductorDeLaReserva = data.conductores.find((c) => c.id === vehiculoReservado.conductorId);
+      const noApta = celdaDeLaReserva
+        ? motivoCeldaPreferencialNoApta(celdaDeLaReserva, conductorDeLaReserva)
+        : null;
+      if (noApta) { setReservaError(noApta); return; }
 
       // Una reserva responde siempre a una persona: sin conductor asociado no habría a quién
       // exigirle la celda al llegar, ni con quién comparar en el ingreso (ver

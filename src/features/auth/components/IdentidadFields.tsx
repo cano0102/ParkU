@@ -1,7 +1,7 @@
 import type { Ref } from "react";
 import { IconAlertCircle as AlertCircle, IconId as IdCard } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
-import { TIPOS_DOCUMENTO } from "@/utils/validation";
+import { TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX } from "@/utils/validation";
 
 const COLORS = theme;
 
@@ -69,8 +69,11 @@ export function IdentidadFields({
               type="text"
               inputMode="numeric"
               value={identificacion}
-              onChange={(e) => onIdentificacionChange(e.target.value)}
+              /* Solo dígitos y como mucho diez: el mismo formato que valida
+                 `validarNumeroDocumento` (6-10 dígitos). */
+              onChange={(e) => onIdentificacionChange(e.target.value.replace(/\D/g, "").slice(0, NUMERO_DOCUMENTO_MAX))}
               onBlur={onIdentificacionBlur}
+              maxLength={NUMERO_DOCUMENTO_MAX}
               placeholder="1001234567"
               className={identificacionError ? "input-error" : ""}
               aria-invalid={!!identificacionError}

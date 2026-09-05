@@ -1,6 +1,6 @@
 import { IconId as IdCard } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
-import { TIPOS_DOCUMENTO } from "@/utils/validation";
+import { TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX } from "@/utils/validation";
 import { useTiposUsuario } from "@/features/conductores";
 import { COLORS, inputErrorStyle, inputIconStyle, inputStyle } from "../lib/helpers";
 
@@ -71,8 +71,9 @@ export function DocumentoIdentidadFields({
               value={numeroDocumento}
               /* Solo dígitos y máximo 10: el mismo formato que valida
                  `validarNumeroDocumento` (6-10 dígitos) en @/utils/validation. */
-              onChange={(e) => onNumeroDocumentoChange(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              onChange={(e) => onNumeroDocumentoChange(e.target.value.replace(/\D/g, "").slice(0, NUMERO_DOCUMENTO_MAX))}
               onBlur={onNumeroDocumentoBlur}
+              maxLength={NUMERO_DOCUMENTO_MAX}
               style={numeroDocumentoError ? { ...inputIconStyle, ...inputErrorStyle } : inputIconStyle}
             />
           </div>

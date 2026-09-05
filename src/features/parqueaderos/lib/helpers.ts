@@ -146,6 +146,38 @@ export const TIPO_CELDA_CONFIG = {
 export const getTipoCeldaConfig = (tipo: string) =>
   (TIPO_CELDA_CONFIG as unknown as Record<string, typeof TIPO_CELDA_CONFIG["carro"]>)[tipo] || TIPO_CELDA_CONFIG.carro;
 
+/**
+ * Cómo se ve una celda concreta: por su tipo de vehículo, salvo que sea preferencial.
+ *
+ * Una celda de movilidad reducida es `tipo: "carro"` con `usabilidad: "movilidad_reducida"`,
+ * así que mirando solo el tipo se pintaba idéntica a cualquier otra de carro — el plano no
+ * distinguía las plazas reservadas para quien las necesita, que es justo la información que
+ * hay que ver de un vistazo. Con esto sale con su icono y su color propios en el plano, la
+ * tabla y el tooltip.
+ */
+export const esCeldaPreferencial = (celda: { usabilidad?: string }) => celda.usabilidad === "movilidad_reducida";
+
+export const getCeldaVisualConfig = (celda: { tipo: string; usabilidad?: string }) =>
+  getTipoCeldaConfig(esCeldaPreferencial(celda) ? "movilidad reducida" : celda.tipo);
+
+/**
+ * Por qué esta persona no puede usar esta celda, o `null` si sí puede.
+ *
+ * Una celda de movilidad reducida está apartada para quien tiene esa condición registrada:
+ * la base de datos ya lo exige (fn_validar_ocupacion_celda y fn_validar_reserva_preferencial
+ * levantan una excepción), pero llegar hasta ahí significa rellenar el formulario entero
+ * para que lo rechace un mensaje de Postgres. Esto lo dice antes, y con nombre y apellido.
+ */
+export const motivoCeldaPreferencialNoApta = (
+  celda: { numero: string; usabilidad?: string },
+  conductor: { nombre?: string; movilidadReducida?: boolean } | null | undefined,
+): string | null => {
+  if (!esCeldaPreferencial(celda)) return null;
+  if (!conductor) return `La celda ${celda.numero} es de movilidad reducida: identifica al conductor para poder usarla.`;
+  if (conductor.movilidadReducida) return null;
+  return `La celda ${celda.numero} es de movilidad reducida y ${conductor.nombre ?? "este conductor"} no tiene esa condición registrada. Elige otra celda, o actualiza su ficha en Conductores si corresponde.`;
+};
+
 export const TIPOS_PARQUEADERO: TipoParqueadero[] = ["general", "docentes", "administrativos", "aprendices", "visitantes", "motos", "vehiculo_sena"];
 export const ACCESOS_PARQUEADERO: AccesoParqueadero[] = ["regional", "avenida_boyaca"];
 export const capitalizar = (s:string) => s.charAt(0).toUpperCase() + s.slice(1);

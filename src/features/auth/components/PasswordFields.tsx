@@ -5,7 +5,7 @@ import {
   IconLock as Lock,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
-import { PASSWORD_MIN } from "@/utils/validation";
+import { PASSWORD_MIN, PASSWORD_MAX } from "@/utils/validation";
 
 const COLORS = theme;
 
@@ -46,6 +46,7 @@ export function PasswordFields({
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
             onBlur={onPasswordBlur}
+            maxLength={PASSWORD_MAX}
             placeholder="••••••••"
             className={passwordError ? "input-error" : ""}
             aria-invalid={!!passwordError}
@@ -91,6 +92,7 @@ export function PasswordFields({
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => onConfirmPasswordChange(e.target.value)}
+            maxLength={PASSWORD_MAX}
             onBlur={onConfirmPasswordBlur}
             placeholder="••••••••"
             className={confirmPasswordError ? "input-error" : ""}

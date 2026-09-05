@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Celda } from '@/services/api/celdas';
-import { estaFueraDeHorarioOperacion, HORA_OPERACION_INICIO, HORA_OPERACION_FIN, evaluarEliminacionParqueadero, superaEstadiaLimite, ESTADIA_ALERTA_HORAS, validarFormParqueadero, type FormParqueadero } from './helpers';
+import { estaFueraDeHorarioOperacion, HORA_OPERACION_INICIO, HORA_OPERACION_FIN, evaluarEliminacionParqueadero, superaEstadiaLimite, ESTADIA_ALERTA_HORAS, validarFormParqueadero, esCeldaPreferencial, getCeldaVisualConfig, getTipoCeldaConfig, motivoCeldaPreferencialNoApta, type FormParqueadero } from './helpers';
 
 function celda(overrides: Partial<Celda>): Celda {
   return {
@@ -139,5 +139,53 @@ describe('validarFormParqueadero — capacidad máxima', () => {
 
   it('al editar, permite subir la capacidad dejando las celdas como están', () => {
     expect(validarFormParqueadero(form({ capacidadMaxima: 80, celdasCarros: 30, celdasMotos: 20 }), [], '1')).toBeNull();
+  });
+});
+
+describe('celdas de movilidad reducida', () => {
+  const preferencial = celda({ numero: 'PMR-01', tipo: 'carro', usabilidad: 'movilidad_reducida' });
+  const normal = celda({ numero: 'C-001', tipo: 'carro', usabilidad: 'general' });
+
+  it('reconoce cuál es preferencial', () => {
+    expect(esCeldaPreferencial(preferencial)).toBe(true);
+    expect(esCeldaPreferencial(normal)).toBe(false);
+  });
+
+  describe('cómo se ve', () => {
+    it('una preferencial NO se pinta como una de carro cualquiera', () => {
+      // Es `tipo: "carro"`, así que mirando solo el tipo salía idéntica a las demás.
+      expect(getCeldaVisualConfig(preferencial).label).toBe('Movilidad Reducida');
+      expect(getCeldaVisualConfig(preferencial).accent).not.toBe(getTipoCeldaConfig('carro').accent);
+    });
+
+    it('una normal sigue viéndose por su tipo', () => {
+      expect(getCeldaVisualConfig(normal)).toBe(getTipoCeldaConfig('carro'));
+      expect(getCeldaVisualConfig(celda({ tipo: 'moto' }))).toBe(getTipoCeldaConfig('moto'));
+    });
+  });
+
+  describe('quién puede usarla', () => {
+    const conCondicion = { nombre: 'Ana', movilidadReducida: true };
+    const sinCondicion = { nombre: 'Beto', movilidadReducida: false };
+
+    it('quien tiene la condición registrada, sí', () => {
+      expect(motivoCeldaPreferencialNoApta(preferencial, conCondicion)).toBeNull();
+    });
+
+    it('quien no la tiene, no — y el aviso dice de quién habla', () => {
+      const aviso = motivoCeldaPreferencialNoApta(preferencial, sinCondicion);
+      expect(aviso).toMatch(/movilidad reducida/);
+      expect(aviso).toContain('Beto');
+      expect(aviso).toContain('PMR-01');
+    });
+
+    it('sin conductor identificado tampoco se puede', () => {
+      expect(motivoCeldaPreferencialNoApta(preferencial, null)).toMatch(/identifica al conductor/i);
+    });
+
+    it('una celda normal no le exige nada a nadie', () => {
+      expect(motivoCeldaPreferencialNoApta(normal, sinCondicion)).toBeNull();
+      expect(motivoCeldaPreferencialNoApta(normal, null)).toBeNull();
+    });
   });
 });

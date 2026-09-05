@@ -9,7 +9,7 @@ import {
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
-import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getTipoCeldaConfig, capitalizar, estaFueraDeHorarioOperacion, superaEstadiaLimite } from "../lib/helpers";
+import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getCeldaVisualConfig, capitalizar, estaFueraDeHorarioOperacion, superaEstadiaLimite } from "../lib/helpers";
 
 const C = theme;
 
@@ -181,7 +181,7 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(110px,1fr))", gap: 8 }}>
                     {celdasPq.map(celda => {
                       const cfg = CELDA_CONFIG[celda.estado];
-                      const tipoCfg = getTipoCeldaConfig(celda.tipo);
+                      const tipoCfg = getCeldaVisualConfig(celda);
                       const TipoIcon = tipoCfg.icon;
                       const matched = cellMatchesSearch(celda);
                       const ocupante = celda.estado === "no_disponible" ? getOcupante(celda.id) : null;

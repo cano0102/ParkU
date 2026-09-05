@@ -20,12 +20,17 @@ const parqueaderoActivo: Parqueadero = {
   horaInicio: '06:00', horaFin: '22:00', zona: '', piso: '', descripcion: '', estado: 'activo',
 };
 
+/** El dueño de los vehículos de prueba: sin condición de movilidad reducida registrada. */
+const conductorSinCondicion = {
+  id: 'c-1', nombre: 'Ana Martínez', movilidadReducida: false,
+} as never;
+
 function buildData(overrides: Partial<{
-  reservas: unknown[]; vehiculos: unknown[]; celdas: unknown[]; controlesSalida: unknown[]; parqueaderos: unknown[];
+  reservas: unknown[]; vehiculos: unknown[]; celdas: unknown[]; conductores: unknown[]; controlesSalida: unknown[]; parqueaderos: unknown[];
   addReserva: ReturnType<typeof vi.fn>; updateReserva: ReturnType<typeof vi.fn>; updateCelda: ReturnType<typeof vi.fn>;
 }> = {}) {
   return {
-    reservas: [], vehiculos: [], celdas: [celdaLibre, celdaMoto, celdaOcupada], controlesSalida: [], parqueaderos: [parqueaderoActivo],
+    reservas: [], vehiculos: [], celdas: [celdaLibre, celdaMoto, celdaOcupada], conductores: [conductorSinCondicion], controlesSalida: [], parqueaderos: [parqueaderoActivo],
     addReserva: vi.fn(),
     updateReserva: vi.fn().mockResolvedValue(undefined),
     updateCelda: vi.fn().mockResolvedValue(undefined),
@@ -72,6 +77,7 @@ function buildDataConReservas(overrides: Partial<ReservaCeldaData> = {}): Reserv
     reservas: [reservaActivaVieja],
     vehiculos: [vehiculoNuevo, vehiculoConflicto],
     celdas: [celdaLibre, celdaMoto, celdaOcupada],
+    conductores: [conductorSinCondicion],
     controlesSalida: [],
     parqueaderos: [parqueaderoActivo],
     addReserva: vi.fn().mockResolvedValue({ id: 'r-nueva' }),

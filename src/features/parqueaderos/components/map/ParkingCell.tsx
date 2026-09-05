@@ -1,5 +1,5 @@
 import type { Celda } from "@/services/api/celdas";
-import { CELDA_CONFIG, CeldaPos, estaFueraDeHorarioOperacion, getTipoCeldaConfig, Ocupante, SPACE_W, SPACE_H, superaEstadiaLimite } from "../../lib/helpers";
+import { CELDA_CONFIG, CeldaPos, estaFueraDeHorarioOperacion, getCeldaVisualConfig, Ocupante, SPACE_W, SPACE_H, superaEstadiaLimite } from "../../lib/helpers";
 import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG } from "./MapVisuals";
 import type { HoverInfo } from "./useParkingMapInteraction";
 
@@ -18,7 +18,7 @@ interface ParkingCellProps {
 /** Una celda del plano: relleno por estado, franja/insignia de tipo, silueta del vehículo si está ocupada. */
 export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncidente, ocupante, onPointerDown, onHover, onHoverLeave }: ParkingCellProps) {
   const cfg = CELDA_CONFIG[celda.estado];
-  const tipoCfg = getTipoCeldaConfig(celda.tipo);
+  const tipoCfg = getCeldaVisualConfig(celda);
   const TipoIcon = tipoCfg.icon;
   const estaOcupada = celda.estado === "no_disponible" && ocupante !== null;
   const esMoto = celda.tipo === "moto";

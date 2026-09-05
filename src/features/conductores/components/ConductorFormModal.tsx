@@ -44,20 +44,24 @@ export function ConductorFormModal({
   const [cuentaPendiente, setCuentaPendiente] = useState<Usuario | null>(null);
 
   const vincular = (id: string) => {
-    // Autocompleta con los datos que ya tiene la cuenta (nombre/correo/teléfono) para no
-    // hacer que se vuelvan a escribir a mano — solo pisa un campo si la cuenta trae valor.
     const usuario = usuariosFiltrados.find((u) => u.id === id) ?? cuentaPendiente ?? undefined;
+    if (!usuario) return;
+
+    // Los datos de la cuenta REEMPLAZAN a los que hubiera, no se mezclan con ellos. Antes se
+    // conservaba lo anterior cuando la cuenta traía el campo vacío (`usuario.numero || …`), y
+    // el resultado era una ficha mitad de una persona y mitad de otra: el teléfono del
+    // conductor anterior pegado al nombre y al correo de la cuenta nueva. Si la cuenta no
+    // tiene teléfono, el campo se queda vacío — que es justamente lo que dice la cuenta.
     setFormData({
       ...formData,
       usuarioId: id,
       crearCuenta: false,
-      nombre: usuario?.nombre || formData.nombre,
-      correo: usuario?.correo || formData.correo,
-      numeroTelefonico: usuario?.numero || formData.numeroTelefonico,
-      // El documento también es de la cuenta desde la migración 002 del backend: si lo trae,
-      // se precarga en vez de hacer que se teclee otra vez.
-      tipoDocumento: (usuario?.tipoDocumento as FormState["tipoDocumento"]) || formData.tipoDocumento,
-      numeroDocumento: usuario?.numeroDocumento || formData.numeroDocumento,
+      nombre: usuario.nombre ?? "",
+      correo: usuario.correo ?? "",
+      numeroTelefonico: usuario.numero ?? "",
+      // El documento también es de la cuenta desde la migración 002 del backend.
+      tipoDocumento: (usuario.tipoDocumento as FormState["tipoDocumento"]) || "CC",
+      numeroDocumento: usuario.numeroDocumento ?? "",
     });
     markTouched("usuarioId");
   };

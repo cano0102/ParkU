@@ -4,6 +4,7 @@ import {
   IconEyeOff as EyeOff,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
+import { PASSWORD_MAX } from "@/utils/validation";
 
 const COLORS = theme;
 
@@ -42,6 +43,7 @@ export function ResetPasswordFields({
             type={showPassword ? "text" : "password"}
             value={password}
             onChange={(e) => onPasswordChange(e.target.value)}
+            maxLength={PASSWORD_MAX}
             onBlur={onPasswordBlur}
             placeholder="••••••••"
             required
@@ -82,6 +84,7 @@ export function ResetPasswordFields({
             type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => onConfirmPasswordChange(e.target.value)}
+            maxLength={PASSWORD_MAX}
             onBlur={onConfirmPasswordBlur}
             placeholder="••••••••"
             required

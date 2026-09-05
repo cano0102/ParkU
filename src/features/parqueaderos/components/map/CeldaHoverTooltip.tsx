@@ -1,5 +1,5 @@
 import { theme } from "@/styles/theme";
-import { formatearDuracion, getTipoCeldaConfig, Ocupante } from "../../lib/helpers";
+import { formatearDuracion, getCeldaVisualConfig, Ocupante } from "../../lib/helpers";
 import type { HoverInfo } from "./useParkingMapInteraction";
 
 const C = theme;
@@ -12,7 +12,7 @@ interface CeldaHoverTooltipProps {
 /** Tarjeta flotante que sigue al cursor con el detalle rápido de la celda bajo el mouse. */
 export function CeldaHoverTooltip({ hover, ocupante }: CeldaHoverTooltipProps) {
   const estaOcupada = hover.celda.estado === "no_disponible" && ocupante !== null;
-  const tipoCfg = getTipoCeldaConfig(hover.celda.tipo);
+  const tipoCfg = getCeldaVisualConfig(hover.celda);
   const TipoIcon = tipoCfg.icon;
 
   return (
