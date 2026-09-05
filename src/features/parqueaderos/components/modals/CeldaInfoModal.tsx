@@ -39,6 +39,11 @@ interface CeldaInfoModalProps {
    *  ya precargado con esa placa y ese conductor (los únicos que el ingreso aceptará). */
   onEstacionarReservado: () => void;
   onReservarCelda: () => void;
+  /** Solicitar la celda sin poder gestionarla: es lo que hace un Conductor desde el plano.
+   *  Lleva al módulo de Reservas con esta celda ya elegida, y la solicitud queda pendiente
+   *  de que un administrador o vigilante la acepte. */
+  canSolicitarReserva?: boolean;
+  onSolicitarReserva?: () => void;
   /** true si el rol del usuario logueado tiene el permiso "celdas" — controla si se muestra
    *  el ajuste manual de estado (ver onSetEstadoManual) y el botón "Reservar Celda". Ese botón
    *  usa `handleCrearReserva` (ver useReservaCelda.ts), que crea la reserva y la ACTIVA de
@@ -75,6 +80,7 @@ export function CeldaInfoModal({
   open, celdaActiva, ocupanteActivo, reservaActiva, vehiculoReservado, parqueaderoActivo, onClose,
   onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
   onReportarIncidente, onEstacionarVehiculo, onEstacionarReservado, onReservarCelda,
+  canSolicitarReserva = false, onSolicitarReserva,
   canManageCeldas, canRegistrarIngreso, canReportarIncidentes, incidenteAbiertoExiste, onSetEstadoManual,
 }: CeldaInfoModalProps) {
   const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
@@ -240,7 +246,7 @@ export function CeldaInfoModal({
           ) : (
             <>
               <div style={{ padding: "12px 14px", borderRadius: 11, background: C.primaryPale, border: `1px solid ${C.primaryLight}`, fontSize: 12, color: C.primaryDark, fontWeight: 600 }}>
-                ✅ Celda disponible para estacionar.
+                {canRegistrarIngreso ? "✅ Celda disponible para estacionar." : "✅ Celda disponible: puedes solicitarla."}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {canRegistrarIngreso && (
@@ -257,6 +263,14 @@ export function CeldaInfoModal({
                     style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
                   >
                     📅 Reservar Celda
+                  </button>
+                )}
+                {canSolicitarReserva && onSolicitarReserva && (
+                  <button
+                    onClick={onSolicitarReserva}
+                    style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}
+                  >
+                    📅 Solicitar esta celda
                   </button>
                 )}
               </div>

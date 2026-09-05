@@ -47,7 +47,7 @@ export function useUpdateReserva() {
 export function useCancelarReserva() {
   const invalidar = useInvalidarReservasYCeldas();
   return useMutation({
-    mutationFn: (id: string) => reservasService.cancelar(id),
+    mutationFn: ({ id, motivo }: { id: string; motivo: string }) => reservasService.cancelar(id, motivo),
     onSuccess: invalidar,
     onError: avisarError('cancelar la reserva'),
   });

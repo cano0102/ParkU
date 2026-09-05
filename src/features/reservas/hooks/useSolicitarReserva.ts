@@ -55,6 +55,13 @@ export function useSolicitarReserva(
     setOpen(true);
   }, [misVehiculos]);
 
+  /** Abre el formulario con una celda ya elegida (se llega así desde el plano). */
+  const abrirCon = useCallback(({ celdaId, parqueaderoId }: { celdaId: string; parqueaderoId: string }) => {
+    setForm({ ...emptyForm(misVehiculos[0]?.id ?? ""), celdaId, parqueaderoId });
+    setTouched(false);
+    setOpen(true);
+  }, [misVehiculos]);
+
   // Solo celdas disponibles del parqueadero elegido, y cuyo tipo coincida con el
   // vehículo a reservar (una celda de moto no sirve para un carro, y viceversa).
   const vehiculoSeleccionado = useMemo(() => misVehiculos.find((v) => v.id === form.vehiculoId), [misVehiculos, form.vehiculoId]);
@@ -67,18 +74,28 @@ export function useSolicitarReserva(
     );
   }, [celdas, form.parqueaderoId, vehiculoSeleccionado]);
 
-  const parqueaderosActivos = useMemo(() => parqueaderos.filter((p) => p.estado === "activo"), [parqueaderos]);
+  // Solo se ofrecen los parqueaderos que de verdad le sirven a este vehículo: activos y con
+  // alguna celda libre de su tipo. Antes salían todos, y elegir uno de motos con un carro
+  // llevaba a un selector de celdas vacío sin explicación.
+  const parqueaderosActivos = useMemo(() => {
+    const activos = parqueaderos.filter((p) => p.estado === "activo");
+    if (!vehiculoSeleccionado) return activos;
+    return activos.filter((p) => celdas.some((c) =>
+      c.parqueaderoId === p.id && c.estado === "disponible" && c.tipo === vehiculoSeleccionado.tipo
+    ));
+  }, [parqueaderos, celdas, vehiculoSeleccionado]);
 
   const validar = useCallback((f: SolicitarReservaForm): string | null => {
     if (!f.vehiculoId) return "Selecciona un vehículo";
     if (!f.parqueaderoId) return "Selecciona un parqueadero";
     if (!f.celdaId) return "Selecciona una celda disponible";
+    // El motivo es lo que le permite a quien aprueba decidir con criterio.
+    if (!f.motivo.trim()) return "Explica para qué necesitas la celda: el motivo es obligatorio";
     if (!f.fechaReserva) return "La fecha es obligatoria";
     if (!f.horaInicio || !f.horaFin) return "El horario es obligatorio";
-    // El backend rechaza crear reservas fuera de la ventana de operación (05:00–21:00, ver
-    // HORA_OPERACION_INICIO/FIN) — sin este chequeo, la solicitud solo se entera de que es
-    // inválida hasta que el backend la rechaza con un error genérico. Comparación como string
-    // funciona porque el input <input type="time"> siempre entrega "HH:MM" con cero a la izquierda.
+    // Las HORAS DE LA RESERVA tienen que caber en la ventana de operación (05:00-21:00). La
+    // hora a la que se pide da igual: se puede solicitar de madrugada para el día siguiente.
+    // Comparar como string funciona porque <input type="time"> siempre entrega "HH:MM".
     if (f.horaInicio < HORA_OPERACION_INICIO || f.horaFin > HORA_OPERACION_FIN) {
       return `El horario debe estar entre ${HORA_OPERACION_INICIO} y ${HORA_OPERACION_FIN} (horario de operación).`;
     }
@@ -139,6 +156,6 @@ export function useSolicitarReserva(
 
   return {
     open, setOpen, form, setForm, error, touched, markTouched, ajustar,
-    celdasDisponibles, parqueaderosActivos, abrir, enviarSolicitud,
+    celdasDisponibles, parqueaderosActivos, abrir, abrirCon, enviarSolicitud,
   };
 }

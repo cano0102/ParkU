@@ -160,9 +160,14 @@ export const VISTAS_POR_PERMISO: Record<string, (keyof PermisosRol)[]> = {
   'conductores.gestionar': ['conductores', 'vehiculos'],
   'parqueaderos.consultar': ['parqueaderos'],
   'parqueaderos.gestionar': ['parqueaderos', 'celdas', 'asignaciones'],
-  'ingreso.consultar': ['entradaSalida'],
+  // Ojo con estos dos: la pantalla de entradas/salidas no es un listado, es donde se
+  // ESTACIONA y se da salida a un vehículo. Abrirla con un permiso de solo consulta le
+  // ponía el botón "Estacionar Vehículo" a un Conductor (su rol tiene ingreso.consultar),
+  // que es justo lo que no debe poder hacer: él solicita una reserva y el vigilante lo
+  // ingresa. Por eso solo la abren los permisos de gestión.
+  'ingreso.consultar': [],
   'ingreso.gestionar': ['entradaSalida', 'asignaciones'],
-  'salida.consultar': ['entradaSalida'],
+  'salida.consultar': [],
   'salida.gestionar': ['entradaSalida'],
   'reservas.consultar': ['reservas'],
   'reservas.gestionar': ['reservas'],

@@ -100,7 +100,7 @@ describe('useReservasPage — solicitudes pendientes', () => {
     expect(result.current.puedeCancelar(aceptada)).toBe(true);
 
     act(() => result.current.handleCancelar(aceptada));
-    await act(async () => result.current.confirmCancelarAction());
+    await act(async () => result.current.confirmCancelarAction("El conductor avisó que ya no la necesita"));
 
     await waitFor(() => {
       expect(result.current.reservas.find((r) => r.id === '12')?.estado).toBe('cancelada');
@@ -125,7 +125,7 @@ describe('useReservasPage — solicitudes pendientes', () => {
     // eso dejaba libre una celda con un vehículo dentro.
     const sobreCeldaOcupada = result.current.reservas.find((r) => r.id === '10')!;
     act(() => result.current.handleCancelar(sobreCeldaOcupada));
-    await act(async () => result.current.confirmCancelarAction());
+    await act(async () => result.current.confirmCancelarAction("El conductor avisó que ya no la necesita"));
 
     await waitFor(() => {
       expect(result.current.reservas.find((r) => r.id === '10')?.estado).toBe('cancelada');

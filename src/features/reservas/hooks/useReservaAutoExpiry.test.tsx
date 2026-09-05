@@ -24,6 +24,22 @@ reservasSeed.push(
   },
 );
 
+/** Una fecha/hora ISO a N minutos del momento en que corre la prueba. */
+const haceMinutos = (minutos: number) => new Date(Date.now() - minutos * 60000).toISOString();
+
+reservasSeed.push(
+  {
+    id: 22, tipo_reserva: 'VEHICULO_SENA', celda_id: 5, conductor_id: 2, vehiculo_id: 2,
+    motivo: 'Nadie llegó', fecha_hora_inicio: haceMinutos(25), fecha_hora_fin: haceMinutos(-95),
+    estado: 'ACEPTADA',
+  },
+  {
+    id: 23, tipo_reserva: 'VEHICULO_SENA', celda_id: 3, conductor_id: 2, vehiculo_id: 2,
+    motivo: 'Todavía se le espera', fecha_hora_inicio: haceMinutos(5), fecha_hora_fin: haceMinutos(-115),
+    estado: 'ACEPTADA',
+  },
+);
+
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
 const backends = createAppBackends();
@@ -43,13 +59,16 @@ function wrapper({ children }: { children: ReactNode }) {
 }
 
 describe('useReservaAutoExpiry', () => {
-  it('cancela una solicitud pendiente cuya hora de inicio ya pasó (sin esperar a la hora de fin)', async () => {
+  it('rechaza una solicitud que nadie aprobó a media hora del inicio', async () => {
     renderHook(() => useReservaAutoExpiry(), { wrapper });
 
+    // RECHAZADA, no cancelada: no es que alguien se echara atrás, es que nunca se aprobó.
     await waitFor(() => {
       const actual = backends.reservas.items.find((r: any) => r.id === 20);
-      expect(actual?.estado).toBe('CANCELADA');
+      expect(actual?.estado).toBe('RECHAZADA');
     });
+    const sinAprobar = backends.reservas.items.find((r: any) => r.id === 20) as any;
+    expect(sinAprobar.motivo_rechazo).toMatch(/no se aprobó/);
   });
 
   it('cancela una reserva activa cuya hora de fin ya pasó sin que el vehículo se estacionara, y libera la celda', async () => {
@@ -63,6 +82,28 @@ describe('useReservaAutoExpiry', () => {
       const celda = backends.celdas.items.find((c: any) => c.id === 4);
       expect(celda?.estado).toBe('DISPONIBLE');
     });
+  });
+
+  it('cancela la reserva a la que se le pasó el margen de llegada, y le escribe el motivo', async () => {
+    renderHook(() => useReservaAutoExpiry(), { wrapper });
+
+    await waitFor(() => {
+      const actual = backends.reservas.items.find((r: any) => r.id === 22);
+      expect(actual?.estado).toBe('CANCELADA');
+    });
+    const vencida = backends.reservas.items.find((r: any) => r.id === 22) as any;
+    expect(vencida.motivo_rechazo).toMatch(/20 minutos/);
+  });
+
+  it('respeta el margen: una reserva que empezó hace 5 minutos sigue viva', async () => {
+    renderHook(() => useReservaAutoExpiry(), { wrapper });
+
+    // Se espera a que el barrido haya corrido (la de al lado sí se cancela) y se comprueba
+    // que a esta no la tocó.
+    await waitFor(() => {
+      expect(backends.reservas.items.find((r: any) => r.id === 22)?.estado).toBe('CANCELADA');
+    });
+    expect(backends.reservas.items.find((r: any) => r.id === 23)?.estado).toBe('ACEPTADA');
   });
 
   it('no dispara GET /reservas (403 para Comunidad SENA) cuando la sesión es de un Conductor', async () => {

@@ -11,6 +11,8 @@ export type ModalKind =
   // navega a ellos y se vuelve a "ingreso" igual que ya hace el escáner OCR, para no
   // superponer dos diálogos completos a la vez.
   | "crearConductor" | "crearVehiculo"
+  // Cancelar la reserva de una celda pide motivo, así que es un formulario, no un aviso.
+  | "cancelarReserva"
   | null;
 
 /** Qué modal está abierto, qué celda está seleccionada, y los datos derivados de esa selección. */

@@ -3,6 +3,7 @@ import { LoadingState, Modal, ConfirmDialog } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { ConductorFormModal, AgregarVehiculoModal } from "@/features/conductores";
+import { MotivoReservaModal } from "@/features/reservas";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
 import { ParqueaderosHero } from "./components/ParqueaderosHero";
@@ -244,12 +245,36 @@ export default function Parqueaderos() {
           ingreso.abrirIngresoReservado(vehiculo, conductor);
         }}
         onReservarCelda={() => { if (modal.celdaActiva) reserva.openReservaFromCelda(modal.celdaActiva); }}
+        /* Quien ve el plano y puede reservar, pero no gestionar celdas (el caso del
+           Conductor), no crea la reserva aquí: pide esta celda y la solicitud queda
+           pendiente de aprobación en el módulo de Reservas. */
+        canSolicitarReserva={!hasPermission("celdas") && hasPermission("reservas")}
+        onSolicitarReserva={() => {
+          if (!modal.celdaActiva) return;
+          navigate("/reservas", {
+            state: { solicitarCelda: { celdaId: modal.celdaActiva.id, parqueaderoId: modal.celdaActiva.parqueaderoId } },
+          });
+        }}
         canManageCeldas={hasPermission("celdas")}
         canRegistrarIngreso={hasPermission("entradaSalida")}
         canReportarIncidentes={hasPermission("incidentes")}
         incidenteAbiertoExiste={incidente.incidenteAbiertoExisteParaCeldaActiva}
         onSetEstadoManual={modal.handleSetEstadoCeldaManual}
       />
+
+      {/* Cancelar la reserva de una celda pide motivo, igual que en el módulo de Reservas:
+          es el mismo formulario, para que se pida lo mismo se entre por donde se entre. */}
+      <Modal open={modal.openModal === "cancelarReserva"} onClose={() => modal.setOpenModal(null)} maxWidth={420}>
+        {reserva.reservaDeLaCelda && (
+          <MotivoReservaModal
+            accion="cancelar"
+            placa={data.vehiculos.find((v) => v.id === reserva.reservaDeLaCelda!.vehiculoId)?.placa || "—"}
+            fecha={reserva.reservaDeLaCelda.fechaReserva}
+            onCancel={() => modal.setOpenModal(null)}
+            onConfirm={reserva.confirmarCancelarReserva}
+          />
+        )}
+      </Modal>
 
       <ReservaModal
         open={modal.openModal === "reserva"}

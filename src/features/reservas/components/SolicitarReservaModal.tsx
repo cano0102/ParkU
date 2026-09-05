@@ -5,7 +5,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
-import { opcionesDeHoraInicio, opcionesDeHoraFin } from "../lib/reglas";
+import { rangoDeHoraInicio, rangoDeHoraFin } from "../lib/reglas";
 
 const C = theme;
 
@@ -37,6 +37,8 @@ const fieldInput: React.CSSProperties = {
   width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
   fontSize: 13, outline: "none", fontFamily: "inherit", background: "#F8FAFC",
 };
+/** Aclaración bajo un campo: dice el rango admitido en vez de reprocharlo después. */
+const fieldHint: React.CSSProperties = { fontSize: 11, color: C.textLight, marginTop: 4 };
 
 /** Solicitud de reserva para el rol Comunidad SENA: queda "pendiente" hasta que un
  * administrador o vigilante la acepte — no ocupa la celda de inmediato. */
@@ -47,8 +49,8 @@ export function SolicitarReservaModal({
   onSubmit, onCancel,
 }: SolicitarReservaModalProps) {
   const ventana = { desde: HORA_OPERACION_INICIO, hasta: HORA_OPERACION_FIN };
-  const horasDeInicio = opcionesDeHoraInicio(fechaReserva, ventana);
-  const horasDeFin = opcionesDeHoraFin(horaInicio, ventana);
+  const rangoInicio = rangoDeHoraInicio(fechaReserva, ventana);
+  const rangoFin = rangoDeHoraFin(horaInicio, ventana);
 
   return (
     <div>
@@ -109,31 +111,38 @@ export function SolicitarReservaModal({
 
           <div />
 
-          {/* Listas, no campos de hora libres: solo se ofrece lo que de verdad se puede
-              reservar (horario de operación, media hora de anticipación si es para hoy, y
-              una hora de duración mínima). Así una hora inválida no se puede ni elegir, en
-              vez de avisar cuando ya se intentó guardar. */}
+          {/* Campo de hora normal (cualquier minuto sirve), pero acotado con min/max a lo
+              que de verdad se puede reservar: horario de operación, media hora de
+              anticipación si es para hoy, y una hora de duración mínima. Lo que se escriba
+              fuera de rango lo corrige `ajustarFranja` en el acto. */}
           <div>
             <label style={fieldLabel}>Hora de inicio *</label>
-            <select value={horaInicio} onChange={(e) => onHoraInicioChange(e.target.value)} style={fieldInput}>
-              {horasDeInicio.length === 0 && <option value="">Hoy ya no hay horas disponibles</option>}
-              {horasDeInicio.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            <input
+              type="time"
+              min={rangoInicio.min}
+              max={rangoInicio.max}
+              value={horaInicio}
+              onChange={(e) => onHoraInicioChange(e.target.value)}
+              style={fieldInput}
+            />
+            <p style={fieldHint}>Entre {rangoInicio.min} y {rangoInicio.max}</p>
           </div>
 
           <div>
             <label style={fieldLabel}>Hora de fin *</label>
-            <select value={horaFin} onChange={(e) => onHoraFinChange(e.target.value)} style={fieldInput} disabled={!horaInicio}>
-              {horasDeFin.map((h) => (
-                <option key={h} value={h}>{h}</option>
-              ))}
-            </select>
+            <input
+              type="time"
+              min={rangoFin.min}
+              max={rangoFin.max}
+              value={horaFin}
+              onChange={(e) => onHoraFinChange(e.target.value)}
+              style={fieldInput}
+            />
+            <p style={fieldHint}>Desde {rangoFin.min} (mínimo 1 hora)</p>
           </div>
 
           <div style={{ gridColumn: "1 / -1" }}>
-            <label style={fieldLabel}>Motivo / Justificación</label>
+            <label style={fieldLabel}>Motivo / Justificación *</label>
             <textarea
               value={motivo}
               onChange={(e) => onMotivoChange(e.target.value)}

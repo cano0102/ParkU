@@ -10,7 +10,7 @@ import type { Celda } from "@/services/api/celdas";
 import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { opcionesDeHoraInicio, opcionesDeHoraFin, ajustarFranja } from "@/features/reservas";
+import { rangoDeHoraInicio, rangoDeHoraFin, ajustarFranja } from "@/features/reservas";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
@@ -87,8 +87,8 @@ export function ReservaModal({
     setVehiculoQuery("");
   };
 
-  const horasDeInicio = opcionesDeHoraInicio(reservaForm.fechaReserva, VENTANA_OPERACION);
-  const horasDeFin = opcionesDeHoraFin(reservaForm.horaInicio, VENTANA_OPERACION);
+  const rangoInicio = rangoDeHoraInicio(reservaForm.fechaReserva, VENTANA_OPERACION);
+  const rangoFin = rangoDeHoraFin(reservaForm.horaInicio, VENTANA_OPERACION);
 
   const horarioInvalido = !!(reservaForm.horaInicio && reservaForm.horaFin && horaAMinutos(reservaForm.horaFin) <= horaAMinutos(reservaForm.horaInicio));
   // Espejo visual de la misma validación que ya hace `handleCrearReserva` (useReservaCelda.ts)
@@ -243,11 +243,14 @@ export function ReservaModal({
               <label htmlFor="horaInicioReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 Hora de inicio *
               </label>
-              {/* Solo las horas que de verdad se pueden reservar: dentro del horario de
-                  operación, con la anticipación mínima si es para hoy, y dejando sitio a la
-                  duración mínima (ver features/reservas/lib/reglas.ts). */}
-              <select
+              {/* Campo de hora acotado a lo que de verdad se puede reservar: horario de
+                  operación, anticipación mínima si es para hoy, y sitio para la duración
+                  mínima (ver features/reservas/lib/reglas.ts). */}
+              <input
                 id="horaInicioReserva"
+                type="time"
+                min={rangoInicio.min}
+                max={rangoInicio.max}
                 value={reservaForm.horaInicio}
                 onChange={(e) => setReservaForm(prev => ({ ...prev, ...ajustarFranja({ ...prev, horaInicio: e.target.value }, VENTANA_OPERACION) }))}
                 style={{
@@ -255,33 +258,28 @@ export function ReservaModal({
                   border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
                   fontFamily: "inherit", background: "#F8FAFC",
                 }}
-              >
-                {horasDeInicio.length === 0 && <option value="">Hoy ya no hay horas disponibles</option>}
-                {horasDeInicio.map((h) => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
+              />
+              <p style={{ fontSize: 11, color: C.textLight, marginTop: 4 }}>Entre {rangoInicio.min} y {rangoInicio.max}</p>
             </div>
 
             <div>
               <label htmlFor="horaFinReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 Hora de fin *
               </label>
-              <select
+              <input
                 id="horaFinReserva"
+                type="time"
+                min={rangoFin.min}
+                max={rangoFin.max}
                 value={reservaForm.horaFin}
-                onChange={(e) => setReservaForm(prev => ({ ...prev, horaFin: e.target.value }))}
-                disabled={!reservaForm.horaInicio}
+                onChange={(e) => setReservaForm(prev => ({ ...prev, ...ajustarFranja({ ...prev, horaFin: e.target.value }, VENTANA_OPERACION) }))}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 11,
                   border: `1px solid ${horarioInvalido || fueraDeHorarioOperacion ? C.danger : C.border}`, fontSize: 13, outline: "none",
                   fontFamily: "inherit", background: "#F8FAFC",
                 }}
-              >
-                {horasDeFin.map((h) => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
+              />
+              <p style={{ fontSize: 11, color: C.textLight, marginTop: 4 }}>Desde {rangoFin.min} (mínimo 1 hora)</p>
               {horarioInvalido && (
                 <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>La hora de fin debe ser posterior a la de inicio.</p>
               )}
@@ -294,7 +292,7 @@ export function ReservaModal({
 
             <div style={{ gridColumn: "1 / -1" }}>
               <label htmlFor="motivoReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-                Motivo / Justificación
+                Motivo / Justificación *
               </label>
               <textarea
                 id="motivoReserva"

@@ -4,15 +4,32 @@
  * elige la hora, en vez de dejar que el formulario se rellene entero y el error llegue al
  * pulsar "Solicitar".
  *
- * - Se pide con al menos media hora de anticipación (para reservar a las 12:00 hay que
- *   hacerlo antes de las 11:30).
+ * - Se pide con al menos dos horas de anticipación (a las 8:00, lo más pronto que se puede
+ *   reservar es para las 10:00).
  * - Dura al menos una hora (a las 12:00 termina a las 13:00 o más tarde).
+ * - No empieza después de las 19:30, aunque sí puede terminar hasta la hora de cierre.
  * - Se cancela hasta media hora antes del inicio.
+ * - Una solicitud sin aprobar se rechaza sola a media hora del inicio.
  */
 
-export const ANTICIPACION_MINIMA_MINUTOS = 30;
+export const ANTICIPACION_MINIMA_MINUTOS = 120;
 export const DURACION_MINIMA_MINUTOS = 60;
 export const MARGEN_CANCELACION_MINUTOS = 30;
+export const MARGEN_CONFIRMACION_MINUTOS = 30;
+
+/** Última hora a la que puede EMPEZAR una reserva; el fin sí llega hasta el cierre. */
+export const HORA_MAXIMA_INICIO = "19:30";
+
+/**
+ * Minutos que se le esperan al vehículo desde la hora de inicio. Pasados estos, la reserva
+ * se cancela sola y la celda vuelve a estar disponible. Copia de src/config/reglasReserva.js
+ * en la API, que es quien manda.
+ */
+export const MARGEN_LLEGADA_MINUTOS = 20;
+
+/** Lo que queda escrito en la reserva cuando vence sola, para que se sepa por qué. */
+export const MOTIVO_VENCIMIENTO_ACEPTADA = `Cancelada automáticamente: pasaron ${MARGEN_LLEGADA_MINUTOS} minutos desde la hora de inicio sin que el vehículo llegara, y la celda se liberó.`;
+export const MOTIVO_SIN_CONFIRMAR = `Rechazada automáticamente: la solicitud no se aprobó a ${MARGEN_CONFIRMACION_MINUTOS} minutos de la hora de inicio.`;
 
 const MINUTO_MS = 60 * 1000;
 
@@ -49,6 +66,9 @@ export const hoy = (ahora: Date = new Date()): string => {
  * selector de hora); para cualquier día futuro, no hay límite inferior.
  *
  * Se usa como `min` del input, así que el propio selector ya no ofrece horas pasadas.
+ * Si la anticipación se sale del día (reservar a las 22:00 para hoy ya no cabe), devuelve la
+ * última hora del día y `rangoDeHoraInicio` se encarga de que no quede rango: ese día ya no
+ * admite reservas y hay que elegir otro.
  */
 export function horaMinimaDeInicio(fecha: string, ahora: Date = new Date()): string | undefined {
   if (fecha !== hoy(ahora)) return undefined;
@@ -72,60 +92,63 @@ export function franjaSugerida(ahora: Date = new Date()): { fechaReserva: string
   };
 }
 
-/** Salto entre una hora ofrecida y la siguiente en los selectores. */
-export const PASO_MINUTOS = 15;
-
 /** La ventana en la que el parqueadero opera, en "HH:MM" (la conocen los módulos que la usan). */
 export interface VentanaOperacion {
   desde: string;
   hasta: string;
 }
 
-/** Lista de horas de `desde` a `hasta` (ambas en minutos), de PASO_MINUTOS en PASO_MINUTOS. */
-const _serie = (desde: number, hasta: number): string[] => {
-  const primera = Math.ceil(desde / PASO_MINUTOS) * PASO_MINUTOS;
-  const horas: string[] = [];
-  for (let m = primera; m <= hasta; m += PASO_MINUTOS) horas.push(aHora(m));
-  return horas;
+/** Primera y última hora que admite un campo, para pasárselas como `min` y `max`. */
+export interface RangoHorario {
+  min: string;
+  max: string;
+}
+
+/**
+ * Horas de inicio admitidas: dentro del horario de operación, respetando la anticipación
+ * mínima si la reserva es para hoy, y dejando sitio a la duración mínima antes del cierre.
+ *
+ * Va como `min`/`max` del campo de hora, así que el propio campo acota lo que se puede
+ * elegir — a cualquier minuto, no de cuarto en cuarto — y lo que se escriba fuera de rango
+ * se corrige al vuelo con `ajustarFranja`.
+ */
+export function rangoDeHoraInicio(fecha: string, ventana: VentanaOperacion, ahora: Date = new Date()): RangoHorario {
+  const minimaPorReloj = horaMinimaDeInicio(fecha, ahora);
+  const min = Math.max(aMinutos(ventana.desde), minimaPorReloj ? aMinutos(minimaPorReloj) : 0);
+  // Dos topes: no empezar después de la hora máxima, y dejar sitio a la duración mínima
+  // antes de que el parqueadero cierre. Manda el más temprano de los dos.
+  const max = Math.min(aMinutos(HORA_MAXIMA_INICIO), aMinutos(ventana.hasta) - DURACION_MINIMA_MINUTOS);
+  return { min: aHora(min), max: aHora(Math.max(min, max)) };
+}
+
+/** Horas de fin admitidas para un inicio dado: desde la duración mínima hasta el cierre. */
+export function rangoDeHoraFin(horaInicio: string, ventana: VentanaOperacion): RangoHorario {
+  const min = aMinutos(horaInicio || ventana.desde) + DURACION_MINIMA_MINUTOS;
+  const max = aMinutos(ventana.hasta);
+  return { min: aHora(min), max: aHora(Math.max(min, max)) };
+}
+
+/** Deja un valor dentro de un rango, sin moverlo si ya estaba dentro. */
+const _dentroDe = (valor: string, { min, max }: RangoHorario): string => {
+  if (!valor) return min;
+  const m = aMinutos(valor);
+  if (Number.isNaN(m)) return min;
+  return aHora(Math.min(Math.max(m, aMinutos(min)), aMinutos(max)));
 };
 
 /**
- * Horas de inicio que de verdad se pueden elegir: dentro del horario de operación, con la
- * anticipación mínima si la reserva es para hoy, y dejando sitio para la duración mínima
- * antes del cierre.
- *
- * Los formularios ofrecen exactamente esta lista, así que una hora inválida no se puede ni
- * seleccionar — antes se podía elegir y el aviso llegaba después, al intentar guardar.
- */
-export function opcionesDeHoraInicio(fecha: string, ventana: VentanaOperacion, ahora: Date = new Date()): string[] {
-  const minimaPorReloj = horaMinimaDeInicio(fecha, ahora);
-  const desde = Math.max(aMinutos(ventana.desde), minimaPorReloj ? aMinutos(minimaPorReloj) : 0);
-  // La última hora a la que se puede empezar es la que permite cumplir la duración mínima
-  // antes de que el parqueadero cierre.
-  return _serie(desde, aMinutos(ventana.hasta) - DURACION_MINIMA_MINUTOS);
-}
-
-/** Horas de fin posibles para un inicio dado: desde la duración mínima hasta el cierre. */
-export function opcionesDeHoraFin(horaInicio: string, ventana: VentanaOperacion): string[] {
-  if (!horaInicio) return [];
-  return _serie(aMinutos(horaInicio) + DURACION_MINIMA_MINUTOS, aMinutos(ventana.hasta));
-}
-
-/**
- * Corrige una franja para que solo contenga horas que se pueden elegir. Se usa al cambiar la
- * fecha o la hora de inicio: si lo que había deja de ser válido (p. ej. se pasa la reserva de
- * mañana a hoy y las 06:00 ya no existen), se mueve a la primera opción posible en vez de
- * dejar el selector en blanco.
+ * Corrige una franja para que quede dentro de lo que se puede elegir. Se llama en cada
+ * cambio de fecha o de hora: si lo que había deja de valer (se pasa la reserva de mañana a
+ * hoy y las 06:00 ya quedaron atrás, o se mueve el inicio y el fin queda a menos de una
+ * hora), el valor se acerca al límite más próximo en vez de quedarse en algo inválido.
  */
 export function ajustarFranja(
   franja: { fechaReserva: string; horaInicio: string; horaFin: string },
   ventana: VentanaOperacion,
   ahora: Date = new Date(),
 ): { fechaReserva: string; horaInicio: string; horaFin: string } {
-  const inicios = opcionesDeHoraInicio(franja.fechaReserva, ventana, ahora);
-  const horaInicio = inicios.includes(franja.horaInicio) ? franja.horaInicio : inicios[0] ?? "";
-  const fines = opcionesDeHoraFin(horaInicio, ventana);
-  const horaFin = fines.includes(franja.horaFin) ? franja.horaFin : fines[0] ?? "";
+  const horaInicio = _dentroDe(franja.horaInicio, rangoDeHoraInicio(franja.fechaReserva, ventana, ahora));
+  const horaFin = _dentroDe(franja.horaFin, rangoDeHoraFin(horaInicio, ventana));
   return { fechaReserva: franja.fechaReserva, horaInicio, horaFin };
 }
 
@@ -152,6 +175,11 @@ export function validarFranja(
   const dura = (fin.getTime() - inicio.getTime()) / MINUTO_MS;
   if (dura < DURACION_MINIMA_MINUTOS) {
     return `La reserva debe durar al menos ${enPalabras(DURACION_MINIMA_MINUTOS)}: desde las ${horaInicio}, hasta las ${horaMinimaDeFin(horaInicio)} como mínimo`;
+  }
+
+  // Empezar pegado al cierre no tiene coherencia; terminar cerca del cierre sí.
+  if (horaInicio > HORA_MAXIMA_INICIO) {
+    return `Una reserva no puede empezar después de las ${HORA_MAXIMA_INICIO}: está muy cerca de la hora de cierre`;
   }
 
   return null;

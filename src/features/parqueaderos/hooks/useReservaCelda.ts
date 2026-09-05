@@ -46,6 +46,7 @@ export function useReservaCelda(
     if (!reservaForm.celdaId) return setReservaError("Selecciona una celda");
     if (!reservaForm.fechaReserva) return setReservaError("La fecha es requerida");
     if (!reservaForm.horaInicio || !reservaForm.horaFin) return setReservaError("El horario es requerido");
+    if (!reservaForm.motivo.trim()) return setReservaError("El motivo de la reserva es obligatorio");
 
 
     // A diferencia de la solicitud de un Conductor (useSolicitarReserva.ts, que ya filtra el
@@ -152,18 +153,29 @@ export function useReservaCelda(
     }
   }, [reservaForm, data, celdaActiva, setOpenModal]);
 
-  const handleCancelarReserva = useCallback(async () => {
-    if (!celdaActiva) return;
-    const reserva = data.reservas.find((r) => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa"));
+  /** La reserva viva de la celda abierta: es la que se cancelaría desde aquí. */
+  const reservaDeLaCelda = celdaActiva
+    ? data.reservas.find((r) => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa")) ?? null
+    : null;
+
+  /** Abre el formulario de cancelación — el mismo que usa el módulo de Reservas. */
+  const handleCancelarReserva = useCallback(() => setOpenModal("cancelarReserva"), [setOpenModal]);
+
+  /**
+   * Cancela con el motivo escrito. La celda NO se toca desde aquí: el backend la libera al
+   * cambiar el estado de la reserva (y solo si seguía reservada, no si ya entró un vehículo).
+   */
+  const confirmarCancelarReserva = useCallback(async (motivo: string) => {
+    if (!reservaDeLaCelda) { setOpenModal(null); return; }
     try {
-      if (reserva) await data.updateReserva(reserva.id, { estado: "cancelada" });
-      await data.updateCelda(celdaActiva.id, { estado: "disponible" });
+      await data.updateReserva(reservaDeLaCelda.id, { estado: "cancelada", motivoRechazo: motivo });
       toast.info("Reserva cancelada.");
       setOpenModal(null);
     } catch (error) {
+      // El aviso de error lo muestra el manejador central de mutaciones.
       console.error("Error cancelling reserva:", error);
     }
-  }, [celdaActiva, data, setOpenModal]);
+  }, [reservaDeLaCelda, data, setOpenModal]);
 
   const handleRequestLiberar = useCallback(async () => {
     if (!celdaActiva) return;
@@ -186,6 +198,7 @@ export function useReservaCelda(
 
   return {
     reservaForm, setReservaForm, reservaError,
-    openReservaFromCelda, handleCrearReserva, handleCancelarReserva, handleRequestLiberar,
+    openReservaFromCelda, handleCrearReserva, handleCancelarReserva, confirmarCancelarReserva,
+    reservaDeLaCelda, handleRequestLiberar,
   };
 }

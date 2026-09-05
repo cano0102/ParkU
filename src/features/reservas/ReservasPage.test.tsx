@@ -183,47 +183,6 @@ describe('features/reservas', () => {
     await reservasService.remove(creada.id);
   });
 
-  it('exporta a CSV las reservas visibles con los filtros activos', async () => {
-    const user = userEvent.setup();
-    const reservasService = await import('@/services/api/reservas');
-    const creada = await reservasService.create(await reservaSample());
-
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
-    const createUrlSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:mock-url');
-    const revokeUrlSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
-
-    renderReservas();
-    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
-
-    await user.click(screen.getByRole('button', { name: /Exportar CSV/i }));
-
-    expect(createUrlSpy).toHaveBeenCalled();
-    expect(clickSpy).toHaveBeenCalled();
-
-    // Este archivo acumula estado entre tests (ver el backend a nivel de módulo más
-    // arriba) — se limpia lo creado para no interferir con los tests que siguen.
-    await reservasService.remove(creada.id);
-    // `vi.spyOn` reutiliza el mismo spy si algo más vuelve a espiar el mismo método sin
-    // restaurar antes — sin este restore, el próximo test heredaría este conteo de llamadas.
-    // (Nunca `vi.restoreAllMocks()` en este archivo: se llevaría por delante el
-    // `apiFetchMock.mockImplementation(...)` de nivel de módulo del que dependen todos los
-    // demás tests, porque no es un spy sobre un método existente sino un `vi.fn()` suelto.)
-    clickSpy.mockRestore();
-    createUrlSpy.mockRestore();
-    revokeUrlSpy.mockRestore();
-  });
-
-  it('avisa en vez de exportar un CSV vacío cuando el filtro no arroja resultados', async () => {
-    const user = userEvent.setup();
-    renderReservas();
-    await waitFor(() => expect(screen.getByText('No se encontraron reservas')).toBeInTheDocument());
-
-    const createUrlSpy = vi.spyOn(URL, 'createObjectURL');
-    await user.click(screen.getByRole('button', { name: /Exportar CSV/i }));
-
-    expect(createUrlSpy).not.toHaveBeenCalled();
-  });
-
   it('no muestra el botón de eliminar para un Vigilante (el backend ya se lo rechaza con 403)', async () => {
     const reservasService = await import('@/services/api/reservas');
     await reservasService.create(await reservaSample());

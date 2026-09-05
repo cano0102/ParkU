@@ -25,9 +25,18 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
     expect(permisosDeVistas(ROL_A_MEDIDA, ['conductores.consultar']).conductores).toBe(true);
     expect(permisosDeVistas(ROL_A_MEDIDA, ['novedades.consultar']).incidentes).toBe(true);
     expect(permisosDeVistas(ROL_A_MEDIDA, ['ingreso.gestionar']).entradaSalida).toBe(true);
-    expect(permisosDeVistas(ROL_A_MEDIDA, ['salida.consultar']).entradaSalida).toBe(true);
+    expect(permisosDeVistas(ROL_A_MEDIDA, ['salida.gestionar']).entradaSalida).toBe(true);
     expect(permisosDeVistas(ROL_A_MEDIDA, ['configuracion.gestionar']).roles).toBe(true);
     expect(permisosDeVistas(ROL_A_MEDIDA, ['parqueaderos.consultar']).parqueaderos).toBe(true);
+  });
+
+  it('consultar ingresos NO abre la pantalla donde se estaciona', () => {
+    // Esa pantalla no es un listado: es donde se registra la entrada y la salida de un
+    // vehículo. Abrirla con un permiso de solo consulta le ponía el botón "Estacionar" a un
+    // Conductor, que es justo lo que no debe poder hacer.
+    expect(permisosDeVistas(ROL_A_MEDIDA, ['ingreso.consultar']).entradaSalida).toBe(false);
+    expect(permisosDeVistas(ROL_A_MEDIDA, ['salida.consultar']).entradaSalida).toBe(false);
+    expect(permisosDeVistas(ROLES.CONDUCTOR, ['ingreso.consultar', 'reservas.consultar']).entradaSalida).toBe(false);
   });
 
   it('los permisos de gestión abren también lo que esa pantalla necesita para actuar', () => {

@@ -166,7 +166,9 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
       // obligatorio". La respuesta ya trae el estado nuevo, no el anterior.
       updated = await apiFetch<ApiReserva>(`/reservas/${id}/estado`, {
         method: 'PATCH',
-        body: { estado: estadoApi, motivo_rechazo: estado === 'rechazada' ? data.motivoRechazo : undefined },
+        // El motivo acompaña también a una cancelación: es lo que explica en el historial
+        // por qué una reserva venció sola (ver useReservaAutoExpiry).
+        body: { estado: estadoApi, motivo_rechazo: data.motivoRechazo || undefined },
       });
     }
   }
@@ -181,8 +183,13 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
  * comprueba que la reserva sea de quien la cancela. Sin ella, un Conductor no tenía forma de
  * echarse atrás de su propia solicitud.
  */
-export async function cancelar(id: string): Promise<Reserva> {
-  return toFrontend(await apiFetch<ApiReserva>(`/reservas/${id}/cancelar`, { method: 'PATCH' }));
+export async function cancelar(id: string, motivo: string): Promise<Reserva> {
+  return toFrontend(await apiFetch<ApiReserva>(`/reservas/${id}/cancelar`, {
+    method: 'PATCH',
+    // El backend exige el motivo en cualquier cancelación: es lo que verá en su historial
+    // la persona que había reservado.
+    body: { motivo_rechazo: motivo },
+  }));
 }
 
 export async function remove(id: string): Promise<void> {

@@ -91,7 +91,7 @@ describe('useReservaCelda — choque de horario real (no "cualquier pendiente/ac
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '08:00', horaFin: '10:00',
+      ...f, motivo: 'Reserva de prueba', vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '08:00', horaFin: '10:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -105,7 +105,7 @@ describe('useReservaCelda — choque de horario real (no "cualquier pendiente/ac
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-01-05', horaInicio: '09:00', horaFin: '11:00',
+      ...f, motivo: 'Reserva de prueba', vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-01-05', horaInicio: '09:00', horaFin: '11:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -121,7 +121,7 @@ describe('useReservaCelda — horario de operación (05:00–21:00)', () => {
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '22:00', horaFin: '23:00',
+      ...f, motivo: 'Reserva de prueba', vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '22:00', horaFin: '23:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -135,7 +135,7 @@ describe('useReservaCelda — horario de operación (05:00–21:00)', () => {
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '05:00', horaFin: '20:00',
+      ...f, motivo: 'Reserva de prueba', vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '05:00', horaFin: '20:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -151,7 +151,7 @@ describe('useReservaCelda — parqueadero inactivo', () => {
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '08:00', horaFin: '10:00',
+      ...f, motivo: 'Reserva de prueba', vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '08:00', horaFin: '10:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
@@ -231,7 +231,7 @@ describe('useReservaCelda — compatibilidad y conductor', () => {
     const { result } = renderHook(() => useReservaCelda(data, celda, vi.fn(), vi.fn(), vi.fn()));
     act(() => {
       result.current.setReservaForm((f) => ({
-        ...f, vehiculoId, parqueaderoId: '1', celdaId: celda.id,
+        ...f, motivo: 'Reserva de prueba', vehiculoId, parqueaderoId: '1', celdaId: celda.id,
         fechaReserva: manana(), horaInicio: '08:00', horaFin: '10:00',
       }));
     });

@@ -66,6 +66,20 @@ describe('useSolicitarReserva', () => {
     expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
+  it('exige el motivo: sin él no se envía la solicitud', async () => {
+    const { result } = renderHook(
+      () => useSolicitarReserva([miCarro], [celdaDisponibleCarro], [parqueadero], [miCarro], [], []),
+      { wrapper: withQueryClient() }
+    );
+
+    act(() => result.current.abrir());
+    act(() => result.current.setForm({ ...result.current.form, parqueaderoId: '1', celdaId: '1', motivo: '   ' }));
+    await act(async () => result.current.enviarSolicitud());
+
+    expect(result.current.error).toMatch(/motivo es obligatorio/);
+    expect(apiFetchMock).not.toHaveBeenCalled();
+  });
+
   it('rechaza enviar la solicitud con un horario fuera de la ventana de operación (05:00–21:00)', async () => {
     // Antes no había ninguna validación de horario en el frontend para esta solicitud — una
     // fuera de la ventana de operación (HORA_OPERACION_INICIO/FIN en parqueaderos/lib/helpers)
@@ -77,7 +91,8 @@ describe('useSolicitarReserva', () => {
 
     act(() => result.current.abrir());
     act(() => result.current.setForm({
-      ...result.current.form, parqueaderoId: '1', celdaId: '1', horaInicio: '21:30', horaFin: '22:30',
+      ...result.current.form, parqueaderoId: '1', celdaId: '1', motivo: 'Clase',
+      horaInicio: '21:30', horaFin: '22:30',
     }));
     await act(async () => result.current.enviarSolicitud());
 
