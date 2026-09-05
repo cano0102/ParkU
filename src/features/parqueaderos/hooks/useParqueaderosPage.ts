@@ -38,6 +38,11 @@ export function useParqueaderosPage() {
     modal.setOpenModal("ingreso");
   });
   const agregarVehiculo = useAgregarVehiculo(conductoresData, (vehiculo) => {
+    // Se selecciona también a su dueño: el vehículo se acaba de registrar a nombre de
+    // alguien, y volver al ingreso con el vehículo puesto pero sin conductor obligaba a
+    // buscarlo otra vez.
+    const duenio = conductoresData.conductores.find((c) => c.id === vehiculo.conductorId);
+    if (duenio) ingreso.seleccionarConductor(duenio);
     ingreso.seleccionarVehiculo(vehiculo);
     modal.setOpenModal("ingreso");
   });

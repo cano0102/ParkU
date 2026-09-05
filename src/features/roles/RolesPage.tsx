@@ -3,14 +3,15 @@ import { useRolesPage } from "./hooks/useRolesPage";
 import { rolesStyles } from "./lib/styles";
 import { RolesHero } from "./components/RolesHero";
 import { RolesToolbar } from "./components/RolesToolbar";
-import { RolesGrid } from "./components/RolesGrid";
+import { RolesResults } from "./components/RolesResults";
 import { RolFormModal } from "./components/RolFormModal";
 import { RolViewModal } from "./components/RolViewModal";
 
 export function Roles() {
   const {
     roles, isLoading, dialogOpen, setDialogOpen, viewOpen, setViewOpen, editingRol, viewingRol,
-    search, setSearch, filterEstado, setFilterEstado, formInitial, filteredRoles, stats,
+    search, setSearch, filterEstado, setFilterEstado, viewMode, setViewMode,
+    formInitial, filteredRoles, stats,
     openCreate, openEdit, openView, handleToggleEstado, handleSave,
     rolAEliminar, setRolAEliminar, handleDeleteRequest, confirmDeleteRol,
   } = useRolesPage();
@@ -27,14 +28,17 @@ export function Roles() {
           onSearchChange={setSearch}
           filterEstado={filterEstado}
           onFilterEstadoChange={setFilterEstado}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
           onCreate={openCreate}
         />
 
         {isLoading ? (
           <LoadingState message="Cargando roles..." />
         ) : (
-          <RolesGrid
+          <RolesResults
             roles={filteredRoles}
+            viewMode={viewMode}
             onView={openView}
             onEdit={openEdit}
             onToggleEstado={handleToggleEstado}

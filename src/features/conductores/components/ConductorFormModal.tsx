@@ -8,6 +8,7 @@ import { TipoUsuarioField } from "./TipoUsuarioField";
 import { UsuarioVinculadoField } from "./UsuarioVinculadoField";
 import { DatosConductorFields } from "./DatosConductorFields";
 import { DiscapacidadFields } from "./DiscapacidadFields";
+import { CuentaNuevaFields } from "./CuentaNuevaFields";
 import { VehiculoAsociadoFields } from "./VehiculoAsociadoFields";
 
 interface ConductorFormModalProps {
@@ -25,11 +26,6 @@ interface ConductorFormModalProps {
   usuarioSeleccionado: Usuario | undefined;
   /** El tipo de usuario elegido es Visitante: el único que puede quedarse sin cuenta. */
   esVisitante?: boolean;
-  /** Incluye la sección del vehículo. Solo el asistente de Estacionar Vehículo la enciende:
-   *  allí se registra a la persona con el carro delante, y partir el trámite en dos pantallas
-   *  costaría más que el paso extra. En el módulo de Conductores el vehículo se gestiona
-   *  desde su propia tarjeta. */
-  conVehiculo?: boolean;
   onSubmit: () => void;
   onCancel: () => void;
 }
@@ -37,8 +33,12 @@ interface ConductorFormModalProps {
 export function ConductorFormModal({
   isEdit, formData, setFormData, formErrors, touched, markTouched, isValid,
   usuarioSearch, setUsuarioSearch, usuariosFiltrados, usuariosConConductorIds, usuarioSeleccionado,
-  esVisitante = false, conVehiculo = false, onSubmit, onCancel,
+  esVisitante = false, onSubmit, onCancel,
 }: ConductorFormModalProps) {
+  // El vehículo se registra junto al conductor al CREARLO: dar de alta a alguien sin su
+  // vehículo deja el trámite a medias. Al EDITAR no aparece -- para eso está la tarjeta del
+  // vehículo, que además permite borrarlo.
+  const conVehiculo = !isEdit;
   // Cambiar la cuenta de un conductor que YA tiene una es una decisión con consecuencias
   // (esa persona pierde el acceso y lo gana otra), así que se confirma antes.
   const [cuentaPendiente, setCuentaPendiente] = useState<Usuario | null>(null);
@@ -54,6 +54,10 @@ export function ConductorFormModal({
       nombre: usuario?.nombre || formData.nombre,
       correo: usuario?.correo || formData.correo,
       numeroTelefonico: usuario?.numero || formData.numeroTelefonico,
+      // El documento también es de la cuenta desde la migración 002 del backend: si lo trae,
+      // se precarga en vez de hacer que se teclee otra vez.
+      tipoDocumento: (usuario?.tipoDocumento as FormState["tipoDocumento"]) || formData.tipoDocumento,
+      numeroDocumento: usuario?.numeroDocumento || formData.numeroDocumento,
     });
     markTouched("usuarioId");
   };
@@ -83,7 +87,6 @@ export function ConductorFormModal({
       <TipoUsuarioField
         value={formData.tipoUsuarioId}
         error={touched.tipoUsuarioId ? formErrors.tipoUsuarioId : undefined}
-        soloLectura={isEdit}
         onChange={(v) => setFormData({ ...formData, tipoUsuarioId: v })}
         onBlur={() => markTouched("tipoUsuarioId")}
       />
@@ -115,10 +118,6 @@ export function ConductorFormModal({
             esVisitante={esVisitante}
             permitirCrearCuenta={!isEdit}
             crearCuenta={formData.crearCuenta}
-            password={formData.password}
-            confirmPassword={formData.confirmPassword}
-            passwordError={touched.password ? formErrors.password : undefined}
-            confirmPasswordError={touched.confirmPassword ? formErrors.confirmPassword : undefined}
             onCrearCuentaChange={(valor) => setFormData({
               ...formData,
               crearCuenta: valor,
@@ -127,9 +126,6 @@ export function ConductorFormModal({
               password: valor ? formData.password : "",
               confirmPassword: valor ? formData.confirmPassword : "",
             })}
-            onPasswordChange={(v) => setFormData({ ...formData, password: v })}
-            onConfirmPasswordChange={(v) => setFormData({ ...formData, confirmPassword: v })}
-            onPasswordBlur={() => { markTouched("password"); markTouched("confirmPassword"); }}
             usuarioSearch={usuarioSearch}
             onUsuarioSearchChange={setUsuarioSearch}
             usuariosFiltrados={usuariosFiltrados}
@@ -164,6 +160,20 @@ export function ConductorFormModal({
           />
         </div>
       </section>
+
+      {/* La contraseña va después de la discapacidad (y de su descripción, si se desplegó):
+          es el último paso del trámite. */}
+      {formData.crearCuenta && (
+        <CuentaNuevaFields
+          password={formData.password}
+          confirmPassword={formData.confirmPassword}
+          passwordError={touched.password ? formErrors.password : undefined}
+          confirmPasswordError={touched.confirmPassword ? formErrors.confirmPassword : undefined}
+          onPasswordChange={(v) => setFormData({ ...formData, password: v })}
+          onConfirmPasswordChange={(v) => setFormData({ ...formData, confirmPassword: v })}
+          onBlur={() => { markTouched("password"); markTouched("confirmPassword"); }}
+        />
+      )}
 
       {conVehiculo && (
         <VehiculoAsociadoFields

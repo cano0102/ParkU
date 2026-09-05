@@ -169,11 +169,6 @@ export default function Parqueaderos() {
         <ConductorFormModal
           /* Alta rápida desde portería: sin centro de formación ni regional — esos campos
              siguen disponibles en el módulo Conductores, que es donde se completan. */
-          /* El asistente de parqueo registra al conductor CON su vehículo en el mismo
-             formulario: la persona está delante con el carro y partir el trámite en dos
-             pantallas costaría más que el paso extra. En el módulo de Conductores el
-             vehículo se gestiona desde su tarjeta. */
-          conVehiculo
           esVisitante={conductorForm.esVisitante}
           isEdit={false}
           formData={conductorForm.formData}

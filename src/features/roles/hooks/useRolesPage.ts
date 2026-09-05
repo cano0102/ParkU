@@ -30,6 +30,8 @@ export function useRolesPage() {
   const [viewingRol, setViewingRol] = useState<Rol | null>(null);
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | "activo" | "inactivo">("todos");
+  // Tarjetas o lista, como en Usuarios y Conductores.
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
   const [rolAEliminar, setRolAEliminar] = useState<Rol | null>(null);
 
@@ -171,6 +173,8 @@ export function useRolesPage() {
     setSearch,
     filterEstado,
     setFilterEstado,
+    viewMode,
+    setViewMode,
     formInitial,
     filteredRoles,
     stats,

@@ -201,32 +201,25 @@ describe('useConductorForm — validación de numeroTelefonico', () => {
   });
 });
 
-describe('useConductorForm — el vehículo solo va en el asistente de parqueo', () => {
-  // En el módulo de Conductores el formulario ya no lleva vehículo (se gestiona desde la
-  // tarjeta), así que su placa no se valida ni se envía. El asistente de Estacionar Vehículo
-  // sí lo incluye: allí la persona está delante con el carro.
-  it('sin la sección de vehículo, la placa no se valida', async () => {
+describe('useConductorForm — el vehículo va al crear, no al editar', () => {
+  it('al CREAR se registra también el vehículo', async () => {
     const data = buildData();
     const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
-    act(() => result.current.setFormData({
-      ...result.current.formData, numeroDocumento: '9998887776', placa: 'ABC123',
-    }));
+    act(() => result.current.setFormData({ ...result.current.formData, numeroDocumento: '9998887776' }));
     await act(async () => result.current.handleSave());
 
-    expect(result.current.formErrors.placa).toBeUndefined();
     expect(data.addConductor).toHaveBeenCalled();
-    expect(data.addVehiculo).not.toHaveBeenCalled();
+    expect(data.addVehiculo).toHaveBeenCalledWith(
+      expect.objectContaining({ placa: 'XYZ789', marca: 'Renault', color: 'Azul' }),
+    );
   });
 
-  it('con la sección de vehículo, rechaza una placa ya registrada en otro', async () => {
+  it('al CREAR, rechaza una placa ya registrada en otro vehículo', async () => {
     const data = buildData();
-    const { result } = renderHook(
-      () => useConductorForm(data, undefined, { conVehiculo: true }),
-      { wrapper: withQueryClient() },
-    );
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
 
     act(() => result.current.openCreate());
     llenarCamposObligatorios(result);
@@ -238,6 +231,18 @@ describe('useConductorForm — el vehículo solo va en el asistente de parqueo',
     expect(result.current.formErrors.placa).toBe('Esta placa ya está registrada en otro vehículo');
     expect(data.addConductor).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalled();
+  });
+
+  it('al EDITAR no se toca ningún vehículo: se gestiona desde su tarjeta', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useConductorForm(data), { wrapper: withQueryClient() });
+
+    act(() => result.current.openEdit(conductorExistente, vehiculoExistente));
+    await act(async () => result.current.handleSave());
+
+    expect(data.updateConductor).toHaveBeenCalled();
+    expect(data.updateVehiculo).not.toHaveBeenCalled();
+    expect(data.addVehiculo).not.toHaveBeenCalled();
   });
 });
 

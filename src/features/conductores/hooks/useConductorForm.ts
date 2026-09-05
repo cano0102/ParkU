@@ -26,12 +26,7 @@ export function useConductorForm(
   /** Se dispara solo tras CREAR un conductor nuevo (no al editar uno existente), con el
    *  conductor y el vehículo recién creados — lo usa el asistente de "Estacionar Vehículo"
    *  para seleccionar ambos de inmediato, sin que el operador tenga que volver a buscarlos. */
-  onCreated?: (conductor: Conductor, vehiculo: Vehiculo) => void,
-  /** `conVehiculo`: el formulario incluye la sección del vehículo. Solo lo enciende el
-   *  asistente de Estacionar Vehículo, donde crear conductor y vehículo de un tirón evita
-   *  partir en dos el trámite que se hace con la persona delante de la barrera. En el módulo
-   *  de Conductores está apagado: allí el vehículo se gestiona desde la tarjeta. */
-  { conVehiculo = false }: { conVehiculo?: boolean } = {}
+  onCreated?: (conductor: Conductor, vehiculo: Vehiculo) => void
 ) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingConductor, setEditingConductor] = useState<Conductor | null>(null);
@@ -40,6 +35,9 @@ export function useConductorForm(
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [usuarioSearch, setUsuarioSearch] = useState("");
+  // El vehículo se registra al CREAR el conductor (dar de alta a alguien sin su vehículo deja
+  // el trámite a medias). Al EDITAR no: para eso está la tarjeta del vehículo, que además
+  // permite borrarlo. `editingConductor` se declara justo arriba.
   // Choques que solo el backend conoce (documento o correo ya registrados en otra ficha).
   // Van aparte de `formErrors` porque exigen una consulta de red, no se pueden derivar del
   // formulario -- mismo patrón que el registro público.
@@ -195,9 +193,8 @@ export function useConductorForm(
       }
     }
 
-    // La sección del vehículo solo existe en el asistente de Estacionar Vehículo; en el
-    // módulo de Conductores se gestiona desde la tarjeta, así que aquí no se valida.
-    if (!conVehiculo) return errors;
+    // El vehículo solo se pide al crear; al editar se gestiona desde su propia tarjeta.
+    if (editingConductor) return errors;
 
     const placa = form.placa.trim().toUpperCase();
     if (!placa) {
@@ -225,7 +222,7 @@ export function useConductorForm(
       }
     }
     return errors;
-  }, [placasOcupadas, documentosOcupados, tiposUsuario, conVehiculo, editingConductor]);
+  }, [placasOcupadas, documentosOcupados, tiposUsuario, editingConductor]);
 
   useEffect(() => {
     setFormErrors(validate(formData));
@@ -235,7 +232,13 @@ export function useConductorForm(
   // sin escribir, mirando cuentas Y conductores. Antes solo se avisaba al guardar, con el
   // formulario entero relleno.
   useEffect(() => {
-    if (!dialogOpen) return undefined;
+    // Solo al CREAR. Al editar, la identidad está en solo lectura: preguntar por ella solo
+    // servía para que el formulario se acusara a sí mismo de duplicado ("ya existe un usuario
+    // con ese correo" — era el suyo).
+    if (!dialogOpen || editingConductor) {
+      setErroresRemotos({});
+      return undefined;
+    }
     const documento = formData.numeroDocumento.trim();
     const correo = formData.correo.trim();
     const hayQueMirarDocumento = validarNumeroDocumento(documento);
@@ -267,7 +270,7 @@ export function useConductorForm(
     }, ESPERA_VALIDACION_MS);
 
     return () => clearTimeout(temporizador);
-  }, [dialogOpen, formData.tipoDocumento, formData.numeroDocumento, formData.correo, formData.usuarioId]);
+  }, [dialogOpen, editingConductor, formData.tipoDocumento, formData.numeroDocumento, formData.correo, formData.usuarioId]);
 
   /** Los del formulario más los que solo el backend conoce. */
   const erroresVisibles = useMemo<FormErrors>(
@@ -279,6 +282,8 @@ export function useConductorForm(
     }),
     [formErrors, erroresRemotos],
   );
+
+  const conVehiculo = !editingConductor;
 
   const isValid = useMemo(() => Object.keys(erroresVisibles).length === 0, [erroresVisibles]);
 
@@ -346,41 +351,23 @@ export function useConductorForm(
         // solo servía para arriesgarse a pisar datos que la cuenta ya mantiene.
         await data.updateConductor(editingConductor.id, {
           usuarioId: conductorData.usuarioId,
+          tipoUsuarioId: conductorData.tipoUsuarioId,
+          movilidadReducida: conductorData.movilidadReducida,
+          tipoDiscapacidad: conductorData.tipoDiscapacidad,
           estado: conductorData.estado,
         });
         // La foto no viaja a la API: se guarda en este navegador (services/core/fotosPerfil.ts).
         data.guardarFotoConductor(editingConductor.id, formData.foto);
 
-        const vehiculoData = conVehiculo ? {
-          conductorId: editingConductor.id,
-          conductorNombre: conductorData.nombre,
-          placa: formData.placa.toUpperCase().trim(),
-          tipo: formData.tipoVehiculo,
-          marca: formData.marca.trim(),
-          linea: formData.linea.trim(),
-          modelo: formData.modelo ? Number(formData.modelo) : null,
-          color: formData.color.trim(),
-          descripcion: formData.descripcionVehiculo.trim(),
-          estado: "activo" as const,
-        } : null;
-
-        if (vehiculoData) {
-          const existingVehiculo = editingVehiculoId
-            ? data.vehiculos.find((v) => v.id === editingVehiculoId)
-            : undefined;
-          if (existingVehiculo) {
-            await data.updateVehiculo(existingVehiculo.id, vehiculoData);
-          } else {
-            await data.addVehiculo(vehiculoData);
-          }
-        }
+        // Aquí no se toca ningún vehículo: al editar, el formulario no los incluye. Se
+        // gestionan desde la tarjeta del vehículo (editar y eliminar).
         toast.success("Conductor actualizado correctamente");
       } else {
         const created = await data.addConductor(conductorData);
         if (created?.id) {
           // Igual que al editar, pero solo ahora se conoce el id que asignó el backend.
           data.guardarFotoConductor(created.id, formData.foto);
-          if (conVehiculo) {
+          {
             const vehiculoCreado = await data.addVehiculo({
               conductorId: created.id,
               conductorNombre: created.nombre,
@@ -406,6 +393,7 @@ export function useConductorForm(
       console.error("Error saving conductor:", error);
     }
   }, [formData, editingConductor, editingVehiculoId, data, validate, onCreated, erroresRemotos, conVehiculo]);
+
 
   return {
     dialogOpen, setDialogOpen, editingConductor, editingVehiculoId,

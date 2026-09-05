@@ -38,6 +38,29 @@ describe('Roles', () => {
     expect(screen.getAllByText('Conductor').length).toBeGreaterThan(0);
   });
 
+  it('se puede ver en lista, igual que Usuarios y Conductores', async () => {
+    const user = userEvent.setup();
+    const { container } = renderRoles();
+    await waitFor(() => {
+      expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
+    });
+
+    // Arranca en tarjetas: no hay tabla.
+    expect(container.querySelector('.data-list')).toBeNull();
+
+    await user.click(screen.getByRole('button', { name: 'Lista' }));
+
+    // En lista aparece la tabla, con sus roles y sus acciones por fila.
+    await waitFor(() => expect(container.querySelector('.data-list')).not.toBeNull());
+    expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('Ver detalle de Vigilante')).toBeInTheDocument();
+    expect(screen.getByLabelText('Editar rol Vigilante')).toBeInTheDocument();
+
+    // Y se puede volver a tarjetas.
+    await user.click(screen.getByRole('button', { name: 'Cuadrícula' }));
+    await waitFor(() => expect(container.querySelector('.data-list')).toBeNull());
+  }, 20000);
+
   it('filtra la lista al escribir en el buscador', async () => {
     const user = userEvent.setup();
     renderRoles();

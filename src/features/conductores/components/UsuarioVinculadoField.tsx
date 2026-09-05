@@ -4,7 +4,6 @@ import {
   IconShield as Shield,
   IconShieldCheck as ShieldCheck,
   IconUserCheck as UserCheck,
-  IconPassword as KeyRound,
   IconX as X,
 } from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
@@ -21,14 +20,7 @@ interface UsuarioVinculadoFieldProps {
    *  un conductor no está contemplado, ahí solo se cambia a cuál está vinculado. */
   permitirCrearCuenta?: boolean;
   crearCuenta?: boolean;
-  password?: string;
-  confirmPassword?: string;
-  passwordError?: string;
-  confirmPasswordError?: string;
   onCrearCuentaChange?: (valor: boolean) => void;
-  onPasswordChange?: (valor: string) => void;
-  onConfirmPasswordChange?: (valor: string) => void;
-  onPasswordBlur?: () => void;
   usuarioSearch: string;
   onUsuarioSearchChange: (value: string) => void;
   usuariosFiltrados: Usuario[];
@@ -44,8 +36,7 @@ interface UsuarioVinculadoFieldProps {
 /** Buscador + lista de usuarios para vincular al conductor, con vista previa del seleccionado. */
 export function UsuarioVinculadoField({
   error, esVisitante = false, permitirCrearCuenta = true,
-  crearCuenta = false, password = "", confirmPassword = "", passwordError, confirmPasswordError,
-  onCrearCuentaChange, onPasswordChange, onConfirmPasswordChange, onPasswordBlur,
+  crearCuenta = false, onCrearCuentaChange,
   usuarioSearch, onUsuarioSearchChange, usuariosFiltrados, usuariosConConductorIds,
   usuarioIdSeleccionado, usuarioSeleccionado, onSelectUsuario, onQuitarUsuario,
 }: UsuarioVinculadoFieldProps) {
@@ -85,36 +76,10 @@ export function UsuarioVinculadoField({
       )}
 
       {crearCuenta ? (
-        <div className="cf-modal-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(200px, 100%), 1fr))", gap: 10 }}>
-          <FormField label="Contraseña *" error={passwordError}>
-            <div style={{ position: "relative" }}>
-              <KeyRound size={13} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: COLORS.textLight }} />
-              <input
-                type="password"
-                placeholder="••••••••"
-                aria-label="Contraseña"
-                value={password}
-                onChange={(e) => onPasswordChange?.(e.target.value)}
-                onBlur={onPasswordBlur}
-                style={{ ...inputStyle, paddingLeft: 34, ...(passwordError ? { border: "1px solid #FCA5A5", background: "#FEF2F2" } : {}) }}
-              />
-            </div>
-          </FormField>
-          <FormField label="Confirmar contraseña *" error={confirmPasswordError}>
-            <div style={{ position: "relative" }}>
-              <KeyRound size={13} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: COLORS.textLight }} />
-              <input
-                type="password"
-                placeholder="Repite la contraseña"
-                aria-label="Confirmar contraseña"
-                value={confirmPassword}
-                onChange={(e) => onConfirmPasswordChange?.(e.target.value)}
-                onBlur={onPasswordBlur}
-                style={{ ...inputStyle, paddingLeft: 34, ...(confirmPasswordError ? { border: "1px solid #FCA5A5", background: "#FEF2F2" } : {}) }}
-              />
-            </div>
-          </FormField>
-        </div>
+        <p style={{ fontSize: 11, color: COLORS.textLight, lineHeight: 1.5, margin: "2px 0 0" }}>
+          La cuenta se creará con el correo de arriba. La contraseña se pide al final del
+          formulario.
+        </p>
       ) : (
       <>
       <input

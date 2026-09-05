@@ -133,8 +133,9 @@ describe("features/conductores", () => {
     expect(within(dialog).getByLabelText("Tipo de usuario")).toBeInTheDocument();
     // Y se puede crear la cuenta desde aquí mismo.
     expect(within(dialog).getByLabelText("No tengo usuario")).toBeInTheDocument();
-    // El vehículo ya NO se registra desde aquí: se gestiona desde su propia tarjeta.
-    expect(within(dialog).queryByPlaceholderText("Ej: ABC123")).not.toBeInTheDocument();
+    // El vehículo SÍ se registra al crear: dar de alta a alguien sin su vehículo deja el
+    // trámite a medias. Al editar no aparece (se gestiona desde la tarjeta del vehículo).
+    expect(within(dialog).getByPlaceholderText("Ej: ABC123")).toBeInTheDocument();
   });
 
   it("vincular un vehículo existente como copropietario lo muestra en la tarjeta del nuevo conductor", async () => {

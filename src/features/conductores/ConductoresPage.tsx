@@ -156,7 +156,7 @@ export function Conductores() {
         onConfirm={confirmEliminarVehiculo}
         onCancel={() => setVehiculoAEliminar(null)}
         title="Eliminar vehículo"
-        message={`¿Eliminar el vehículo ${vehiculoAEliminar?.placa ?? ""}? Se borra de la base de datos. Solo es posible si no tiene entradas, salidas, parqueos, novedades ni reservas registradas; sus dueños no se ven afectados.`}
+        message={`¿Eliminar el vehículo ${vehiculoAEliminar?.placa ?? ""}? Se borra de la base de datos y no se puede deshacer. Si hay información en los registros del parqueadero que lo necesita, no podrá eliminarse. Sus dueños no se ven afectados.`}
         confirmLabel="Eliminar"
       />
 
