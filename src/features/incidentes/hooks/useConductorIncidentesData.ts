@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
-import { useConductores } from "@/features/conductores";
+import { useConductores, vehiculosDeConductor } from "@/features/conductores";
 import { useIncidentesData } from "./useIncidentesData";
 import { compararIncidentes } from "../lib/orden";
 
@@ -36,7 +36,7 @@ export function useConductorIncidentesData() {
   );
 
   const misVehiculos = useMemo(
-    () => base.vehiculos.filter((v) => v.conductorId === miConductorId),
+    () => vehiculosDeConductor(base.vehiculos, miConductorId),
     [base.vehiculos, miConductorId]
   );
 

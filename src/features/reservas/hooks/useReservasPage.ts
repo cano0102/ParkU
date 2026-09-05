@@ -5,7 +5,7 @@ import { ROLES } from "@/services/core/roles";
 import { useReservas, useReservasDeVehiculos, useRemoveReserva, useUpdateReserva, useCancelarReserva } from "./useReservas";
 import type { Reserva } from "@/services/api/reservas";
 import { useCeldas, useParqueaderos } from "@/features/parqueaderos";
-import { useVehiculos, useConductores, vehiculoEstaParqueado } from "@/features/conductores";
+import { useVehiculos, useConductores, vehiculoEstaParqueado, vehiculosDeConductor } from "@/features/conductores";
 import { useControlSalida } from "@/features/controlSalida";
 import type { EstadoReserva } from "../lib/constants";
 import { seSolapan, buscarConflictoHorario as buscarConflictoHorarioEnLista } from "../lib/helpers";
@@ -35,7 +35,7 @@ export function useReservasPage() {
     [esConductor, user, conductores]
   );
   const misVehiculosIds = useMemo(
-    () => (esConductor ? vehiculos.filter((v) => v.conductorId === miConductorId).map((v) => v.id) : []),
+    () => (esConductor ? vehiculosDeConductor(vehiculos, miConductorId).map((v) => v.id) : []),
     [esConductor, vehiculos, miConductorId]
   );
   const { data: reservasAdmin = [], isLoading: isLoadingReservasAdmin } = useReservas({ enabled: !esConductor });

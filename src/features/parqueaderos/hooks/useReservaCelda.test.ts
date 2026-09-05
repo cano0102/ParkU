@@ -221,9 +221,11 @@ describe('useReservaCelda — handleRequestLiberar', () => {
    handleCrearReserva — compatibilidad vehículo/celda y conductor
 ============================================================ */
 describe('useReservaCelda — compatibilidad y conductor', () => {
+  /** El próximo día en que el parqueadero opera: mañana, o el lunes si mañana es domingo. */
   const manana = () => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
+    if (d.getDay() === 0) d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   };
 

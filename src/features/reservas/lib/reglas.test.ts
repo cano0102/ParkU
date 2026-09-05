@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   validarFranja, estaATiempoDeCancelar, horaMinimaDeInicio, horaMinimaDeFin, franjaSugerida,
-  rangoDeHoraInicio, rangoDeHoraFin, ajustarFranja,
+  rangoDeHoraInicio, rangoDeHoraFin, ajustarFranja, esDomingo,
 } from './reglas';
 
 // Un "ahora" fijo para que las pruebas no dependan de la hora a la que se ejecuten.
@@ -128,6 +128,40 @@ describe('reglas de tiempo de una reserva', () => {
         expect(ajustada.horaInicio).toBe('19:30');
         expect(validarFranja(ajustada, AHORA)).toBeNull();
       });
+    });
+  });
+
+  describe('los domingos no se opera', () => {
+    const DOMINGO = '2026-09-13';
+    const LUNES = '2026-09-14';
+
+    it('reconoce el domingo tanto en texto como en fecha', () => {
+      expect(esDomingo(DOMINGO)).toBe(true);
+      expect(esDomingo(LUNES)).toBe(false);
+      // Como texto suelto, "2026-09-13" se leería como UTC y en Colombia se correría un día.
+      expect(esDomingo(new Date(`${DOMINGO}T09:00:00`))).toBe(true);
+    });
+
+    it('no deja reservar PARA un domingo', () => {
+      const aviso = validarFranja({ fechaReserva: DOMINGO, horaInicio: '09:00', horaFin: '11:00' }, AHORA);
+      expect(aviso).toMatch(/no opera los domingos/);
+    });
+
+    it('pero sí deja PEDIRLA un domingo, para otro día', () => {
+      // El domingo no se opera, pero es justo cuando alguien organiza su semana: pedir el
+      // domingo una reserva para el lunes tiene todo el sentido.
+      const enDomingo = new Date(`${DOMINGO}T09:00:00`);
+      expect(validarFranja({ fechaReserva: LUNES, horaInicio: '15:00', horaFin: '17:00' }, enDomingo)).toBeNull();
+    });
+
+    it('y el lunes sí', () => {
+      expect(validarFranja({ fechaReserva: LUNES, horaInicio: '09:00', horaFin: '11:00' }, AHORA)).toBeNull();
+    });
+
+    it('si hoy es domingo, la franja sugerida se va al lunes', () => {
+      const sugerida = franjaSugerida(new Date(`${DOMINGO}T09:00:00`));
+      expect(sugerida.fechaReserva).toBe(LUNES);
+      expect(esDomingo(sugerida.fechaReserva)).toBe(false);
     });
   });
 

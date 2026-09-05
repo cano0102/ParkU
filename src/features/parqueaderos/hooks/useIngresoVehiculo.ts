@@ -11,7 +11,8 @@ import {
 } from "../lib/helpers";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
-import { otroVehiculoDelConductorEnUso } from "@/features/conductores";
+import { otroVehiculoDelConductorEnUso, esDeConductor, vehiculosOperables } from "@/features/conductores";
+import { MOTIVO_OFICIAL_SENA } from "@/features/reservas";
 import type { Reserva } from "@/services/api/reservas";
 
 const emptyVehiculoForm = (esOficial = false): VehiculoForm => ({ placa: "", conductor: "", esOficial, marca: "", modelo: "", color: "" });
@@ -59,7 +60,7 @@ export function useIngresoVehiculo(
   };
 
   const registrarEnCelda = async (
-    celda: Celda, placaRaw: string, conductorRaw: string, _esOficial: boolean,
+    celda: Celda, placaRaw: string, conductorRaw: string, esOficial: boolean,
     datosVehiculo?: { marca?: string; modelo?: string; color?: string },
     conductorIdExplicito?: string
   ): Promise<boolean> => {
@@ -137,7 +138,11 @@ export function useIngresoVehiculo(
       setPlacaError(`Esta placa ya está registrada a nombre de ${duenoReal?.nombre ?? "otro conductor"} — selecciónalo o crea un nuevo vehículo.`);
       return false;
     }
-    if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId !== vehiculoExistentePorPlaca?.id) {
+    // Un vehículo oficial del SENA pasa por encima de la reserva: la operación del
+    // parqueadero manda sobre un apartado particular. La reserva no se pierde en silencio —
+    // más abajo se cancela dejando escrito el motivo.
+    const oficialSobreReserva = !!(esOficial && reservaDeLaCelda);
+    if (reservaDeLaCelda && !oficialSobreReserva && reservaDeLaCelda.vehiculoId !== vehiculoExistentePorPlaca?.id) {
       const vehiculoReservado = vehiculos.find((v) => v.id === reservaDeLaCelda.vehiculoId);
       setPlacaError(`Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${reservaDeLaCelda.horaFin}.`);
       return false;
@@ -146,7 +151,7 @@ export function useIngresoVehiculo(
     // La reserva no solo aparta la celda para un vehículo: también respalda a un conductor.
     // Si quien llega es otra persona, no puede usar la reserva aunque traiga el vehículo
     // correcto (y no hay forma de saltárselo eligiendo otro conductor a mano).
-    if (reservaDeLaCelda?.conductorId && conductorExistente && reservaDeLaCelda.conductorId !== conductorExistente.id) {
+    if (reservaDeLaCelda?.conductorId && !oficialSobreReserva && conductorExistente && reservaDeLaCelda.conductorId !== conductorExistente.id) {
       const conductorDeLaReserva = conductores.find((c) => c.id === reservaDeLaCelda.conductorId);
       setPlacaError(
         `Esta celda está reservada a nombre de ${conductorDeLaReserva?.nombre ?? "otro conductor"}. ` +
@@ -190,6 +195,12 @@ export function useIngresoVehiculo(
       // ya está bloqueado más arriba, pero esta comprobación se deja como defensa adicional).
       if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId === vehiculoId) {
         await updateReserva(reservaDeLaCelda.id, { estado: "completada" });
+      } else if (oficialSobreReserva && reservaDeLaCelda) {
+        // Se cancela ANTES de ocupar la celda: mientras la reserva siga viva, la base de
+        // datos no deja entrar a otro vehículo (trigger fn_validar_ocupacion_celda), y al
+        // cancelarla la celda vuelve a quedar libre para este ingreso.
+        await updateReserva(reservaDeLaCelda.id, { estado: "cancelada", motivoRechazo: MOTIVO_OFICIAL_SENA });
+        toast.info(`La reserva de esa celda se canceló: ${MOTIVO_OFICIAL_SENA}`);
       }
 
       await addControlSalida({ vehiculoId, conductorId, parqueaderoId: celda.parqueaderoId, celdaId: celda.id, fechaEntrada, estado: "en_parqueadero" });
@@ -294,7 +305,9 @@ export function useIngresoVehiculo(
     // Solo se sugieren vehículos que caben en ESTA celda: ofrecer un carro para una celda de
     // moto solo lleva a un error al confirmar (la validación de placa vs tipo de celda ya lo
     // rechaza más abajo), así que se filtra desde la sugerencia.
-    return vehiculos
+    // Tampoco se sugiere un vehículo apagado: se apaga con la cuenta de su dueño, y quien
+    // ya no puede entrar al sistema no debería poder parquear a través de su vehículo.
+    return vehiculosOperables(vehiculos)
       .filter((v) => v.placa.startsWith(placaDebounced) && (!celdaActiva || v.tipo === celdaActiva.tipo))
       .slice(0, 6);
   }, [placaDebounced, vehiculos, vehiculoEncontrado, celdaActiva]);
@@ -386,8 +399,8 @@ export function useIngresoVehiculo(
     if (!conductorIdentificado) return [];
     // Mismo criterio que en las sugerencias de placa: de los vehículos del conductor solo se
     // listan los compatibles con el tipo de la celda que se está ocupando.
-    return vehiculos.filter(
-      (v) => v.conductorId === conductorIdentificado.id && (!celdaActiva || v.tipo === celdaActiva.tipo)
+    return vehiculosOperables(vehiculos).filter(
+      (v) => esDeConductor(v, conductorIdentificado.id) && (!celdaActiva || v.tipo === celdaActiva.tipo)
     );
   }, [conductorIdentificado, vehiculos, celdaActiva]);
 

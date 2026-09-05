@@ -44,6 +44,8 @@ interface CeldaInfoModalProps {
    *  de que un administrador o vigilante la acepte. */
   canSolicitarReserva?: boolean;
   onSolicitarReserva?: () => void;
+  /** Nombre de quien hizo la reserva que retiene esta celda. */
+  conductorReserva?: string;
   /** true si el rol del usuario logueado tiene el permiso "celdas" — controla si se muestra
    *  el ajuste manual de estado (ver onSetEstadoManual) y el botón "Reservar Celda". Ese botón
    *  usa `handleCrearReserva` (ver useReservaCelda.ts), que crea la reserva y la ACTIVA de
@@ -80,7 +82,7 @@ export function CeldaInfoModal({
   open, celdaActiva, ocupanteActivo, reservaActiva, vehiculoReservado, parqueaderoActivo, onClose,
   onCancelarReserva, onEstacionarOficial, onNavigateConductor, onLiberar,
   onReportarIncidente, onEstacionarVehiculo, onEstacionarReservado, onReservarCelda,
-  canSolicitarReserva = false, onSolicitarReserva,
+  canSolicitarReserva = false, onSolicitarReserva, conductorReserva,
   canManageCeldas, canRegistrarIngreso, canReportarIncidentes, incidenteAbiertoExiste, onSetEstadoManual,
 }: CeldaInfoModalProps) {
   const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
@@ -154,6 +156,10 @@ export function CeldaInfoModal({
             <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada.</div>
             {reservaActiva && [
               { icon: Car, label: "Vehículo", value: vehiculoReservado ? `${vehiculoReservado.placa} — ${vehiculoReservado.marca} ${vehiculoReservado.modelo}` : "—" },
+              // Una reserva aparta la celda para una PERSONA, no solo para un vehículo: es
+              // quien tiene que llegar, y sin su nombre no hay forma de saber a quién se le
+              // está guardando la celda.
+              { icon: UserCircle2, label: "Reservada por", value: conductorReserva || "—" },
               { icon: Calendar, label: "Fecha", value: reservaActiva.fechaReserva },
               { icon: ClockIcon, label: "Horario", value: `${reservaActiva.horaInicio} – ${reservaActiva.horaFin}` },
             ].map((r, i) => (

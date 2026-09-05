@@ -6,6 +6,7 @@ export {
 } from './hooks/useVehiculos';
 export {
   vehiculoEstaParqueado, reservaActivaDe, vehiculoNoDisponible, otroVehiculoDelConductorEnUso,
+  esDeConductor, vehiculosDeConductor, vehiculosOperables,
 } from './lib/ocupacion';
 export { useTiposUsuario } from './hooks/useTiposUsuario';
 export { ConductorSearchField } from './components/ConductorSearchField';

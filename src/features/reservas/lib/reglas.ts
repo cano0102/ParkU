@@ -10,6 +10,8 @@
  * - No empieza después de las 19:30, aunque sí puede terminar hasta la hora de cierre.
  * - Se cancela hasta media hora antes del inicio.
  * - Una solicitud sin aprobar se rechaza sola a media hora del inicio.
+ * - Los domingos el parqueadero no opera, así que no se reserva PARA un domingo. Pedir la
+ *   reserva un domingo sí se puede: es justo cuando alguien organiza su semana.
  */
 
 export const ANTICIPACION_MINIMA_MINUTOS = 120;
@@ -30,6 +32,9 @@ export const MARGEN_LLEGADA_MINUTOS = 20;
 /** Lo que queda escrito en la reserva cuando vence sola, para que se sepa por qué. */
 export const MOTIVO_VENCIMIENTO_ACEPTADA = `Cancelada automáticamente: pasaron ${MARGEN_LLEGADA_MINUTOS} minutos desde la hora de inicio sin que el vehículo llegara, y la celda se liberó.`;
 export const MOTIVO_SIN_CONFIRMAR = `Rechazada automáticamente: la solicitud no se aprobó a ${MARGEN_CONFIRMACION_MINUTOS} minutos de la hora de inicio.`;
+
+/** Cuando un vehículo oficial ocupa una celda reservada: su reserva se cancela con esto. */
+export const MOTIVO_OFICIAL_SENA = 'Oficial SENA estacionado, tiene prioridad en la operación del parqueadero.';
 
 const MINUTO_MS = 60 * 1000;
 
@@ -53,6 +58,16 @@ export const aHora = (minutos: number): string => {
   const total = Math.max(0, Math.min(24 * 60 - 1, Math.round(minutos)));
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 };
+
+/**
+ * ¿Esa fecha cae en domingo? Acepta tanto un `Date` como el "YYYY-MM-DD" de un campo de
+ * fecha; el texto se interpreta como día local (con `new Date("2026-09-13")` a secas, el
+ * navegador lo lee como UTC y en Colombia se corre un día).
+ */
+export function esDomingo(fecha: string | Date): boolean {
+  const d = typeof fecha === "string" ? new Date(`${fecha}T12:00:00`) : fecha;
+  return !Number.isNaN(d.getTime()) && d.getDay() === 0;
+}
 
 /** La fecha de hoy en el formato que usan los <input type="date"> y las reservas. */
 export const hoy = (ahora: Date = new Date()): string => {
@@ -82,8 +97,16 @@ export function horaMinimaDeFin(horaInicio: string): string | undefined {
   return aHora(aMinutos(horaInicio) + DURACION_MINIMA_MINUTOS);
 }
 
-/** Una franja por defecto que ya cumple las reglas: empieza dentro de la anticipación mínima. */
+/**
+ * Una franja por defecto que ya cumple las reglas: empieza dentro de la anticipación mínima
+ * y, si hoy es domingo, se va al lunes (ese día no se opera).
+ */
 export function franjaSugerida(ahora: Date = new Date()): { fechaReserva: string; horaInicio: string; horaFin: string } {
+  if (esDomingo(ahora)) {
+    const lunes = new Date(ahora);
+    lunes.setDate(lunes.getDate() + 1);
+    return { fechaReserva: hoy(lunes), horaInicio: "08:00", horaFin: "09:00" };
+  }
   const inicio = aMinutos(horaMinimaDeInicio(hoy(ahora), ahora) ?? "00:00");
   return {
     fechaReserva: hoy(ahora),
@@ -163,6 +186,10 @@ export function validarFranja(
   const inicio = new Date(`${fechaReserva}T${horaInicio}`);
   const fin = new Date(`${fechaReserva}T${horaFin}`);
   if (Number.isNaN(inicio.getTime()) || Number.isNaN(fin.getTime())) return "La fecha y la hora no son válidas";
+
+  // El parqueadero no abre los domingos: no hay nada que reservar ese día. El día en que se
+  // PIDE la reserva da igual — pedirla un domingo para el lunes es perfectamente razonable.
+  if (esDomingo(fechaReserva)) return "El parqueadero no opera los domingos: elige otro día";
 
   if (fin.getTime() <= inicio.getTime()) return "La hora de fin debe ser posterior a la de inicio";
 

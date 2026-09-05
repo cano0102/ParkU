@@ -4,6 +4,7 @@ import type { ControlSalida } from '@/services/api/controlSalida';
 import type { Reserva } from '@/services/api/reservas';
 import {
   vehiculoEstaParqueado, reservaActivaDe, vehiculoNoDisponible, otroVehiculoDelConductorEnUso,
+  esDeConductor, vehiculosDeConductor,
 } from './ocupacion';
 
 /**
@@ -54,6 +55,41 @@ describe('cuándo un vehículo no está disponible', () => {
   it('lo de otro vehículo no le afecta', () => {
     expect(vehiculoEstaParqueado('1', [parqueado('2')])).toBe(false);
     expect(vehiculoNoDisponible(vehiculo('1', 'ABC123'), [parqueado('2')], [reserva('2', 'activa')])).toBeNull();
+  });
+});
+
+describe('qué vehículos son de un conductor', () => {
+  // Al vincular un vehículo existente a otro conductor, su `conductorId` NO cambia: el
+  // vínculo queda en `copropietarios`. Filtrar solo por `conductorId` dejaba al
+  // copropietario sin ver su propio vehículo en los selectores de reserva y de ingreso.
+  const conCopropietario = {
+    ...vehiculo('9', 'COP999', 'c1'),
+    copropietarios: [
+      { id: 'c1', nombre: 'Ana', esPrincipal: true },
+      { id: 'c2', nombre: 'Beto', esPrincipal: false },
+    ],
+  };
+
+  it('cuenta el vehículo del que es dueño principal', () => {
+    expect(esDeConductor(conCopropietario, 'c1')).toBe(true);
+  });
+
+  it('y también el que copropieta, aunque el conductorId sea de otro', () => {
+    expect(conCopropietario.conductorId).not.toBe('c2');
+    expect(esDeConductor(conCopropietario, 'c2')).toBe(true);
+  });
+
+  it('no cuenta el de un tercero', () => {
+    expect(esDeConductor(conCopropietario, 'c3')).toBe(false);
+  });
+
+  it('la lista incluye los propios y los copropietados', () => {
+    const flota = [vehiculo('1', 'ABC123', 'c2'), conCopropietario, vehiculo('3', 'JKL321', 'c3')];
+    expect(vehiculosDeConductor(flota, 'c2').map((v) => v.placa)).toEqual(['ABC123', 'COP999']);
+  });
+
+  it('sin conductor no hay lista que devolver', () => {
+    expect(vehiculosDeConductor([vehiculo('1', 'ABC123')], null)).toEqual([]);
   });
 });
 

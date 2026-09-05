@@ -11,6 +11,41 @@ import type { Reserva } from "@/services/api/reservas";
 
 const RESERVA_ESTADOS_ACTIVOS = new Set(["pendiente", "activa"]);
 
+/**
+ * ¿Este vehículo es de este conductor? Cuenta tanto si es el propietario principal como si
+ * está vinculado como copropietario.
+ *
+ * Vale la pena la función porque el matiz se pasa por alto: al vincular un vehículo existente
+ * a otro conductor, el `conductorId` NO cambia (sigue siendo el del dueño principal) y el
+ * vínculo queda en `copropietarios`. Filtrar solo por `conductorId` — que es lo que hacía
+ * media aplicación — dejaba al copropietario sin ver su propio vehículo en los selectores de
+ * reserva y de ingreso, aunque en su ficha sí apareciera.
+ */
+export function esDeConductor(vehiculo: Pick<Vehiculo, "conductorId" | "copropietarios">, conductorId: string): boolean {
+  return vehiculo.conductorId === conductorId || !!vehiculo.copropietarios?.some((p) => p.id === conductorId);
+}
+
+/** Los vehículos que puede usar un conductor: los suyos y los que copropieta. */
+export function vehiculosDeConductor<T extends Pick<Vehiculo, "conductorId" | "copropietarios">>(
+  vehiculos: T[],
+  conductorId: string | null | undefined,
+): T[] {
+  if (!conductorId) return [];
+  return vehiculos.filter((v) => esDeConductor(v, conductorId));
+}
+
+/**
+ * Los vehículos que se pueden ofrecer para operar (reservar, estacionar): solo los activos.
+ *
+ * Un vehículo se apaga con la cuenta de su dueño (ver usuario.service en la API): si esa
+ * persona ya no puede entrar al sistema, tampoco debe seguir apareciendo en el mostrador a
+ * través de sus vehículos. Los que comparte con otro propietario activo NO se apagan, así
+ * que esos siguen aquí — es el vehículo el que dice si puede operar, no quién lo consulta.
+ */
+export function vehiculosOperables<T extends Pick<Vehiculo, "estado">>(vehiculos: T[]): T[] {
+  return vehiculos.filter((v) => v.estado === "activo");
+}
+
 export function vehiculoEstaParqueado(vehiculoId: string, controlesSalida: ControlSalida[]): boolean {
   return controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.vehiculoId === vehiculoId);
 }

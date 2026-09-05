@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { Modal, LoadingState } from "@/components/shared";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
+import { vehiculosDeConductor, vehiculosOperables } from "@/features/conductores";
 import { ROLES } from "@/services/core/roles";
 import { useReservasPage } from "./hooks/useReservasPage";
 import { useSolicitarReserva } from "./hooks/useSolicitarReserva";
@@ -25,8 +26,11 @@ export function Reservas() {
   // El backend ya rechaza DELETE /reservas/:id con 403 para cualquiera que no
   // sea Admin (rol 1) — el botón ni se muestra para los demás roles.
   const puedeEliminarReserva = user?.rol === ROLES.ADMIN;
+  // Incluye los que copropieta: al vincular un vehículo existente, su `conductorId` sigue
+  // siendo el del dueño principal y el vínculo queda en `copropietarios` — filtrar solo por
+  // `conductorId` dejaba al copropietario sin poder reservar con un vehículo que sí es suyo.
   const misVehiculos = useMemo(
-    () => (p.miConductorId ? p.vehiculos.filter((v) => v.conductorId === p.miConductorId) : []),
+    () => vehiculosOperables(vehiculosDeConductor(p.vehiculos, p.miConductorId)),
     [p.vehiculos, p.miConductorId]
   );
   const solicitud = useSolicitarReserva(misVehiculos, p.celdas, p.parqueaderos, p.vehiculos, p.controlesSalida, p.reservasTodas);
@@ -159,7 +163,8 @@ export function Reservas() {
 
       <Modal open={solicitud.open} onClose={() => solicitud.setOpen(false)} maxWidth={620}>
         <SolicitarReservaModal
-          misVehiculos={misVehiculos}
+          /* Ya filtrados por el tipo de la celda cuando hay una elegida (ver el hook). */
+          misVehiculos={solicitud.vehiculosOfrecidos}
           parqueaderosActivos={solicitud.parqueaderosActivos}
           celdasDisponibles={solicitud.celdasDisponibles}
           vehiculoId={solicitud.form.vehiculoId}

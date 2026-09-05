@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useConductores, useVehiculos } from "@/features/conductores";
+import { useConductores, useVehiculos, vehiculosDeConductor } from "@/features/conductores";
 import { useParqueaderos, useCeldas } from "@/features/parqueaderos";
 import { useReservasDeVehiculos } from "@/features/reservas";
 
@@ -28,7 +28,7 @@ export function useConductorDashboardData() {
   );
 
   const misVehiculos = useMemo(
-    () => (miConductor ? vehiculos.filter((v) => v.conductorId === miConductor.id) : []),
+    () => vehiculosDeConductor(vehiculos, miConductor?.id),
     [vehiculos, miConductor]
   );
 

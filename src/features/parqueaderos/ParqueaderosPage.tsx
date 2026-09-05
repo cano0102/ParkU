@@ -2,7 +2,7 @@ import { theme } from "@/styles/theme";
 import { LoadingState, Modal, ConfirmDialog } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
-import { ConductorFormModal, AgregarVehiculoModal } from "@/features/conductores";
+import { ConductorFormModal, AgregarVehiculoModal, vehiculosDeConductor, vehiculosOperables } from "@/features/conductores";
 import { MotivoReservaModal } from "@/features/reservas";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
@@ -31,7 +31,11 @@ export default function Parqueaderos() {
   // modal de reserva no debe exponer la lista completa de vehículos/conductores del sistema.
   const esConductor = user?.rol === ROLES.CONDUCTOR;
   const miConductor = esConductor ? data.conductores.find((c) => c.usuarioId === user!.id) : undefined;
-  const vehiculosDelRol = esConductor ? data.vehiculos.filter((v) => v.conductorId === miConductor?.id) : data.vehiculos;
+  // Solo vehículos que pueden operar: los de una cuenta desactivada quedan fuera (ver
+  // vehiculosOperables), salvo los que comparte con otro propietario que sigue activo.
+  const vehiculosDelRol = vehiculosOperables(
+    esConductor ? vehiculosDeConductor(data.vehiculos, miConductor?.id) : data.vehiculos
+  );
   // La celda ya está elegida (la reserva se abre desde el plano), así que el selector solo
   // debe ofrecer vehículos que quepan en SU tipo: una celda de moto no admite un carro y
   // viceversa. La validación definitiva vuelve a hacerse al crear la reserva (useReservaCelda)
@@ -39,7 +43,8 @@ export default function Parqueaderos() {
   const vehiculosParaReserva = modal.celdaActiva
     ? vehiculosDelRol.filter((v) => v.tipo === modal.celdaActiva!.tipo)
     : vehiculosDelRol;
-  const conductoresParaReserva = esConductor ? data.conductores.filter((c) => c.id === miConductor?.id) : data.conductores;
+  const conductoresParaReserva = (esConductor ? data.conductores.filter((c) => c.id === miConductor?.id) : data.conductores)
+    .filter((c) => c.estado === "activo");
 
   return (
     <>
@@ -248,6 +253,12 @@ export default function Parqueaderos() {
         /* Quien ve el plano y puede reservar, pero no gestionar celdas (el caso del
            Conductor), no crea la reserva aquí: pide esta celda y la solicitud queda
            pendiente de aprobación en el módulo de Reservas. */
+        conductorReserva={
+          modal.reservaActiva
+            ? data.conductores.find((c) => c.id === modal.reservaActiva!.conductorId)?.nombre
+              ?? data.conductores.find((c) => c.id === modal.vehiculoReservado?.conductorId)?.nombre
+            : undefined
+        }
         canSolicitarReserva={!hasPermission("celdas") && hasPermission("reservas")}
         onSolicitarReserva={() => {
           if (!modal.celdaActiva) return;

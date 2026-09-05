@@ -77,6 +77,16 @@ export function useSolicitarReserva(
   // Solo se ofrecen los parqueaderos que de verdad le sirven a este vehículo: activos y con
   // alguna celda libre de su tipo. Antes salían todos, y elegir uno de motos con un carro
   // llevaba a un selector de celdas vacío sin explicación.
+  /**
+   * Vehículos que se pueden ofrecer: si ya hay una celda elegida (se llega así desde el plano
+   * de Parqueaderos), solo los de su tipo — en una celda de carro no se sugiere una moto.
+   */
+  const celdaElegida = useMemo(() => celdas.find((c) => c.id === form.celdaId) ?? null, [celdas, form.celdaId]);
+  const vehiculosOfrecidos = useMemo(
+    () => (celdaElegida ? misVehiculos.filter((v) => v.tipo === celdaElegida.tipo) : misVehiculos),
+    [misVehiculos, celdaElegida],
+  );
+
   const parqueaderosActivos = useMemo(() => {
     const activos = parqueaderos.filter((p) => p.estado === "activo");
     if (!vehiculoSeleccionado) return activos;
@@ -89,6 +99,12 @@ export function useSolicitarReserva(
     if (!f.vehiculoId) return "Selecciona un vehículo";
     if (!f.parqueaderoId) return "Selecciona un parqueadero";
     if (!f.celdaId) return "Selecciona una celda disponible";
+    // La celda pudo elegirse antes que el vehículo (se llega así desde el plano).
+    const celda = celdas.find((c) => c.id === f.celdaId);
+    const vehiculoElegido = misVehiculos.find((v) => v.id === f.vehiculoId);
+    if (celda && vehiculoElegido && celda.tipo !== vehiculoElegido.tipo) {
+      return `La celda ${celda.numero} es para ${celda.tipo}s y ${vehiculoElegido.placa} es ${vehiculoElegido.tipo}`;
+    }
     // El motivo es lo que le permite a quien aprueba decidir con criterio.
     if (!f.motivo.trim()) return "Explica para qué necesitas la celda: el motivo es obligatorio";
     if (!f.fechaReserva) return "La fecha es obligatoria";
@@ -116,7 +132,7 @@ export function useSolicitarReserva(
       if (motivoNoDisponible) return motivoNoDisponible.motivo;
     }
     return null;
-  }, [todosLosVehiculos, controlesSalida, reservasTodas]);
+  }, [todosLosVehiculos, controlesSalida, reservasTodas, celdas, misVehiculos]);
 
   const error = touched ? validar(form) : null;
   const markTouched = useCallback(() => setTouched(true), []);
@@ -156,6 +172,6 @@ export function useSolicitarReserva(
 
   return {
     open, setOpen, form, setForm, error, touched, markTouched, ajustar,
-    celdasDisponibles, parqueaderosActivos, abrir, abrirCon, enviarSolicitud,
+    celdasDisponibles, parqueaderosActivos, vehiculosOfrecidos, abrir, abrirCon, enviarSolicitud,
   };
 }

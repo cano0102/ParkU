@@ -11,6 +11,7 @@ import type { Usuario } from "@/services/api/usuarios";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { useFotos } from "@/hooks/useFotos";
+import { vehiculosDeConductor } from "../lib/ocupacion";
 
 // Referencias ESTABLES para cuando la query todavía no resolvió: `data: x = []` con un
 // literal inline crea un array NUEVO en cada render mientras `data` sigue `undefined`, lo que
@@ -71,7 +72,7 @@ export function useConductoresData() {
   // ya trae TODOS los conductores vinculados (principal + copropietarios), así que basta con
   // buscar ahí también.
   const getVehiculosConductor = useCallback(
-    (id: string) => vehiculos.filter((v) => v.conductorId === id || v.copropietarios?.some((p) => p.id === id)),
+    (id: string) => vehiculosDeConductor(vehiculos, id),
     [vehiculos]
   );
 
