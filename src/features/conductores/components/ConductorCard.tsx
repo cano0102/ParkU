@@ -5,6 +5,7 @@ import {
   IconBuilding as Building2,
   IconWheelchair as Accessibility,
   IconEye as Eye,
+  IconTrash as Trash,
 } from "@tabler/icons-react";
 import type { ReactNode } from "react";
 import type { DataListColumn } from "@/components/data";
@@ -28,13 +29,15 @@ export interface ConductorCardHandlers {
   onViewDetail: (c: Conductor) => void;
   onEdit: (c: Conductor) => void;
   onAgregarVehiculo: (c: Conductor) => void;
+  /** Borra la ficha. El backend la rechaza si tiene entradas, salidas o reservas. */
+  onDelete: (c: Conductor) => void;
   /** Foto del conductor (la propia, o la de su cuenta vinculada), guardada en este navegador
    *  — ver useConductoresData.fotoDeConductor. Sin foto se muestran las iniciales. */
   fotoDe: (c: Conductor) => string | undefined;
 }
 
 export function renderConductorCard(conductor: Conductor, handlers: ConductorCardHandlers): ReactNode {
-  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, fotoDe } = handlers;
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, onDelete, fotoDe } = handlers;
   const vehiculosCond = getVehiculosConductor(conductor.id);
 
   const tipoStyle = getTipoUsuarioStyle(conductor.tipoUsuarioNombre);
@@ -151,6 +154,15 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
           >
             <Pencil size={14} />
           </button>
+          <button
+            className="action-btn"
+            title="Eliminar"
+            onClick={() => onDelete(conductor)}
+            aria-label={`Eliminar ${conductor.nombre}`}
+            style={{ border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C" }}
+          >
+            <Trash size={14} />
+          </button>
         </div>
       </div>
     </div>
@@ -158,7 +170,7 @@ export function renderConductorCard(conductor: Conductor, handlers: ConductorCar
 }
 
 export function getConductorColumns(handlers: ConductorCardHandlers): DataListColumn<Conductor>[] {
-  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, fotoDe } = handlers;
+  const { getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, onDelete, fotoDe } = handlers;
 
   return [
     {
@@ -304,6 +316,15 @@ export function getConductorColumns(handlers: ConductorCardHandlers): DataListCo
             aria-label="Editar"
           >
             <Pencil size={12} />
+          </button>
+          <button
+            title="Eliminar"
+            onClick={() => onDelete(conductor)}
+            className="action-btn"
+            style={{ width: 26, height: 26, border: "1px solid #FECACA", background: "#FEF2F2", color: "#B91C1C" }}
+            aria-label={`Eliminar ${conductor.nombre}`}
+          >
+            <Trash size={12} />
           </button>
         </div>
       ),

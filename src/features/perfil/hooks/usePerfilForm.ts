@@ -7,7 +7,9 @@ import { validarTelefono } from "@/utils/validation";
 export function usePerfilForm(user: { nombre: string; numero: string }) {
   const { updateUser } = useAuth();
   const [editMode, setEditMode] = useState(false);
-  const [profileForm, setProfileForm] = useState({ nombre: user.nombre, numero: user.numero });
+  // El teléfono es opcional en toda la aplicación, y una sesión guardada de antes puede no
+  // traerlo: sin este respaldo, el .trim() de más abajo tumbaba la pantalla entera.
+  const [profileForm, setProfileForm] = useState({ nombre: user.nombre ?? "", numero: user.numero ?? "" });
   const [profileTouched, setProfileTouched] = useState<{ nombre?: boolean; numero?: boolean }>({});
 
   const profileErrors = {
@@ -18,14 +20,14 @@ export function usePerfilForm(user: { nombre: string; numero: string }) {
   const markProfileTouched = (campo: "nombre" | "numero") => setProfileTouched((t) => ({ ...t, [campo]: true }));
 
   const startEdit = () => {
-    setProfileForm({ nombre: user.nombre, numero: user.numero });
+    setProfileForm({ nombre: user.nombre ?? "", numero: user.numero ?? "" });
     setProfileTouched({});
     setEditMode(true);
   };
 
   const cancelEdit = () => {
     setEditMode(false);
-    setProfileForm({ nombre: user.nombre, numero: user.numero });
+    setProfileForm({ nombre: user.nombre ?? "", numero: user.numero ?? "" });
     setProfileTouched({});
   };
 

@@ -20,7 +20,6 @@
  * simplemente se ignora (no hay endpoint real para esa acción).
  */
 import { apiFetch } from '../core/http';
-import type { RolId } from '../core/roles';
 
 export interface Usuario {
   id: string;

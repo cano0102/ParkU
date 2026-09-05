@@ -40,7 +40,7 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
   // El perfil SENA solo se pide al crear una cuenta de rol Conductor (ver más abajo). Si su
   // catálogo no llegó a cargar no se puede exigir elegir una opción que no existe: eso
   // dejaría el formulario permanentemente inválido y sin forma de crear la cuenta.
-  const { data: tiposUsuario = [] } = useTiposUsuario();
+  const { data: tiposUsuario } = useTiposUsuario();
   const hayTiposUsuario = tiposUsuario.length > 0;
 
   const { user } = useAuth();

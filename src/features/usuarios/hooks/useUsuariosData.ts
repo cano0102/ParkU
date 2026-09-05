@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import { useUsuarios, useCreateUsuario, useUpdateUsuario, useRemoveUsuario } from "./useUsuarios";
 import type { Usuario } from "@/services/api/usuarios";
-import type { Conductor } from "@/services/api/conductores";
 import { useRoles } from "@/features/roles";
 import { useConductores } from "@/features/conductores";
 import { nombreDeRol, ROLES } from "@/services/core/roles";

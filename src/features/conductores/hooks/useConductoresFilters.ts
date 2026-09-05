@@ -20,11 +20,15 @@ export function useConductoresFilters(data: Pick<ConductoresData, "conductores" 
     setCurrentPage(1);
   }, []);
 
+  // Se extraen del objeto `data`, que se recrea en cada render: dependiendo de él, el memo
+  // se recalcularía siempre y dejaría de servir para algo.
+  const { conductores, getVehiculosConductor } = data;
+
   const filteredConductores = useMemo(
     () =>
-      data.conductores.filter((conductor) => {
+      conductores.filter((conductor) => {
         const q = search.toLowerCase();
-        const vehiculosCond = data.getVehiculosConductor(conductor.id);
+        const vehiculosCond = getVehiculosConductor(conductor.id);
         const matchVehiculoTipo = filterVehiculoTipo === "todos"
           ? true
           : vehiculosCond.some((v) => v.tipo === filterVehiculoTipo);
@@ -41,7 +45,7 @@ export function useConductoresFilters(data: Pick<ConductoresData, "conductores" 
         const matchesEstado = filterEstado === "todos" ? true : conductor.estado === filterEstado;
         return matchesSearch && matchesTipo && matchesEstado && matchVehiculoTipo;
       }),
-    [data.conductores, data.getVehiculosConductor, search, filterTipo, filterEstado, filterVehiculoTipo]
+    [conductores, getVehiculosConductor, search, filterTipo, filterEstado, filterVehiculoTipo]
   );
 
   useEffect(() => {

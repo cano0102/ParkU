@@ -51,7 +51,12 @@ const TIPO_VEHICULO_STYLES: Record<Vehiculo["tipo"], { bg: string; text: string;
   bus:       { bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA", dot: "#EF4444", label: "Bus",       icon: BusIcon },
 };
 
-export const TIPOS_VEHICULO = ["carro", "moto", "bicicleta", "camion", "bus"] as const;
+/**
+ * Tipos que se pueden REGISTRAR hoy: el parqueadero solo gestiona carros y motos, y el
+ * backend rechaza el resto desde el módulo 4. Los demás siguen en TIPO_VEHICULO_STYLES
+ * porque hay que poder LEER los que quedaron registrados antes.
+ */
+export const TIPOS_VEHICULO = ["carro", "moto"] as const;
 
 export const getTipoVehiculoStyle = (tipo: Vehiculo["tipo"]) => TIPO_VEHICULO_STYLES[tipo] ?? TIPO_VEHICULO_STYLES.carro;
 

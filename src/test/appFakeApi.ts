@@ -214,10 +214,17 @@ function createAuthBackend() {
       })();
       if (!raw) throw new Error('No autenticado');
       const u = JSON.parse(raw);
+      const cuenta = findAccount(u.correo);
       return {
         success: true,
         message: '',
-        data: { usuario: { id: Number(u.id), correo: u.correo, nombre: u.nombre, rol: Number(u.rol), estado: 'ACTIVO' } },
+        data: {
+          usuario: {
+            id: Number(u.id), correo: u.correo, nombre: u.nombre, rol: Number(u.rol), estado: 'ACTIVO',
+            tipo_documento: cuenta?.tipo_documento ?? null,
+            numero_documento: cuenta?.numero_documento ?? null,
+          },
+        },
       } as unknown as R;
     }
 

@@ -7,7 +7,7 @@ import {
 import { FormField } from "@/components/shared";
 import {
   COLORS, PASSWORD_MAX, PASSWORD_REQUISITOS, PASSWORD_AYUDA,
-  inputErrorStyle, inputIconStyle, inputStyle,
+  inputErrorStyle, inputIconStyle,
 } from "../lib/helpers";
 
 const iconColor = COLORS.textLight;

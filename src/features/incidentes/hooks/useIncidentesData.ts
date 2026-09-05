@@ -139,6 +139,10 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
           return matchesSearch && matchesEstado;
         })
         .sort(compararIncidentes),
+    // nombreParqueadero/celdaDe/vehiculoDe son funciones nuevas en cada render, pero lo que
+    // de verdad cambia el resultado son los mapas que consultan, ya declarados aquí.
+    // Depender de las funciones haría que este memo se recalculara siempre.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [incidentes, search, filterEstado, parqueaderoPorId, celdaPorId, vehiculoPorId]
   );
 

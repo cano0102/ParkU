@@ -20,6 +20,8 @@ interface ConductoresResultsProps {
   onViewDetail: (conductor: Conductor) => void;
   onEdit: (conductor: Conductor) => void;
   onAgregarVehiculo: (conductor: Conductor) => void;
+  /** Borra la ficha del conductor, previa confirmación. */
+  onDelete: (conductor: Conductor) => void;
   /** Foto del conductor (propia o la de su cuenta vinculada) — ver useConductoresData. */
   fotoDe: (conductor: Conductor) => string | undefined;
   onPageChange: (page: number) => void;
@@ -29,7 +31,7 @@ interface ConductoresResultsProps {
 /** Estado vacío, o el grid/lista de conductores paginado. */
 export function ConductoresResults({
   conductores, viewMode, currentPage, totalPages, itemsPerPage, totalItems,
-  getUsuario, getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo,
+  getUsuario, getVehiculosConductor, onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, onDelete,
   fotoDe, onPageChange, onItemsPerPageChange,
 }: ConductoresResultsProps) {
   if (conductores.length === 0) {
@@ -50,7 +52,7 @@ export function ConductoresResults({
 
   const cardHandlers = {
     getUsuario, getVehiculosConductor,
-    onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, fotoDe,
+    onToggleEstado, onViewVehiculo, onViewDetail, onEdit, onAgregarVehiculo, onDelete, fotoDe,
   };
 
   return (

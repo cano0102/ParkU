@@ -23,6 +23,7 @@ export function useConductoresPage() {
   const [vehiculoForm, setVehiculoForm] = useState<VehiculoFormState | null>(null);
   const [vehiculoTouched, setVehiculoTouched] = useState(false);
   const [vehiculoAEliminar, setVehiculoAEliminar] = useState<Vehiculo | null>(null);
+  const [conductorAEliminar, setConductorAEliminar] = useState<Conductor | null>(null);
   // El aviso de "esta persona se quedó sin cuenta": aparece al intentar reactivarla.
   const [conductorSinCuenta, setConductorSinCuenta] = useState<Conductor | null>(null);
 
@@ -106,6 +107,8 @@ export function useConductoresPage() {
   }, [conductorSinCuenta, form]);
 
   // ----- vehículo: editar -----
+  const marcarVehiculoTocado = useCallback(() => setVehiculoTouched(true), []);
+
   const abrirEditarVehiculo = useCallback((vehiculo: Vehiculo) => {
     setVehiculoEditando(vehiculo);
     setVehiculoTouched(false);
@@ -174,6 +177,20 @@ export function useConductoresPage() {
     }
   }, [vehiculoEditando, vehiculoForm, erroresVehiculo, data]);
 
+  const confirmEliminarConductor = useCallback(async () => {
+    if (!conductorAEliminar) return;
+    try {
+      await data.removeConductor(conductorAEliminar.id);
+      toast.success(`Conductor "${conductorAEliminar.nombre}" eliminado.`);
+      setConductorAEliminar(null);
+    } catch (error) {
+      // Si tiene entradas, salidas o reservas, el backend responde 409 diciendo cuáles; ese
+      // mensaje lo muestra el manejador central de mutaciones.
+      console.error("Error deleting conductor:", error);
+      setConductorAEliminar(null);
+    }
+  }, [conductorAEliminar, data]);
+
   // ----- vehículo: eliminar -----
   const confirmEliminarVehiculo = useCallback(async () => {
     if (!vehiculoAEliminar) return;
@@ -198,8 +215,10 @@ export function useConductoresPage() {
     confirmQuitarCopropietario, setConfirmQuitarCopropietario,
     solicitarQuitarPropietario, confirmQuitarCopropietarioAction,
     vehiculoEditando, vehiculoForm, setVehiculoForm, vehiculoTouched, erroresVehiculo,
+    marcarVehiculoTocado,
     abrirEditarVehiculo, guardarVehiculo, cerrarEditarVehiculo: () => { setVehiculoEditando(null); setVehiculoForm(null); },
     vehiculoAEliminar, setVehiculoAEliminar, confirmEliminarVehiculo,
+    conductorAEliminar, setConductorAEliminar, confirmEliminarConductor,
     conductorSinCuenta, setConductorSinCuenta, vincularCuentaYActivar,
   };
 }

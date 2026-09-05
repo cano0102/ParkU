@@ -113,6 +113,10 @@ export function useReservasPage() {
         const db = `${b.fechaReserva} ${b.horaInicio}`;
         return da.localeCompare(db);
       });
+    // Igual que en useIncidentesData: getVehiculo/getCelda/getConductorReserva se recrean en
+    // cada render, pero dependen de `vehiculos`/`celdas`/`conductores`, que solo cambian cuando
+    // cambia la consulta; el memo se recalcula con `reservas`, que cambia a la vez.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reservas, search, filterEstado]);
 
   const handleDelete = (reserva: Reserva) => setConfirmDelete(reserva);

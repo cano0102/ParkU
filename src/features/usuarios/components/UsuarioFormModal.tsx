@@ -60,11 +60,6 @@ export const UsuarioFormModal = memo(({ initial, title, roles, usuarios, conduct
             onChange={(foto) => f.set("foto", foto)}
             size={64}
           />
-          <p style={{ fontSize: 11, color: COLORS.textLight, lineHeight: 1.5 }}>
-            Opcional. Ayuda a reconocer a la persona en los listados de Usuarios y Conductores.
-            La imagen se recorta a un cuadrado y se guarda en este equipo: la API todavía no
-            almacena fotos de cuenta.
-          </p>
         </div>
       </section>
 

@@ -14,12 +14,6 @@ import type { ConductoresData } from "./useConductoresData";
 /** Pausa sin escribir antes de preguntarle al backend si un dato ya está ocupado. */
 const ESPERA_VALIDACION_MS = 500;
 
-/** Referencia ESTABLE para cuando el catálogo todavía no cargó. Con `= []` en el destructuring
- *  se crea un array nuevo en cada render, y como `validate` depende de él, el efecto que
- *  recalcula los errores se dispararía en bucle (mismo problema documentado en
- *  useConductoresData.ts). */
-const SIN_TIPOS: { id: string; nombre: string }[] = [];
-
 /** Formulario de crear/editar conductor (con su vehículo), con validación en vivo. */
 export function useConductorForm(
   data: ConductoresData,
@@ -43,7 +37,9 @@ export function useConductorForm(
   // formulario -- mismo patrón que el registro público.
   const [erroresRemotos, setErroresRemotos] = useState<{ numeroDocumento?: string; correo?: string }>({});
   const consultaId = useRef(0);
-  const { data: tiposUsuario = SIN_TIPOS } = useTiposUsuario();
+  // Sin valor por defecto a propósito: useTiposUsuario ya devuelve una lista estable, y un
+  // `= []` aquí volvería a crear un array nuevo en cada render (ver ese archivo).
+  const { data: tiposUsuario } = useTiposUsuario();
 
   /** El visitante es el único que puede quedarse sin cuenta de acceso. */
   const esVisitante = useMemo(() => {
@@ -392,7 +388,7 @@ export function useConductorForm(
       // mostrar un falso "éxito" cuando alguno de los pasos en realidad falló.
       console.error("Error saving conductor:", error);
     }
-  }, [formData, editingConductor, editingVehiculoId, data, validate, onCreated, erroresRemotos, conVehiculo]);
+  }, [formData, editingConductor, data, validate, onCreated, erroresRemotos]);
 
 
   return {

@@ -44,12 +44,20 @@ export function DatosConductorFields({
         />
       </FormField>
 
-      <FormField label="Tipo de documento">
+      {/* El documento también es de la cuenta desde la migración 002 del backend: si hay una
+          vinculada, se muestra el suyo y no se edita aquí. Dejarlo editable permitía escribir
+          un documento distinto del que tiene la cuenta y guardar dos verdades. */}
+      <FormField label={deLaCuenta ? "Tipo de documento (de la cuenta)" : "Tipo de documento"}>
         <select
           value={form.tipoDocumento}
-          disabled={bloqueado()}
+          disabled={bloqueado(deLaCuenta)}
           onChange={(e) => onChange({ tipoDocumento: e.target.value as FormState["tipoDocumento"] })}
-          style={{ ...inputStyle, appearance: "none", cursor: bloqueado() ? "not-allowed" : "pointer", ...(bloqueado() ? estiloBloqueado : {}) }}
+          style={{
+            ...inputStyle,
+            appearance: "none",
+            cursor: bloqueado(deLaCuenta) ? "not-allowed" : "pointer",
+            ...(bloqueado(deLaCuenta) ? estiloBloqueado : {}),
+          }}
         >
           {TIPOS_DOCUMENTO.map((t) => (
             <option key={t} value={t}>{t}</option>
@@ -62,12 +70,13 @@ export function DatosConductorFields({
           type="text"
           placeholder="ej. 1001234567"
           value={form.numeroDocumento}
-          readOnly={bloqueado()}
-          aria-readonly={bloqueado()}
+          readOnly={bloqueado(deLaCuenta)}
+          aria-readonly={bloqueado(deLaCuenta)}
+          title={deLaCuenta ? "Se toma de la cuenta vinculada; cámbialo desde el módulo de Usuarios" : undefined}
           onChange={(e) => onChange({ numeroDocumento: e.target.value.replace(/[^0-9]/g, "") })}
           onBlur={() => onBlur("numeroDocumento")}
           maxLength={NUMERO_DOCUMENTO_MAX}
-          style={{ ...inputStyle, ...(err("numeroDocumento") ? inputErrorStyle : {}), ...(bloqueado() ? estiloBloqueado : {}) }}
+          style={{ ...inputStyle, ...(err("numeroDocumento") ? inputErrorStyle : {}), ...(bloqueado(deLaCuenta) ? estiloBloqueado : {}) }}
         />
       </FormField>
 

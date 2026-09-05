@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { useConductores, useCreateConductor, useUpdateConductor } from "./useConductores";
+import { useConductores, useCreateConductor, useUpdateConductor, useRemoveConductor } from "./useConductores";
 import type { Conductor } from "@/services/api/conductores";
 import {
   useVehiculos, useCreateVehiculo, useUpdateVehiculo, useRemoveVehiculo,
@@ -36,6 +36,7 @@ export function useConductoresData() {
   const { data: vehiculos = EMPTY_VEHICULOS } = useVehiculos();
   const createConductorMutation = useCreateConductor();
   const updateConductorMutation = useUpdateConductor();
+  const removeConductorMutation = useRemoveConductor();
   const createVehiculoMutation = useCreateVehiculo();
   const updateVehiculoMutation = useUpdateVehiculo();
   const removeVehiculoMutation = useRemoveVehiculo();
@@ -47,6 +48,9 @@ export function useConductoresData() {
   const addConductor = (data: Omit<Conductor, "id">) => createConductorMutation.mutateAsync(data);
   const updateConductor = (id: string, data: Partial<Omit<Conductor, "id">>) =>
     updateConductorMutation.mutateAsync({ id, data });
+  // Borrado real. El backend solo lo permite si el conductor no tiene entradas, salidas ni
+  // reservas; su cuenta de acceso y sus vehículos sobreviven (solo se va el vínculo).
+  const removeConductor = (id: string) => removeConductorMutation.mutateAsync(id);
   const addVehiculo = (data: Omit<Vehiculo, "id">) => createVehiculoMutation.mutateAsync(data);
   const updateVehiculo = (id: string, data: Partial<Omit<Vehiculo, "id">>) =>
     updateVehiculoMutation.mutateAsync({ id, data });
@@ -93,7 +97,8 @@ export function useConductoresData() {
 
   return {
     conductores, usuarios, vehiculos,
-    addConductor, updateConductor, addVehiculo, updateVehiculo, removeVehiculo, agregarPropietario, quitarPropietario,
+    addConductor, updateConductor, removeConductor,
+    addVehiculo, updateVehiculo, removeVehiculo, agregarPropietario, quitarPropietario,
     getUsuario, getVehiculosConductor, fotoDeConductor, guardarFotoConductor,
     totalActivos, totalVehiculos, totalConductores, totalCarros, totalMotos,
     isLoading,

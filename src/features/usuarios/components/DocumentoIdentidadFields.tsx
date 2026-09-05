@@ -38,7 +38,7 @@ export function DocumentoIdentidadFields({
   pedirTipoUsuario = false, tipoUsuarioId = "", tipoUsuarioIdError,
   onTipoDocumentoChange, onNumeroDocumentoChange, onNumeroDocumentoBlur, onTipoUsuarioIdChange,
 }: DocumentoIdentidadFieldsProps) {
-  const { data: tiposUsuario = [] } = useTiposUsuario();
+  const { data: tiposUsuario } = useTiposUsuario();
 
   return (
     <section style={{ borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden" }}>

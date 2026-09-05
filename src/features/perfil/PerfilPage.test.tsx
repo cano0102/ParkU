@@ -51,8 +51,20 @@ describe('Perfil', () => {
     });
     expect(screen.getAllByText('admin@sena.edu.co').length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText('3101234567')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
     expect(screen.getAllByText('Administrador').length).toBeGreaterThanOrEqual(2);
+    // El perfil identifica a la persona por su documento, no por el id interno de la base.
+    // Esta cuenta sembrada no tiene documento, así que lo dice en vez de dejar el hueco.
+    expect(screen.getByText('Sin documento registrado')).toBeInTheDocument();
+    expect(screen.queryByText('ID de usuario')).not.toBeInTheDocument();
+  });
+
+  it('muestra el documento de la cuenta cuando lo tiene', async () => {
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '2', correo: 'ana.martinez@sena.edu.co', nombre: 'Ana Martínez R.', rol: ROLES.VIGILANTE,
+    }));
+    renderPerfil();
+
+    expect(await screen.findByText('CC 2345678901')).toBeInTheDocument();
   });
 
   it('permite editar el nombre y el teléfono y guardarlos', async () => {

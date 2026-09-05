@@ -55,6 +55,17 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
 
+      // El preset lo deja en 'warn' y un aviso se ignora. Aquí bloquea, porque la familia de
+      // bugs que atrapa es cara: una dependencia mal declarada (o una que cambia de identidad
+      // en cada render, como un `= []` en un destructuring) convierte un useEffect que llama a
+      // setState en un bucle infinito de renders. Pasó una vez y dejó la suite de pruebas en
+      // 558 s con los workers cayéndose; el linter no lo habría cazado solo, pero sí caza las
+      // dependencias incompletas que suelen acompañarlo.
+      //
+      // Hoy el proyecto está en cero avisos de esta regla, así que subirla a 'error' no
+      // arrastra deuda: solo impide que vuelva a entrar.
+      'react-hooks/exhaustive-deps': 'error',
+
       // `catch {}` vacío es un patrón intencional en este código para "mejor
       // esfuerzo, ignora el error" (p. ej. liberar un worker de Tesseract al
       // desmontar) — no es un bug a corregir.

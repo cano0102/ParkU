@@ -5,7 +5,7 @@ import type { PermisoCatalogo } from "@/services/api/roles";
 const COLORS = theme;
 
 interface PermisosEditorProps {
-  isCreating: boolean;
+
   isLoading: boolean;
   permisosCatalogo: PermisoCatalogo[];
   /** Permisos marcados ahora mismo en el formulario. */
@@ -20,7 +20,7 @@ interface PermisosEditorProps {
  * agrupado por módulo, con selección por permiso o por módulo completo. Lo marcado se guarda
  * en `rol_permiso` al enviar el formulario (ver guardarPermisosDeRol en services/api/roles.ts).
  */
-export function PermisosEditor({ isCreating, isLoading, permisosCatalogo, seleccionados, onToggle, onToggleModulo }: PermisosEditorProps) {
+export function PermisosEditor({ isLoading, permisosCatalogo, seleccionados, onToggle, onToggleModulo }: PermisosEditorProps) {
   const porModulo = new Map<string, PermisoCatalogo[]>();
   for (const permiso of permisosCatalogo) {
     const lista = porModulo.get(permiso.moduloNombre) ?? [];

@@ -18,7 +18,7 @@ interface TipoUsuarioFieldProps {
  * medio formulario para descubrir que la cuenta era obligatoria.
  */
 export function TipoUsuarioField({ value, error, soloLectura = false, onChange, onBlur }: TipoUsuarioFieldProps) {
-  const { data: tiposUsuario = [] } = useTiposUsuario();
+  const { data: tiposUsuario } = useTiposUsuario();
   const seleccionado = tiposUsuario.find((t) => t.id === value);
   const esVisitante = (seleccionado?.nombre || "").trim().toLowerCase() === "visitante";
 

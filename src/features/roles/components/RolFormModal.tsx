@@ -104,7 +104,6 @@ export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing 
           onEstadoChange={setEstado}
         />
         <PermisosEditor
-          isCreating={!editingRolId}
           isLoading={catalogoLoading || asignadosLoading}
           permisosCatalogo={permisosCatalogo}
           seleccionados={permisosSeleccionados}

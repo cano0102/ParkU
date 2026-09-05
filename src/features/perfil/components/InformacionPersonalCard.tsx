@@ -35,7 +35,15 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
     { key: "nombre" as const, icon: User, label: "Nombre", editable: true, value: user.nombre, placeholder: "Tu nombre completo" },
     { key: "correo" as const, icon: Mail, label: "Correo", editable: false, value: user.correo },
     { key: "numero" as const, icon: Phone, label: "Teléfono", editable: true, value: user.numero || "—", placeholder: "Ej: 3001234567" },
-    { key: "id" as const, icon: IdCard, label: "ID de usuario", editable: false, value: user.id },
+    // El id interno de la base no le dice nada a la persona que mira su propio perfil: lo que
+    // la identifica es su documento, que la cuenta guarda desde la migración 002 del backend.
+    {
+      key: "documento" as const,
+      icon: IdCard,
+      label: "Documento",
+      editable: false,
+      value: user.numeroDocumento ? `${user.tipoDocumento || "CC"} ${user.numeroDocumento}` : "Sin documento registrado",
+    },
   ];
 
   return (

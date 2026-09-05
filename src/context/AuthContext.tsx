@@ -23,6 +23,9 @@ interface User {
   /** Nombre real del rol (tabla `rol` del backend), para no depender de la tabla fija de
    *  tres que hay en el frontend. */
   rolNombre?: string;
+  /** Documento de la cuenta: es lo que identifica a la persona en su Perfil. */
+  tipoDocumento?: string;
+  numeroDocumento?: string;
 }
 
 interface AuthContextType {
@@ -169,6 +172,8 @@ export function AuthProvider({
           rol: usuarioReal.rol,
           permisos: usuarioReal.permisos ?? [],
           rolNombre: usuarioReal.rolNombre ?? actual.rolNombre,
+          tipoDocumento: usuarioReal.tipoDocumento ?? actual.tipoDocumento,
+          numeroDocumento: usuarioReal.numeroDocumento ?? actual.numeroDocumento,
         };
         try {
           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
@@ -188,7 +193,6 @@ export function AuthProvider({
     const onAuthExpired = () => persistUser(null);
     window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // LOGIN NORMAL — valida contra la API real (correo/contraseña/estado) vía services/api/auth.ts.
@@ -281,6 +285,8 @@ export function AuthProvider({
         rol: usuarioReal.rol,
         permisos: usuarioReal.permisos ?? [],
         rolNombre: usuarioReal.rolNombre ?? actual.rolNombre,
+        tipoDocumento: usuarioReal.tipoDocumento ?? actual.tipoDocumento,
+        numeroDocumento: usuarioReal.numeroDocumento ?? actual.numeroDocumento,
       };
       try {
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));

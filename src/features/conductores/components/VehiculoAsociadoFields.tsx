@@ -2,6 +2,7 @@ import { IconCar as Car } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS, TIPOS_VEHICULO, getTipoVehiculoStyle, inputStyle } from "../lib/helpers";
+import { MarcaField } from "./MarcaField";
 
 interface VehiculoAsociadoFieldsProps {
   placa: string;
@@ -85,16 +86,15 @@ export function VehiculoAsociadoFields({
           </select>
         </FormField>
 
-        <FormField label="Marca *" error={marcaError}>
-          <input
-            type="text"
-            placeholder="ej. Chevrolet Spark"
-            value={marca}
-            onChange={(e) => onMarcaChange(e.target.value)}
-            onBlur={onMarcaBlur}
-            style={inputStyle}
-          />
-        </FormField>
+        {/* La marca sugiere las que más ruedan en Colombia, filtradas por el tipo elegido,
+            pero acepta cualquier texto. */}
+        <MarcaField
+          tipoVehiculo={tipoVehiculo}
+          value={marca}
+          error={marcaError}
+          onChange={onMarcaChange}
+          onBlur={onMarcaBlur}
+        />
 
         <FormField label="Línea (opcional)">
           <input

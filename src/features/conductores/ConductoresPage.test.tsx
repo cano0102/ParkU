@@ -47,7 +47,10 @@ function renderConductores() {
 
 describe("features/conductores", () => {
   beforeEach(() => {
-    localStorage.setItem('parkuToken', 'fake-token-1');
+    // Un backend falso nuevo por prueba: hay pruebas que borran filas, y compartir el mismo
+    // estado dejaba a las siguientes sin los datos semilla que esperan.
+    apiFetchMock.mockImplementation(createAppBackends().apiFetch);
+    localStorage.setItem("parkuToken", "fake-token-1");
     localStorage.setItem('parkUUser', JSON.stringify(SEED_ADMIN));
   });
 
@@ -97,9 +100,11 @@ describe("features/conductores", () => {
     await user.click(screen.getByRole("button", { name: /Nuevo Conductor/ }));
     const dialog = await screen.findByRole("dialog");
 
-    // Antes de vincular, el correo del conductor se escribe a mano.
+    // Antes de vincular, el correo y el documento se escriben a mano.
     const correo = within(dialog).getByPlaceholderText("correo@sena.edu.co") as HTMLInputElement;
+    const documento = within(dialog).getByPlaceholderText("ej. 1001234567") as HTMLInputElement;
     expect(correo.readOnly).toBe(false);
+    expect(documento.readOnly).toBe(false);
 
     await user.type(within(dialog).getByPlaceholderText("Buscar por nombre o correo..."), "maria");
     await user.click(await within(dialog).findByText("María Díaz P."));
@@ -109,14 +114,49 @@ describe("features/conductores", () => {
     expect((within(dialog).getByPlaceholderText("ej. María García López") as HTMLInputElement).value).toBe("María Díaz P.");
     expect(within(dialog).getByText("Conductor")).toBeInTheDocument();
 
-    // Y el correo pasa a ser de solo lectura: se gestiona desde la cuenta, no aquí.
+    // Correo y documento pasan a ser de solo lectura: los aporta la cuenta, y dejarlos
+    // editables permitía guardar un documento distinto del que ella tiene.
     expect(correo.readOnly).toBe(true);
+    expect(documento.readOnly).toBe(true);
     expect(within(dialog).getByText("Correo (de la cuenta vinculada)")).toBeInTheDocument();
+    expect(within(dialog).getByText("Tipo de documento (de la cuenta)")).toBeInTheDocument();
 
-    // Al quitar la vinculación vuelve a editarse, sin perder el resto del formulario.
+    // Al quitar la vinculación vuelven a editarse, sin perder el resto del formulario.
     await user.click(within(dialog).getByLabelText("Quitar la cuenta vinculada"));
     await waitFor(() => expect(correo.readOnly).toBe(false));
+    expect(documento.readOnly).toBe(false);
     expect((within(dialog).getByPlaceholderText("ej. María García López") as HTMLInputElement).value).toBe("María Díaz P.");
+  }, 20000);
+
+  it("elimina un conductor tras confirmarlo, avisando que su cuenta no se borra", async () => {
+    const user = userEvent.setup();
+    renderConductores();
+    await waitFor(() => expect(screen.getAllByText("Carlos López M.").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByLabelText("Eliminar Carlos López M."));
+
+    // El aviso deja claro qué se borra y qué no: la confusión aquí sale cara.
+    // El Modal repite el título en su cabecera, de ahí el findAllByText.
+    expect((await screen.findAllByText("Eliminar conductor")).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Su cuenta de acceso y sus vehículos NO se borran/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Eliminar" }));
+
+    await waitFor(() => expect(screen.queryByText("Carlos López M.")).not.toBeInTheDocument());
+    // Los demás siguen ahí: se borró uno, no la lista.
+    expect(screen.getAllByText("Pedro Ruiz G.").length).toBeGreaterThan(0);
+  }, 20000);
+
+  it("no elimina al conductor si se cancela la confirmación", async () => {
+    const user = userEvent.setup();
+    renderConductores();
+    await waitFor(() => expect(screen.getAllByText("Carlos López M.").length).toBeGreaterThan(0));
+
+    await user.click(screen.getByLabelText("Eliminar Carlos López M."));
+    await user.click(await screen.findByRole("button", { name: "Cancelar" }));
+
+    await waitFor(() => expect(screen.queryAllByText("Eliminar conductor")).toHaveLength(0));
+    expect(screen.getAllByText("Carlos López M.").length).toBeGreaterThan(0);
   }, 20000);
 
   it("abre el modal de creación al hacer clic en Nuevo Conductor", async () => {

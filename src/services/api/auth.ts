@@ -28,6 +28,9 @@ export interface AuthUser {
    *  tabla estática del frontend solo conoce los tres del sistema: sin esto, un rol creado a
    *  medida se mostraba como "Desconocido" en el perfil. */
   rolNombre?: string;
+  /** Documento de la cuenta, para que el Perfil identifique a la persona. */
+  tipoDocumento?: string;
+  numeroDocumento?: string;
 }
 
 export interface RegisterInput {
@@ -56,6 +59,8 @@ interface ApiUsuario {
   estado: string;
   permisos?: string[];
   rol_nombre?: string | null;
+  tipo_documento?: string | null;
+  numero_documento?: string | null;
 }
 
 interface LoginResponseData {
@@ -80,6 +85,8 @@ function toAuthUser(u: ApiUsuario): AuthUser {
     rol: u.rol as RolId,
     permisos: Array.isArray(u.permisos) ? u.permisos : [],
     rolNombre: u.rol_nombre ?? undefined,
+    tipoDocumento: u.tipo_documento ?? undefined,
+    numeroDocumento: u.numero_documento ?? undefined,
   };
 }
 

@@ -36,6 +36,7 @@ function buildData(overrides: Partial<ConductoresData> = {}): ConductoresData {
     vehiculos,
     addConductor: vi.fn().mockResolvedValue({ ...conductorExistente, id: '2' }),
     updateConductor: vi.fn().mockResolvedValue(conductorExistente),
+    removeConductor: vi.fn().mockResolvedValue(undefined),
     addVehiculo: vi.fn().mockResolvedValue({ ...vehiculoExistente, id: 'v2' }),
     updateVehiculo: vi.fn().mockResolvedValue(vehiculoExistente),
     removeVehiculo: vi.fn().mockResolvedValue(undefined),

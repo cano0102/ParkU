@@ -99,7 +99,8 @@ export function ConductorFormModal({
         </div>
         <div style={{ padding: "0.85rem 1.1rem", display: "flex", flexDirection: "column", gap: 9 }}>
           {/* Foto de perfil: con ella el vigilante reconoce al conductor de un vistazo en el
-              listado, sin tener que leer el documento. Opcional — sin foto quedan las iniciales. */}
+              listado, sin tener que leer el documento. Opcional — sin foto quedan las iniciales.
+              El propio control ya se explica solo, así que no lleva texto al lado. */}
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <AvatarUploader
               nombre={formData.nombre.trim() || "Nuevo conductor"}
@@ -107,10 +108,6 @@ export function ConductorFormModal({
               onChange={(foto) => setFormData({ ...formData, foto })}
               size={60}
             />
-            <p style={{ fontSize: 11, color: COLORS.textLight, lineHeight: 1.5 }}>
-              Foto de perfil (opcional). Se recorta a un cuadrado y se guarda en este equipo:
-              el registro de conductores de la API todavía no almacena fotos.
-            </p>
           </div>
 
           <UsuarioVinculadoField

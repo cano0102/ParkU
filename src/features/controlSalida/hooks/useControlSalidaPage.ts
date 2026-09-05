@@ -39,7 +39,7 @@ export function useControlSalidaPage() {
       if (!vehiculo) return null;
       return conductores.find((c) => c.id === vehiculo.conductorId);
     },
-    [vehiculos, conductores, getVehiculo]
+    [conductores, getVehiculo]
   );
 
   // El conductor ya trae su propio documento/nombre (ver services/api/conductores.ts) —

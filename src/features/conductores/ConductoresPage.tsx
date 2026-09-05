@@ -21,8 +21,9 @@ export function Conductores() {
   const { data, filters: f, form, agregarVehiculo, viewVehiculoOpen, setViewVehiculoOpen, viewDetailOpen, setViewDetailOpen,
     viewingVehiculo, viewingConductor, openVehiculoView, openConductorDetail, handleToggleEstado,
     vehiculoEditando, vehiculoForm, setVehiculoForm, vehiculoTouched, erroresVehiculo,
-    abrirEditarVehiculo, guardarVehiculo, cerrarEditarVehiculo,
+    abrirEditarVehiculo, guardarVehiculo, cerrarEditarVehiculo, marcarVehiculoTocado,
     vehiculoAEliminar, setVehiculoAEliminar, confirmEliminarVehiculo,
+    conductorAEliminar, setConductorAEliminar, confirmEliminarConductor,
     conductorSinCuenta, setConductorSinCuenta, vincularCuentaYActivar,
     confirmQuitarCopropietario, setConfirmQuitarCopropietario, solicitarQuitarPropietario, confirmQuitarCopropietarioAction,
   } = useConductoresPage();
@@ -79,6 +80,7 @@ export function Conductores() {
             onViewDetail={openConductorDetail}
             onEdit={form.openEdit}
             onAgregarVehiculo={agregarVehiculo.abrir}
+            onDelete={setConductorAEliminar}
             fotoDe={data.fotoDeConductor}
             onPageChange={f.setCurrentPage}
             onItemsPerPageChange={(n) => {
@@ -144,7 +146,9 @@ export function Conductores() {
             touched={vehiculoTouched}
             isValid={Object.keys(erroresVehiculo).length === 0}
             onChange={(patch) => setVehiculoForm({ ...vehiculoForm, ...patch })}
-            onMarkTouched={() => { /* marcado al enviar; el aviso llega ahí */ }}
+            /* Al salir de cualquier campo se revelan los errores, como en el resto de
+               formularios: antes solo aparecían al pulsar Guardar. */
+            onMarkTouched={marcarVehiculoTocado}
             onSubmit={guardarVehiculo}
             onCancel={cerrarEditarVehiculo}
           />
@@ -157,6 +161,15 @@ export function Conductores() {
         onCancel={() => setVehiculoAEliminar(null)}
         title="Eliminar vehículo"
         message={`¿Eliminar el vehículo ${vehiculoAEliminar?.placa ?? ""}? Se borra de la base de datos y no se puede deshacer. Si hay información en los registros del parqueadero que lo necesita, no podrá eliminarse. Sus dueños no se ven afectados.`}
+        confirmLabel="Eliminar"
+      />
+
+      <ConfirmDialog
+        open={!!conductorAEliminar}
+        onConfirm={confirmEliminarConductor}
+        onCancel={() => setConductorAEliminar(null)}
+        title="Eliminar conductor"
+        message={`¿Eliminar a "${conductorAEliminar?.nombre ?? ""}"? Se borra de la base de datos y no se puede deshacer. Su cuenta de acceso y sus vehículos NO se borran: solo pierden el vínculo. Si hay información en los registros del parqueadero que lo necesita, no podrá eliminarse.`}
         confirmLabel="Eliminar"
       />
 
