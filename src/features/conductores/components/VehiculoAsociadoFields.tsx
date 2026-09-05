@@ -50,7 +50,28 @@ export function VehiculoAsociadoFields({
         )}
       </div>
       <div className="cf-modal-grid" style={{ padding: "0.85rem 1.1rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gap: 9 }}>
-        <FormField label="Placa *" error={placaError} hint="Sin espacios ni guiones, ej: ABC123" style={{ gridColumn: "1 / -1" }}>
+        {/* El tipo va PRIMERO: de él depende el formato válido de la placa (un carro lleva
+            3 letras y 3 números; una moto termina en letra), así que elegirlo antes evita
+            escribir una placa que el formulario va a rechazar por el tipo equivocado. */}
+        <FormField label="Tipo de vehículo *" style={{ gridColumn: "1 / -1" }}>
+          <select
+            value={tipoVehiculo}
+            aria-label="Tipo de vehículo"
+            onChange={(e) => onTipoVehiculoChange(e.target.value as Vehiculo["tipo"])}
+            style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
+          >
+            {TIPOS_VEHICULO.map((tipo) => (
+              <option key={tipo} value={tipo}>{getTipoVehiculoStyle(tipo).label}</option>
+            ))}
+          </select>
+        </FormField>
+
+        <FormField
+          label="Placa *"
+          error={placaError}
+          hint={tipoVehiculo === "moto" ? "3 letras y 2 números, ej: ABC12 (o ABC12D)" : "3 letras y 3 números, ej: ABC123"}
+          style={{ gridColumn: "1 / -1" }}
+        >
           <div
             style={{
               display: "flex", alignItems: "center", gap: 12,
@@ -72,18 +93,6 @@ export function VehiculoAsociadoFields({
               style={{ ...inputStyle, border: "none", background: "transparent", padding: "8px 0", fontSize: 15, fontWeight: 700, color: COLORS.text, letterSpacing: 1 }}
             />
           </div>
-        </FormField>
-
-        <FormField label="Tipo de vehículo">
-          <select
-            value={tipoVehiculo}
-            onChange={(e) => onTipoVehiculoChange(e.target.value as Vehiculo["tipo"])}
-            style={{ ...inputStyle, appearance: "none", cursor: "pointer" }}
-          >
-            {TIPOS_VEHICULO.map((tipo) => (
-              <option key={tipo} value={tipo}>{getTipoVehiculoStyle(tipo).label}</option>
-            ))}
-          </select>
         </FormField>
 
         {/* La marca sugiere las que más ruedan en Colombia, filtradas por el tipo elegido,

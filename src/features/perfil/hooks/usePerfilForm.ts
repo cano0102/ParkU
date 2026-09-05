@@ -72,11 +72,14 @@ export function usePerfilForm(user: UsuarioDelPerfil) {
     numero: profileForm.numero.trim() && !validarTelefono(profileForm.numero.trim())
       ? "Ingresa un número de teléfono colombiano válido (10 dígitos)"
       : "",
-    tipoDocumento: "",
-    // El documento puede faltar (hay cuentas creadas sin él), pero si se escribe debe valer.
-    numeroDocumento: profileForm.numeroDocumento.trim() && !validarNumeroDocumento(profileForm.numeroDocumento)
-      ? "El número de documento debe tener entre 6 y 10 dígitos"
-      : "",
+    // Obligatorio: identifica a la persona en el parqueadero. Hay cuentas antiguas creadas
+    // sin él, y justamente por eso el perfil pide completarlo antes de dejar guardar.
+    tipoDocumento: profileForm.tipoDocumento.trim() ? "" : "El tipo de documento es obligatorio",
+    numeroDocumento: !profileForm.numeroDocumento.trim()
+      ? "El número de documento es obligatorio"
+      : !validarNumeroDocumento(profileForm.numeroDocumento)
+        ? "El número de documento debe tener entre 6 y 10 dígitos"
+        : "",
   };
 
   /** El del formato manda; el del backend solo aparece si el formato ya está bien. */
@@ -164,7 +167,7 @@ export function usePerfilForm(user: UsuarioDelPerfil) {
   };
 
   const handleSaveProfile = async () => {
-    setProfileTouched({ nombre: true, correo: true, numero: true, numeroDocumento: true });
+    setProfileTouched({ nombre: true, correo: true, numero: true, tipoDocumento: true, numeroDocumento: true });
     if (profileInvalido) {
       toast.error(primerError);
       return;

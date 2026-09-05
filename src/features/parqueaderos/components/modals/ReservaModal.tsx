@@ -10,12 +10,17 @@ import type { Celda } from "@/services/api/celdas";
 import type { Conductor } from "@/services/api/conductores";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
+import { opcionesDeHoraInicio, opcionesDeHoraFin, ajustarFranja } from "@/features/reservas";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
 import { horaAMinutos, HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../../lib/helpers";
 
 const C = theme;
+
+// Horas que se pueden elegir: las listas salen de las reglas de la reserva, así que el
+// selector no ofrece nada que el backend vaya a rechazar (features/reservas/lib/reglas.ts).
+const VENTANA_OPERACION = { desde: HORA_OPERACION_INICIO, hasta: HORA_OPERACION_FIN };
 
 export interface ReservaFormState {
   vehiculoId: string;
@@ -81,6 +86,9 @@ export function ReservaModal({
     setReservaForm(prev => ({ ...prev, vehiculoId: "" }));
     setVehiculoQuery("");
   };
+
+  const horasDeInicio = opcionesDeHoraInicio(reservaForm.fechaReserva, VENTANA_OPERACION);
+  const horasDeFin = opcionesDeHoraFin(reservaForm.horaInicio, VENTANA_OPERACION);
 
   const horarioInvalido = !!(reservaForm.horaInicio && reservaForm.horaFin && horaAMinutos(reservaForm.horaFin) <= horaAMinutos(reservaForm.horaInicio));
   // Espejo visual de la misma validación que ya hace `handleCrearReserva` (useReservaCelda.ts)
@@ -220,7 +228,9 @@ export function ReservaModal({
                 type="date"
                 min={new Date().toISOString().split("T")[0]}
                 value={reservaForm.fechaReserva}
-                onChange={(e) => setReservaForm(prev => ({ ...prev, fechaReserva: e.target.value }))}
+                /* Al cambiar de día, la franja se reajusta a horas que sigan existiendo
+                   (pasar la reserva de mañana a hoy puede dejar la hora elegida en el pasado). */
+                onChange={(e) => setReservaForm(prev => ({ ...prev, ...ajustarFranja({ ...prev, fechaReserva: e.target.value }, VENTANA_OPERACION) }))}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 11,
                   border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
@@ -233,34 +243,45 @@ export function ReservaModal({
               <label htmlFor="horaInicioReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 Hora de inicio *
               </label>
-              <input
+              {/* Solo las horas que de verdad se pueden reservar: dentro del horario de
+                  operación, con la anticipación mínima si es para hoy, y dejando sitio a la
+                  duración mínima (ver features/reservas/lib/reglas.ts). */}
+              <select
                 id="horaInicioReserva"
-                type="time"
                 value={reservaForm.horaInicio}
-                onChange={(e) => setReservaForm(prev => ({ ...prev, horaInicio: e.target.value }))}
+                onChange={(e) => setReservaForm(prev => ({ ...prev, ...ajustarFranja({ ...prev, horaInicio: e.target.value }, VENTANA_OPERACION) }))}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 11,
                   border: `1px solid ${C.border}`, fontSize: 13, outline: "none",
                   fontFamily: "inherit", background: "#F8FAFC",
                 }}
-              />
+              >
+                {horasDeInicio.length === 0 && <option value="">Hoy ya no hay horas disponibles</option>}
+                {horasDeInicio.map((h) => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
             </div>
 
             <div>
               <label htmlFor="horaFinReserva" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
                 Hora de fin *
               </label>
-              <input
+              <select
                 id="horaFinReserva"
-                type="time"
                 value={reservaForm.horaFin}
                 onChange={(e) => setReservaForm(prev => ({ ...prev, horaFin: e.target.value }))}
+                disabled={!reservaForm.horaInicio}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 11,
                   border: `1px solid ${horarioInvalido || fueraDeHorarioOperacion ? C.danger : C.border}`, fontSize: 13, outline: "none",
                   fontFamily: "inherit", background: "#F8FAFC",
                 }}
-              />
+              >
+                {horasDeFin.map((h) => (
+                  <option key={h} value={h}>{h}</option>
+                ))}
+              </select>
               {horarioInvalido && (
                 <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>La hora de fin debe ser posterior a la de inicio.</p>
               )}

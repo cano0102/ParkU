@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Modal, LoadingState } from "@/components/shared";
+import { Modal, LoadingState, ConfirmDialog } from "@/components/shared";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
@@ -84,6 +84,8 @@ export function Reservas() {
               canDelete={puedeEliminarReserva}
               onView={(reserva) => { p.setViewingReserva(reserva); p.setViewOpen(true); }}
               onDelete={p.handleDelete}
+              puedeCancelar={p.puedeCancelar}
+              onCancel={p.handleCancelar}
             />
           </>
         )}
@@ -116,6 +118,17 @@ export function Reservas() {
         )}
       </Modal>
 
+      {/* Cancelar es distinto de eliminar: la reserva se conserva con estado "cancelada"
+          (es historial), y por eso quien la pidió también puede hacerlo. */}
+      <ConfirmDialog
+        open={!!p.confirmCancelar}
+        onConfirm={p.confirmCancelarAction}
+        onCancel={() => p.setConfirmCancelar(null)}
+        title="Cancelar reserva"
+        message={`¿Cancelar la reserva de ${p.confirmCancelar ? p.getVehiculo(p.confirmCancelar.vehiculoId)?.placa ?? "este vehículo" : ""} del ${p.confirmCancelar?.fechaReserva ?? ""}? La celda queda libre para otra persona y la reserva se conserva en el historial como cancelada.`}
+        confirmLabel="Cancelar reserva"
+      />
+
       <Modal open={!!p.confirmRechazar} onClose={() => p.setConfirmRechazar(null)} maxWidth={420}>
         {p.confirmRechazar && (
           <ConfirmRechazarReservaModal
@@ -143,7 +156,7 @@ export function Reservas() {
           onVehiculoChange={(v) => solicitud.setForm({ ...solicitud.form, vehiculoId: v })}
           onParqueaderoChange={(v) => solicitud.setForm({ ...solicitud.form, parqueaderoId: v, celdaId: "" })}
           onCeldaChange={(v) => solicitud.setForm({ ...solicitud.form, celdaId: v })}
-          onFechaChange={(v) => solicitud.setForm({ ...solicitud.form, fechaReserva: v })}
+          onFechaChange={(v) => solicitud.setForm({ ...solicitud.form, ...solicitud.ajustar({ ...solicitud.form, fechaReserva: v }) })}
           onHoraInicioChange={(v) => solicitud.setForm({ ...solicitud.form, horaInicio: v })}
           onHoraFinChange={(v) => solicitud.setForm({ ...solicitud.form, horaFin: v })}
           onMotivoChange={(v) => solicitud.setForm({ ...solicitud.form, motivo: v })}

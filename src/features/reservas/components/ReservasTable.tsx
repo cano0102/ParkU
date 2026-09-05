@@ -19,10 +19,12 @@ interface ReservasTableProps {
   canDelete: boolean;
   onView: (reserva: Reserva) => void;
   onDelete: (reserva: Reserva) => void;
+  puedeCancelar: (reserva: Reserva) => boolean;
+  onCancel: (reserva: Reserva) => void;
 }
 
 /** Tabla del historial de reservas: encabezado, filas (o estado vacío) y el contador de resultados. */
-export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, getCelda, getConductorReserva, getParqueadero, canDelete, onView, onDelete }: ReservasTableProps) {
+export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, getCelda, getConductorReserva, getParqueadero, canDelete, onView, onDelete, puedeCancelar, onCancel }: ReservasTableProps) {
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
       <div className="reserva-table-header" style={{
@@ -63,6 +65,8 @@ export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, ge
                 canDelete={canDelete}
                 onView={() => onView(reserva)}
                 onDelete={() => onDelete(reserva)}
+                canCancel={puedeCancelar(reserva)}
+                onCancel={() => onCancel(reserva)}
               />
             );
           })

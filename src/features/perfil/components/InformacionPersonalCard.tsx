@@ -42,21 +42,26 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
     valor: string;
     placeholder?: string;
   }> = [
-    { key: "nombre", icon: User, label: "Nombre", modo: "texto", valor: user.nombre, placeholder: "Tu nombre completo" },
-    { key: "correo", icon: Mail, label: "Correo", modo: "correo", valor: user.correo, placeholder: "correo@sena.edu.co" },
+    // El asterisco marca lo que no se puede dejar en blanco: solo el teléfono es opcional.
+    { key: "nombre", icon: User, label: "Nombre *", modo: "texto", valor: user.nombre, placeholder: "Tu nombre completo" },
+    { key: "correo", icon: Mail, label: "Correo *", modo: "correo", valor: user.correo, placeholder: "correo@sena.edu.co" },
     { key: "numero", icon: Phone, label: "Teléfono", modo: "telefono", valor: user.numero || "—", placeholder: "Ej: 3001234567" },
     // El id interno de la base no le dice nada a la persona que mira su propio perfil: lo que
     // la identifica es su documento, que la cuenta guarda desde la migración 002 del backend.
-    { key: "tipoDocumento", icon: IdCard, label: "Tipo de documento", modo: "lista", valor: user.tipoDocumento || "—" },
+    { key: "tipoDocumento", icon: IdCard, label: "Tipo de documento *", modo: "lista", valor: user.tipoDocumento || "—" },
     {
       key: "numeroDocumento",
       icon: IdCard,
-      label: "Número de documento",
+      label: "Número de documento *",
       modo: "documento",
       valor: user.numeroDocumento || "Sin documento registrado",
       placeholder: "1001234567",
     },
   ];
+
+  /** El asterisco es para quien mira, no para quien usa un lector de pantalla ni para las
+   *  pruebas: la etiqueta accesible es el nombre del campo a secas. */
+  const accesible = (label: string) => label.replace(" *", "");
 
   /** Lo que se teclea, ya filtrado: sin dígitos en el nombre, solo dígitos en el documento. */
   const limpiar = (modo: ModoCampo, valor: string) => {
@@ -131,7 +136,7 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
                     {item.modo === "lista" ? (
                       <select
                         value={form.profileForm.tipoDocumento}
-                        aria-label={item.label}
+                        aria-label={accesible(item.label)}
                         onChange={(e) => form.setCampo("tipoDocumento", e.target.value)}
                         style={{ ...fieldInputStyle, appearance: "none", cursor: "pointer" }}
                       >
@@ -144,7 +149,7 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
                         value={form.profileForm[item.key]}
                         type={item.modo === "correo" ? "email" : "text"}
                         inputMode={item.modo === "documento" ? "numeric" : undefined}
-                        aria-label={item.label}
+                        aria-label={accesible(item.label)}
                         onChange={(e) => form.setCampo(item.key, limpiar(item.modo, e.target.value))}
                         onBlur={() => form.markProfileTouched(item.key)}
                         placeholder={item.placeholder}

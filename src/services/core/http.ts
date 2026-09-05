@@ -58,7 +58,7 @@ interface ApiErrorBody {
 const MENSAJE_POR_STATUS: Partial<Record<number, string>> = {
   400: 'La solicitud no es válida. Revisa los datos ingresados.',
   401: 'Tu sesión no es válida. Inicia sesión de nuevo.',
-  403: 'No tienes permisos para realizar esta acción.',
+  403: 'No tienes los permisos requeridos.',
   404: 'No se encontró el recurso solicitado.',
   409: 'La operación no se pudo completar por un conflicto con datos existentes.',
   422: 'Los datos ingresados no son válidos. Revisa el formulario.',

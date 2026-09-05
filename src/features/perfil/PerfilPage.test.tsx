@@ -92,6 +92,9 @@ describe('Perfil', () => {
     await user.type(nombreInput, 'Admin Actualizado');
     await user.clear(numeroInput);
     await user.type(numeroInput, '3009998877');
+    // Esta cuenta semilla no tiene documento y ahora es obligatorio: hay que completarlo
+    // para poder guardar.
+    await user.type(screen.getByLabelText('Número de documento'), '1122334455');
 
     await user.click(screen.getByRole('button', { name: /guardar/i }));
 
@@ -188,6 +191,28 @@ describe('Perfil', () => {
     // Sin blur ni submit: el aviso ya está.
     expect(screen.getByText('Ingresa un número de teléfono colombiano válido (10 dígitos)')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled();
+  }, 20000);
+
+  it('no deja guardar sin documento: es obligatorio', async () => {
+    const user = userEvent.setup();
+    renderPerfil();
+    await waitFor(() => expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThanOrEqual(2));
+
+    // La cuenta semilla no tiene documento, así que el formulario abre pidiéndolo.
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    await user.click(screen.getByRole('button', { name: /guardar/i }));
+    expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled();
+    expect(backends.usuarios.items.find((u: any) => u.id === 1)).toMatchObject({ nombre: 'Administrador ParkU' });
+
+    // En cuanto se completa, se puede guardar.
+    await user.type(screen.getByLabelText('Número de documento'), '1122334455');
+    await waitFor(() => expect(screen.getByRole('button', { name: /guardar/i })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: /guardar/i }));
+    await waitFor(() => {
+      expect(backends.usuarios.items.find((u: any) => u.id === 1)).toMatchObject({
+        tipo_documento: 'CC', numero_documento: '1122334455',
+      });
+    });
   }, 20000);
 
   it('cambia la contraseña exitosamente con datos válidos', async () => {

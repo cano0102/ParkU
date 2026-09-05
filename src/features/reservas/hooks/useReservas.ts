@@ -1,4 +1,5 @@
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import * as reservasService from '@/services/api/reservas';
 import type { Reserva } from '@/services/api/reservas';
 import { createQueryHooks } from '@/services/core/queryFactory';
@@ -9,8 +10,48 @@ const hooks = createQueryHooks<Reserva>('reservas', reservasService);
 
 export const useReservas = hooks.useList;
 export const useCreateReserva = hooks.useCreate;
-export const useUpdateReserva = hooks.useUpdate;
 export const useRemoveReserva = hooks.useRemove;
+
+/**
+ * Refresca las dos listas que toca una reserva. Aceptar, cancelar, rechazar o terminar mueve
+ * también la CELDA (el backend la retiene o la suelta en la misma operación), así que
+ * invalidar solo `reservas` dejaba el mapa de celdas mostrando el estado anterior hasta que
+ * algo más lo refrescara.
+ */
+function useInvalidarReservasYCeldas() {
+  const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: hooks.queryKey });
+    queryClient.invalidateQueries({ queryKey: ['celdas'] });
+  };
+}
+
+const avisarError = (accion: string) => (error: unknown) => {
+  toast.error(error instanceof Error ? error.message : `No se pudo ${accion}.`);
+};
+
+export function useUpdateReserva() {
+  const invalidar = useInvalidarReservasYCeldas();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Reserva, 'id'>> }) => reservasService.update(id, data),
+    onSuccess: invalidar,
+    onError: avisarError('actualizar la reserva'),
+  });
+}
+
+/**
+ * Cancelar la reserva propia. No usa la fábrica porque no es un CRUD genérico: es una acción
+ * sobre un recurso (`PATCH /reservas/:id/cancelar`). Invalida la lista igual que el resto de
+ * mutaciones para que la tabla se refresque sola.
+ */
+export function useCancelarReserva() {
+  const invalidar = useInvalidarReservasYCeldas();
+  return useMutation({
+    mutationFn: (id: string) => reservasService.cancelar(id),
+    onSuccess: invalidar,
+    onError: avisarError('cancelar la reserva'),
+  });
+}
 
 /**
  * Reservas de un vehículo puntual — a diferencia de `useReservas` (el listado

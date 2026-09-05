@@ -48,7 +48,7 @@ describe('apiFetch — normalización de errores HTTP', () => {
   it('usa un mensaje de respaldo específico por status cuando el backend no trae message ni errors (403)', async () => {
     globalThis.fetch = mockFetchOnce(403, {});
     const { apiFetch } = await import('./http');
-    await expect(apiFetch('/usuarios')).rejects.toThrow('No tienes permisos para realizar esta acción.');
+    await expect(apiFetch('/usuarios')).rejects.toThrow('No tienes los permisos requeridos.');
   });
 
   it('usa un mensaje de respaldo específico por status cuando el body no es JSON válido (500)', async () => {

@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { useReservas, useUpdateReserva } from "./useReservas";
-import { useCeldas, useUpdateCelda } from "@/features/parqueaderos";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 
@@ -31,9 +30,7 @@ export function useReservaAutoExpiry() {
   const { user } = useAuth();
   const esConductor = user?.rol === ROLES.CONDUCTOR;
   const { data: reservas = [] } = useReservas({ enabled: !esConductor });
-  const { data: celdas = [] } = useCeldas();
   const updateReservaMutation = useUpdateReserva();
-  const updateCeldaMutation = useUpdateCelda();
 
   useEffect(() => {
     const vencerReservasPasadas = () => {
@@ -45,12 +42,10 @@ export function useReservaAutoExpiry() {
         const momentoLimite = new Date(`${reserva.fechaReserva}T${limite}`).getTime();
         if (Number.isNaN(momentoLimite) || momentoLimite >= ahora) continue;
 
+        // Cancelar basta: el backend libera la celda que retenía esta reserva (y solo si
+        // seguía RESERVADA). Hacerlo también desde aquí podía soltar una celda que en
+        // realidad ya estaba ocupada por un vehículo que acababa de entrar.
         updateReservaMutation.mutate({ id: reserva.id, data: { estado: "cancelada" } });
-
-        const celda = celdas.find(c => c.id === reserva.celdaId);
-        if (celda && celda.estado === "reservada") {
-          updateCeldaMutation.mutate({ id: celda.id, data: { estado: "disponible" } });
-        }
       }
     };
 
@@ -58,5 +53,5 @@ export function useReservaAutoExpiry() {
     const interval = setInterval(vencerReservasPasadas, CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reservas, celdas]);
+  }, [reservas]);
 }

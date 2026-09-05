@@ -3,14 +3,14 @@ import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { exportarCsv, type CsvColumn } from "@/utils/csvExport";
-import { useReservas, useReservasDeVehiculos, useRemoveReserva, useUpdateReserva } from "./useReservas";
+import { useReservas, useReservasDeVehiculos, useRemoveReserva, useUpdateReserva, useCancelarReserva } from "./useReservas";
 import type { Reserva } from "@/services/api/reservas";
-import { useUpdateCelda, useCeldas, useParqueaderos } from "@/features/parqueaderos";
-import type { Celda } from "@/services/api/celdas";
+import { useCeldas, useParqueaderos } from "@/features/parqueaderos";
 import { useVehiculos, useConductores, vehiculoEstaParqueado } from "@/features/conductores";
 import { useControlSalida } from "@/features/controlSalida";
 import { ESTADO_CONFIG, type EstadoReserva } from "../lib/constants";
 import { seSolapan, buscarConflictoHorario as buscarConflictoHorarioEnLista } from "../lib/helpers";
+import { estaATiempoDeCancelar, MARGEN_CANCELACION_MINUTOS, enPalabras } from "../lib/reglas";
 
 /** Datos, filtros y eliminación del historial de reservas. */
 export function useReservasPage() {
@@ -47,12 +47,11 @@ export function useReservasPage() {
     : isLoadingReservasAdmin;
 
   const removeReservaMutation = useRemoveReserva();
-  const updateCeldaMutation = useUpdateCelda();
+  const cancelarReservaMutation = useCancelarReserva();
   const updateReservaMutation = useUpdateReserva();
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" cuando la mutación en realidad falla.
   const deleteReserva = (id: string) => removeReservaMutation.mutateAsync(id);
-  const updateCelda = (id: string, data: Partial<Omit<Celda, "id">>) => updateCeldaMutation.mutateAsync({ id, data });
   const updateReserva = (id: string, data: Partial<Omit<Reserva, "id">>) => updateReservaMutation.mutateAsync({ id, data });
 
   const [viewOpen, setViewOpen] = useState(false);
@@ -61,6 +60,7 @@ export function useReservasPage() {
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoReserva>("todos");
   const [confirmDelete, setConfirmDelete] = useState<Reserva | null>(null);
   const [confirmRechazar, setConfirmRechazar] = useState<Reserva | null>(null);
+  const [confirmCancelar, setConfirmCancelar] = useState<Reserva | null>(null);
 
   const getVehiculo = (id: string) => vehiculos.find((v) => v.id === id);
   const getCelda = (id: string) => celdas.find((c) => c.id === id);
@@ -133,7 +133,10 @@ export function useReservasPage() {
       return;
     }
     try {
-      await updateCelda(confirmDelete.celdaId, { estado: "disponible" });
+      // La celda NO se toca: una reserva pendiente no la retiene (solo la retiene una
+      // aceptada, y de eso se encarga el backend). Ponerla "disponible" desde aquí podía
+      // liberar una celda que en realidad estaba reservada por otra reserva ya aceptada, o
+      // incluso ocupada por un vehículo dentro.
       await deleteReserva(confirmDelete.id);
       toast.success("Reserva eliminada correctamente");
       setConfirmDelete(null);
@@ -214,8 +217,10 @@ export function useReservasPage() {
     }
 
     try {
+      // Aceptar basta: el backend deja la celda RESERVADA en la misma operación (y no la
+      // toca si mientras tanto se ocupó o entró en mantenimiento). Forzarla desde aquí
+      // podía pisar ese estado.
       await updateReserva(reserva.id, { estado: "activa" });
-      await updateCelda(reserva.celdaId, { estado: "reservada" });
 
       // Otras solicitudes "pendiente" de la MISMA celda que pedían una franja que ahora ya
       // no está disponible (se solapan con la que se acaba de aceptar) quedan sin sentido —
@@ -240,6 +245,40 @@ export function useReservasPage() {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
       // (services/core/queryFactory.ts).
       console.error("Error accepting reserva:", error);
+    }
+  };
+
+  /**
+   * Quién puede cancelar una reserva: quien gestiona el parqueadero, cualquiera y a
+   * cualquier hora (atiende el mostrador); el resto, solo las suyas y mientras falte al
+   * menos la media hora de margen. Es la misma regla que aplica el backend en
+   * PATCH /reservas/:id/cancelar, repetida aquí solo para decidir si se muestra el botón.
+   */
+  const puedeCancelar = (reserva: Reserva) => {
+    if (reserva.estado !== "pendiente" && reserva.estado !== "activa") return false;
+    if (puedeGestionarSolicitudes) return true;
+    const esSuya = !!miConductorId && getConductorReserva(reserva)?.id === miConductorId;
+    return esSuya && estaATiempoDeCancelar(reserva);
+  };
+
+  const handleCancelar = (reserva: Reserva) => setConfirmCancelar(reserva);
+
+  const confirmCancelarAction = async () => {
+    if (!confirmCancelar) return;
+    // Segunda guarda: el botón ya no se muestra fuera de plazo, pero el diálogo pudo quedar
+    // abierto justo cuando se cumplía la media hora.
+    if (!puedeGestionarSolicitudes && !estaATiempoDeCancelar(confirmCancelar)) {
+      toast.error(`Solo puedes cancelar hasta ${enPalabras(MARGEN_CANCELACION_MINUTOS)} antes de la hora de inicio.`);
+      setConfirmCancelar(null);
+      return;
+    }
+    try {
+      await cancelarReservaMutation.mutateAsync(confirmCancelar.id);
+      toast.success("Reserva cancelada.");
+      setConfirmCancelar(null);
+    } catch (error) {
+      // El aviso de error lo muestra la propia mutación (ver useCancelarReserva).
+      console.error("Error cancelling reserva:", error);
     }
   };
 
@@ -274,6 +313,7 @@ export function useReservasPage() {
     confirmRechazar, setConfirmRechazar,
     getVehiculo, getCelda, getParqueadero, getConductorReserva,
     counts, filteredReservas, handleDelete, confirmDeleteAction, exportarReservas,
+    puedeCancelar, handleCancelar, confirmCancelar, setConfirmCancelar, confirmCancelarAction,
     puedeGestionarSolicitudes, solicitudesPendientes, aceptarSolicitud, handleRechazar, confirmRechazarAction,
     miConductorId, celdas, parqueaderos, vehiculos, controlesSalida, reservasTodas,
     activeFiltersCount, clearFilters, isLoading,

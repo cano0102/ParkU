@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { toast } from 'sonner';
@@ -58,7 +58,12 @@ reservasSeed.push(
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
-apiFetchMock.mockImplementation(createAppBackends().apiFetch);
+// Un backend falso nuevo por prueba: hay pruebas que aceptan, rechazan o cancelan reservas,
+// y compartir el mismo estado dejaba a las siguientes con datos ya cambiados.
+beforeEach(() => {
+  apiFetchMock.mockImplementation(createAppBackends().apiFetch);
+  localStorage.clear();
+});
 
 function wrapper({ children }: { children: ReactNode }) {
   const client = createTestQueryClient();
@@ -75,6 +80,69 @@ describe('useReservasPage — solicitudes pendientes', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current.solicitudesPendientes.map((r) => r.id)).toEqual(['11', '12', '14', '15']);
+  });
+
+  it('cancela una reserva y deja libre la celda que retenía', async () => {
+    // Con sesión: quién puede cancelar depende del rol (y de si la reserva es suya).
+    localStorage.setItem('parkuToken', 'fake-token-1');
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '1', correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', numero: '', rol: ROLES.ADMIN,
+    }));
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Se acepta la 12 (celda 2, libre): la celda queda retenida.
+    const solicitud = result.current.solicitudesPendientes.find((r) => r.id === '12')!;
+    await act(async () => result.current.aceptarSolicitud(solicitud));
+    await waitFor(() => expect(result.current.getCelda('2')?.estado).toBe('reservada'));
+
+    const aceptada = result.current.reservas.find((r) => r.id === '12')!;
+    expect(result.current.puedeCancelar(aceptada)).toBe(true);
+
+    act(() => result.current.handleCancelar(aceptada));
+    await act(async () => result.current.confirmCancelarAction());
+
+    await waitFor(() => {
+      expect(result.current.reservas.find((r) => r.id === '12')?.estado).toBe('cancelada');
+    });
+    // La celda se libera en el backend, y la vista se entera sin recargar.
+    await waitFor(() => {
+      expect(result.current.getCelda('2')?.estado).toBe('disponible');
+    });
+    expect(toast.success).toHaveBeenCalledWith('Reserva cancelada.');
+  });
+
+  it('cancelar NO libera una celda que tiene un vehículo dentro', async () => {
+    localStorage.setItem('parkuToken', 'fake-token-1');
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '1', correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', numero: '', rol: ROLES.ADMIN,
+    }));
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // La reserva 10 está aceptada sobre la celda 1, que está OCUPADA en los datos semilla.
+    // La página ya no toca la celda por su cuenta: antes la ponía "disponible" a mano, y
+    // eso dejaba libre una celda con un vehículo dentro.
+    const sobreCeldaOcupada = result.current.reservas.find((r) => r.id === '10')!;
+    act(() => result.current.handleCancelar(sobreCeldaOcupada));
+    await act(async () => result.current.confirmCancelarAction());
+
+    await waitFor(() => {
+      expect(result.current.reservas.find((r) => r.id === '10')?.estado).toBe('cancelada');
+    });
+    expect(result.current.getCelda('1')?.estado).not.toBe('disponible');
+  });
+
+  it('no ofrece cancelar una reserva que ya terminó', async () => {
+    localStorage.setItem('parkuToken', 'fake-token-1');
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '1', correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', numero: '', rol: ROLES.ADMIN,
+    }));
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const terminada = { ...result.current.reservas[0], estado: 'completada' as const };
+    expect(result.current.puedeCancelar(terminada)).toBe(false);
   });
 
   it('rechaza aceptar una solicitud que choca en horario con una reserva ya activa en la misma celda', async () => {

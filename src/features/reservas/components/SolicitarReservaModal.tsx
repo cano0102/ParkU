@@ -4,6 +4,8 @@ import { Banner } from "@/components/shared";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
+import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
+import { opcionesDeHoraInicio, opcionesDeHoraFin } from "../lib/reglas";
 
 const C = theme;
 
@@ -44,6 +46,10 @@ export function SolicitarReservaModal({
   onVehiculoChange, onParqueaderoChange, onCeldaChange, onFechaChange, onHoraInicioChange, onHoraFinChange, onMotivoChange,
   onSubmit, onCancel,
 }: SolicitarReservaModalProps) {
+  const ventana = { desde: HORA_OPERACION_INICIO, hasta: HORA_OPERACION_FIN };
+  const horasDeInicio = opcionesDeHoraInicio(fechaReserva, ventana);
+  const horasDeFin = opcionesDeHoraFin(horaInicio, ventana);
+
   return (
     <div>
       <div style={{ padding: "1.4rem 1.8rem", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 12 }}>
@@ -103,14 +109,27 @@ export function SolicitarReservaModal({
 
           <div />
 
+          {/* Listas, no campos de hora libres: solo se ofrece lo que de verdad se puede
+              reservar (horario de operación, media hora de anticipación si es para hoy, y
+              una hora de duración mínima). Así una hora inválida no se puede ni elegir, en
+              vez de avisar cuando ya se intentó guardar. */}
           <div>
             <label style={fieldLabel}>Hora de inicio *</label>
-            <input type="time" value={horaInicio} onChange={(e) => onHoraInicioChange(e.target.value)} style={fieldInput} />
+            <select value={horaInicio} onChange={(e) => onHoraInicioChange(e.target.value)} style={fieldInput}>
+              {horasDeInicio.length === 0 && <option value="">Hoy ya no hay horas disponibles</option>}
+              {horasDeInicio.map((h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
           </div>
 
           <div>
             <label style={fieldLabel}>Hora de fin *</label>
-            <input type="time" value={horaFin} onChange={(e) => onHoraFinChange(e.target.value)} style={fieldInput} />
+            <select value={horaFin} onChange={(e) => onHoraFinChange(e.target.value)} style={fieldInput} disabled={!horaInicio}>
+              {horasDeFin.map((h) => (
+                <option key={h} value={h}>{h}</option>
+              ))}
+            </select>
           </div>
 
           <div style={{ gridColumn: "1 / -1" }}>

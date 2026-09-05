@@ -5,7 +5,7 @@ import { ReservaFormState } from "../components/modals/ReservaModal";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
-import { buscarConflictoHorario } from "@/features/reservas";
+import { buscarConflictoHorario, validarFranja, franjaSugerida } from "@/features/reservas";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../lib/helpers";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
@@ -16,13 +16,13 @@ export function useReservaCelda(
   updateControlSalida: (id: string, patch: { fechaSalida: string; estado: "finalizado" }) => Promise<unknown>,
   setOpenModal: (m: ModalKind) => void
 ) {
+  // Franja inicial que ya cumple las reglas de tiempo (ver features/reservas/lib/reglas.ts):
+  // el 08:00-18:00 fijo de antes ya estaba en el pasado a media mañana.
   const [reservaForm, setReservaForm] = useState<ReservaFormState>({
     vehiculoId: "",
     parqueaderoId: "",
     celdaId: "",
-    fechaReserva: new Date().toISOString().split("T")[0],
-    horaInicio: "08:00",
-    horaFin: "18:00",
+    ...franjaSugerida(),
     motivo: "",
     estado: "pendiente",
   });
@@ -33,9 +33,7 @@ export function useReservaCelda(
       ...prev,
       parqueaderoId: celda.parqueaderoId,
       celdaId: celda.id,
-      fechaReserva: new Date().toISOString().split("T")[0],
-      horaInicio: "08:00",
-      horaFin: "18:00",
+      ...franjaSugerida(),
       motivo: "",
       estado: "pendiente",
     }));
@@ -49,13 +47,6 @@ export function useReservaCelda(
     if (!reservaForm.fechaReserva) return setReservaError("La fecha es requerida");
     if (!reservaForm.horaInicio || !reservaForm.horaFin) return setReservaError("El horario es requerido");
 
-    const toMinutes = (hhmm: string) => {
-      const [h, m] = hhmm.split(":").map(Number);
-      return h * 60 + m;
-    };
-    if (toMinutes(reservaForm.horaFin) <= toMinutes(reservaForm.horaInicio)) {
-      return setReservaError("La hora de fin debe ser posterior a la hora de inicio");
-    }
 
     // A diferencia de la solicitud de un Conductor (useSolicitarReserva.ts, que ya filtra el
     // selector a solo parqueaderos activos), esta reserva la crea un Admin/Vigilante directo
@@ -75,13 +66,12 @@ export function useReservaCelda(
       return setReservaError(`El horario debe estar entre ${HORA_OPERACION_INICIO} y ${HORA_OPERACION_FIN} (horario de operación).`);
     }
 
-    // El <input type="date" min=...> del formulario ya sugiere no elegir un día
-    // pasado, pero ese límite es solo de interfaz: se puede editar el campo
-    // directamente. Se revalida aquí, incluyendo la hora, para el día de hoy.
-    const inicioReserva = new Date(`${reservaForm.fechaReserva}T${reservaForm.horaInicio}`);
-    if (inicioReserva.getTime() < Date.now()) {
-      return setReservaError("No puedes reservar en una fecha u hora que ya pasó");
-    }
+    // Los `min` de los campos de fecha y hora ya dejan fuera lo que no sirve, pero ese
+    // límite es solo de interfaz: se puede escribir a mano. Aquí se revalidan las tres
+    // reglas de tiempo (nada en el pasado, anticipación mínima y duración mínima), las
+    // mismas que aplica el backend — ver features/reservas/lib/reglas.ts.
+    const problemaDeFranja = validarFranja(reservaForm);
+    if (problemaDeFranja) return setReservaError(problemaDeFranja);
 
     try {
       // Choque de horario real (misma celda + fecha/hora que se solapan), no "cualquier

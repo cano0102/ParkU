@@ -1,5 +1,6 @@
 import {
   IconAlertCircle as AlertCircle,
+  IconBan as Ban,
   IconCalendar as Calendar,
   IconCar as Car,
   IconEye as Eye,
@@ -32,10 +33,13 @@ interface ReservaRowProps {
   canDelete: boolean;
   onView: () => void;
   onDelete: () => void;
+  /** Se muestra el botón de cancelar (la decisión de si puede la toma la página). */
+  canCancel?: boolean;
+  onCancel?: () => void;
 }
 
 /** Una fila de la tabla de reservas: vehículo, conductor, ubicación, horario, fecha, estado y acciones. */
-export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, canDelete, onView, onDelete }: ReservaRowProps) {
+export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, canDelete, onView, onDelete, canCancel = false, onCancel }: ReservaRowProps) {
   const cfg = ESTADO_CONFIG[reserva.estado];
   const esPasada = reserva.fechaReserva < todayStr() && !["completada", "cancelada", "rechazada"].includes(reserva.estado);
   // Eliminar borra el registro por completo — solo tiene sentido mientras la reserva sigue
@@ -128,6 +132,17 @@ export function ReservaRow({ reserva, vehiculo, celda, usuario, parqueadero, can
         >
           <Eye size={13} />
         </button>
+        {canCancel && onCancel && (
+          <button
+            className="action-btn"
+            title="Cancelar reserva"
+            aria-label={`Cancelar la reserva de ${vehiculo?.placa ?? "este vehículo"}`}
+            onClick={onCancel}
+            style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: "#B45309", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+          >
+            <Ban size={13} />
+          </button>
+        )}
         {puedeEliminarEstaFila && (
           <button
             className="action-btn"

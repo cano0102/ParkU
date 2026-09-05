@@ -175,7 +175,13 @@ function createAuthBackend() {
         success: true,
         message: 'Login exitoso',
         data: {
-          user: { id: account.id, correo: account.correo, nombre: account.nombre, rol: account.rol_id, estado: account.estado },
+          user: {
+            id: account.id, correo: account.correo, nombre: account.nombre, rol: account.rol_id, estado: account.estado,
+            numero: account.numero_telefonico ?? null,
+            // Igual que la API real: el documento viene ya en el login.
+            tipo_documento: account.tipo_documento ?? null,
+            numero_documento: account.numero_documento ?? null,
+          },
           token: `fake-token-${account.id}`,
           refreshToken: `fake-refresh-${account.id}`,
           expiresIn: '7d',
@@ -517,6 +523,43 @@ export function createAppBackends(opciones?: { rolActual?: RolId }) {
       },
     ],
   });
+  /**
+   * Reproduce lo que hace el backend real al cambiar el estado de una reserva: además de
+   * guardarlo, mueve la celda (trigger fn_reserva_bloquea_celda). Aceptar la retiene si
+   * estaba libre; cancelar, rechazar o terminar la suelta si era esta reserva quien la
+   * retenía. Las pantallas ya no tocan la celda por su cuenta, así que sin esto el fake
+   * dejaría la celda en un estado que la API real nunca deja.
+   */
+  const cambiarEstadoReserva = (idx: number, estado: string, items: any[], motivoRechazo?: string) => {
+    const anterior = items[idx].estado;
+    const TRANSICIONES: Record<string, string[]> = {
+      PENDIENTE: ['ACEPTADA', 'RECHAZADA', 'CANCELADA'],
+      ACEPTADA: ['TERMINADA', 'CANCELADA'],
+      RECHAZADA: [], TERMINADA: [], CANCELADA: [],
+    };
+    if (!(TRANSICIONES[anterior] ?? []).includes(estado)) {
+      throw new Error(`Una reserva ${String(anterior).toLowerCase()} no puede pasar a ${estado.toLowerCase()}`);
+    }
+
+    items[idx] = {
+      ...items[idx], estado,
+      ...(motivoRechazo !== undefined ? { motivo_rechazo: motivoRechazo } : {}),
+    };
+
+    const celdaIdx = (celdas.items as any[]).findIndex((c) => c.id === items[idx].celda_id);
+    if (celdaIdx !== -1) {
+      const celda = (celdas.items as any[])[celdaIdx];
+      if (estado === 'ACEPTADA' && celda.estado === 'DISPONIBLE') {
+        (celdas.items as any[])[celdaIdx] = { ...celda, estado: 'RESERVADA' };
+      }
+      if (anterior === 'ACEPTADA' && ['CANCELADA', 'RECHAZADA', 'TERMINADA'].includes(estado) && celda.estado === 'RESERVADA') {
+        (celdas.items as any[])[celdaIdx] = { ...celda, estado: 'DISPONIBLE' };
+      }
+    }
+
+    return items[idx];
+  };
+
   const reservas = createFakeRestBackend('/reservas', reservasSeed, {
     actions: [{
       method: 'GET', pattern: /^\/vehiculo\/(\d+)$/,
@@ -527,17 +570,22 @@ export function createAppBackends(opciones?: { rolActual?: RolId }) {
         const idx = items.findIndex((i) => i.id === Number(m[1]));
         if (idx === -1) throw new Error('404');
         const b = body as any;
-        // `motivo_rechazo` (snake_case) es el nombre real del campo en el body — ver el bug
-        // confirmado en services/api/reservas.ts (antes se enviaba/leía como `motivoRechazo`,
-        // que el backend real ignora en silencio).
+        // `motivo_rechazo` (snake_case) es el nombre del campo en el body. El backend real
+        // acepta también `motivoRechazo`, pero la aplicación manda este.
         if (b.estado === 'RECHAZADA' && !b.motivo_rechazo?.trim()) {
           throw new Error('motivo_rechazo es obligatorio al rechazar una reserva');
         }
-        items[idx] = {
-          ...items[idx], estado: b.estado,
-          ...(b.motivo_rechazo !== undefined ? { motivo_rechazo: b.motivo_rechazo } : {}),
-        };
-        return items[idx];
+        return cambiarEstadoReserva(idx, b.estado, items, b.motivo_rechazo);
+      },
+    }, {
+      // PATCH /reservas/:id/cancelar — la ruta de autoservicio: quien pidió la reserva puede
+      // echarse atrás sin permiso de gestión. Aquí no se comprueba de quién es (el fake no
+      // tiene sesión de verdad); lo que sí se reproduce es el efecto sobre la celda.
+      method: 'PATCH', pattern: /^\/(\d+)\/cancelar$/,
+      handle: (m, _body, items) => {
+        const idx = items.findIndex((i) => i.id === Number(m[1]));
+        if (idx === -1) throw new Error('404');
+        return cambiarEstadoReserva(idx, 'CANCELADA', items);
       },
     }],
   });

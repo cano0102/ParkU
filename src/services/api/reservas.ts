@@ -115,9 +115,9 @@ export async function getById(id: string): Promise<Reserva | undefined> {
 }
 
 export async function create(data: Omit<Reserva, 'id'>): Promise<Reserva> {
-  // `POST /reservas` crea el registro pero responde `null` en el body (bug
-  // confirmado en vivo del backend) — `crearConRespaldo` recupera el
-  // registro creado con un GET a la lista si el POST no lo trae.
+  // El POST ya responde la reserva creada (el backend la lee dentro de la misma transacción).
+  // `crearConRespaldo` se conserva como red de seguridad: si algún despliegue antiguo
+  // devuelve un body vacío, recupera el registro con un GET a la lista en vez de fallar.
   const created = await crearConRespaldo<ApiReserva>(
     '/reservas',
     {
@@ -160,14 +160,10 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
   if (estado !== undefined) {
     const estadoApi = ESTADOS_GESTIONABLES.includes(estado) ? ESTADO_A_API[estado] : null;
     if (estadoApi) {
-      // Bug confirmado en vivo: `PATCH /:id/estado` sí aplica el cambio (un GET posterior lo
-      // confirma), pero responde el registro con el `estado` de ANTES del cambio, no el nuevo.
-      // No se usa `updated` como fuente de verdad para el estado en ningún sitio de llamada —
-      // todos dependen de la invalidación de la query de reservas (ver queryFactory.ts) para
-      // refrescar con el GET real, así que esta respuesta obsoleta no llega a mostrarse.
-      // El body usa `motivo_rechazo` (snake_case, como el resto de campos de este archivo) —
-      // enviarlo como `motivoRechazo` (camelCase) hace que el backend lo ignore en silencio,
-      // igual que el mismo bug ya confirmado en vivo para `services/api/celdas.ts`.
+      // El body usa `motivo_rechazo` (snake_case, como el resto de campos de este archivo).
+      // El backend acepta los dos nombres desde la revisión del módulo de reservas; antes solo
+      // leía el camelCase, así que rechazar desde aquí respondía siempre 400 "el motivo es
+      // obligatorio". La respuesta ya trae el estado nuevo, no el anterior.
       updated = await apiFetch<ApiReserva>(`/reservas/${id}/estado`, {
         method: 'PATCH',
         body: { estado: estadoApi, motivo_rechazo: estado === 'rechazada' ? data.motivoRechazo : undefined },
@@ -175,6 +171,18 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
     }
   }
   return toFrontend(updated ?? await apiFetch<ApiReserva>(`/reservas/${id}`));
+}
+
+/**
+ * Cancela una reserva propia (`PATCH /reservas/:id/cancelar`).
+ *
+ * Es una ruta distinta de `PATCH /:id/estado` a propósito: aquella exige permiso de gestión
+ * (aceptar/rechazar es de Admin/Vigilante), y esta solo pide estar autenticado — el backend
+ * comprueba que la reserva sea de quien la cancela. Sin ella, un Conductor no tenía forma de
+ * echarse atrás de su propia solicitud.
+ */
+export async function cancelar(id: string): Promise<Reserva> {
+  return toFrontend(await apiFetch<ApiReserva>(`/reservas/${id}/cancelar`, { method: 'PATCH' }));
 }
 
 export async function remove(id: string): Promise<void> {

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/context/AuthContext';
@@ -77,12 +77,9 @@ describe('useReservaAutoExpiry', () => {
 
     renderHook(() => useReservaAutoExpiry(), { wrapper });
 
-    // El hook no devuelve nada observable — se espera a que su otra query (celdas, sin
-    // restricción de rol) sí haya resuelto, como señal de que el montaje ya corrió.
-    await waitFor(() => {
-      const llamadas = apiFetchMock.mock.calls.slice(llamadasPrevias);
-      expect(llamadas.some(([path]) => path === '/celdas')).toBe(true);
-    });
+    // Para este rol el hook no consulta nada, así que no hay ninguna llamada que esperar:
+    // se le da un respiro al ciclo de efectos y se comprueba que sigue sin pedir el listado.
+    await act(async () => { await new Promise((r) => setTimeout(r, 60)); });
 
     const llamadasNuevas = apiFetchMock.mock.calls.slice(llamadasPrevias);
     expect(llamadasNuevas.some(([path]) => path === '/reservas')).toBe(false);

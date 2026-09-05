@@ -8,6 +8,7 @@ import type { Reserva } from "@/services/api/reservas";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
 import { useCreateReserva } from "./useReservas";
+import { franjaSugerida, validarFranja, ajustarFranja } from "../lib/reglas";
 
 interface SolicitarReservaForm {
   vehiculoId: string;
@@ -19,13 +20,13 @@ interface SolicitarReservaForm {
   motivo: string;
 }
 
+// Arranca en una franja que ya cumple las reglas (dentro de la anticipación mínima y con la
+// duración mínima), en vez de un 08:00–18:00 fijo que a media mañana ya estaba en el pasado.
 const emptyForm = (vehiculoId = ""): SolicitarReservaForm => ({
   vehiculoId,
   parqueaderoId: "",
   celdaId: "",
-  fechaReserva: new Date().toISOString().split("T")[0],
-  horaInicio: "08:00",
-  horaFin: "18:00",
+  ...franjaSugerida(),
   motivo: "",
 });
 
@@ -68,18 +69,12 @@ export function useSolicitarReserva(
 
   const parqueaderosActivos = useMemo(() => parqueaderos.filter((p) => p.estado === "activo"), [parqueaderos]);
 
-  const toMinutes = (hhmm: string) => {
-    const [h, m] = hhmm.split(":").map(Number);
-    return h * 60 + m;
-  };
-
   const validar = useCallback((f: SolicitarReservaForm): string | null => {
     if (!f.vehiculoId) return "Selecciona un vehículo";
     if (!f.parqueaderoId) return "Selecciona un parqueadero";
     if (!f.celdaId) return "Selecciona una celda disponible";
     if (!f.fechaReserva) return "La fecha es obligatoria";
     if (!f.horaInicio || !f.horaFin) return "El horario es obligatorio";
-    if (toMinutes(f.horaFin) <= toMinutes(f.horaInicio)) return "La hora de fin debe ser posterior a la de inicio";
     // El backend rechaza crear reservas fuera de la ventana de operación (05:00–21:00, ver
     // HORA_OPERACION_INICIO/FIN) — sin este chequeo, la solicitud solo se entera de que es
     // inválida hasta que el backend la rechaza con un error genérico. Comparación como string
@@ -87,8 +82,10 @@ export function useSolicitarReserva(
     if (f.horaInicio < HORA_OPERACION_INICIO || f.horaFin > HORA_OPERACION_FIN) {
       return `El horario debe estar entre ${HORA_OPERACION_INICIO} y ${HORA_OPERACION_FIN} (horario de operación).`;
     }
-    const inicio = new Date(`${f.fechaReserva}T${f.horaInicio}`);
-    if (inicio.getTime() < Date.now()) return "No puedes solicitar una fecha u hora que ya pasó";
+    // Anticipación mínima, duración mínima y nada en el pasado: las mismas reglas que el
+    // backend, aquí para avisar mientras se elige la hora (ver lib/reglas.ts).
+    const problemaDeFranja = validarFranja(f);
+    if (problemaDeFranja) return problemaDeFranja;
 
     // El vehículo elegido (o cualquier otro del mismo conductor) no puede estar ya
     // estacionado ni tener otra reserva pendiente/activa — solo un vehículo suyo a la vez.
@@ -133,8 +130,15 @@ export function useSolicitarReserva(
     }
   }, [form, validar, createReservaMutation, vehiculoSeleccionado]);
 
+  /** Deja la franja dentro de lo que se puede elegir tras cambiar la fecha o la hora. */
+  const ajustar = useCallback(
+    (f: Pick<SolicitarReservaForm, "fechaReserva" | "horaInicio" | "horaFin">) =>
+      ajustarFranja(f, { desde: HORA_OPERACION_INICIO, hasta: HORA_OPERACION_FIN }),
+    [],
+  );
+
   return {
-    open, setOpen, form, setForm, error, touched, markTouched,
+    open, setOpen, form, setForm, error, touched, markTouched, ajustar,
     celdasDisponibles, parqueaderosActivos, abrir, enviarSolicitud,
   };
 }
