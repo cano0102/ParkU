@@ -133,7 +133,8 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
             </div>
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textLight }}>Rol</div>
-              <p style={{ marginTop: 2, fontSize: 13.5, fontWeight: 800, color: C.text }}>{nombreDeRol(user.rol)}</p>
+              {/* Ver PerfilHero: el nombre real viene de la API; nombreDeRol es el respaldo. */}
+              <p style={{ marginTop: 2, fontSize: 13.5, fontWeight: 800, color: C.text }}>{user.rolNombre || nombreDeRol(user.rol)}</p>
             </div>
           </div>
           <span style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800, background: "rgba(57,169,0,.1)", color: C.primaryDark }}>

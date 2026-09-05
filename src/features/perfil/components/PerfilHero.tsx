@@ -113,7 +113,10 @@ export function PerfilHero({ user, onPhotoChange, onRemovePhoto }: PerfilHeroPro
               padding: "6px 12px", borderRadius: 999, fontSize: 11, fontWeight: 800,
             }}
           >
-            <Shield size={12} /> {nombreDeRol(user.rol)}
+            {/* El nombre real del rol lo trae la API (login y /auth/verificar). nombreDeRol
+                solo queda de respaldo para los tres roles del sistema: por sí solo devolvía
+                "Desconocido" en cualquier rol creado a medida. */}
+            <Shield size={12} /> {user.rolNombre || nombreDeRol(user.rol)}
           </span>
           <span
             style={{

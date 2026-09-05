@@ -20,6 +20,9 @@ interface User {
   /** Permisos del rol tal como los nombra la API ("reservas.gestionar"…). De ellos salen
    *  las pantallas visibles -- ver permisosDeVistas en services/core/roles.ts. */
   permisos?: string[];
+  /** Nombre real del rol (tabla `rol` del backend), para no depender de la tabla fija de
+   *  tres que hay en el frontend. */
+  rolNombre?: string;
 }
 
 interface AuthContextType {
@@ -158,9 +161,15 @@ export function AuthProvider({
       // en cada recarga de página.
       setUser((actual) => {
         if (!actual) return actual;
-        // Los permisos también se resincronizan: si a este rol le concedieron (o quitaron)
-        // uno mientras la sesión estaba abierta, la siguiente carga ya lo refleja.
-        const next = { ...actual, rol: usuarioReal.rol, permisos: usuarioReal.permisos ?? [] };
+        // Los permisos y el nombre del rol también se resincronizan: si a este rol le
+        // concedieron (o quitaron) un permiso, o lo renombraron, mientras la sesión estaba
+        // abierta, la siguiente carga de la página ya lo refleja.
+        const next = {
+          ...actual,
+          rol: usuarioReal.rol,
+          permisos: usuarioReal.permisos ?? [],
+          rolNombre: usuarioReal.rolNombre ?? actual.rolNombre,
+        };
         try {
           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
         } catch {
@@ -267,7 +276,12 @@ export function AuthProvider({
     if (!usuarioReal) return;
     setUser((actual) => {
       if (!actual) return actual;
-      const next = { ...actual, rol: usuarioReal.rol, permisos: usuarioReal.permisos ?? [] };
+      const next = {
+        ...actual,
+        rol: usuarioReal.rol,
+        permisos: usuarioReal.permisos ?? [],
+        rolNombre: usuarioReal.rolNombre ?? actual.rolNombre,
+      };
       try {
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
       } catch {

@@ -24,6 +24,10 @@ export interface AuthUser {
    *  Los devuelven el login, /auth/verificar y /auth/perfil. Con ellos se decide qué
    *  pantallas se ven -- ver permisosDeVistas en services/core/roles.ts. */
   permisos?: string[];
+  /** Nombre real del rol, tal como está en la tabla `rol`. El token solo lleva el id, y la
+   *  tabla estática del frontend solo conoce los tres del sistema: sin esto, un rol creado a
+   *  medida se mostraba como "Desconocido" en el perfil. */
+  rolNombre?: string;
 }
 
 export interface RegisterInput {
@@ -51,6 +55,7 @@ interface ApiUsuario {
   rol: number;
   estado: string;
   permisos?: string[];
+  rol_nombre?: string | null;
 }
 
 interface LoginResponseData {
@@ -74,6 +79,7 @@ function toAuthUser(u: ApiUsuario): AuthUser {
     numero: u.numero ?? '',
     rol: u.rol as RolId,
     permisos: Array.isArray(u.permisos) ? u.permisos : [],
+    rolNombre: u.rol_nombre ?? undefined,
   };
 }
 
