@@ -351,6 +351,53 @@ export function createAppBackends(opciones?: { rolActual?: RolId }) {
   });
   const usuarios = createFakeRestBackend('/usuarios', usuariosSeed.map(({ contrasena: _c, ...u }) => u), {
     actions: [{
+      /**
+       * Comprobación "mientras se escribe" (GET /usuarios/disponibilidad). Los motivos son
+       * los genéricos: el backend real solo nombra al dueño del dato ocupado si quien
+       * pregunta ya puede consultar cuentas o conductores, y estas pantallas no asumen eso.
+       */
+      method: 'GET', pattern: /^\/disponibilidad(\?.*)?$/,
+      handle: (m, _body, items) => {
+        const qs = new URLSearchParams(String(m.input ?? '').split('?')[1] ?? '');
+        const excluir = Number(qs.get('excluir_usuario_id') ?? 0);
+        const cuentas = items as Array<Record<string, any>>;
+        const resultado: Record<string, any> = {};
+
+        const correo = qs.get('correo');
+        if (correo) {
+          const cuenta = cuentas.find((u) => String(u.correo).toLowerCase() === correo.toLowerCase());
+          const conductor = conductoresSeed.find((c) => (c as any).correo?.toLowerCase() === correo.toLowerCase());
+          resultado.correo = cuenta && cuenta.id !== excluir
+            ? { disponible: false, motivo: 'Ya existe una cuenta de acceso con ese correo' }
+            : conductor && conductor.usuario_id !== excluir
+              ? { disponible: false, motivo: 'Ese correo ya pertenece a otro conductor' }
+              : { disponible: true, motivo: null };
+        }
+
+        const telefono = qs.get('numero_telefonico');
+        if (telefono) {
+          const cuenta = cuentas.find((u) => u.numero_telefonico === telefono);
+          resultado.numero_telefonico = cuenta && cuenta.id !== excluir
+            ? { disponible: false, motivo: 'Ese número de teléfono ya está registrado en otra cuenta' }
+            : { disponible: true, motivo: null };
+        }
+
+        const numeroDocumento = qs.get('numero_documento');
+        const tipoDocumento = qs.get('tipo_documento');
+        if (numeroDocumento) {
+          const cuenta = cuentas.find((u) => u.tipo_documento === tipoDocumento && u.numero_documento === numeroDocumento);
+          const conductor = conductoresSeed.find((c) => c.tipo_documento === tipoDocumento && c.numero_documento === numeroDocumento);
+          resultado.documento = cuenta && cuenta.id !== excluir
+            ? { disponible: false, motivo: 'Ese documento ya está registrado en otra cuenta' }
+            : conductor && conductor.usuario_id !== excluir
+              ? { disponible: false, motivo: 'Ese documento ya pertenece a otro conductor' }
+              : { disponible: true, motivo: null };
+        }
+
+        resultado.disponible = Object.values(resultado).every((b: any) => b?.disponible !== false);
+        return resultado;
+      },
+    }, {
       method: 'PATCH', pattern: /^\/(\d+)\/contrasena$/,
       handle: (m, body, items) => {
         const id = Number(m[1]);

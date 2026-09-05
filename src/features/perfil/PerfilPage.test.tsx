@@ -153,6 +153,43 @@ describe('Perfil', () => {
     expect(backends.usuarios.items.find((u: any) => u.id === 1)).toMatchObject({ correo: 'admin@sena.edu.co' });
   }, 20000);
 
+  it('avisa mientras se escribe si el documento ya está en uso, sin decir de quién es', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '2', correo: 'ana.martinez@sena.edu.co', nombre: 'Ana Martínez R.', numero: '', rol: ROLES.VIGILANTE,
+    }));
+    renderPerfil();
+    await waitFor(() => expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThanOrEqual(2));
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    const documento = screen.getByLabelText('Número de documento');
+    await user.clear(documento);
+    // 3456789012 es el documento de la cuenta de Pedro en los datos semilla.
+    await user.type(documento, '3456789012');
+
+    const aviso = await screen.findByText('Ese documento ya está registrado en otra cuenta', undefined, { timeout: 4000 });
+    expect(aviso).toBeInTheDocument();
+    // Lo importante: dice que está ocupado, no A QUIÉN pertenece.
+    expect(screen.queryByText(/pedro/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/pedro.ruiz@sena.edu.co/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled();
+  }, 20000);
+
+  it('valida mientras se escribe, sin esperar a salir del campo', async () => {
+    const user = userEvent.setup();
+    renderPerfil();
+    await waitFor(() => expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThanOrEqual(2));
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    const telefono = screen.getByLabelText('Teléfono');
+    await user.clear(telefono);
+    await user.type(telefono, '123');
+
+    // Sin blur ni submit: el aviso ya está.
+    expect(screen.getByText('Ingresa un número de teléfono colombiano válido (10 dígitos)')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled();
+  }, 20000);
+
   it('cambia la contraseña exitosamente con datos válidos', async () => {
     const user = userEvent.setup();
     renderPerfil();
