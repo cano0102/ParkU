@@ -15,8 +15,10 @@ import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Reserva } from "@/services/api/reservas";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
+import { useEffect, useState } from "react";
 import { Modal } from "@/components/shared";
 import { EstadoBadge, TipoBadge } from "../map/CeldaBadges";
+import { type AgendaCelda, puedeEstacionarEn, avisoDeCelda, comoHora, inicioDe, finDe } from "../../lib/agendaCelda";
 import { Ocupante, formatearFechaHora, formatearDuracion, estaFueraDeHorarioOperacion, HORA_OPERACION_FIN } from "../../lib/helpers";
 
 const C = theme;
@@ -46,6 +48,12 @@ interface CeldaInfoModalProps {
   onSolicitarReserva?: () => void;
   /** Nombre de quien hizo la reserva que retiene esta celda. */
   conductorReserva?: string;
+  /** La agenda de la celda: qué reservas tiene por delante, cuál rige ahora y cuál sigue.
+   *  Sin ella el modal se comporta como antes (sin panel ni avisos), que es lo que necesitan
+   *  las pruebas y cualquier consumidor que no tenga las reservas a mano. */
+  agenda?: AgendaCelda | null;
+  /** Las reservas de la agenda ya resueltas a placa y nombre, para poder listarlas. */
+  agendaDetallada?: { id: string; placa: string; conductor: string }[];
   /** true si el rol del usuario logueado tiene el permiso "celdas" — controla si se muestra
    *  el ajuste manual de estado (ver onSetEstadoManual) y el botón "Reservar Celda". Ese botón
    *  usa `handleCrearReserva` (ver useReservaCelda.ts), que crea la reserva y la ACTIVA de
@@ -84,8 +92,28 @@ export function CeldaInfoModal({
   onReportarIncidente, onEstacionarVehiculo, onEstacionarReservado, onReservarCelda,
   canSolicitarReserva = false, onSolicitarReserva, conductorReserva,
   canManageCeldas, canRegistrarIngreso, canReportarIncidentes, incidenteAbiertoExiste, onSetEstadoManual,
+  agenda = null, agendaDetallada = [],
 }: CeldaInfoModalProps) {
   const parqueaderoInactivo = parqueaderoActivo?.estado !== "activo";
+
+  /* Ocupar una celda con una reserva por delante es un compromiso: hay que sacar el vehiculo
+     antes de que llegue quien reservo. Se pide confirmarlo aqui y no dentro del asistente,
+     para que la decision se tome antes de empezar a llenar el formulario. */
+  const [confirmandoEstacionar, setConfirmandoEstacionar] = useState(false);
+  useEffect(() => { setConfirmandoEstacionar(false); }, [open, celdaActiva?.id]);
+
+  // Sin vehiculo concreto: es el permiso general de la celda, "puede entrar alguien ahora?".
+  // Al vehiculo que tiene la reserva se le entra por otro boton ("Estacionar <placa>").
+  const permiso = agenda ? puedeEstacionarEn(agenda, null) : { puede: true as const };
+  const aviso = agenda ? avisoDeCelda(agenda, celdaActiva?.estado === "no_disponible") : null;
+  /* Con la agenda, una reserva ya no marca la celda como RESERVADA en la base: la celda sigue
+     "disponible" y es la hora la que dice si esta retenida. El estado "reservada" solo queda
+     para las que alguien fijo a mano. */
+  const enReserva = celdaActiva?.estado === "reservada" || (celdaActiva?.estado === "disponible" && !!reservaActiva);
+  const colorAviso = aviso?.tono === "urgente"
+    ? { fondo: C.dangerBg, borde: C.dangerBorder, texto: C.danger }
+    : { fondo: C.amberBg, borde: "#FDE68A", texto: "#92400E" };
+
   return (
     <Modal open={open} onClose={onClose} maxWidth={480}>
       <div style={{ background: `linear-gradient(135deg,${C.primary},${C.primaryDark})`, borderRadius: "24px 24px 0 0", padding: "1.6rem 1.8rem", color: "#fff", position: "relative", overflow: "hidden" }}>
@@ -96,7 +124,7 @@ export function CeldaInfoModal({
         </div>
         <div style={{ marginTop: 14 }}>
           <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1, color: "rgba(255,255,255,.7)", textTransform: "uppercase" }}>Celda {celdaActiva?.numero}</div>
-          <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" && ocupanteActivo ? ocupanteActivo.vehiculo.placa : celdaActiva?.estado === "reservada" ? (vehiculoReservado?.placa || "Reservada") : "Celda Libre"}</h2>
+          <h2 style={{ fontSize: 22, fontWeight: 900, lineHeight: 1, marginTop: 2 }}>{celdaActiva?.estado === "no_disponible" && ocupanteActivo ? ocupanteActivo.vehiculo.placa : enReserva ? (vehiculoReservado?.placa || "Reservada") : "Celda Libre"}</h2>
           {celdaActiva?.estado === "no_disponible" && ocupanteActivo && <p style={{ fontSize: 12, color: "rgba(255,255,255,.75)", marginTop: 4 }}>{ocupanteActivo.conductor?.nombre || "—"}</p>}
           <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 6 }}>{celdaActiva && <EstadoBadge estado={celdaActiva.estado} />}{celdaActiva && <TipoBadge tipo={celdaActiva.tipo} />}</div>
         </div>
@@ -146,14 +174,63 @@ export function CeldaInfoModal({
             )}
           </div>
         )}
+        {/* El aviso de la celda: que el vigilante sepa, con tiempo, que tiene que contactar
+            al conductor — no cuando ya llego quien reservo y no cabe. */}
+        {aviso && (
+          <div style={{ padding: "12px 14px", borderRadius: 11, background: colorAviso.fondo, border: `1px solid ${colorAviso.borde}`, fontSize: 12, color: colorAviso.texto, fontWeight: 700 }}>
+            {aviso.tono === "urgente" ? "🚨" : "⏳"} {aviso.detalle}
+          </div>
+        )}
+
+        {/* La agenda de la celda: varias reservas en el mismo dia, cada una en su franja.
+            Antes solo se veia la que retenia la celda, y no habia forma de saber que venia
+            despues ni por que la celda dejaba de estar disponible a media tarde. */}
+        {agenda && agenda.reservas.length > 0 && (
+          <div style={{ padding: "10px 12px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#F8FAFC" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+              <Calendar size={12} color={C.textLight} />
+              <span style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>
+                Reservas de esta celda
+              </span>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              {agenda.reservas.map((r) => {
+                const detalle = agendaDetallada.find((d) => d.id === r.id);
+                const esVigente = agenda.vigente?.id === r.id;
+                const esProxima = agenda.proxima?.id === r.id;
+                const etiqueta = esVigente ? "En curso" : r.estado === "pendiente" ? "Solicitud" : esProxima ? "Siguiente" : "Programada";
+                const colorEtiqueta = esVigente ? C.primaryDark : r.estado === "pendiente" ? C.textLight : C.text;
+                return (
+                  <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 9, background: "#fff", border: `1px solid ${esVigente ? C.primaryLight : C.border}` }}>
+                    <ClockIcon size={13} color={C.textLight} />
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 800, color: C.text }}>
+                        {comoHora(inicioDe(r))} – {comoHora(finDe(r))}
+                      </div>
+                      <div style={{ fontSize: 11, color: C.textLight, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {detalle?.placa || "—"}{detalle?.conductor ? ` · ${detalle.conductor}` : ""}
+                      </div>
+                    </div>
+                    <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: .5, color: colorEtiqueta }}>
+                      {etiqueta}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {celdaActiva?.estado === "mantenimiento" && (
           <div style={{ padding: "12px 14px", borderRadius: 11, background: "#F1F5F9", border: `1px solid ${C.border}`, fontSize: 12, color: C.textLight, fontWeight: 600 }}>
             🔧 Esta celda está en mantenimiento y no acepta vehículos ni reservas.
           </div>
         )}
-        {celdaActiva?.estado === "reservada" ? (
+        {enReserva ? (
           <>
-            <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>Celda reservada.</div>
+            <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid ${C.amberBg}`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>
+              {reservaActiva ? `Celda reservada hasta las ${reservaActiva.horaFin}.` : "Celda reservada."}
+            </div>
             {reservaActiva && [
               { icon: Car, label: "Vehículo", value: vehiculoReservado ? `${vehiculoReservado.placa} — ${vehiculoReservado.marca} ${vehiculoReservado.modelo}` : "—" },
               // Una reserva aparta la celda para una PERSONA, no solo para un vehículo: es
@@ -251,12 +328,59 @@ export function CeldaInfoModal({
             </div>
           ) : (
             <>
-              <div style={{ padding: "12px 14px", borderRadius: 11, background: C.primaryPale, border: `1px solid ${C.primaryLight}`, fontSize: 12, color: C.primaryDark, fontWeight: 600 }}>
-                {canRegistrarIngreso ? "✅ Celda disponible para estacionar." : "✅ Celda disponible: puedes solicitarla."}
-              </div>
+              {permiso.puede ? (
+                <div style={{ padding: "12px 14px", borderRadius: 11, background: C.primaryPale, border: `1px solid ${C.primaryLight}`, fontSize: 12, color: C.primaryDark, fontWeight: 600 }}>
+                  {canRegistrarIngreso ? "✅ Celda disponible para estacionar." : "✅ Celda disponible: puedes solicitarla."}
+                </div>
+              ) : (
+                /* La celda esta libre, pero la reserva que viene esta demasiado cerca: no da
+                   tiempo a usarla y desalojarla. Se dice aqui, y no al confirmar el ingreso. */
+                <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid #FDE68A`, fontSize: 12, color: "#92400E", fontWeight: 600 }}>
+                  ⏳ {permiso.motivo}
+                </div>
+              )}
+              {/* El compromiso que se adquiere al ocupar una celda con reserva por delante. */}
+              {confirmandoEstacionar && permiso.confirmacion && (
+                <div style={{ padding: "12px 14px", borderRadius: 11, background: C.amberBg, border: `1px solid #FDE68A` }}>
+                  <p style={{ fontSize: 12, color: "#92400E", fontWeight: 700, lineHeight: 1.5 }}>{permiso.confirmacion.aviso}</p>
+                  <p style={{ fontSize: 11, color: "#92400E", fontWeight: 600, marginTop: 6, lineHeight: 1.5 }}>{permiso.confirmacion.detalle}</p>
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <button
+                      onClick={onEstacionarVehiculo}
+                      style={{ flex: 1, padding: "9px", borderRadius: 10, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      Entiendo, estacionar
+                    </button>
+                    <button
+                      onClick={() => setConfirmandoEstacionar(false)}
+                      style={{ flex: 1, padding: "9px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {canRegistrarIngreso && (
-                  <button onClick={onEstacionarVehiculo} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>Estacionar Vehículo</button>
+                {/* Quien tiene la reserva puede llegar antes de su hora: la celda es suya, y
+                    el backend se lo permite. Sin este botón, el aviso de "falta poco para la
+                    reserva" le cerraba la puerta justamente a la persona que venía a usarla. */}
+                {canRegistrarIngreso && !parqueaderoInactivo && !confirmandoEstacionar && agenda?.proxima && vehiculoReservado && (
+                  <button
+                    onClick={onEstacionarReservado}
+                    style={{ flex: "1 1 100%", padding: "10px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}
+                  >
+                    Estacionar {vehiculoReservado.placa} — tiene la reserva de las {comoHora(inicioDe(agenda.proxima))}
+                  </button>
+                )}
+                {canRegistrarIngreso && !confirmandoEstacionar && (
+                  <button
+                    onClick={permiso.confirmacion ? () => setConfirmandoEstacionar(true) : onEstacionarVehiculo}
+                    disabled={!permiso.puede}
+                    title={permiso.puede ? undefined : permiso.motivo}
+                    style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: permiso.puede ? C.primary : C.border, color: "#fff", fontSize: 12, fontWeight: 800, cursor: permiso.puede ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: permiso.puede ? "0 4px 14px rgba(57,169,0,.25)" : "none" }}
+                  >
+                    Estacionar Vehículo
+                  </button>
                 )}
                 {/* `handleCrearReserva` (ver useReservaCelda.ts) crea la reserva y la ACTIVA de
                  * inmediato con un segundo PATCH, sin pasar por "pendiente" — el mismo atajo

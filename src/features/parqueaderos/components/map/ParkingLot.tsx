@@ -7,6 +7,7 @@ import {
 } from "../../lib/helpers";
 import { MAP_THEME } from "./MapVisuals";
 import { ParkingCell } from "./ParkingCell";
+import type { MarcaReserva } from "../../lib/agendaCelda";
 import type { HoverInfo } from "./useParkingMapInteraction";
 
 const C = theme;
@@ -15,6 +16,8 @@ interface ParkingLotProps extends LotLayout {
   getOcupante: (celdaId: string) => Ocupante | null;
   cellMatchesSearch: (c: Celda) => boolean;
   celdaTieneIncidenteAbierto: (c: Celda) => boolean;
+  /** Reservas que hay que señalar sobre las celdas, por id (ver useModalController). */
+  marcasDeReserva?: Record<string, MarcaReserva>;
   onCellPointerDown: (e: React.PointerEvent<SVGGElement>, celda: Celda) => void;
   onCellHover: (info: HoverInfo) => void;
   onCellHoverLeave: () => void;
@@ -25,7 +28,8 @@ interface ParkingLotProps extends LotLayout {
 /** Un parqueadero dibujado en el plano: cabecera con nombre/composición/stats, y sus filas de celdas. */
 export function ParkingLot({
   pq, celdasPorFila, libres, ocupados, reservadas, pct, filas, lotTop, lotHeight, ancho,
-  getOcupante, cellMatchesSearch, celdaTieneIncidenteAbierto, onCellPointerDown, onCellHover, onCellHoverLeave,
+  getOcupante, cellMatchesSearch, celdaTieneIncidenteAbierto, marcasDeReserva = {},
+  onCellPointerDown, onCellHover, onCellHoverLeave,
   onLotPointerDown,
 }: ParkingLotProps) {
   const activo = pq.estado === "activo";
@@ -112,6 +116,7 @@ export function ParkingLot({
               matches={cellMatchesSearch(celda)}
               tieneIncidente={celdaTieneIncidenteAbierto(celda)}
               ocupante={celda.estado === "no_disponible" ? getOcupante(celda.id) : null}
+              marcaReserva={marcasDeReserva[celda.id] ?? null}
               onPointerDown={onCellPointerDown}
               onHover={onCellHover}
               onHoverLeave={onCellHoverLeave}

@@ -1,4 +1,5 @@
 import type { Celda } from "@/services/api/celdas";
+import type { MarcaReserva } from "../../lib/agendaCelda";
 import { CELDA_CONFIG, CeldaPos, estaFueraDeHorarioOperacion, getCeldaVisualConfig, Ocupante, SPACE_W, SPACE_H, superaEstadiaLimite } from "../../lib/helpers";
 import { MAP_THEME, HighFiCarSVG, HighFiMotoSVG } from "./MapVisuals";
 import type { HoverInfo } from "./useParkingMapInteraction";
@@ -10,13 +11,16 @@ interface ParkingCellProps {
   matches: boolean;
   tieneIncidente: boolean;
   ocupante: Ocupante | null;
+  /** Lo que hay que señalar en esta celda por sus reservas: el aviso de desalojo/relevo y la
+   *  hora de la siguiente. Null cuando la celda no tiene ninguna reserva por delante. */
+  marcaReserva?: MarcaReserva | null;
   onPointerDown: (e: React.PointerEvent<SVGGElement>, celda: Celda) => void;
   onHover: (info: HoverInfo) => void;
   onHoverLeave: () => void;
 }
 
 /** Una celda del plano: relleno por estado, franja/insignia de tipo, silueta del vehículo si está ocupada. */
-export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncidente, ocupante, onPointerDown, onHover, onHoverLeave }: ParkingCellProps) {
+export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncidente, ocupante, marcaReserva = null, onPointerDown, onHover, onHoverLeave }: ParkingCellProps) {
   const cfg = CELDA_CONFIG[celda.estado];
   const tipoCfg = getCeldaVisualConfig(celda);
   const TipoIcon = tipoCfg.icon;
@@ -31,6 +35,12 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
   // superior izquierda ya la usa el aviso de incidente y la superior derecha la de "fuera de
   // horario"/tipo, y ambas pueden coincidir con esta al mismo tiempo.
   const estadiaLarga = estaOcupada && !!ocupante && superaEstadiaLimite(ocupante.fechaEntrada, ocupante.esOficial);
+  /* Una reserva ya no cambia el estado de la celda (ocupa una franja, no el día entero), así
+     que el plano la señala aparte: un contorno de color cuando toca actuar —hay que sacar un
+     vehículo antes de que llegue quien reservó, o preparar el relevo entre dos reservas— y
+     una pastilla con la hora de la siguiente, para verla sin abrir la celda. */
+  const avisoReserva = marcaReserva?.aviso ?? null;
+  const colorAviso = avisoReserva?.tono === "urgente" ? "#DC2626" : "#F59E0B";
 
   return (
     <g
@@ -110,6 +120,32 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
       )}
       {celda.estado === "reservada" && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="850" fill="#FCD34D" opacity={0.95}>RESERVA</text>}
       {celda.estado === "mantenimiento" && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#CBD5E1" opacity={0.9}>MANT.</text>}
+      {/* Contorno del aviso: es lo que hace que el vigilante vea de lejos en qué celda tiene
+          que actuar, sin recorrer el plano celda por celda. */}
+      {avisoReserva && (
+        <rect
+          x={celda.x - 1.5} y={celda.y - 1.5} width={SPACE_W + 3} height={SPACE_H + 3} rx="6.5"
+          fill="none" stroke={colorAviso} strokeWidth="2.2" strokeDasharray="5,3" pointerEvents="none"
+        >
+          <title>{avisoReserva.titulo}</title>
+        </rect>
+      )}
+      {/* Pastilla con la hora de la próxima reserva (esquina inferior izquierda, la única que
+          no usa ninguna otra insignia). */}
+      {marcaReserva && (marcaReserva.proximaHora || marcaReserva.enCurso) && (
+        <g transform={`translate(${celda.x + 1},${celda.y + SPACE_H - 15})`} pointerEvents="none">
+          <title>
+            {marcaReserva.proximaHora
+              ? `Próxima reserva a las ${marcaReserva.proximaHora}`
+              : "Reserva en curso en esta celda"}
+          </title>
+          <rect width={marcaReserva.proximaHora ? 27 : 22} height="13" rx="3.5"
+            fill={avisoReserva ? colorAviso : "#334155"} stroke="#fff" strokeWidth=".6" opacity=".95" />
+          <text x={marcaReserva.proximaHora ? 13.5 : 11} y="9.6" textAnchor="middle" fontSize="7.5" fontWeight="900" fill="#fff">
+            {marcaReserva.proximaHora ?? "RES"}
+          </text>
+        </g>
+      )}
       {/* Aviso de incidente/novedad abierto sobre esta celda — esquina opuesta a la insignia de
           tipo para no chocar con ella (ni con la de "fuera de horario", que solo aparece cuando
           está ocupada); un incidente puede reportarse con la celda en cualquier estado. */}

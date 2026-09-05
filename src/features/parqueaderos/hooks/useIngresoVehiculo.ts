@@ -14,7 +14,7 @@ import type { ModalKind } from "./useModalController";
 import { otroVehiculoDelConductorEnUso, esDeConductor, vehiculosOperables } from "@/features/conductores";
 import { MOTIVO_OFICIAL_SENA } from "@/features/reservas";
 import { motivoCeldaPreferencialNoApta } from "../lib/helpers";
-import type { Reserva } from "@/services/api/reservas";
+import { agendaDeCelda, puedeEstacionarEn } from "../lib/agendaCelda";
 
 const emptyVehiculoForm = (esOficial = false): VehiculoForm => ({ placa: "", conductor: "", esOficial, marca: "", modelo: "", color: "" });
 
@@ -121,11 +121,13 @@ export function useIngresoVehiculo(
     const yaActivo = controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.celdaId !== celda.id && vehiculos.find((v) => v.id === cs.vehiculoId)?.placa === placa);
     if (yaActivo) { setPlacaError("Este vehículo ya está estacionado en otra celda."); return false; }
 
-    // La celda podría tener una reserva activa (pendiente = admin-direct sin confirmar aún,
-    // o activa = ya aceptada/reservada) — si es así, solo el vehículo reservado puede
-    // estacionarse aquí; cualquier otro vehículo queda bloqueado hasta que esa reserva expire
-    // o se cancele.
-    const reservaDeLaCelda = reservas.find((r) => r.celdaId === celda.id && (r.estado === "pendiente" || r.estado === "activa"));
+    /* La celda tiene una AGENDA, no un estado de "reservada": lo que impide ocuparla no es
+       que exista una reserva en algún momento del día, sino que haya una VIGENTE ahora mismo
+       — o una tan próxima que el vehículo no alcanzaría a salir antes (ver agendaCelda.ts,
+       mismas reglas que aplica el backend en _validarReservaDeCelda). Antes bastaba con que
+       la celda tuviera cualquier reserva viva para bloquearla el día entero. */
+    const agenda = agendaDeCelda(celda.id, reservas);
+    const reservaDeLaCelda = agenda.vigente;
     const vehiculoExistentePorPlaca = vehiculos.find((v) => v.placa === placa) ?? null;
     // La placa ya pertenece a un vehículo registrado a nombre de OTRO conductor distinto del
     // identificado en este formulario (buscador estructurado, o nombre exacto resuelto por el
@@ -139,10 +141,14 @@ export function useIngresoVehiculo(
       setPlacaError(`Esta placa ya está registrada a nombre de ${duenoReal?.nombre ?? "otro conductor"} — selecciónalo o crea un nuevo vehículo.`);
       return false;
     }
+    /* Lo que este ingreso atropella, si atropella algo: la reserva que rige ahora, o la que
+       viene tan pronto que no da tiempo a usar la celda y desalojarla. */
+    const permisoDeCelda = puedeEstacionarEn(agenda, vehiculoExistentePorPlaca?.id ?? null);
+    const reservaEstorbada = permisoDeCelda.puede ? null : (agenda.vigente ?? agenda.proxima);
     // Un vehículo oficial del SENA pasa por encima de la reserva: la operación del
     // parqueadero manda sobre un apartado particular. La reserva no se pierde en silencio —
     // más abajo se cancela dejando escrito el motivo.
-    const oficialSobreReserva = !!(esOficial && reservaDeLaCelda);
+    const oficialSobreReserva = !!(esOficial && reservaEstorbada);
     if (reservaDeLaCelda && !oficialSobreReserva && reservaDeLaCelda.vehiculoId !== vehiculoExistentePorPlaca?.id) {
       const vehiculoReservado = vehiculos.find((v) => v.id === reservaDeLaCelda.vehiculoId);
       setPlacaError(`Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${reservaDeLaCelda.horaFin}.`);
@@ -158,6 +164,14 @@ export function useIngresoVehiculo(
         `Esta celda está reservada a nombre de ${conductorDeLaReserva?.nombre ?? "otro conductor"}. ` +
         "Solo esa persona puede estacionar aquí mientras la reserva siga vigente."
       );
+      return false;
+    }
+
+    /* La celda está libre ahora, pero tiene una reserva encima: ocuparla significaría que el
+       vehículo sigue ahí cuando llegue quien reservó. Se rechaza aquí igual que lo haría el
+       backend, para no descubrirlo al confirmar. */
+    if (!permisoDeCelda.puede && !oficialSobreReserva) {
+      setPlacaError(permisoDeCelda.motivo ?? "Esta celda no está disponible en este momento.");
       return false;
     }
 
@@ -200,13 +214,16 @@ export function useIngresoVehiculo(
       // pendiente de la celda sin importar el vehículo, lo que habría marcado como "cumplida"
       // la reserva de otro vehículo si de alguna forma llegaba a estacionarse aquí (ahora eso
       // ya está bloqueado más arriba, pero esta comprobación se deja como defensa adicional).
-      if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId === vehiculoId) {
-        await updateReserva(reservaDeLaCelda.id, { estado: "completada" });
-      } else if (oficialSobreReserva && reservaDeLaCelda) {
+      // Se busca en toda la agenda, no solo en la reserva vigente: quien reservó puede llegar
+      // antes de su hora, y esa reserva también queda cumplida con su ingreso.
+      const reservaDelVehiculo = agenda.reservas.find((r) => r.estado === "activa" && r.vehiculoId === vehiculoId);
+      if (reservaDelVehiculo) {
+        await updateReserva(reservaDelVehiculo.id, { estado: "completada" });
+      } else if (oficialSobreReserva && reservaEstorbada) {
         // Se cancela ANTES de ocupar la celda: mientras la reserva siga viva, la base de
         // datos no deja entrar a otro vehículo (trigger fn_validar_ocupacion_celda), y al
         // cancelarla la celda vuelve a quedar libre para este ingreso.
-        await updateReserva(reservaDeLaCelda.id, { estado: "cancelada", motivoRechazo: MOTIVO_OFICIAL_SENA });
+        await updateReserva(reservaEstorbada.id, { estado: "cancelada", motivoRechazo: MOTIVO_OFICIAL_SENA });
         toast.info(`La reserva de esa celda se canceló: ${MOTIVO_OFICIAL_SENA}`);
       }
 
@@ -357,12 +374,17 @@ export function useIngresoVehiculo(
      avisar antes de que el operador intente enviar el formulario. */
   const motivoBloqueoLive = useMemo((): string | null => {
     if (!celdaActiva) return null;
-    const reservaDeLaCelda: Reserva | undefined = reservas.find(
-      (r) => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa")
-    );
-    if (reservaDeLaCelda && reservaDeLaCelda.vehiculoId !== vehiculoEncontrado?.id) {
-      const vehiculoReservado = vehiculos.find((v) => v.id === reservaDeLaCelda.vehiculoId);
-      return `Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${reservaDeLaCelda.horaFin}.`;
+    /* Mismo criterio de agenda que `registrarEnCelda`: manda la reserva vigente, y una que
+       esté por empezar bloquea solo si no da tiempo a desalojar. Un oficial del SENA no se
+       avisa aquí porque puede pasar por encima (la reserva se cancela con su motivo). */
+    const agenda = agendaDeCelda(celdaActiva.id, reservas);
+    if (!vehiculoForm.esOficial) {
+      if (agenda.vigente && agenda.vigente.vehiculoId !== vehiculoEncontrado?.id) {
+        const vehiculoReservado = vehiculos.find((v) => v.id === agenda.vigente!.vehiculoId);
+        return `Esta celda está reservada exclusivamente para el vehículo ${vehiculoReservado?.placa ?? "reservado"} hasta las ${agenda.vigente.horaFin}.`;
+      }
+      const permiso = puedeEstacionarEn(agenda, vehiculoEncontrado?.id ?? null);
+      if (!permiso.puede) return permiso.motivo ?? null;
     }
     // `conductorIdentificado` (no solo `conductorEncontrado`, que depende de que la placa YA
     // coincida con un vehículo existente) para que este aviso también salga cuando el
@@ -376,7 +398,7 @@ export function useIngresoVehiculo(
       if (otroEnUso) return otroEnUso.motivo;
     }
     return null;
-  }, [celdaActiva, reservas, vehiculoEncontrado, vehiculos, conductorIdentificado, controlesSalida]);
+  }, [celdaActiva, reservas, vehiculoEncontrado, vehiculos, conductorIdentificado, controlesSalida, vehiculoForm.esOficial]);
 
   const conductorAutoRef = useRef(false);
   useEffect(() => {

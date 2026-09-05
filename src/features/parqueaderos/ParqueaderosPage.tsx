@@ -101,6 +101,7 @@ export default function Parqueaderos() {
                 onCellClick={handleCellClick}
                 cellMatchesSearch={filters.cellMatchesSearch}
                 celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
+                marcasDeReserva={modal.marcasDeReserva}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
                 canManage={hasPermission("celdas")}
               />
@@ -233,6 +234,12 @@ export default function Parqueaderos() {
         ocupanteActivo={modal.ocupanteActivo}
         reservaActiva={modal.reservaActiva}
         vehiculoReservado={modal.vehiculoReservado}
+        agenda={modal.agendaActiva}
+        agendaDetallada={(modal.agendaActiva?.reservas ?? []).map((r) => ({
+          id: r.id,
+          placa: data.vehiculos.find((v) => v.id === r.vehiculoId)?.placa ?? "",
+          conductor: data.conductores.find((c) => c.id === r.conductorId)?.nombre ?? "",
+        }))}
         parqueaderoActivo={modal.parqueaderoActivo}
         onClose={() => modal.setOpenModal(null)}
         onCancelarReserva={reserva.handleCancelarReserva}
@@ -245,7 +252,7 @@ export default function Parqueaderos() {
           const vehiculo = modal.vehiculoReservado;
           if (!vehiculo) return;
           const conductor = data.conductores.find(
-            (c) => c.id === (modal.reservaActiva?.conductorId || vehiculo.conductorId)
+            (c) => c.id === (modal.reservaDestacada?.conductorId || vehiculo.conductorId)
           );
           ingreso.abrirIngresoReservado(vehiculo, conductor);
         }}
@@ -254,8 +261,8 @@ export default function Parqueaderos() {
            Conductor), no crea la reserva aquí: pide esta celda y la solicitud queda
            pendiente de aprobación en el módulo de Reservas. */
         conductorReserva={
-          modal.reservaActiva
-            ? data.conductores.find((c) => c.id === modal.reservaActiva!.conductorId)?.nombre
+          modal.reservaDestacada
+            ? data.conductores.find((c) => c.id === modal.reservaDestacada!.conductorId)?.nombre
               ?? data.conductores.find((c) => c.id === modal.vehiculoReservado?.conductorId)?.nombre
             : undefined
         }

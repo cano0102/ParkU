@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
+import type { Reserva } from "@/services/api/reservas";
 import { CeldaInfoModal } from "./CeldaInfoModal";
+import { agendaDeCelda } from "../../lib/agendaCelda";
 
 const celdaDisponible: Celda = {
   id: "1", parqueaderoId: "1", numero: "C-001", tipo: "carro", usabilidad: "general",
@@ -37,6 +39,22 @@ function baseProps(canManageCeldas: boolean) {
     canManageCeldas,
     canRegistrarIngreso: false,
     canReportarIncidentes: false,
+  };
+}
+
+/* Las reservas se construyen relativas al reloj: lo que se prueba es justamente la distancia
+   entre "ahora" y la reserva, así que una fecha fija dejaría de tocar la regla mañana. */
+function reservaEn(desdeMin: number, duracionMin: number, over: Partial<Reserva> = {}): Reserva {
+  const hhmm = (min: number) => {
+    const d = new Date(Date.now() + min * 60000);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+  const inicio = new Date(Date.now() + desdeMin * 60000);
+  const fecha = `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, "0")}-${String(inicio.getDate()).padStart(2, "0")}`;
+  return {
+    id: "r1", tipoReserva: "visitante", vehiculoId: "v1", celdaId: "1", conductorId: "c1",
+    motivo: "", fechaReserva: fecha, horaInicio: hhmm(desdeMin), horaFin: hhmm(desdeMin + duracionMin),
+    estado: "activa", motivoRechazo: "", ...over,
   };
 }
 
@@ -77,5 +95,82 @@ describe("CeldaInfoModal — solicitar la celda (rol Conductor)", () => {
   it("a quien no puede estacionar no le dice que la celda es para estacionar", () => {
     render(<CeldaInfoModal {...baseProps(false)} canSolicitarReserva onSolicitarReserva={vi.fn()} />);
     expect(screen.getByText("Celda disponible: puedes solicitarla", { exact: false })).toBeInTheDocument();
+  });
+});
+
+describe("CeldaInfoModal — la agenda de la celda", () => {
+  const props = (reservas: Reserva[]) => ({
+    ...baseProps(false),
+    canRegistrarIngreso: true,
+    agenda: agendaDeCelda("1", reservas),
+    agendaDetallada: reservas.map((r) => ({ id: r.id, placa: "ABC123", conductor: "María Gómez" })),
+  });
+
+  it("lista las reservas de la celda, no solo la que la retiene ahora", () => {
+    render(<CeldaInfoModal {...props([
+      reservaEn(180, 60),
+      reservaEn(300, 60, { id: "r2" }),
+    ])} />);
+
+    expect(screen.getByText("Reservas de esta celda")).toBeInTheDocument();
+    expect(screen.getAllByText("ABC123 · María Gómez")).toHaveLength(2);
+  });
+
+  /* El compromiso que se adquiere al ocupar una celda que ya tiene dueño más tarde: se
+     acepta antes de abrir el asistente, no después de llenarlo. */
+  it("pide confirmar el desalojo antes de estacionar cuando hay una reserva por delante", () => {
+    const onEstacionarVehiculo = vi.fn();
+    render(<CeldaInfoModal {...props([reservaEn(240, 60)])} onEstacionarVehiculo={onEstacionarVehiculo} />);
+
+    fireEvent.click(screen.getByText("Estacionar Vehículo"));
+    expect(onEstacionarVehiculo).not.toHaveBeenCalled();
+    expect(screen.getByText(/debes asegurar que el vehículo salga máximo 30 min antes de la reserva/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Entiendo, estacionar"));
+    expect(onEstacionarVehiculo).toHaveBeenCalled();
+  });
+
+  it("no pide confirmar nada si la celda no tiene ninguna reserva por delante", () => {
+    const onEstacionarVehiculo = vi.fn();
+    render(<CeldaInfoModal {...props([])} onEstacionarVehiculo={onEstacionarVehiculo} />);
+
+    fireEvent.click(screen.getByText("Estacionar Vehículo"));
+    expect(onEstacionarVehiculo).toHaveBeenCalled();
+  });
+
+  it("no deja estacionar cuando la reserva está tan cerca que no da tiempo a desalojar", () => {
+    render(<CeldaInfoModal {...props([reservaEn(60, 60)])} />);
+
+    expect(screen.getByText("Estacionar Vehículo")).toBeDisabled();
+    expect(screen.getByText(/no da tiempo a usarla y desalojarla/)).toBeInTheDocument();
+  });
+
+  /* Ese bloqueo es para los demás: quien reservó puede llegar antes de su hora, y tiene que
+     poder entrar sin pelearse con un aviso pensado para protegerlo a él. */
+  it("ofrece estacionar al vehículo que tiene la reserva, aunque falte poco para su hora", () => {
+    const onEstacionarReservado = vi.fn();
+    render(
+      <CeldaInfoModal
+        {...props([reservaEn(60, 60)])}
+        vehiculoReservado={{
+          id: "v1", conductorId: "c1", conductorNombre: "María Gómez", placa: "ABC123",
+          tipo: "carro", marca: "Mazda", linea: "", modelo: 2021, color: "Gris",
+          descripcion: "", estado: "activo",
+        }}
+        onEstacionarReservado={onEstacionarReservado}
+      />
+    );
+
+    fireEvent.click(screen.getByText(/Estacionar ABC123/));
+    expect(onEstacionarReservado).toHaveBeenCalled();
+  });
+
+  /* El aviso que pidió el vigilante: 50 minutos antes de la reserva (veinte antes del plazo
+     máximo de salida) para que le dé tiempo de contactar al conductor. */
+  it("avisa de desalojar la celda ocupada cuando la reserva se acerca", () => {
+    const ocupada: Celda = { ...celdaDisponible, estado: "no_disponible", ocupada: true };
+    render(<CeldaInfoModal {...props([reservaEn(45, 60)])} celdaActiva={ocupada} />);
+
+    expect(screen.getByText(/Contacta al conductor para que retire el vehículo/)).toBeInTheDocument();
   });
 });

@@ -1,16 +1,19 @@
 import { theme } from "@/styles/theme";
 import { formatearDuracion, getCeldaVisualConfig, Ocupante } from "../../lib/helpers";
 import type { HoverInfo } from "./useParkingMapInteraction";
+import type { MarcaReserva } from "../../lib/agendaCelda";
 
 const C = theme;
 
 interface CeldaHoverTooltipProps {
   hover: HoverInfo;
   ocupante: Ocupante | null;
+  /** Reservas por delante de esta celda, si tiene alguna (ver agendaCelda.ts). */
+  marcaReserva?: MarcaReserva | null;
 }
 
 /** Tarjeta flotante que sigue al cursor con el detalle rápido de la celda bajo el mouse. */
-export function CeldaHoverTooltip({ hover, ocupante }: CeldaHoverTooltipProps) {
+export function CeldaHoverTooltip({ hover, ocupante, marcaReserva = null }: CeldaHoverTooltipProps) {
   const estaOcupada = hover.celda.estado === "no_disponible" && ocupante !== null;
   const tipoCfg = getCeldaVisualConfig(hover.celda);
   const TipoIcon = tipoCfg.icon;
@@ -48,10 +51,21 @@ export function CeldaHoverTooltip({ hover, ocupante }: CeldaHoverTooltipProps) {
         </div>
       ) : (
         <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.7)" }}>
-          {hover.celda.estado === "reservada" ? "Celda reservada" :
+          {hover.celda.estado === "reservada" || marcaReserva?.enCurso ? "Celda reservada" :
             hover.celda.estado === "mantenimiento" ? "En mantenimiento" :
               hover.celda.estado === "no_disponible" ? "Ocupada, sin datos de vehículo" :
                 "Celda libre"}
+        </div>
+      )}
+      {/* Lo que pasa con esta celda más tarde: el aviso pesa más que la hora suelta, porque
+          es el que pide hacer algo ahora. */}
+      {marcaReserva && (marcaReserva.aviso || marcaReserva.proximaHora) && (
+        <div style={{
+          marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,.08)",
+          fontSize: 10, fontWeight: 700, lineHeight: 1.45,
+          color: marcaReserva.aviso ? (marcaReserva.aviso.tono === "urgente" ? "#FCA5A5" : "#FCD34D") : "rgba(255,255,255,.7)",
+        }}>
+          {marcaReserva.aviso ? marcaReserva.aviso.titulo : `Próxima reserva a las ${marcaReserva.proximaHora}`}
         </div>
       )}
     </div>

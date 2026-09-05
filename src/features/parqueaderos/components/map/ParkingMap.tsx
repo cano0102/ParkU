@@ -3,6 +3,7 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
 import { Ocupante } from "../../lib/helpers";
+import type { MarcaReserva } from "../../lib/agendaCelda";
 import { MAP_THEME } from "./MapVisuals";
 import { MapLegend } from "./MapLegend";
 import { MapControls } from "./MapControls";
@@ -22,13 +23,15 @@ interface ParkingMapProps {
   onCellClick: (celda: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
   celdaTieneIncidenteAbierto: (c: Celda) => boolean;
+  /** Reservas que el plano tiene que señalar, por id de celda (ver useModalController). */
+  marcasDeReserva?: Record<string, MarcaReserva>;
   /** Si se pasa, se agrega un badge de estado clicable a la cabecera de cada
    *  parqueadero (mismo toggle activar/desactivar que ya existía en la vista tabla). */
   onToggleEstado?: (pq: Parqueadero) => void;
   canManage?: boolean;
 }
 
-export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellMatchesSearch, celdaTieneIncidenteAbierto, onToggleEstado, canManage }: ParkingMapProps) => {
+export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick, cellMatchesSearch, celdaTieneIncidenteAbierto, marcasDeReserva = {}, onToggleEstado, canManage }: ParkingMapProps) => {
   const { lots, totalW, totalH } = useMapLayout(parqueaderos, celdas);
 
   // Ancho real del contenedor visible: en móvil el plano (min. 960px de contenido) nunca
@@ -95,6 +98,7 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
               getOcupante={getOcupante}
               cellMatchesSearch={cellMatchesSearch}
               celdaTieneIncidenteAbierto={celdaTieneIncidenteAbierto}
+              marcasDeReserva={marcasDeReserva}
               onCellPointerDown={handleCellPointerDown}
               onCellHover={setCellHover}
               onCellHoverLeave={clearHover}
@@ -108,6 +112,7 @@ export const ParkingMap = memo(({ parqueaderos, celdas, getOcupante, onCellClick
         <CeldaHoverTooltip
           hover={hover}
           ocupante={hover.celda.estado === "no_disponible" ? getOcupante(hover.celda.id) : null}
+          marcaReserva={marcasDeReserva[hover.celda.id] ?? null}
         />
       )}
     </div>

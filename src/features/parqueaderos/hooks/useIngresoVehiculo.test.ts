@@ -342,27 +342,120 @@ describe('useIngresoVehiculo — condición de carrera: la celda pudo dejar de e
     expect(result.current.placaError).toBe('Esta celda ya no está disponible. Actualiza la vista.');
   });
 
-  it('NO bloquea una celda "reservada": es el flujo real de que llegue el vehículo que la reservó, y la validación de abajo ya exige que sea justo ese vehículo', async () => {
-    const reservaActiva: Reserva = {
-      id: 'r1', tipoReserva: 'visitante', vehiculoId: 'v1', celdaId: '21', conductorId: 'c1',
-      motivo: '', fechaReserva: '2026-01-01', horaInicio: '08:00', horaFin: '18:00',
-      estado: 'activa', motivoRechazo: '',
+  /* Una reserva ocupa una FRANJA de la celda, no la celda entera (ver lib/agendaCelda.ts):
+     lo que decide quién puede estacionar es la hora, no un estado pegado a la celda. Estas
+     reservas se construyen relativas al reloj porque justamente eso es lo que se prueba —
+     con una fecha fija las pruebas dejarían de tocar la regla al día siguiente. */
+  const reservaEntre = (desdeMin: number, hastaMin: number, over: Partial<Reserva> = {}): Reserva => {
+    const hhmm = (min: number) => {
+      const d = new Date(Date.now() + min * 60000);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
     };
-    const celdaReservada: Celda = { ...celdaMoto, estado: 'reservada' };
-    const data = buildData({
-      conductores: [conductorMaria], vehiculos: [vehiculoDeMaria],
-      reservas: [reservaActiva], celdas: [celdaReservada],
-    });
-    const { result } = renderHook(() => useIngresoVehiculo(data, celdaReservada, parqueadero, vi.fn()));
+    const inicio = new Date(Date.now() + desdeMin * 60000);
+    const fecha = `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, '0')}-${String(inicio.getDate()).padStart(2, '0')}`;
+    return {
+      id: 'r1', tipoReserva: 'visitante', vehiculoId: 'v1', celdaId: '21', conductorId: 'c1',
+      motivo: '', fechaReserva: fecha, horaInicio: hhmm(desdeMin), horaFin: hhmm(hastaMin),
+      estado: 'activa', motivoRechazo: '', ...over,
+    };
+  };
+
+  const vehiculoDePedro: Vehiculo = {
+    id: 'v9', conductorId: 'c3', conductorNombre: 'Pedro Ramírez', placa: 'QRS45F', tipo: 'moto',
+    marca: 'Bajaj', linea: '', modelo: 2021, color: 'Negra', descripcion: '', estado: 'activo',
+  };
+
+  const conReserva = (reserva: Reserva, celda: Celda = celdaMoto) => buildData({
+    conductores: [conductorMaria, conductorPedro],
+    vehiculos: [vehiculoDeMaria, vehiculoDePedro],
+    reservas: [reserva], celdas: [celda],
+  });
+
+  it('deja entrar al vehículo que tiene la reserva en curso', async () => {
+    const data = conReserva(reservaEntre(-30, 90));
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
 
     let ok = false;
     await act(async () => {
-      // XYZ12D es justo la placa del vehículo reservado (v1) — debe poder registrarse.
-      ok = await result.current.registrarEnCelda(celdaReservada, 'XYZ12D', 'María Gómez', false);
+      // XYZ12D es justo la placa del vehículo reservado (v1).
+      ok = await result.current.registrarEnCelda(celdaMoto, 'XYZ12D', 'María Gómez', false);
     });
 
     expect(ok).toBe(true);
     expect(data.addControlSalida).toHaveBeenCalled();
+    // Su ingreso cumple la reserva, no la deja abierta.
+    expect(data.updateReserva).toHaveBeenCalledWith('r1', { estado: 'completada' });
+  });
+
+  it('no deja entrar a otro vehículo mientras la reserva está en curso', async () => {
+    const data = conReserva(reservaEntre(-30, 90));
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.registrarEnCelda(celdaMoto, 'QRS45F', 'Pedro Ramírez', false);
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.placaError).toContain('reservada');
+    expect(data.addControlSalida).not.toHaveBeenCalled();
+  });
+
+  /* El caso que motivó todo el cambio: antes, una reserva de la tarde dejaba la celda
+     inservible desde la mañana. Ahora la celda se puede usar mientras quede tiempo de
+     desalojarla (dos horas de margen), y solo se cierra cuando la reserva está encima. */
+  it('deja usar la celda si la reserva está lo bastante lejos', async () => {
+    const data = conReserva(reservaEntre(240, 360));
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.registrarEnCelda(celdaMoto, 'QRS45F', 'Pedro Ramírez', false);
+    });
+
+    expect(ok).toBe(true);
+    expect(data.addControlSalida).toHaveBeenCalled();
+    // La reserva de otro no se toca: sigue en pie para su hora.
+    expect(data.updateReserva).not.toHaveBeenCalled();
+  });
+
+  it('no deja usar la celda si la reserva está demasiado cerca para alcanzar a desalojar', async () => {
+    const data = conReserva(reservaEntre(60, 180));
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = true;
+    await act(async () => {
+      ok = await result.current.registrarEnCelda(celdaMoto, 'QRS45F', 'Pedro Ramírez', false);
+    });
+
+    expect(ok).toBe(false);
+    expect(result.current.placaError).toContain('no da tiempo');
+    expect(data.addControlSalida).not.toHaveBeenCalled();
+  });
+
+  it('quien reservó puede llegar antes de su hora: la celda es suya', async () => {
+    const data = conReserva(reservaEntre(60, 180));
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.registrarEnCelda(celdaMoto, 'XYZ12D', 'María Gómez', false);
+    });
+
+    expect(ok).toBe(true);
+    expect(data.updateReserva).toHaveBeenCalledWith('r1', { estado: 'completada' });
+  });
+
+  it('una solicitud pendiente no aparta la celda: decide quien la acepta, no quien la pide primero', async () => {
+    const data = conReserva(reservaEntre(60, 180, { estado: 'pendiente' }));
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.registrarEnCelda(celdaMoto, 'QRS45F', 'Pedro Ramírez', false);
+    });
+
+    expect(ok).toBe(true);
   });
 });
 
