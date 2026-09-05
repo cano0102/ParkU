@@ -42,7 +42,8 @@ export function MainLayout() {
             grouped={s.grouped}
             activePath={s.location.pathname}
             userName={s.user?.nombre}
-            userRol={s.user ? nombreDeRol(s.user.rol) : undefined}
+            /* Ver la nota del otro Sidebar: el nombre real del rol lo trae la API. */
+            userRol={s.user ? s.user.rolNombre || nombreDeRol(s.user.rol) : undefined}
             onLogout={s.handleLogout}
           />
         </aside>
@@ -77,7 +78,9 @@ export function MainLayout() {
               grouped={s.grouped}
               activePath={s.location.pathname}
               userName={s.user?.nombre}
-              userRol={s.user ? nombreDeRol(s.user.rol) : undefined}
+              /* El nombre real del rol lo trae la API; nombreDeRol solo conoce los tres
+                 del sistema y devolvía "Desconocido" para cualquier rol creado a medida. */
+              userRol={s.user ? s.user.rolNombre || nombreDeRol(s.user.rol) : undefined}
               onLogout={s.handleLogout}
             />
           </aside>

@@ -214,13 +214,18 @@ function createAuthBackend() {
       })();
       if (!raw) throw new Error('No autenticado');
       const u = JSON.parse(raw);
+      // La cuenta sembrada manda sobre lo que haya en localStorage: el backend real lee
+      // estos campos de la base en cada verificación, no del token.
       const cuenta = findAccount(u.correo);
       return {
         success: true,
         message: '',
         data: {
           usuario: {
-            id: Number(u.id), correo: u.correo, nombre: u.nombre, rol: Number(u.rol), estado: 'ACTIVO',
+            id: Number(u.id), rol: Number(u.rol), estado: 'ACTIVO',
+            correo: cuenta?.correo ?? u.correo,
+            nombre: cuenta?.nombre ?? u.nombre,
+            numero: cuenta?.numero_telefonico ?? null,
             tipo_documento: cuenta?.tipo_documento ?? null,
             numero_documento: cuenta?.numero_documento ?? null,
           },
@@ -508,9 +513,41 @@ export function createAppBackends(opciones?: { rolActual?: RolId }) {
     ['/novedades', incidentes],
   ];
 
+  /**
+   * PUT /usuarios/perfil — la cuenta de quien tiene la sesión abierta. Va aquí y no como
+   * acción del backend de `/usuarios` porque necesita a los dos: el backend real actualiza
+   * la cuenta y, en la misma transacción, la copia que guarda su conductor vinculado.
+   * Igual que el resto de este falso auth, la sesión se lee de `parkUUser`.
+   */
+  async function actualizarPerfil(body: Record<string, any>) {
+    const raw = (() => {
+      try { return localStorage.getItem('parkUUser'); } catch { return null; }
+    })();
+    if (!raw) throw new Error('No autenticado');
+    const id = Number(JSON.parse(raw).id);
+
+    const actualizada = await usuarios.apiFetch(`/usuarios/${id}`, { method: 'PUT', body });
+
+    const suConductor = (conductores.items as any[]).find((c) => c.usuario_id === id);
+    if (suConductor) {
+      const copia: Record<string, unknown> = {};
+      if (body.nombre !== undefined) copia.nombre_apellidos = body.nombre;
+      if (body.correo !== undefined) copia.correo = body.correo;
+      if (body.numero_telefonico !== undefined) copia.numero_telefonico = body.numero_telefonico;
+      if (body.tipo_documento !== undefined) copia.tipo_documento = body.tipo_documento;
+      if (body.numero_documento !== undefined) copia.numero_documento = body.numero_documento;
+      await conductores.apiFetch(`/conductores/${suConductor.id}`, { method: 'PUT', body: copia });
+    }
+
+    return actualizada;
+  }
+
   const apiFetch = vi.fn(async (path: string, opts?: object) => {
     // `/auth` no es un recurso CRUD del router genérico (ver createAuthBackend).
     if (path.startsWith('/auth')) return auth.apiFetch(path, opts as any);
+    if (path === '/usuarios/perfil') {
+      return actualizarPerfil(((opts as { body?: Record<string, any> })?.body) ?? {});
+    }
     const match = backends.find(([prefix]) => path.startsWith(prefix));
     if (!match) throw new Error(`appFakeApi: sin router para ${path}`);
     return match[1].apiFetch(path, opts as any);

@@ -146,6 +146,39 @@ export async function update(id: string, data: Partial<Omit<Usuario, 'id'>>): Pr
   return toFrontend(updated);
 }
 
+/** Lo que una persona puede cambiar de SU propia cuenta desde la pantalla de Perfil. */
+export interface DatosDePerfil {
+  nombre?: string;
+  correo?: string;
+  numero?: string;
+  tipoDocumento?: string;
+  numeroDocumento?: string;
+}
+
+/**
+ * Guarda el perfil de quien tiene la sesión abierta (PUT /api/usuarios/perfil).
+ *
+ * Es un endpoint aparte de `update` porque este NO exige ser administrador: el id sale del
+ * token, así que nadie puede editar la cuenta de otro por esta vía, y el backend solo admite
+ * estos campos (ni rol, ni estado, ni contraseña). Antes la pantalla de Perfil guardaba los
+ * cambios únicamente en localStorage: se veían en esta sesión y se perdían en la siguiente,
+ * y ni Usuarios ni Conductores se enteraban.
+ */
+export async function actualizarPerfil(data: DatosDePerfil): Promise<Usuario> {
+  const payload: Record<string, unknown> = {};
+  if (data.nombre !== undefined) payload.nombre = data.nombre.trim();
+  if (data.correo !== undefined) payload.correo = data.correo.trim().toLowerCase();
+  // Vaciarlo lo borra: el teléfono es opcional.
+  if (data.numero !== undefined) payload.numero_telefonico = data.numero.trim() || null;
+  // Igual que en create/update: los dos campos del documento viajan juntos o no viajan.
+  if (data.numeroDocumento?.trim()) {
+    payload.tipo_documento = data.tipoDocumento || 'CC';
+    payload.numero_documento = data.numeroDocumento.trim();
+  }
+  const actualizado = await apiFetch<ApiUsuario>('/usuarios/perfil', { method: 'PUT', body: payload });
+  return toFrontend(actualizado);
+}
+
 /** Lo que responde GET /api/usuarios/disponibilidad para un campo. */
 export interface CampoDisponible {
   disponible: boolean;

@@ -50,11 +50,11 @@ interface AuthContextType {
 
   logout: () => void;
 
-  // Solo actualiza el perfil en esta sesión/navegador (localStorage): el
-  // modelo de Usuario de la API real no tiene columnas `numero` ni `foto`, y
-  // `nombre` solo se puede editar vía API con rol Admin — no hay forma de
-  // persistir esto en el backend para un usuario editando su propio perfil.
-  updateUser: (data: Partial<Pick<User, 'nombre' | 'numero' | 'foto'>>) => void;
+  // Refleja en la sesión (estado + localStorage) lo que ya se guardó en la API. La pantalla
+  // de Perfil llama primero a PUT /usuarios/perfil y luego a esto con la respuesta, para que
+  // la cabecera y la barra lateral no sigan mostrando los datos viejos hasta recargar.
+  // `foto` es la excepción: no es columna de `usuario`, vive solo en este navegador.
+  updateUser: (data: Partial<Pick<User, 'nombre' | 'numero' | 'correo' | 'foto' | 'tipoDocumento' | 'numeroDocumento'>>) => void;
 
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 
@@ -153,15 +153,14 @@ export function AuthProvider({
         persistUser(null);
         return;
       }
-      // Resincroniza SOLO `rol` contra la respuesta autoritativa del backend — antes se
-      // descartaba del todo, así que si el rol de alguien cambiaba en el servidor (o alguien
-      // editaba `parkUUser.rol` a mano desde DevTools), ni `hasPermission()` ni los guards de
-      // ruta se enteraban hasta un nuevo login. El resto de campos (`nombre`, `numero`, `foto`)
-      // se DEJAN tal cual estén en el estado local a propósito: `updateUser` más abajo ya
-      // documenta que esos solo se editan localmente desde Perfil — el backend real ni
-      // siquiera tiene forma de persistir un usuario editando su propio nombre/teléfono —
-      // así que sobrescribirlos aquí con la respuesta del backend borraría esa edición local
-      // en cada recarga de página.
+      // Resincroniza contra la respuesta autoritativa del backend — antes se descartaba
+      // del todo, así que si el rol de alguien cambiaba en el servidor (o alguien editaba
+      // `parkUUser.rol` a mano desde DevTools), ni `hasPermission()` ni los guards de ruta
+      // se enteraban hasta un nuevo login. Nombre, correo, teléfono y documento también:
+      // desde que el perfil se guarda en la API (PUT /usuarios/perfil), la base manda sobre
+      // la copia local, y así una edición hecha en otro dispositivo -- o hecha por un
+      // administrador desde el módulo de Usuarios -- se ve al recargar. `foto` sigue siendo
+      // local: no es columna de `usuario`.
       setUser((actual) => {
         if (!actual) return actual;
         // Los permisos y el nombre del rol también se resincronizan: si a este rol le
@@ -172,8 +171,13 @@ export function AuthProvider({
           rol: usuarioReal.rol,
           permisos: usuarioReal.permisos ?? [],
           rolNombre: usuarioReal.rolNombre ?? actual.rolNombre,
-          tipoDocumento: usuarioReal.tipoDocumento ?? actual.tipoDocumento,
-          numeroDocumento: usuarioReal.numeroDocumento ?? actual.numeroDocumento,
+          nombre: usuarioReal.nombre || actual.nombre,
+          correo: usuarioReal.correo || actual.correo,
+          // El teléfono y el documento SÍ pueden quedar vacíos a propósito (son opcionales),
+          // así que aquí se copia lo que diga el backend, incluido el vacío.
+          numero: usuarioReal.numero ?? actual.numero,
+          tipoDocumento: usuarioReal.tipoDocumento,
+          numeroDocumento: usuarioReal.numeroDocumento,
         };
         try {
           localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
@@ -240,7 +244,7 @@ export function AuthProvider({
   };
 
   // ACTUALIZAR PERFIL (usado por la página Perfil, incl. la foto) — solo local, ver nota en el tipo.
-  const updateUser = (data: Partial<Pick<User, 'nombre' | 'numero' | 'foto'>>) => {
+  const updateUser = (data: Partial<Pick<User, 'nombre' | 'numero' | 'correo' | 'foto' | 'tipoDocumento' | 'numeroDocumento'>>) => {
     if (!user) return;
     // La foto, además de vivir en `parkUUser`, se guarda en el almacén compartido para
     // sobrevivir a un logout (ver la nota de arriba) y para que los listados de Usuarios y

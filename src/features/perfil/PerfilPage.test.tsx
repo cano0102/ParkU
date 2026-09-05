@@ -11,7 +11,11 @@ import { Perfil } from './PerfilPage';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
-apiFetchMock.mockImplementation(createAppBackends().apiFetch);
+
+// Se guarda la referencia (y se rehace en cada prueba) para poder mirar lo que quedó
+// GUARDADO, no solo lo que se ve en pantalla: desde que el perfil se persiste en la API,
+// esa es la diferencia que importa.
+let backends = createAppBackends();
 
 const SEED_USER = {
   id: '1',
@@ -34,6 +38,8 @@ function renderPerfil() {
 
 describe('Perfil', () => {
   beforeEach(() => {
+    backends = createAppBackends();
+    apiFetchMock.mockImplementation(backends.apiFetch);
     localStorage.setItem('parkuToken', 'fake-token-1');
     localStorage.setItem('parkUUser', JSON.stringify(SEED_USER));
   });
@@ -64,7 +70,9 @@ describe('Perfil', () => {
     }));
     renderPerfil();
 
-    expect(await screen.findByText('CC 2345678901')).toBeInTheDocument();
+    // El tipo y el número van en filas separadas, como en el resto de formularios.
+    expect(await screen.findByText('2345678901')).toBeInTheDocument();
+    expect(screen.getByText('CC')).toBeInTheDocument();
   });
 
   it('permite editar el nombre y el teléfono y guardarlos', async () => {
@@ -92,6 +100,58 @@ describe('Perfil', () => {
     });
     expect(screen.getByText('3009998877')).toBeInTheDocument();
   });
+
+  it('guarda en la API el correo y el documento, y arrastra al conductor vinculado', async () => {
+    const user = userEvent.setup();
+    // Ana tiene cuenta (id 2) y conductor vinculado (usuario_id 2) en los datos semilla.
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '2', correo: 'ana.martinez@sena.edu.co', nombre: 'Ana Martínez R.', numero: '', rol: ROLES.VIGILANTE,
+    }));
+    renderPerfil();
+    await waitFor(() => expect(screen.getAllByText('Ana Martínez R.').length).toBeGreaterThanOrEqual(2));
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+
+    const correo = screen.getByLabelText('Correo');
+    await user.clear(correo);
+    await user.type(correo, 'ana.nueva@sena.edu.co');
+
+    const documento = screen.getByLabelText('Número de documento');
+    await user.clear(documento);
+    await user.type(documento, '9988776655');
+
+    await user.selectOptions(screen.getByLabelText('Tipo de documento'), 'CE');
+    await user.click(screen.getByRole('button', { name: /guardar/i }));
+
+    // La cuenta quedó guardada en la API, no solo en esta pantalla.
+    await waitFor(() => {
+      expect(backends.usuarios.items.find((u: any) => u.id === 2)).toMatchObject({
+        correo: 'ana.nueva@sena.edu.co', tipo_documento: 'CE', numero_documento: '9988776655',
+      });
+    });
+
+    // Y el conductor vinculado quedó con lo mismo: es lo que ve el módulo de Conductores.
+    expect(backends.conductores.items.find((c: any) => c.usuario_id === 2)).toMatchObject({
+      correo: 'ana.nueva@sena.edu.co', tipo_documento: 'CE', numero_documento: '9988776655',
+    });
+  }, 20000);
+
+  it('avisa y no deja guardar si el correo no es válido', async () => {
+    const user = userEvent.setup();
+    renderPerfil();
+    await waitFor(() => expect(screen.getAllByText('Administrador ParkU').length).toBeGreaterThanOrEqual(2));
+
+    await user.click(screen.getByRole('button', { name: /editar/i }));
+    const correo = screen.getByLabelText('Correo');
+    await user.clear(correo);
+    await user.type(correo, 'esto-no-es-un-correo');
+    await user.tab();
+
+    expect(await screen.findByText('Ingresa un correo electrónico válido')).toBeInTheDocument();
+    // El botón se bloquea: no hay forma de mandar a la API algo que ya se sabe inválido.
+    expect(screen.getByRole('button', { name: /guardar/i })).toBeDisabled();
+    expect(backends.usuarios.items.find((u: any) => u.id === 1)).toMatchObject({ correo: 'admin@sena.edu.co' });
+  }, 20000);
 
   it('cambia la contraseña exitosamente con datos válidos', async () => {
     const user = userEvent.setup();

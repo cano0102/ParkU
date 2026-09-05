@@ -13,8 +13,8 @@ import {
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import { nombreDeRol } from "@/services/core/roles";
-import { quitarDigitos } from "@/utils/validation";
-import type { usePerfilForm } from "../hooks/usePerfilForm";
+import { quitarDigitos, filtrarTelefono, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX } from "@/utils/validation";
+import type { usePerfilForm, CampoPerfil } from "../hooks/usePerfilForm";
 
 const C = theme;
 
@@ -29,22 +29,42 @@ interface InformacionPersonalCardProps {
   form: ReturnType<typeof usePerfilForm>;
 }
 
-/** Tarjeta "Información personal": nombre/teléfono editables en línea, correo/id/rol de solo lectura. */
+/** Cómo se escribe cada campo: filtra lo que se teclea y decide si es lista o texto. */
+type ModoCampo = "texto" | "correo" | "telefono" | "documento" | "lista";
+
+/** Tarjeta "Información personal": nombre, correo, teléfono y documento editables en línea. */
 export function InformacionPersonalCard({ user, form }: InformacionPersonalCardProps) {
-  const infoItems = [
-    { key: "nombre" as const, icon: User, label: "Nombre", editable: true, value: user.nombre, placeholder: "Tu nombre completo" },
-    { key: "correo" as const, icon: Mail, label: "Correo", editable: false, value: user.correo },
-    { key: "numero" as const, icon: Phone, label: "Teléfono", editable: true, value: user.numero || "—", placeholder: "Ej: 3001234567" },
+  const infoItems: Array<{
+    key: CampoPerfil;
+    icon: typeof User;
+    label: string;
+    modo: ModoCampo;
+    valor: string;
+    placeholder?: string;
+  }> = [
+    { key: "nombre", icon: User, label: "Nombre", modo: "texto", valor: user.nombre, placeholder: "Tu nombre completo" },
+    { key: "correo", icon: Mail, label: "Correo", modo: "correo", valor: user.correo, placeholder: "correo@sena.edu.co" },
+    { key: "numero", icon: Phone, label: "Teléfono", modo: "telefono", valor: user.numero || "—", placeholder: "Ej: 3001234567" },
     // El id interno de la base no le dice nada a la persona que mira su propio perfil: lo que
     // la identifica es su documento, que la cuenta guarda desde la migración 002 del backend.
+    { key: "tipoDocumento", icon: IdCard, label: "Tipo de documento", modo: "lista", valor: user.tipoDocumento || "—" },
     {
-      key: "documento" as const,
+      key: "numeroDocumento",
       icon: IdCard,
-      label: "Documento",
-      editable: false,
-      value: user.numeroDocumento ? `${user.tipoDocumento || "CC"} ${user.numeroDocumento}` : "Sin documento registrado",
+      label: "Número de documento",
+      modo: "documento",
+      valor: user.numeroDocumento || "Sin documento registrado",
+      placeholder: "1001234567",
     },
   ];
+
+  /** Lo que se teclea, ya filtrado: sin dígitos en el nombre, solo dígitos en el documento. */
+  const limpiar = (modo: ModoCampo, valor: string) => {
+    if (modo === "texto") return quitarDigitos(valor);
+    if (modo === "telefono") return filtrarTelefono(valor);
+    if (modo === "documento") return valor.replace(/\D/g, "").slice(0, NUMERO_DOCUMENTO_MAX);
+    return valor;
+  };
 
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
@@ -69,6 +89,7 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
               type="button"
               className="perfil-btn"
               onClick={form.cancelEdit}
+              disabled={form.guardando}
               aria-label="Cancelar edición"
               style={{ width: 30, height: 30, borderRadius: 9, border: `1px solid ${C.border}`, background: "#fff", color: C.textLight, display: "flex", alignItems: "center", justifyContent: "center" }}
             >
@@ -78,61 +99,72 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
               type="button"
               className="perfil-btn"
               onClick={form.handleSaveProfile}
-              disabled={form.profileInvalido}
+              disabled={form.profileInvalido || form.guardando}
               style={{
                 display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 9, border: "none",
-                background: form.profileInvalido ? C.textMuted : C.primary, color: "#fff",
-                cursor: form.profileInvalido ? "not-allowed" : "pointer", opacity: form.profileInvalido ? 0.65 : 1,
+                background: form.profileInvalido || form.guardando ? C.textMuted : C.primary, color: "#fff",
+                cursor: form.profileInvalido || form.guardando ? "not-allowed" : "pointer",
+                opacity: form.profileInvalido || form.guardando ? 0.65 : 1,
                 fontSize: 12, fontWeight: 800, boxShadow: "0 4px 12px rgba(57,169,0,.25)",
               }}
             >
-              <Save size={12} /> Guardar
+              <Save size={12} /> {form.guardando ? "Guardando…" : "Guardar"}
             </button>
           </div>
         )}
       </div>
 
       <div style={{ padding: "2px 16px" }}>
-        {infoItems.map((item) => (
-          <div key={item.key} className="perfil-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 2px", borderBottom: `1px solid ${C.border}` }}>
-            <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <item.icon size={16} color={C.primary} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textLight }}>
-                {item.label}
+        {infoItems.map((item) => {
+          const error = form.errorDe(item.key);
+          return (
+            <div key={item.key} className="perfil-row" style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 2px", borderBottom: `1px solid ${C.border}` }}>
+              <div style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <item.icon size={16} color={C.primary} />
               </div>
-              {item.editable && form.editMode ? (
-                <>
-                  <input
-                    value={item.key === "nombre" ? form.profileForm.nombre : form.profileForm.numero}
-                    onChange={(e) => {
-                      const raw = e.target.value;
-                      const valor = item.key === "nombre" ? quitarDigitos(raw) : raw;
-                      form.setProfileForm({ ...form.profileForm, [item.key === "nombre" ? "nombre" : "numero"]: valor });
-                    }}
-                    onBlur={() => form.markProfileTouched(item.key === "nombre" ? "nombre" : "numero")}
-                    placeholder={item.placeholder}
-                    aria-invalid={!!(form.profileTouched[item.key as "nombre" | "numero"] && form.profileErrors[item.key as "nombre" | "numero"])}
-                    style={{
-                      ...fieldInputStyle,
-                      borderColor: form.profileTouched[item.key as "nombre" | "numero"] && form.profileErrors[item.key as "nombre" | "numero"] ? C.danger : C.border,
-                    }}
-                  />
-                  {form.profileTouched[item.key as "nombre" | "numero"] && form.profileErrors[item.key as "nombre" | "numero"] && (
-                    <p style={{ marginTop: 4, fontSize: 10.5, fontWeight: 700, color: C.danger }}>
-                      {form.profileErrors[item.key as "nombre" | "numero"]}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p style={{ marginTop: 2, fontSize: 13.5, fontWeight: 800, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {item.value}
-                </p>
-              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textLight }}>
+                  {item.label}
+                </div>
+                {form.editMode ? (
+                  <>
+                    {item.modo === "lista" ? (
+                      <select
+                        value={form.profileForm.tipoDocumento}
+                        aria-label={item.label}
+                        onChange={(e) => form.setCampo("tipoDocumento", e.target.value)}
+                        style={{ ...fieldInputStyle, appearance: "none", cursor: "pointer" }}
+                      >
+                        {TIPOS_DOCUMENTO.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        value={form.profileForm[item.key]}
+                        type={item.modo === "correo" ? "email" : "text"}
+                        inputMode={item.modo === "documento" ? "numeric" : undefined}
+                        aria-label={item.label}
+                        onChange={(e) => form.setCampo(item.key, limpiar(item.modo, e.target.value))}
+                        onBlur={() => form.markProfileTouched(item.key)}
+                        placeholder={item.placeholder}
+                        aria-invalid={!!error}
+                        style={{ ...fieldInputStyle, borderColor: error ? C.danger : C.border }}
+                      />
+                    )}
+                    {error && (
+                      <p style={{ marginTop: 4, fontSize: 10.5, fontWeight: 700, color: C.danger }}>{error}</p>
+                    )}
+                  </>
+                ) : (
+                  <p style={{ marginTop: 2, fontSize: 13.5, fontWeight: 800, color: C.text, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {item.valor}
+                  </p>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         <div className="perfil-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", padding: "12px 2px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -141,7 +173,8 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
             </div>
             <div>
               <div style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: C.textLight }}>Rol</div>
-              {/* Ver PerfilHero: el nombre real viene de la API; nombreDeRol es el respaldo. */}
+              {/* Ver PerfilHero: el nombre real viene de la API; nombreDeRol es el respaldo.
+                  El rol NO se edita desde aquí: cambiárselo uno mismo sería darse permisos. */}
               <p style={{ marginTop: 2, fontSize: 13.5, fontWeight: 800, color: C.text }}>{user.rolNombre || nombreDeRol(user.rol)}</p>
             </div>
           </div>

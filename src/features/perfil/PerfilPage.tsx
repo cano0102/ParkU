@@ -13,7 +13,7 @@ const C = theme;
 
 export function Perfil() {
   const { user } = useAuth();
-  const form = usePerfilForm(user ?? { nombre: "", numero: "" });
+  const form = usePerfilForm(user ?? {});
   const pw = usePasswordChange();
   const foto = useFotoPerfil();
 
