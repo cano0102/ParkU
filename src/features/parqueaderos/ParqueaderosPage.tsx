@@ -251,7 +251,7 @@ export default function Parqueaderos() {
         canSolicitarReserva={!hasPermission("celdas") && hasPermission("reservas")}
         onSolicitarReserva={() => {
           if (!modal.celdaActiva) return;
-          navigate("/reservas", {
+          navigate("/app/reservas", {
             state: { solicitarCelda: { celdaId: modal.celdaActiva.id, parqueaderoId: modal.celdaActiva.parqueaderoId } },
           });
         }}
