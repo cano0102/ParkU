@@ -8,12 +8,13 @@ import {
   IconMapPin as MapPin,
   IconCircleLetterP as ParkingCircle,
   IconUser as User,
+  IconUserPlus as UserPlus,
   IconX as X,
 } from "@tabler/icons-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
-import { CELDA_ESTADO_CONFIG, ESTADO_CONFIG } from "../lib/constants";
+import { CELDA_ESTADO_CONFIG, ESTADO_CONFIG, TIPO_NOVEDAD_LABEL } from "../lib/constants";
 
 const C = theme;
 
@@ -26,18 +27,37 @@ interface IncidenteViewModalProps {
   conductorNombre?: string;
   conductorDocumento?: string;
   asignadoNombre?: string;
+  /** Quién levantó el reporte: sin esto no hay a quién volver a preguntarle qué pasó. */
+  reportanteNombre?: string;
   nombreParqueadero: string;
   onClose: () => void;
   onEdit: () => void;
 }
 
 /** Vista de solo lectura del detalle de un incidente. */
-export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
+export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, reportanteNombre, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
   const navigate = useNavigate();
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
 
+  const esNovedad = incidente.clase === "novedad";
+
   const items = [
+    /* Qué es: un incidente y una novedad se atienden distinto, y en una vista de solo lectura
+       era lo único que no se podía saber. */
+    { label: "Clase", value: esNovedad ? "Novedad de la operación" : "Incidente", icon: AlertTriangle, onClick: undefined },
+    ...(esNovedad
+      ? []
+      : [{
+          label: "Tipo",
+          value: incidente.tipoNovedad === "otro" && incidente.tipoOtro
+            ? `Otro · ${incidente.tipoOtro}`
+            : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad],
+          icon: AlertTriangle, onClick: undefined,
+        }]),
+    ...(reportanteNombre
+      ? [{ label: "Reportado por", value: reportanteNombre, icon: UserPlus, onClick: undefined }]
+      : []),
     {
       label: "Parqueadero", value: nombreParqueadero, icon: MapPin,
       onClick: () => navigate(`/app/parqueaderos?q=${encodeURIComponent(celda?.numero || nombreParqueadero)}`),
@@ -53,7 +73,10 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
     ...(conductorNombre
       ? [{ label: "Conductor", value: conductorDocumento ? `${conductorNombre} · ${conductorDocumento}` : conductorNombre, icon: User, onClick: undefined }]
       : []),
-    ...(asignadoNombre ? [{ label: "Asignado a", value: asignadoNombre, icon: User, onClick: undefined }] : []),
+    ...(asignadoNombre ? [{ label: "A cargo de", value: asignadoNombre, icon: User, onClick: undefined }] : []),
+    ...(incidente.justificacionCierre
+      ? [{ label: "Motivo", value: incidente.justificacionCierre, icon: AlertTriangle, onClick: undefined }]
+      : []),
   ];
 
   return (

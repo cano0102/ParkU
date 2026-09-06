@@ -96,6 +96,8 @@ export function ConductorIncidentes() {
       <Modal open={dialogs.dialogOpen} onClose={dialogs.closeForm} maxWidth={640}>
         <IncidenteFormModal
           isEditing={dialogs.isEditing}
+          usuariosReportantes={data.usuariosReportantes}
+          puedeRegistrarNovedades={false}
           showJustificacionCierre={false}
           formData={dialogs.formData}
           setFormData={dialogs.setFormData}

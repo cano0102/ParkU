@@ -15,6 +15,9 @@ interface IncidenteVehiculoAsignadoFieldsProps {
   vehiculoId: string;
   usuarioAsignadoId: string;
   tipoNovedad: TipoNovedad;
+  /** En qué consiste, cuando el tipo es "otro": guardarlo sin poder escribirlo lo volvía inútil. */
+  tipoOtro: string;
+  onTipoOtroChange: (value: string) => void;
   prioridad: PrioridadNovedad;
   vehiculos: Vehiculo[];
   /** Solo tiene datos si el usuario actual es Admin (único rol que puede listar /api/usuarios). */
@@ -34,7 +37,7 @@ interface IncidenteVehiculoAsignadoFieldsProps {
 
 /** Campos tipo/prioridad, vehículo, asignar a (solo Admin), y justificación de cierre. */
 export function IncidenteVehiculoAsignadoFields({
-  vehiculoId, usuarioAsignadoId, tipoNovedad, prioridad, vehiculos, usuarios, puedeClasificar = true,
+  vehiculoId, usuarioAsignadoId, tipoNovedad, tipoOtro, onTipoOtroChange, prioridad, vehiculos, usuarios, puedeClasificar = true,
   showJustificacionCierre, justificacionCierre,
   onVehiculoChange, onUsuarioAsignadoChange, onTipoNovedadChange, onPrioridadChange, onJustificacionCierreChange,
 }: IncidenteVehiculoAsignadoFieldsProps) {
@@ -43,13 +46,26 @@ export function IncidenteVehiculoAsignadoFields({
       <div className="incidentes-form-grid" style={{ display: "grid", gridTemplateColumns: puedeClasificar ? "1fr 1fr" : "1fr", gap: 12 }}>
         <div>
           <label htmlFor="tipoNovedad" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-            Tipo
+            Tipo *
           </label>
           <select id="tipoNovedad" value={tipoNovedad} onChange={(e) => onTipoNovedadChange(e.target.value as TipoNovedad)} style={selectStyle}>
+            <option value="">Selecciona el tipo…</option>
             {(Object.keys(TIPO_NOVEDAD_LABEL) as TipoNovedad[]).map((t) => (
               <option key={t} value={t}>{TIPO_NOVEDAD_LABEL[t]}</option>
             ))}
           </select>
+          {/* "Otro" sin decir qué es no clasifica nada. */}
+          {tipoNovedad === "otro" && (
+            <input
+              id="tipoOtro"
+              aria-label="¿De qué tipo se trata?"
+              value={tipoOtro}
+              onChange={(e) => onTipoOtroChange(e.target.value)}
+              maxLength={100}
+              placeholder="¿De qué tipo se trata?"
+              style={{ ...selectStyle, background: "#fff", marginTop: 8 }}
+            />
+          )}
         </div>
         {puedeClasificar && (
           <div>

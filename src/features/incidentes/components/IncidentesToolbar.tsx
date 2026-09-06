@@ -1,6 +1,7 @@
 import { IconPlus as Plus, IconSearch as Search, IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { EstadoIncidente } from "../lib/constants";
+import type { ClaseNovedad } from "@/services/api/incidentes";
 
 const C = theme;
 
@@ -8,6 +9,8 @@ interface IncidentesToolbarProps {
   search: string;
   onSearchChange: (value: string) => void;
   filterEstado: "todos" | EstadoIncidente;
+  filterClase: "todos" | ClaseNovedad;
+  onFilterClaseChange: (clase: "todos" | ClaseNovedad) => void;
   onFilterEstadoChange: (value: "todos" | EstadoIncidente) => void;
   activeFiltersCount: number;
   onClearFilters: () => void;
@@ -16,7 +19,7 @@ interface IncidentesToolbarProps {
 
 /** Buscador + filtro de estado + botón "Registrar Incidente". */
 export function IncidentesToolbar({
-  search, onSearchChange, filterEstado, onFilterEstadoChange,
+  search, onSearchChange, filterEstado, onFilterEstadoChange, filterClase, onFilterClaseChange,
   activeFiltersCount, onClearFilters, onCreate,
 }: IncidentesToolbarProps) {
   return (
@@ -59,7 +62,26 @@ export function IncidentesToolbar({
       >
         <option value="todos">Todos los estados</option>
         <option value="pendiente">Pendientes</option>
+        <option value="en_proceso">En proceso</option>
         <option value="resuelto">Resueltos</option>
+        <option value="rechazado">Rechazados</option>
+        <option value="cancelado">Cancelados</option>
+      </select>
+
+      {/* Una avería y una observación de turno se atienden distinto: poder mirar solo unas u
+          otras es lo que hace utilizable una lista con las dos cosas mezcladas. */}
+      <select
+        aria-label="Filtrar por clase de reporte"
+        value={filterClase}
+        onChange={(e) => onFilterClaseChange(e.target.value as "todos" | ClaseNovedad)}
+        style={{
+          padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+          fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+        }}
+      >
+        <option value="todos">Incidentes y novedades</option>
+        <option value="incidente">Solo incidentes</option>
+        <option value="novedad">Solo novedades</option>
       </select>
 
       {activeFiltersCount > 0 && (

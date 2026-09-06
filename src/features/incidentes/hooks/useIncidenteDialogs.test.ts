@@ -9,7 +9,8 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.f
 
 function incidenteBase(overrides: Partial<Incidente>): Incidente {
   return {
-    id: 'i1', clase: 'incidente', tipoNovedad: 'otro', tipoOtro: '', usuarioReportaId: '1',
+    // Un tipo concreto: "otro" sin decir cuál ya no se puede guardar.
+    id: 'i1', clase: 'incidente', tipoNovedad: 'danio', tipoOtro: '', usuarioReportaId: '1',
     prioridad: 'media', descripcion: 'Preexistente',
     parqueaderoId: '1', celdaId: '', vehiculoId: '', usuarioAsignadoId: '',
     fecha: '2025-06-01T00:00:00.000Z', estado: 'pendiente', justificacionCierre: '',
@@ -25,6 +26,7 @@ function buildData(overrides: Partial<{ incidentes: Incidente[]; addIncidente: R
     updateIncidente: vi.fn().mockResolvedValue(undefined),
     deleteIncidente: vi.fn(),
     ocupanteDeCelda: vi.fn().mockReturnValue(undefined),
+    usuariosReportantes: [{ id: '1', nombre: 'Administrador ParkU' }],
     ...overrides,
   } as unknown as IncidentesData;
 }
@@ -32,7 +34,10 @@ function buildData(overrides: Partial<{ incidentes: Incidente[]; addIncidente: R
 function llenarForm(result: ReturnType<typeof renderHook<ReturnType<typeof useIncidenteDialogs>, unknown>>['result'], extra: Partial<{ celdaId: string; vehiculoId: string }> = {}) {
   act(() => {
     result.current.setFormData((f) => ({
-      ...f, descripcion: 'Vehículo rayado', parqueaderoId: '1', celdaId: '', vehiculoId: '', ...extra,
+      // Tipo y prioridad son obligatorios en un incidente: sin ellos el formulario no llega
+      // a intentar guardar nada.
+      ...f, descripcion: 'Vehículo rayado', parqueaderoId: '1', celdaId: '', vehiculoId: '',
+      tipoNovedad: 'danio', prioridad: 'media', ...extra,
     }));
   });
 }

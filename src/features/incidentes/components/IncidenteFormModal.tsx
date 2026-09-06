@@ -27,8 +27,19 @@ interface IncidenteFormData {
   justificacionCierre: string;
 }
 
+const etiqueta = { display: "block", fontSize: 12, fontWeight: 700, color: theme.text, marginBottom: 6 } as const;
+const campo = {
+  width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${theme.border}`,
+  fontSize: 13, fontFamily: "inherit", background: "#F8FAFC", outline: "none",
+} as const;
+
 interface IncidenteFormModalProps {
   isEditing: boolean;
+  /** Candidatos a autor del reporte. Con uno solo el campo queda fijo: solo un Administrador
+   *  puede dejarlo a nombre de otra persona. */
+  usuariosReportantes: Usuario[];
+  /** Solo el personal del parqueadero registra novedades. */
+  puedeRegistrarNovedades: boolean;
   showJustificacionCierre: boolean;
   formData: IncidenteFormData;
   setFormData: (updater: (f: IncidenteFormData) => IncidenteFormData) => void;
@@ -54,7 +65,8 @@ interface IncidenteFormModalProps {
 
 /** Modal de crear/editar incidente: header, campos y acciones. */
 export function IncidenteFormModal({
-  isEditing, showJustificacionCierre, formData, setFormData, formTouched, formErrors, formInvalido, markTouched,
+  isEditing, usuariosReportantes, puedeRegistrarNovedades, showJustificacionCierre,
+  formData, setFormData, formTouched, formErrors, formInvalido, markTouched,
   parqueaderos, vehiculos, usuarios, puedeClasificar = true, celdasDelParqueadero, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
   onParqueaderoChange, onCeldaChange, onClose, onSave,
 }: IncidenteFormModalProps) {
@@ -104,6 +116,39 @@ export function IncidenteFormModal({
 
       <div style={{ padding: "1.4rem 1.8rem" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Lo primero, porque cambia el resto: un incidente ocurre sobre una celda y exige
+              tipo y prioridad; una novedad es una observación de la operación. */}
+          {puedeRegistrarNovedades && (
+            <div>
+              <label htmlFor="incidente-form-clase" style={etiqueta}>¿Qué vas a registrar? *</label>
+              <select
+                id="incidente-form-clase"
+                value={formData.clase}
+                onChange={(e) => setFormData((f) => ({ ...f, clase: e.target.value as ClaseNovedad }))}
+                style={campo}
+              >
+                <option value="incidente">Incidente — daño, choque o problemática</option>
+                <option value="novedad">Novedad — observación de la operación</option>
+              </select>
+            </div>
+          )}
+
+          {/* Un reporte sin autor no se le puede devolver a nadie. */}
+          <div>
+            <label htmlFor="incidente-form-reporta" style={etiqueta}>Reportado por *</label>
+            <select
+              id="incidente-form-reporta"
+              value={formData.usuarioReportaId}
+              onChange={(e) => setFormData((f) => ({ ...f, usuarioReportaId: e.target.value }))}
+              disabled={usuariosReportantes.length <= 1}
+              style={{ ...campo, cursor: usuariosReportantes.length <= 1 ? "not-allowed" : "pointer" }}
+            >
+              {usuariosReportantes.map((u) => (
+                <option key={u.id} value={u.id}>{u.nombre}</option>
+              ))}
+            </select>
+          </div>
+
           <IncidenteBasicFields
             descripcion={formData.descripcion}
             parqueaderoId={formData.parqueaderoId}
@@ -126,6 +171,8 @@ export function IncidenteFormModal({
             vehiculoId={formData.vehiculoId}
             usuarioAsignadoId={formData.usuarioAsignadoId}
             tipoNovedad={formData.tipoNovedad}
+            tipoOtro={formData.tipoOtro}
+            onTipoOtroChange={(value) => setFormData((f) => ({ ...f, tipoOtro: value }))}
             prioridad={formData.prioridad}
             vehiculos={vehiculos}
             usuarios={usuarios}

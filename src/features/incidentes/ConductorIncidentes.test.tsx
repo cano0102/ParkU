@@ -81,7 +81,7 @@ describe('features/incidentes — ConductorIncidentes (rol Comunidad SENA)', () 
     // Sí se le explica qué pasa con su reporte en vez de dejar el hueco sin más.
     expect(screen.getByText(/queda/i)).toBeInTheDocument();
     // El tipo sí lo elige quien reporta (describe QUÉ vio, no la urgencia).
-    expect(screen.getByLabelText('Tipo')).toBeInTheDocument();
+    expect(screen.getByLabelText('Tipo *')).toBeInTheDocument();
   });
 
   // `PUT /novedades/:id` (usado por "Editar" y "Cancelar") da 403 para este rol en la API real

@@ -38,7 +38,12 @@ export function useParqueaderosData() {
   // Solo Admin puede listar /api/usuarios — usado únicamente para el selector "Asignar a" del
   // reporte rápido de incidente desde una celda, así que se filtra ya mismo a Vigilante (que es
   // quien de verdad gestiona incidentes en campo) en vez de exponer la lista completa.
-  const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
+  /* Leer el listado de usuarios es cosa de Administrador y Vigilante: el vigilante lo
+     necesita para saber quién levantó un incidente y para dejar un reporte a nombre de quien
+     se lo comunica (GET /usuarios, ver usuario.routes.js). Crear o editar cuentas sigue
+     siendo solo del Administrador. */
+  const puedeLeerUsuarios = user?.rol === ROLES.ADMIN || user?.rol === ROLES.VIGILANTE;
+  const { data: usuarios = [] } = useUsuarios({ enabled: puedeLeerUsuarios });
   const usuariosAsignables = useMemo(() => usuarios.filter((u) => u.rol === ROLES.VIGILANTE), [usuarios]);
 
   /* Quién puede figurar como autor de un reporte. Lo normal es que sea quien lo está

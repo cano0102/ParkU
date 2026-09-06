@@ -119,17 +119,17 @@ export const reservasSeed: any[] = [];
 export const incidentesSeed = [
   {
     id: 1, tipo_novedad: 'MAL_ESTACIONAMIENTO', prioridad: 'MEDIA', descripcion: 'Vehículo mal estacionado bloqueando entrada',
-    parqueadero_id: 1, celda_id: 1, vehiculo_id: 1, usuario_asignado_id: null,
+    parqueadero_id: 1, celda_id: 1, vehiculo_id: 1, usuario_asignado_id: null, usuario_reporta_id: 2,
     fecha_hora: '2025-06-18T07:15:00.000Z', estado: 'PENDIENTE', justificacion_cierre: null,
   },
   {
     id: 2, tipo_novedad: 'DANIO', prioridad: 'ALTA', descripcion: 'Derrame de aceite con posible caída de vehículo',
-    parqueadero_id: 1, celda_id: 2, vehiculo_id: null, usuario_asignado_id: null,
+    parqueadero_id: 1, celda_id: 2, vehiculo_id: null, usuario_asignado_id: null, usuario_reporta_id: 1,
     fecha_hora: '2025-06-16T07:15:00.000Z', estado: 'PENDIENTE', justificacion_cierre: null,
   },
   {
     id: 3, tipo_novedad: 'QUEJA', prioridad: 'CRITICA', descripcion: 'Barrera dañada en el acceso norte',
-    parqueadero_id: 1, celda_id: null, vehiculo_id: null, usuario_asignado_id: null,
+    parqueadero_id: 1, celda_id: null, vehiculo_id: null, usuario_asignado_id: null, usuario_reporta_id: 1,
     fecha_hora: '2025-06-20T07:15:00.000Z', estado: 'CERRADA', justificacion_cierre: 'Reparada por mantenimiento',
   },
 ];

@@ -84,6 +84,9 @@ describe('features/incidentes', () => {
     const descripcionUnica = `Incidente de prueba ${Date.now()}`;
     await user.type(screen.getByLabelText('Descripción *'), descripcionUnica);
     await user.selectOptions(screen.getByLabelText('Parqueadero *'), 'PQ-1 Torre A');
+    // Tipo y prioridad son obligatorios: un incidente hay que poder clasificarlo y ordenarlo.
+    await user.selectOptions(screen.getByLabelText('Tipo *'), 'danio');
+    await user.selectOptions(screen.getByLabelText('Prioridad'), 'alta');
 
     await user.click(screen.getByRole('button', { name: 'Registrar Incidente', hidden: false }));
 
@@ -231,5 +234,51 @@ describe('features/incidentes', () => {
     await waitFor(() =>
       expect(screen.queryByText('Derrame de aceite con posible caída de vehículo')).not.toBeInTheDocument()
     );
+  });
+});
+
+/* Un incidente y una novedad se atienden distinto: si no se distinguen en la lista, una
+   observación de turno parece una avería sin resolver. */
+describe('features/incidentes — incidentes y novedades conviven', () => {
+  it('cada tarjeta dice de qué clase es', async () => {
+    renderIncidentes();
+    await screen.findByText('Barrera dañada en el acceso norte');
+
+    expect(screen.getAllByText('Incidente').length).toBeGreaterThan(0);
+  });
+
+  it('deja mirar solo una de las dos clases', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    await screen.findByText('Barrera dañada en el acceso norte');
+
+    await user.selectOptions(screen.getByLabelText('Filtrar por clase de reporte'), 'novedad');
+
+    // La semilla no trae novedades: la lista queda vacía en vez de mezclarlas.
+    await waitFor(() => expect(screen.queryByText('Barrera dañada en el acceso norte')).not.toBeInTheDocument());
+  });
+
+  it('la tarjeta dice quién reportó y de quién es el vehículo', async () => {
+    renderIncidentes();
+    const descripcion = await screen.findByText('Vehículo mal estacionado bloqueando entrada');
+    const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
+
+    // La semilla deja ese reporte a nombre de Ana Martínez.
+    expect(within(tarjeta).getByText('Ana Martínez R.')).toBeInTheDocument();
+    // La placa del vehículo implicado, con su dueño al lado.
+    expect(within(tarjeta).getByText(/ABC123/)).toBeInTheDocument();
+  });
+
+  it('todas las tarjetas miden lo mismo, sin importar cuánto texto lleven', async () => {
+    renderIncidentes();
+    await screen.findByText('Barrera dañada en el acceso norte');
+
+    const alturas = [...document.querySelectorAll('.incidente-card')]
+      .map((el) => (el as HTMLElement).style.height);
+    expect(alturas.length).toBeGreaterThan(1);
+    // Una altura concreta, no "la que salga": sin esto la comprobación pasaría igual con
+    // tarjetas que se estiran, porque todas medirían lo mismo (nada).
+    expect(alturas.every((h) => /^\d+px$/.test(h))).toBe(true);
+    expect(new Set(alturas).size).toBe(1);
   });
 });

@@ -109,7 +109,12 @@ export function useControlSalidaPage() {
   /* Quién puede figurar como autor del reporte: quien lo escribe. Solo un Administrador
      puede ponerlo a nombre de otra persona (ver useParqueaderosData). */
   const { user } = useAuth();
-  const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
+  /* Leer el listado de usuarios es cosa de Administrador y Vigilante: el vigilante lo
+     necesita para saber quién levantó un incidente y para dejar un reporte a nombre de quien
+     se lo comunica (GET /usuarios, ver usuario.routes.js). Crear o editar cuentas sigue
+     siendo solo del Administrador. */
+  const puedeLeerUsuarios = user?.rol === ROLES.ADMIN || user?.rol === ROLES.VIGILANTE;
+  const { data: usuarios = [] } = useUsuarios({ enabled: puedeLeerUsuarios });
   const usuariosReportantes = useMemo<Usuario[]>(() => {
     if (!user) return [];
     const propia: Usuario = {

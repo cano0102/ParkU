@@ -39,6 +39,8 @@ export function Incidentes() {
           onSearchChange={p.setSearch}
           filterEstado={p.filterEstado}
           onFilterEstadoChange={p.setFilterEstado}
+          filterClase={p.filterClase}
+          onFilterClaseChange={p.setFilterClase}
           activeFiltersCount={p.activeFiltersCount}
           onClearFilters={p.clearFilters}
           onCreate={p.openCreate}
@@ -74,6 +76,8 @@ export function Incidentes() {
       <Modal open={p.dialogOpen} onClose={p.closeForm} maxWidth={640}>
         <IncidenteFormModal
           isEditing={p.isEditing}
+          usuariosReportantes={p.usuariosReportantes}
+          puedeRegistrarNovedades={p.puedeRegistrarNovedades}
           /* El motivo/justificación acompaña a un desenlace: resuelto (cómo se resolvió) o
              rechazado/cancelado (por qué no procedía). Antes solo salía en "resuelto", así que
              un reporte descartado no tenía dónde guardar la explicación al editarlo. */
@@ -107,6 +111,7 @@ export function Incidentes() {
             conductorNombre={p.conductorDe(p.selectedIncidente.vehiculoId)?.nombre}
             conductorDocumento={p.conductorDe(p.selectedIncidente.vehiculoId)?.numeroDocumento}
             asignadoNombre={p.nombreUsuarioAsignado(p.selectedIncidente.usuarioAsignadoId)}
+            reportanteNombre={p.nombreUsuarioReporta(p.selectedIncidente.usuarioReportaId)}
             nombreParqueadero={p.nombreParqueadero(p.selectedIncidente.parqueaderoId)}
             onClose={() => p.setViewOpen(false)}
             onEdit={() => p.openEdit(p.selectedIncidente!)}

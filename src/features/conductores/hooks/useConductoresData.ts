@@ -33,7 +33,12 @@ export function useConductoresData() {
   // Solo Admin puede listar /api/usuarios — un Vigilante (que sí llega a esta pantalla,
   // permiso `conductores`) recibía un 403 real en cada visita; con el toast global de errores
   // (ver App.tsx) eso pasó de quedar en `[]` en silencio a mostrarse como error visible.
-  const { data: usuarios = EMPTY_USUARIOS } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
+  /* Leer el listado de usuarios es cosa de Administrador y Vigilante: el vigilante lo
+     necesita para saber quién levantó un incidente y para dejar un reporte a nombre de quien
+     se lo comunica (GET /usuarios, ver usuario.routes.js). Crear o editar cuentas sigue
+     siendo solo del Administrador. */
+  const puedeLeerUsuarios = user?.rol === ROLES.ADMIN || user?.rol === ROLES.VIGILANTE;
+  const { data: usuarios = EMPTY_USUARIOS } = useUsuarios({ enabled: puedeLeerUsuarios });
   const { data: vehiculos = EMPTY_VEHICULOS } = useVehiculos();
   const createConductorMutation = useCreateConductor();
   const updateConductorMutation = useUpdateConductor();

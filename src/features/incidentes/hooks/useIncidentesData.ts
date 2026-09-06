@@ -7,7 +7,7 @@ import { useControlSalida } from "@/features/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
 import { useUsuarios } from "@/features/usuarios";
 import type { Usuario } from "@/services/api/usuarios";
-import type { Incidente } from "@/services/api/incidentes";
+import type { Incidente, ClaseNovedad } from "@/services/api/incidentes";
 import {
   useIncidentes,
   useCreateIncidente,
@@ -41,7 +41,12 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   // Solo Admin puede listar /api/usuarios — para Vigilante/Conductor queda deshabilitada (antes
   // solo quedaba en [] tras un 403 real; ahora que las lecturas fallidas sí avisan globalmente,
   // desactivarla evita ese toast para dos roles que nunca iban a poder verla).
-  const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
+  /* Leer el listado de usuarios es cosa de Administrador y Vigilante: el vigilante lo
+     necesita para saber quién levantó un incidente y para dejar un reporte a nombre de quien
+     se lo comunica (GET /usuarios, ver usuario.routes.js). Crear o editar cuentas sigue
+     siendo solo del Administrador. */
+  const puedeLeerUsuarios = user?.rol === ROLES.ADMIN || user?.rol === ROLES.VIGILANTE;
+  const { data: usuarios = [] } = useUsuarios({ enabled: puedeLeerUsuarios });
   const { data: incidentes = [], isLoading, isError } = useIncidentes({ silentError: options?.silentIncidentesError });
   const createIncidenteMutation = useCreateIncidente();
   const updateIncidenteMutation = useUpdateIncidente();
@@ -55,6 +60,9 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
 
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoIncidente>("todos");
+  /* Incidentes y novedades conviven en la misma lista pero se atienden distinto: sin poder
+     separarlos, una observación de turno estorba a quien busca averías por resolver. */
+  const [filterClase, setFilterClase] = useState<"todos" | ClaseNovedad>("todos");
 
   const parqueaderoPorId = useMemo(() => new Map(parqueaderos.map((p) => [p.id, p])), [parqueaderos]);
   const celdaPorId = useMemo(() => new Map(celdas.map((c) => [c.id, c])), [celdas]);
@@ -85,6 +93,18 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const nombreParqueadero = (id: string) => parqueaderoPorId.get(id)?.nombre ?? "—";
   const celdaDe = (id?: string) => (id ? celdaPorId.get(id) : undefined);
   const vehiculoDe = (id?: string) => (id ? vehiculoPorId.get(id) : undefined);
+  /* Quién puede figurar como autor de un reporte: quien lo escribe. Solo un Administrador
+     puede dejarlo a nombre de otra persona. */
+  const usuariosReportantes = useMemo<Usuario[]>(() => {
+    if (!user) return [];
+    const propia: Usuario = {
+      id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
+      password: "", numero: user.numero ?? "", estado: "activo",
+    };
+    if (user.rol !== ROLES.ADMIN) return [propia];
+    return [propia, ...usuarios.filter((u) => u.id !== user.id)];
+  }, [usuarios, user]);
+
   const nombreUsuarioAsignado = (id?: string) => (id ? usuarioPorId.get(id)?.nombre : undefined);
   /* Quién reportó. La lista de usuarios solo la puede leer un Administrador, así que para el
      resto se cae al nombre de la propia cuenta cuando el reporte es suyo — que es el caso
@@ -183,17 +203,22 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
             celdaNumero.includes(q) ||
             placa.includes(q);
           const matchesEstado = filterEstado === "todos" ? true : inc.estado === filterEstado;
-          return matchesSearch && matchesEstado;
+          const matchesClase = filterClase === "todos" ? true : inc.clase === filterClase;
+          return matchesSearch && matchesEstado && matchesClase;
         })
         .sort(compararIncidentes),
     // nombreParqueadero/celdaDe/vehiculoDe son funciones nuevas en cada render, pero lo que
     // de verdad cambia el resultado son los mapas que consultan, ya declarados aquí.
     // Depender de las funciones haría que este memo se recalculara siempre.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [incidentes, search, filterEstado, parqueaderoPorId, celdaPorId, vehiculoPorId]
+    [incidentes, search, filterEstado, filterClase, parqueaderoPorId, celdaPorId, vehiculoPorId]
   );
 
-  const activeFiltersCount = [search, filterEstado !== "todos" ? filterEstado : ""].filter(Boolean).length;
+  const activeFiltersCount = [
+    search,
+    filterEstado !== "todos" ? filterEstado : "",
+    filterClase !== "todos" ? filterClase : "",
+  ].filter(Boolean).length;
   const clearFilters = () => {
     setSearch("");
     setFilterEstado("todos");
@@ -205,6 +230,8 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     vehiculos,
     usuarios,
     usuariosAsignables,
+    usuariosReportantes,
+    puedeRegistrarNovedades: !esConductor,
     incidentes,
     addIncidente,
     updateIncidente,
@@ -212,6 +239,8 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     search,
     setSearch,
     filterEstado,
+    filterClase,
+    setFilterClase,
     setFilterEstado,
     nombreParqueadero,
     celdaDe,

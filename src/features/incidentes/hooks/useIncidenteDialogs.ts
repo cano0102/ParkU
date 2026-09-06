@@ -22,7 +22,10 @@ const emptyFormData = () => ({
 
 /** Los tres modales de Incidentes: crear/editar (con su validación en vivo), ver detalle y confirmar eliminación. */
 export function useIncidenteDialogs(data: IncidentesData) {
-  const { celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda, cambiarEstado } = data;
+  const {
+    celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda,
+    cambiarEstado, usuariosReportantes,
+  } = data;
 
   /* Cambiar el estado de un incidente no siempre es un clic: avanzar exige un encargado que
      responda por él, y descartarlo exige decir por qué (lo lee quien lo reportó). Cuando
@@ -57,12 +60,21 @@ export function useIncidenteDialogs(data: IncidentesData) {
   const [formData, setFormData] = useState(emptyFormData());
   const [formTouched, setFormTouched] = useState<{ descripcion?: boolean; parqueaderoId?: boolean }>({});
 
-  // Validación en tiempo real: solo descripción y parqueadero son obligatorios.
+  /* Validación en tiempo real. Un incidente hay que poder clasificarlo y ordenarlo, así que
+     exige tipo y prioridad —y el detalle cuando el tipo es "otro"—; una novedad es una
+     observación de la operación y no tiene nada de eso que dar. Mismas reglas que el reporte
+     rápido (useIncidenteReporte) y que el backend. */
+  const esNovedad = formData.clase === "novedad";
   const formErrors = {
     descripcion: formData.descripcion.trim() ? "" : "La descripción es obligatoria",
     parqueaderoId: formData.parqueaderoId ? "" : "Selecciona un parqueadero",
+    tipoNovedad: esNovedad || formData.tipoNovedad ? "" : "Elige el tipo de incidente",
+    tipoOtro: !esNovedad && formData.tipoNovedad === "otro" && !formData.tipoOtro.trim()
+      ? "Indica de qué tipo de incidente se trata"
+      : "",
+    prioridad: esNovedad || formData.prioridad ? "" : "Elige la prioridad",
   };
-  const formInvalido = !!formErrors.descripcion || !!formErrors.parqueaderoId;
+  const formInvalido = Object.values(formErrors).some(Boolean);
   const markTouched = (campo: "descripcion" | "parqueaderoId") =>
     setFormTouched((t) => ({ ...t, [campo]: true }));
 
@@ -81,6 +93,9 @@ export function useIncidenteDialogs(data: IncidentesData) {
 
   const openCreate = () => {
     resetForm();
+    // A nombre de quien lo está escribiendo: es el caso normal, y sin autor no hay a quién
+    // volver a preguntarle.
+    setFormData((f) => ({ ...f, usuarioReportaId: usuariosReportantes?.[0]?.id ?? "" }));
     setDialogOpen(true);
   };
 

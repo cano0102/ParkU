@@ -14,7 +14,7 @@ import {
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
-import { ESTADO_CONFIG, PRIORIDAD_CONFIG, type EstadoIncidente } from "../lib/constants";
+import { ESTADO_CONFIG, PRIORIDAD_CONFIG, TIPO_NOVEDAD_LABEL, type EstadoIncidente } from "../lib/constants";
 import { esEstadoFinal, transicionesDe } from "../lib/transiciones";
 import { CeldaBadgeInline, EstadoBadgeInline } from "./IncidenteBadges";
 
@@ -49,22 +49,34 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
      saber cuál es crítica obligaba a abrirlas una por una. El color va en la barra superior
      (lo que se ve de lejos) y repetido en una etiqueta, para no depender solo del color. */
   const prioridad = PRIORIDAD_CONFIG[incidente.prioridad];
+  const esNovedad = incidente.clase === "novedad";
+  /* El tipo, con su precisión cuando es "otro": guardarlo y no mostrarlo lo volvía inútil. */
+  const tipoTexto = esNovedad
+    ? null
+    : incidente.tipoNovedad === "otro" && incidente.tipoOtro
+      ? incidente.tipoOtro
+      : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad];
 
   return (
+    /* Alto fijo: una descripción larga estiraba su tarjeta y descuadraba toda la fila de la
+       rejilla. Lo que no cabe se recorta con puntos suspensivos —la ficha completa está a un
+       clic— y las acciones quedan siempre a la misma altura, que es lo que se busca con el
+       ratón. */
     <div
       className="incidente-card"
       style={{
         borderRadius: 14, border: `1px solid ${C.border}`,
         background: "#fff", overflow: "hidden",
         boxShadow: "0 2px 8px rgba(15,23,42,.05)",
+        height: 340, display: "flex", flexDirection: "column",
       }}
     >
       <div
-        style={{ height: 4, background: prioridad.barra }}
-        title={`Prioridad ${prioridad.label.toLowerCase()}`}
+        style={{ height: 4, background: esNovedad ? "#818CF8" : prioridad.barra }}
+        title={esNovedad ? "Novedad de la operación" : `Prioridad ${prioridad.label.toLowerCase()}`}
       />
 
-      <div style={{ padding: "14px" }}>
+      <div style={{ padding: "14px", flex: 1, display: "flex", flexDirection: "column", minHeight: 0 }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
           <div
             style={{
@@ -80,25 +92,49 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
             )}
           </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 6 }}>
+            <p
+              title={incidente.descripcion}
+              style={{
+                fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 6,
+                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+              }}
+            >
               {incidente.descripcion}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-              <EstadoBadgeInline estado={incidente.estado} />
+              {/* Un incidente y una novedad se atienden distinto: si no se distinguen en la
+                  lista, una observación de turno parece una avería sin resolver. */}
               <span style={{
-                display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999,
-                fontSize: 10, fontWeight: 800, background: prioridad.bg, color: prioridad.text,
-                border: `1px solid ${prioridad.border}`,
+                padding: "2px 8px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                background: esNovedad ? "#EEF2FF" : "#FEF2F2",
+                color: esNovedad ? "#4338CA" : "#991B1B",
+                border: `1px solid ${esNovedad ? "#C7D2FE" : "#FECACA"}`,
               }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: prioridad.barra }} />
-                {prioridad.label}
+                {esNovedad ? "Novedad" : "Incidente"}
               </span>
+              <EstadoBadgeInline estado={incidente.estado} />
+              {!esNovedad && (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999,
+                  fontSize: 10, fontWeight: 800, background: prioridad.bg, color: prioridad.text,
+                  border: `1px solid ${prioridad.border}`,
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: prioridad.barra }} />
+                  {prioridad.label}
+                </span>
+              )}
               {celda && <CeldaBadgeInline numero={celda.numero} estado={celda.estado} />}
             </div>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12, flex: 1, minHeight: 0, overflow: "hidden" }}>
+          {tipoTexto && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
+              <AlertTriangle size={12} color={C.textLight} />
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tipoTexto}</span>
+            </div>
+          )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
             <MapPin size={12} color={C.textLight} />
             <span>
@@ -137,13 +173,21 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
               <div style={{ fontSize: 9, fontWeight: 800, color: cfg.text, textTransform: "uppercase", letterSpacing: .5 }}>
                 Motivo
               </div>
-              <div style={{ fontSize: 11, color: cfg.text, lineHeight: 1.45 }}>{incidente.justificacionCierre}</div>
+              <div
+                title={incidente.justificacionCierre}
+                style={{
+                  fontSize: 11, color: cfg.text, lineHeight: 1.45,
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                }}
+              >
+                {incidente.justificacionCierre}
+              </div>
             </div>
           )}
         </div>
 
         <div style={{
-          borderTop: `1px solid ${C.border}`, paddingTop: 12,
+          borderTop: `1px solid ${C.border}`, paddingTop: 12, marginTop: "auto",
           display: "flex", justifyContent: "space-between", alignItems: "center",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
