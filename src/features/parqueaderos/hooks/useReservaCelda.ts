@@ -7,6 +7,7 @@ import type { ModalKind } from "./useModalController";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 import { buscarConflictoHorario, validarFranja, franjaSugerida } from "@/features/reservas";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN, motivoCeldaPreferencialNoApta } from "../lib/helpers";
+import { agendaDeCelda } from "../lib/agendaCelda";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
@@ -163,9 +164,12 @@ export function useReservaCelda(
   }, [reservaForm, data, celdaActiva, setOpenModal]);
 
   /** La reserva viva de la celda abierta: es la que se cancelaría desde aquí. */
-  const reservaDeLaCelda = celdaActiva
-    ? data.reservas.find((r) => r.celdaId === celdaActiva.id && (r.estado === "pendiente" || r.estado === "activa")) ?? null
-    : null;
+  /* La reserva sobre la que actúan "Cancelar reserva" y su formulario de motivo: la que rige
+     ahora, y si no hay ninguna en curso, la siguiente. Antes se tomaba la primera viva que
+     apareciera en la lista — con varias reservas el mismo día en la misma celda, eso podía
+     cancelar una franja distinta de la que el modal estaba mostrando. */
+  const agendaDeLaCelda = celdaActiva ? agendaDeCelda(celdaActiva.id, data.reservas) : null;
+  const reservaDeLaCelda = agendaDeLaCelda?.vigente ?? agendaDeLaCelda?.proxima ?? null;
 
   /** Abre el formulario de cancelación — el mismo que usa el módulo de Reservas. */
   const handleCancelarReserva = useCallback(() => setOpenModal("cancelarReserva"), [setOpenModal]);

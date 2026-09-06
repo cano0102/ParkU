@@ -45,6 +45,7 @@ export function MainLayout() {
             /* Ver la nota del otro Sidebar: el nombre real del rol lo trae la API. */
             userRol={s.user ? s.user.rolNombre || nombreDeRol(s.user.rol) : undefined}
             onLogout={s.handleLogout}
+            pendientes={s.pendientes}
           />
         </aside>
       )}
@@ -82,6 +83,7 @@ export function MainLayout() {
                  del sistema y devolvía "Desconocido" para cualquier rol creado a medida. */
               userRol={s.user ? s.user.rolNombre || nombreDeRol(s.user.rol) : undefined}
               onLogout={s.handleLogout}
+              pendientes={s.pendientes}
             />
           </aside>
         </>

@@ -82,9 +82,6 @@ export function useParqueaderosPage() {
         color: ocupante?.vehiculo.color || "",
       });
       modal.setOpenModal("info");
-    } else if (celda.estado === "reservada") {
-      ingreso.setVehiculoForm({ placa: "", conductor: "", esOficial: true, marca: "", modelo: "", color: "" });
-      modal.setOpenModal("info");
     } else if (celda.estado === "mantenimiento") {
       // Quien puede gestionar celdas ve el modal (con el ajuste manual de
       // estado, para poder sacarla de mantenimiento); el resto solo recibe

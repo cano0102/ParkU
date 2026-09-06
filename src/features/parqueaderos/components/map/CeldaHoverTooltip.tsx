@@ -51,10 +51,11 @@ export function CeldaHoverTooltip({ hover, ocupante, marcaReserva = null }: Celd
         </div>
       ) : (
         <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,.7)" }}>
-          {hover.celda.estado === "reservada" || marcaReserva?.enCurso ? "Celda reservada" :
-            hover.celda.estado === "mantenimiento" ? "En mantenimiento" :
-              hover.celda.estado === "no_disponible" ? "Ocupada, sin datos de vehículo" :
-                "Celda libre"}
+          {hover.celda.estado === "reservada" ? "Marcada como reservada a mano, sin reserva que la respalde" :
+            marcaReserva?.enCurso ? "Celda reservada" :
+              hover.celda.estado === "mantenimiento" ? "En mantenimiento" :
+                hover.celda.estado === "no_disponible" ? "Ocupada, sin datos de vehículo" :
+                  "Celda libre"}
         </div>
       )}
       {/* Lo que pasa con esta celda más tarde: el aviso pesa más que la hora suelta, porque

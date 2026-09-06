@@ -80,7 +80,14 @@ export interface LotLayout {
 export const CELDA_CONFIG = {
   disponible:    { bg:"#F0FBE8", border:"#A8D888", text:"#2F6B00", label:"Disponible",    dotColor:"#4CAF50", mapFill:"#1f2a22", mapStroke:"#4CAF50" },
   no_disponible: { bg:"#1A1A1A", border:"#EF4444", text:"#ffffff", label:"Ocupado",       dotColor:"#EF4444", mapFill:"#2c1414", mapStroke:"#EF4444" },
-  reservada:     { bg:"#FFFBEB", border:"#FCD34D", text:"#78350F", label:"Reservada",     dotColor:"#F59E0B", mapFill:"#332a10", mapStroke:"#F59E0B" },
+  /* En el PLANO, "reservada" se pinta como un estado averiado (fondo oscuro, borde rojo),
+     igual que una celda ocupada sin vehículo. Ya no es un estado normal: desde que las
+     reservas apartan una franja y no la celda entera, ninguna reserva pone la celda en este
+     estado — si una celda aparece así es porque alguien la marcó a mano, y lo que hay que ver
+     de un vistazo es justamente eso. Los colores claros (bg/border/text/dotColor) se dejan
+     como estaban: los usan las insignias y los contadores, donde "reservada" sigue siendo una
+     etiqueta y no una avería. */
+  reservada:     { bg:"#FFFBEB", border:"#FCD34D", text:"#78350F", label:"Reservada",     dotColor:"#F59E0B", mapFill:"#2c1414", mapStroke:"#EF4444" },
   mantenimiento: { bg:"#F1F5F9", border:"#94A3B8", text:"#334155", label:"Mantenimiento", dotColor:"#94A3B8", mapFill:"#23262b", mapStroke:"#94A3B8" },
   inactiva:      { bg:"#F1F5F9", border:"#CBD5E1", text:"#475569", label:"Inactiva",      dotColor:"#94A3B8", mapFill:"#1c1f24", mapStroke:"#64748B" },
 } as const;

@@ -136,15 +136,14 @@ export function CeldaInfoModal({
               <Wrench size={12} color={C.textLight} />
               <span style={{ fontSize: 10, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>Ajuste manual de estado</span>
             </div>
-            {/* Una celda realmente ocupada (o con una reserva activa) no se toca a mano: forzarle
-                "disponible" por aquí dejaría el ingreso/reserva abierto en la base de datos y la
-                celda libre en pantalla — datos desincronizados. Primero se registra la salida
-                (o se cancela la reserva) por su flujo normal, y ahí sí se puede ajustar. */}
-            {ocupanteActivo || reservaActiva ? (
+            {/* Lo único que impide tocar el estado a mano es un vehículo dentro: forzarle
+                "disponible" dejaría el ingreso abierto en la base y la celda libre en pantalla.
+                Una reserva NO bloquea: desde que apartan una franja y no la celda entera, el
+                estado de la celda y la agenda son cosas distintas — poner la celda en
+                disponible no cancela ninguna reserva ni le quita su franja a nadie. */}
+            {ocupanteActivo ? (
               <p style={{ fontSize: 11, color: C.text, fontWeight: 600, lineHeight: 1.5 }}>
-                {ocupanteActivo
-                  ? "La celda está ocupada. Debe registrarse la salida del vehículo para poder modificar su estado."
-                  : "La celda tiene una reserva activa. Debe cancelarse la reserva para poder modificar su estado."}
+                La celda está ocupada. Debe registrarse la salida del vehículo para poder modificar su estado.
               </p>
             ) : (
               <>
@@ -170,6 +169,12 @@ export function CeldaInfoModal({
                   })}
                 </div>
                 <p style={{ fontSize: 9, color: C.textLight, marginTop: 6 }}>Cambia el estado sin pasar por el flujo normal (estacionar/reservar/liberar). Úsalo solo para corregir una celda atascada o ponerla en mantenimiento.</p>
+                {/* Se avisa, pero no se bloquea: es información para decidir, no un veto. */}
+                {agenda?.proxima && (
+                  <p style={{ fontSize: 9, color: "#92400E", marginTop: 4, fontWeight: 700 }}>
+                    Esta celda tiene una reserva a las {comoHora(inicioDe(agenda.proxima))}: cambiar el estado a mano no la cancela.
+                  </p>
+                )}
               </>
             )}
           </div>
@@ -393,6 +398,17 @@ export function CeldaInfoModal({
                     style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
                   >
                     📅 Reservar Celda
+                  </button>
+                )}
+                {/* Cancelar la reserva que viene, sin esperar a que empiece. Antes esto solo
+                    existía con la celda retenida, así que una reserva de la tarde no se podía
+                    cancelar desde el plano en toda la mañana. */}
+                {canRegistrarIngreso && !confirmandoEstacionar && agenda?.proxima && (
+                  <button
+                    onClick={onCancelarReserva}
+                    style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
+                  >
+                    🔓 Cancelar reserva de las {comoHora(inicioDe(agenda.proxima))}
                   </button>
                 )}
                 {canSolicitarReserva && onSolicitarReserva && (

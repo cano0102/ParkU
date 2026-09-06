@@ -52,7 +52,7 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
       {m && <rect x={celda.x - 3} y={celda.y - 3} width={SPACE_W + 6} height={SPACE_H + 6} rx="7" fill="none" stroke="#FBBF24" strokeWidth="4.5" filter="url(#glow)" />}
       <rect
         x={celda.x} y={celda.y} width={SPACE_W} height={SPACE_H} rx="5"
-        fill={celda.estado === "reservada" ? "url(#resH)" : `url(#cellG-${celda.estado})`}
+        fill={`url(#cellG-${celda.estado})`}
         stroke={m ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.mapStroke}
         strokeWidth={m ? 2.2 : fueraDeHorario ? 1.8 : celda.estado === "disponible" ? 1.1 : 0.9}
         strokeOpacity={m ? 1 : fueraDeHorario ? 1 : celda.estado === "disponible" ? 0.85 : 0.55}
@@ -118,7 +118,15 @@ export function ParkingCell({ celda, pqNombre, tipoPq, matches: m, tieneIncident
       {celda.estado === "no_disponible" && !ocupante && (
         <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#FBBF24">Sin datos</text>
       )}
-      {celda.estado === "reservada" && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="850" fill="#FCD34D" opacity={0.95}>RESERVA</text>}
+      {/* Una celda en estado "reservada" está marcada a mano: ninguna reserva la pone así.
+          Se señala igual que una celda ocupada sin vehículo, porque es el mismo tipo de
+          problema — un estado que no corresponde a nada real. */}
+      {celda.estado === "reservada" && (
+        <g pointerEvents="none">
+          <title>Marcada como reservada a mano: ninguna reserva la respalda. Ponla en disponible desde el detalle de la celda.</title>
+          <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#FBBF24">Sin reserva</text>
+        </g>
+      )}
       {celda.estado === "mantenimiento" && <text x={celda.x + SPACE_W / 2} y={celda.y + SPACE_H / 2 + 8} textAnchor="middle" fontSize="7.5" fontWeight="800" fill="#CBD5E1" opacity={0.9}>MANT.</text>}
       {/* Contorno del aviso: es lo que hace que el vigilante vea de lejos en qué celda tiene
           que actuar, sin recorrer el plano celda por celda. */}

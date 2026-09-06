@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
@@ -99,6 +99,16 @@ describe("CeldaInfoModal — solicitar la celda (rol Conductor)", () => {
 });
 
 describe("CeldaInfoModal — la agenda de la celda", () => {
+  /* Reloj congelado a media mañana. Las reservas de estas pruebas se construyen a partir de
+     "ahora" (es la distancia hasta la reserva lo que se comprueba), y con el reloj real la
+     franja se salía del día en cuanto la suite corría de tarde: una reserva de las 23:24 a
+     las 00:24 queda, sobre una sola fecha, terminando ANTES de empezar. */
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-10T10:00:00"));
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
   const props = (reservas: Reserva[]) => ({
     ...baseProps(false),
     canRegistrarIngreso: true,
@@ -172,5 +182,72 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
     render(<CeldaInfoModal {...props([reservaEn(45, 60)])} celdaActiva={ocupada} />);
 
     expect(screen.getByText(/Contacta al conductor para que retire el vehículo/)).toBeInTheDocument();
+  });
+
+  /* Cancelar no puede depender de que la reserva ya haya empezado: si solo se ofrece con la
+     celda retenida, una reserva de la tarde no hay forma de cancelarla en toda la mañana. */
+  it("deja cancelar la reserva que viene, con la celda todavía libre", () => {
+    const onCancelarReserva = vi.fn();
+    render(<CeldaInfoModal {...props([reservaEn(240, 60)])} onCancelarReserva={onCancelarReserva} />);
+
+    fireEvent.click(screen.getByText(/Cancelar reserva de las 14:00/));
+    expect(onCancelarReserva).toHaveBeenCalled();
+  });
+
+  it("sin reservas por delante no ofrece cancelar nada", () => {
+    render(<CeldaInfoModal {...props([])} />);
+    expect(screen.queryByText(/Cancelar reserva/)).not.toBeInTheDocument();
+  });
+});
+
+describe("CeldaInfoModal — ajuste manual de estado", () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-10T10:00:00"));
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
+  const props = (reservas: Reserva[]) => ({
+    ...baseProps(true),
+    canRegistrarIngreso: true,
+    agenda: agendaDeCelda("1", reservas),
+    onSetEstadoManual: vi.fn(),
+  });
+
+  /* El estado de la celda y la agenda son cosas distintas: ponerla en disponible a mano no
+     cancela ninguna reserva. Antes esto se bloqueaba, y una celda marcada a mano se quedaba
+     así mientras existiera cualquier reserva por delante. */
+  it("deja cambiar el estado aunque la celda tenga una reserva por delante", () => {
+    const p = props([reservaEn(240, 60)]);
+    render(<CeldaInfoModal {...p} celdaActiva={{ ...celdaDisponible, estado: "reservada" }} />);
+
+    fireEvent.click(screen.getByText("Disponible"));
+    expect(p.onSetEstadoManual).toHaveBeenCalledWith("disponible");
+  });
+
+  it("avisa de que ese cambio no cancela la reserva", () => {
+    render(<CeldaInfoModal {...props([reservaEn(240, 60)])} />);
+    expect(screen.getByText(/cambiar el estado a mano no la cancela/)).toBeInTheDocument();
+  });
+
+  /* Lo que sí sigue bloqueando es un vehículo dentro: eso no es un estado, es un hecho. */
+  it("no deja tocar el estado de una celda con un vehículo dentro", () => {
+    const ocupada: Celda = { ...celdaDisponible, estado: "no_disponible", ocupada: true };
+    render(
+      <CeldaInfoModal
+        {...props([])}
+        celdaActiva={ocupada}
+        ocupanteActivo={{
+          vehiculo: { id: "v1", conductorId: "c1", conductorNombre: "María", placa: "ABC123", tipo: "carro", marca: "", linea: "", modelo: 2020, color: "", descripcion: "", estado: "activo" },
+          conductor: undefined,
+          esOficial: false,
+          controlId: "cs1",
+          fechaEntrada: new Date().toISOString(),
+        }}
+      />
+    );
+
+    expect(screen.getByText(/Debe registrarse la salida del vehículo/)).toBeInTheDocument();
+    expect(screen.queryByText("Disponible")).not.toBeInTheDocument();
   });
 });

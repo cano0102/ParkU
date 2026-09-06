@@ -8,10 +8,12 @@ interface SidebarNavProps {
   isMobile: boolean;
   collapsed: boolean;
   onNavigate?: () => void;
+  /** Pendientes por ruta (ver usePendientes): lo que espera a alguien en cada módulo. */
+  pendientes?: Record<string, number>;
 }
 
 /** Lista de enlaces del menú, agrupada por sección (Principal/Administración/Operación). */
-export function SidebarNav({ grouped, activePath, isMobile, collapsed, onNavigate }: SidebarNavProps) {
+export function SidebarNav({ grouped, activePath, isMobile, collapsed, onNavigate, pendientes = {} }: SidebarNavProps) {
   return (
     <nav style={{ flex: 1, padding: "12px 10px", position: "relative", zIndex: 1 }}>
       {grouped.map(({ key, label, items }) => (
@@ -40,6 +42,7 @@ export function SidebarNav({ grouped, activePath, isMobile, collapsed, onNavigat
                 key={item.path}
                 item={item}
                 active={activePath === item.path}
+                pendientes={pendientes[item.path] ?? 0}
                 collapsed={collapsed && !isMobile}
                 onClick={isMobile ? onNavigate : undefined}
               />

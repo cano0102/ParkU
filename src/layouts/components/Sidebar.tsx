@@ -14,16 +14,18 @@ interface SidebarProps {
   userName?: string;
   userRol?: string;
   onLogout: () => void;
+  /** Pendientes por ruta (ver usePendientes). */
+  pendientes?: Record<string, number>;
 }
 
 /** Contenido completo del sidebar: logo, navegación agrupada y tarjeta de usuario. */
-export function Sidebar({ isMobile = false, collapsed, onToggleCollapsed, onCloseMobile, grouped, activePath, userName, userRol, onLogout }: SidebarProps) {
+export function Sidebar({ isMobile = false, collapsed, onToggleCollapsed, onCloseMobile, grouped, activePath, userName, userRol, onLogout, pendientes }: SidebarProps) {
   const navigate = useNavigate();
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       <SidebarHeader isMobile={isMobile} collapsed={collapsed} onToggleCollapsed={onToggleCollapsed} onCloseMobile={onCloseMobile} />
-      <SidebarNav grouped={grouped} activePath={activePath} isMobile={isMobile} collapsed={collapsed} onNavigate={isMobile ? onCloseMobile : undefined} />
+      <SidebarNav grouped={grouped} activePath={activePath} isMobile={isMobile} collapsed={collapsed} onNavigate={isMobile ? onCloseMobile : undefined} pendientes={pendientes} />
       <SidebarUserCard
         userName={userName}
         userRol={userRol}

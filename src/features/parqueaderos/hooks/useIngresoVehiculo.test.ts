@@ -345,7 +345,16 @@ describe('useIngresoVehiculo — condición de carrera: la celda pudo dejar de e
   /* Una reserva ocupa una FRANJA de la celda, no la celda entera (ver lib/agendaCelda.ts):
      lo que decide quién puede estacionar es la hora, no un estado pegado a la celda. Estas
      reservas se construyen relativas al reloj porque justamente eso es lo que se prueba —
-     con una fecha fija las pruebas dejarían de tocar la regla al día siguiente. */
+     con una fecha fija las pruebas dejarían de tocar la regla al día siguiente. Y el reloj se
+     congela a media mañana para que la franja no se salga del día: de tarde, "dentro de seis
+     horas" cae en la madrugada siguiente y, sobre una sola fecha, terminaría antes de
+     empezar. */
+  beforeEach(() => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.setSystemTime(new Date("2026-03-10T10:00:00"));
+  });
+  afterEach(() => { vi.useRealTimers(); });
+
   const reservaEntre = (desdeMin: number, hastaMin: number, over: Partial<Reserva> = {}): Reserva => {
     const hhmm = (min: number) => {
       const d = new Date(Date.now() + min * 60000);

@@ -21,6 +21,7 @@ import { OcupacionPanel } from "./components/OcupacionPanel";
 import { DistribucionPanel } from "./components/DistribucionPanel";
 import { MovimientosPanel } from "./components/MovimientosPanel";
 import { ReservasIncidentesPanel } from "./components/ReservasIncidentesPanel";
+import { AvisosPanel } from "./components/AvisosPanel";
 import ConductorDashboard from "./components/ConductorDashboard";
 
 const COLORS = theme;
@@ -80,6 +81,15 @@ export default function Dashboard() {
           <Kpi label="Vehículos registrados" value={d.vehiculosActivos.length} detail={`${d.vehicleDistribution[0].value} carros · ${d.vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
           <Kpi label="Conductores registrados" value={d.conductoresActivos.length} detail={`${d.conductorDistribution[0].value} aprendices · ${d.conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
         </div>
+
+        {/* Lo que espera a alguien va arriba, antes que cualquier estadística: son las dos
+            cosas que alguien tiene que ir a resolver hoy. */}
+        <AvisosPanel
+          reservasPendientes={d.reservaCounts.pendiente}
+          incidentesPendientes={d.incidentesPendientes.length}
+          onVerReservas={() => navigate("/app/reservas")}
+          onVerIncidentes={() => navigate("/app/incidentes")}
+        />
 
         <div className="grid gap-6 xl:grid-cols-12">
           <ParqueaderosPanel
