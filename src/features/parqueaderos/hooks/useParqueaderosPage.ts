@@ -25,7 +25,10 @@ export function useParqueaderosPage() {
   const ingreso = useIngresoVehiculo(data, modal.celdaActiva, modal.parqueaderoActivo, modal.setOpenModal);
   const scanner = useOcrScanner(modal.celdaActiva, ingreso.setVehiculoForm, modal.openModal, modal.setOpenModal);
   const reserva = useReservaCelda(data, modal.celdaActiva, modal.getOcupante, data.updateControlSalida, modal.setOpenModal);
-  const incidente = useIncidenteReporte(data, modal.celdaActiva, modal.ocupanteActivo, modal.setOpenModal);
+  const incidente = useIncidenteReporte(
+    data, modal.celdaActiva, modal.ocupanteActivo, modal.setOpenModal,
+    { conductores: data.conductores, vehiculos: data.vehiculos },
+  );
 
   // Sub-pasos "Crear conductor" / "Crear vehículo" del asistente de Estacionar Vehículo:
   // mismos hooks que ya usa la pantalla de Conductores (fetch ya cacheado por React Query,

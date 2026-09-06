@@ -219,4 +219,22 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
 
     expect(result.current.puedeRegistrarNovedades).toBe(false);
   });
+
+  /* Comunidad SENA sí reporta incidentes, pero la API le rechaza el reporte si manda
+     prioridad o encargado: los define el personal autorizado al aceptarlo. Van vacíos para
+     que `toApiPayload` ni siquiera los envíe. */
+  it('un conductor reporta sin mandar prioridad ni encargado', async () => {
+    useAuthMock.mockReturnValue({ user: { id: '5', rol: ROLES.CONDUCTOR } });
+    const data = { addIncidente: vi.fn().mockResolvedValue(undefined) };
+    const { result } = setup(data);
+
+    act(() => result.current.setIncidenteForm((f) => ({
+      ...f, descripcion: 'Me rayaron el carro', tipoNovedad: 'danio',
+    })));
+    await act(async () => { await result.current.registrarIncidente(); });
+
+    expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({
+      prioridad: '', usuarioAsignadoId: '',
+    }));
+  });
 });

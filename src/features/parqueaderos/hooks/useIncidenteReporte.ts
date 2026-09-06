@@ -4,7 +4,10 @@ import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { useIncidentes, ESTADOS_ABIERTOS } from "@/features/incidentes";
 import type { Celda } from "@/services/api/celdas";
+import type { Conductor } from "@/services/api/conductores";
+import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Ocupante, IncidenteForm } from "../lib/helpers";
+import type { PrioridadNovedad } from "@/services/api/incidentes";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 
@@ -26,7 +29,7 @@ const emptyIncidenteForm = (usuarioReportaId = ""): IncidenteForm => ({
   clase: "incidente", usuarioReportaId, descripcion: "",
   // Vacíos a propósito: tipo y prioridad son obligatorios, y un valor por defecto los
   // convertiría en una elección que nadie hizo.
-  tipoNovedad: "", tipoOtro: "", prioridad: "", usuarioAsignadoId: "",
+  tipoNovedad: "", tipoOtro: "", prioridad: "", vehiculoId: "", usuarioAsignadoId: "",
 });
 
 /**
@@ -53,7 +56,9 @@ export function useIncidenteReporte(
   data: Pick<ParqueaderosData, "addIncidente">,
   celdaActiva: Celda | null,
   ocupanteActivo: Ocupante | null,
-  setOpenModal: (m: ModalKind) => void
+  setOpenModal: (m: ModalKind) => void,
+  /** Para ofrecer solo los vehículos de quien figura como reportante. */
+  flota: { conductores: Conductor[]; vehiculos: Vehiculo[] } = { conductores: [], vehiculos: [] },
 ) {
   const { user } = useAuth();
   const esConductor = user?.rol === ROLES.CONDUCTOR;
@@ -154,12 +159,20 @@ export function useIncidenteReporte(
         parqueaderoId: objetivo.parqueaderoId,
         // Una novedad no ocurre "sobre" una celda ni un vehículo: no los arrastra.
         celdaId: esNovedad ? "" : (objetivo.celdaId ?? ""),
-        vehiculoId: esNovedad ? "" : (objetivo.vehiculoId ?? ""),
-        usuarioAsignadoId: incidenteForm.usuarioAsignadoId,
+        // El del contexto manda (se reporta sobre un vehículo concreto); si no hay, el que se
+        // haya elegido a mano entre los de quien reporta.
+        vehiculoId: esNovedad ? "" : (objetivo.vehiculoId || incidenteForm.vehiculoId),
+        // Comunidad SENA no elige prioridad ni encargado: los pone el personal autorizado al
+        // aceptar el reporte, y mandarlos vacíos hace que ni siquiera viajen.
+        usuarioAsignadoId: esConductor ? "" : incidenteForm.usuarioAsignadoId,
         usuarioReportaId: incidenteForm.usuarioReportaId,
         tipoNovedad: esNovedad ? "otro" : (incidenteForm.tipoNovedad || "otro"),
         tipoOtro: incidenteForm.tipoNovedad === "otro" ? incidenteForm.tipoOtro.trim() : "",
-        prioridad: incidenteForm.prioridad || "media",
+        /* Vacía cuando quien reporta no puede elegirla: `toApiPayload` no envía los campos
+           vacíos, así que la prioridad queda sin definir hasta que alguien acepte el reporte
+           (que es justo la regla del backend). El tipo pide un valor concreto, pero la
+           creación admite este hueco a propósito. */
+        prioridad: (esConductor ? "" : (incidenteForm.prioridad || "media")) as PrioridadNovedad,
         estado: "pendiente",
         justificacionCierre: "",
       });
@@ -172,8 +185,18 @@ export function useIncidenteReporte(
     }
   }, [objetivo, incidenteForm, esConductor, incidenteAbiertoExisteParaCeldaActiva, data, closeIncidenteModal]);
 
+  /* Los vehículos de quien reporta. Un conductor se identifica por su cuenta de usuario, así
+     que se llega a sus vehículos por ahí: ofrecer la flota entera obligaba a buscar una placa
+     entre cientos cuando casi siempre es uno de los suyos. */
+  const vehiculosDelReportante = useMemo(() => {
+    const conductor = flota.conductores.find((c) => c.usuarioId === incidenteForm.usuarioReportaId);
+    if (!conductor) return [];
+    return flota.vehiculos.filter((v) => v.conductorId === conductor.id);
+  }, [flota.conductores, flota.vehiculos, incidenteForm.usuarioReportaId]);
+
   return {
     incidenteForm, setIncidenteForm, incidenteError,
+    vehiculosDelReportante,
     closeIncidenteModal, registrarIncidente, abrirReporte,
     incidenteAbiertoExisteParaCeldaActiva,
     objetivo, puedeRegistrarNovedades,

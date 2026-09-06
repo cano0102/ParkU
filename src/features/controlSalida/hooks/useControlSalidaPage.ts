@@ -106,8 +106,8 @@ export function useControlSalidaPage() {
     [createIncidenteMutation],
   );
 
-  /* Quién puede figurar como autor del reporte: siempre la propia cuenta, más el resto de
-     personas cuando la lista está disponible (solo Admin puede listar usuarios). */
+  /* Quién puede figurar como autor del reporte: quien lo escribe. Solo un Administrador
+     puede ponerlo a nombre de otra persona (ver useParqueaderosData). */
   const { user } = useAuth();
   const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
   const usuariosReportantes = useMemo<Usuario[]>(() => {
@@ -116,6 +116,7 @@ export function useControlSalidaPage() {
       id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
       password: "", numero: user.numero ?? "", estado: "activo",
     };
+    if (user.rol !== ROLES.ADMIN) return [propia];
     return [propia, ...usuarios.filter((u) => u.id !== user.id)];
   }, [usuarios, user]);
 
@@ -131,6 +132,7 @@ export function useControlSalidaPage() {
     null,
     null,
     (m) => setReporteAbierto(m === "incidente"),
+    { conductores, vehiculos },
   );
   const abrirReporteDe = useCallback((control: ControlSalida) => {
     const vehiculo = getVehiculo(control.vehiculoId);

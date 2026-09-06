@@ -272,3 +272,42 @@ describe("CeldaInfoModal — ajuste manual de estado", () => {
     expect(screen.queryByText("Disponible")).not.toBeInTheDocument();
   });
 });
+
+/* Reportar no depende de que la celda esté ocupada ni del rol que gestiona el parqueadero:
+   quien ve la celda tiene que poder decir que algo pasa con ella. */
+describe("CeldaInfoModal — reportar sobre una celda libre", () => {
+  it("ofrece reportar a quien tiene el permiso, con la celda vacía", () => {
+    const onReportarIncidente = vi.fn();
+    render(
+      <CeldaInfoModal
+        {...baseProps(false)}
+        canReportarIncidentes
+        onReportarIncidente={onReportarIncidente}
+      />
+    );
+
+    fireEvent.click(screen.getByText(/Reportar/));
+    expect(onReportarIncidente).toHaveBeenCalled();
+  });
+
+  it("no lo ofrece a quien no tiene ese permiso", () => {
+    render(<CeldaInfoModal {...baseProps(false)} canReportarIncidentes={false} />);
+    expect(screen.queryByText(/Reportar/)).not.toBeInTheDocument();
+  });
+
+  it("no deja acumular reportes sobre lo mismo", () => {
+    const onReportarIncidente = vi.fn();
+    render(
+      <CeldaInfoModal
+        {...baseProps(false)}
+        canReportarIncidentes
+        incidenteAbiertoExiste
+        onReportarIncidente={onReportarIncidente}
+      />
+    );
+
+    expect(screen.getByText(/Ya reportado/)).toBeDisabled();
+    fireEvent.click(screen.getByText(/Ya reportado/));
+    expect(onReportarIncidente).not.toHaveBeenCalled();
+  });
+});

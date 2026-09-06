@@ -82,6 +82,8 @@ export function ControlSalidaPage() {
         usuariosAsignables={[]}
         usuariosReportantes={p.usuariosReportantes}
         puedeRegistrarNovedades={p.reporte.puedeRegistrarNovedades}
+        vehiculosDelReportante={p.reporte.vehiculosDelReportante}
+        vehiculoFijado={!!p.reporte.objetivo?.vehiculoId}
         etiquetaContexto={p.reporte.objetivo?.etiqueta}
         onClose={p.reporte.closeIncidenteModal}
         onSubmit={p.reporte.registrarIncidente}

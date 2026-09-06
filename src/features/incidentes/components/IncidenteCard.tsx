@@ -9,6 +9,7 @@ import {
   IconMapPin as MapPin,
   IconTrash as Trash2,
   IconUser as User,
+  IconUserPlus as UserPlus,
 } from "@tabler/icons-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
@@ -23,6 +24,10 @@ interface IncidenteCardProps {
   incidente: Incidente;
   celda: Celda | undefined;
   vehiculoPlaca?: string;
+  /** Dueño del vehículo implicado, cuando el reporte lleva uno. */
+  propietarioNombre?: string;
+  /** Quién levantó el reporte. Sin esto no hay a quién volver a preguntarle. */
+  reportanteNombre?: string;
   asignadoNombre?: string;
   nombreParqueadero: string;
   onView: () => void;
@@ -32,7 +37,7 @@ interface IncidenteCardProps {
 }
 
 /** Tarjeta de un incidente en el grid: resumen, ubicación y acciones rápidas. */
-export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidenteCardProps) {
+export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNombre, reportanteNombre, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidenteCardProps) {
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
   // Resuelto, rechazado y cancelado son finales: en vez del selector se muestra la etiqueta
@@ -104,13 +109,23 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre,
           {vehiculoPlaca && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
               <Car size={12} color={C.textLight} />
-              <span>{vehiculoPlaca}</span>
+              <span>
+                {vehiculoPlaca}
+                {propietarioNombre && <span style={{ color: C.textLight }}> · {propietarioNombre}</span>}
+              </span>
+            </div>
+          )}
+          {/* Quién reportó: sin esto no hay a quién volver a preguntarle qué pasó. */}
+          {reportanteNombre && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
+              <UserPlus size={12} color={C.textLight} />
+              <span>Reportó <strong>{reportanteNombre}</strong></span>
             </div>
           )}
           {asignadoNombre && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
               <User size={12} color={C.textLight} />
-              <span>{asignadoNombre}</span>
+              <span>A cargo de {asignadoNombre}</span>
             </div>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: C.textLight }}>

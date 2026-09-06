@@ -70,3 +70,24 @@ describeCrudContract<Incidente>(
   }),
   () => ({ estado: 'resuelto', justificacionCierre: 'Resuelto en el test' }),
 );
+
+/* La API rechaza que Comunidad SENA mande prioridad o encargado —los define el personal
+   autorizado al aceptar el reporte—, y mandarlos en null contaba como mandarlos. */
+describe('incidentes API — campos que no deben viajar vacíos', () => {
+  it('no envía prioridad ni usuario asignado cuando vienen vacíos', async () => {
+    apiFetchMock.mockClear();
+    apiFetchMock.mockResolvedValue({ id: 9 });
+
+    await incidentes.create({
+      clase: 'incidente', tipoNovedad: 'danio', tipoOtro: '', usuarioReportaId: '5',
+      prioridad: '' as never, descripcion: 'Me rayaron el carro',
+      parqueaderoId: '1', celdaId: '', vehiculoId: '', usuarioAsignadoId: '',
+      fecha: '2026-01-01T00:00:00.000Z', estado: 'pendiente', justificacionCierre: '',
+    });
+
+    const [, opciones] = apiFetchMock.mock.calls[0];
+    expect(opciones.body).not.toHaveProperty('prioridad');
+    expect(opciones.body).not.toHaveProperty('usuario_asignado_id');
+    expect(opciones.body).toMatchObject({ clase: 'INCIDENTE', usuario_reporta_id: 5 });
+  });
+});

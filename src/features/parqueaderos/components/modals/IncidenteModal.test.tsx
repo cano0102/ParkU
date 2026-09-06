@@ -43,7 +43,7 @@ const vigilante: Usuario = {
 
 const emptyForm = (): IncidenteForm => ({
   clase: "incidente", usuarioReportaId: "u1", descripcion: "",
-  tipoNovedad: "", tipoOtro: "", prioridad: "", usuarioAsignadoId: "",
+  tipoNovedad: "", tipoOtro: "", prioridad: "", vehiculoId: "", usuarioAsignadoId: "",
 });
 
 function baseProps(overrides: Partial<Parameters<typeof IncidenteModal>[0]> = {}) {
@@ -55,6 +55,8 @@ function baseProps(overrides: Partial<Parameters<typeof IncidenteModal>[0]> = {}
     incidenteForm: emptyForm(),
     setIncidenteForm: vi.fn(),
     incidenteError: null,
+    // Personal autorizado: es quien elige prioridad y encargado.
+    puedeRegistrarNovedades: true,
     usuariosAsignables: [vigilante],
     onClose: vi.fn(),
     onSubmit: vi.fn(),

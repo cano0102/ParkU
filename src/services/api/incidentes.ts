@@ -101,12 +101,15 @@ function toApiPayload(data: Partial<Omit<Incidente, 'id'>>): Record<string, unkn
   if (data.tipoNovedad !== undefined) payload.tipo_novedad = data.tipoNovedad.toUpperCase();
   if (data.tipoOtro !== undefined) payload.tipo_otro = data.tipoOtro || null;
   if (data.usuarioReportaId !== undefined) payload.usuario_reporta_id = data.usuarioReportaId ? Number(data.usuarioReportaId) : undefined;
-  if (data.prioridad !== undefined) payload.prioridad = data.prioridad.toUpperCase();
+  /* Vacío significa "no lo envío", no "ponlo en null": la API rechaza que Comunidad SENA
+     mande prioridad o asignación (las define el personal autorizado al aceptar el reporte),
+     y mandarlas en null contaba como mandarlas. */
+  if (data.prioridad) payload.prioridad = data.prioridad.toUpperCase();
   if (data.descripcion !== undefined) payload.descripcion = data.descripcion;
   if (data.parqueaderoId !== undefined) payload.parqueadero_id = data.parqueaderoId ? Number(data.parqueaderoId) : null;
   if (data.celdaId !== undefined) payload.celda_id = data.celdaId ? Number(data.celdaId) : null;
   if (data.vehiculoId !== undefined) payload.vehiculo_id = data.vehiculoId ? Number(data.vehiculoId) : null;
-  if (data.usuarioAsignadoId !== undefined) payload.usuario_asignado_id = data.usuarioAsignadoId ? Number(data.usuarioAsignadoId) : null;
+  if (data.usuarioAsignadoId) payload.usuario_asignado_id = Number(data.usuarioAsignadoId);
   if (data.fecha !== undefined) payload.fecha_hora = data.fecha;
   if (data.estado !== undefined) payload.estado = ESTADO_A_API[data.estado];
   if (data.justificacionCierre !== undefined) payload.justificacion_cierre = data.justificacionCierre || null;

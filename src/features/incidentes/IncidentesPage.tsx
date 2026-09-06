@@ -59,6 +59,8 @@ export function Incidentes() {
               celdaDe={p.celdaDe}
               vehiculoDe={p.vehiculoDe}
               nombreUsuarioAsignado={p.nombreUsuarioAsignado}
+              nombreUsuarioReporta={p.nombreUsuarioReporta}
+              conductorDe={p.conductorDe}
               nombreParqueadero={p.nombreParqueadero}
               onView={p.openView}
               onEdit={p.openEdit}

@@ -1,5 +1,6 @@
 import { IconAlertTriangle as AlertTriangle, IconFileText as FileText } from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
+import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Usuario } from "@/services/api/usuarios";
 import type { TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
@@ -26,6 +27,11 @@ interface IncidenteModalProps {
   usuariosAsignables: Usuario[];
   /** Candidatos a "quién reporta". Puede venir vacío: se ofrece igual la propia cuenta. */
   usuariosReportantes?: Usuario[];
+  /** Vehículos de quien figura como reportante. Solo se ofrecen cuando el reporte no viene ya
+   *  sobre un vehículo concreto (desde una celda ocupada, por ejemplo). */
+  vehiculosDelReportante?: Vehiculo[];
+  /** true si el contexto ya trae vehículo: entonces no hay nada que elegir. */
+  vehiculoFijado?: boolean;
   /** Solo el personal del parqueadero registra novedades; a Comunidad SENA ni se le ofrece. */
   puedeRegistrarNovedades?: boolean;
   /** Lo que se está mirando al reportar (celda, vehículo, o solo el parqueadero). */
@@ -37,7 +43,7 @@ interface IncidenteModalProps {
 export function IncidenteModal({
   open, celdaActiva, ocupanteActivo, parqueaderoActivo, incidenteForm, setIncidenteForm,
   incidenteError, usuariosAsignables, usuariosReportantes = [], puedeRegistrarNovedades = false,
-  etiquetaContexto, onClose, onSubmit,
+  vehiculosDelReportante = [], vehiculoFijado = false, etiquetaContexto, onClose, onSubmit,
 }: IncidenteModalProps) {
   const entrada = ocupanteActivo ? formatearFechaHora(ocupanteActivo.fechaEntrada) : null;
   /* Una novedad es una observación de la operación: no ocurre sobre una celda ni un vehículo,
@@ -74,13 +80,16 @@ export function IncidenteModal({
 
         {/* Un reporte sin autor no se le puede devolver a nadie. Por defecto es de quien está
             usando la aplicación; el personal puede dejarlo a nombre de quien se lo comunicó. */}
+        {/* Con una sola opción no hay nada que elegir: solo un Administrador puede dejar el
+            reporte a nombre de otra persona; el resto reporta siempre a su nombre. */}
         <div>
           <label style={labelStyle} htmlFor="incidente-reporta">Reportado por *</label>
           <select
             id="incidente-reporta"
             value={incidenteForm.usuarioReportaId}
             onChange={(e) => setIncidenteForm(prev => ({ ...prev, usuarioReportaId: e.target.value }))}
-            style={selectStyle}
+            disabled={usuariosReportantes.length <= 1}
+            style={{ ...selectStyle, cursor: usuariosReportantes.length <= 1 ? "not-allowed" : "pointer" }}
           >
             {usuariosReportantes.map((u) => (
               <option key={u.id} value={u.id}>{u.nombre}</option>
@@ -132,21 +141,49 @@ export function IncidenteModal({
                   ))}
                 </select>
               </div>
+              {/* La prioridad la define el personal autorizado al aceptar el reporte: a
+                  Comunidad SENA ni se le ofrece, y la API rechaza que la mande. */}
+              {puedeRegistrarNovedades && (
+                <div>
+                  <label style={labelStyle} htmlFor="incidente-prioridad">Prioridad *</label>
+                  <select
+                    id="incidente-prioridad"
+                    value={incidenteForm.prioridad}
+                    onChange={(e) => setIncidenteForm(prev => ({ ...prev, prioridad: e.target.value as PrioridadNovedad | "" }))}
+                    style={selectStyle}
+                  >
+                    <option value="">Selecciona la prioridad…</option>
+                    {(Object.keys(PRIORIDAD_LABEL) as PrioridadNovedad[]).map((p) => (
+                      <option key={p} value={p}>{PRIORIDAD_LABEL[p]}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Solo los vehículos de quien reporta: ofrecer la flota entera obligaba a buscar
+                una placa entre cientos, y casi siempre es uno de los suyos. */}
+            {!vehiculoFijado && (
               <div>
-                <label style={labelStyle} htmlFor="incidente-prioridad">Prioridad *</label>
+                <label style={labelStyle} htmlFor="incidente-vehiculo">Vehículo implicado</label>
                 <select
-                  id="incidente-prioridad"
-                  value={incidenteForm.prioridad}
-                  onChange={(e) => setIncidenteForm(prev => ({ ...prev, prioridad: e.target.value as PrioridadNovedad | "" }))}
+                  id="incidente-vehiculo"
+                  value={incidenteForm.vehiculoId}
+                  onChange={(e) => setIncidenteForm(prev => ({ ...prev, vehiculoId: e.target.value }))}
                   style={selectStyle}
                 >
-                  <option value="">Selecciona la prioridad…</option>
-                  {(Object.keys(PRIORIDAD_LABEL) as PrioridadNovedad[]).map((p) => (
-                    <option key={p} value={p}>{PRIORIDAD_LABEL[p]}</option>
+                  <option value="">Ninguno en particular</option>
+                  {vehiculosDelReportante.map((v) => (
+                    <option key={v.id} value={v.id}>{v.placa} — {v.marca} {v.modelo}</option>
                   ))}
                 </select>
+                {vehiculosDelReportante.length === 0 && (
+                  <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
+                    Quien reporta no tiene vehículos registrados.
+                  </p>
+                )}
               </div>
-            </div>
+            )}
 
             {/* "Otro" sin decir qué es no clasifica nada: esa precisión se perdía. */}
             {incidenteForm.tipoNovedad === "otro" && (
@@ -165,6 +202,7 @@ export function IncidenteModal({
           </>
         )}
 
+        {puedeRegistrarNovedades && (
         <div>
           <label style={labelStyle} htmlFor="incidente-asignado">Asignar a</label>
           <select
@@ -184,6 +222,7 @@ export function IncidenteModal({
             </p>
           )}
         </div>
+        )}
 
         {!esNovedad && (
         <div data-testid="incidente-info-automatica" style={{ fontSize: 12, color: C.textLight, background: C.bg, padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}` }}>

@@ -41,16 +41,17 @@ export function useParqueaderosData() {
   const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
   const usuariosAsignables = useMemo(() => usuarios.filter((u) => u.rol === ROLES.VIGILANTE), [usuarios]);
 
-  /* Quién puede figurar como autor de un reporte. Siempre la propia cuenta —es el caso normal
-     y el único que no depende de poder listar usuarios, que es cosa de Admin—, más el resto
-     de personas registradas cuando la lista está disponible: alguien se acerca a portería a
-     reportar algo y el reporte tiene que quedar a su nombre, no al del vigilante. */
+  /* Quién puede figurar como autor de un reporte. Lo normal es que sea quien lo está
+     escribiendo, y así queda para todos los roles. Solo un Administrador puede ponerlo a
+     nombre de otra persona —alguien se acerca a portería a reportar algo y el reporte debe
+     quedar a su nombre—, que además es el único rol que puede listar usuarios. */
   const usuariosReportantes = useMemo(() => {
     if (!user) return [];
     const propia: Usuario = {
       id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
       password: "", numero: user.numero ?? "", estado: "activo",
     };
+    if (user.rol !== ROLES.ADMIN) return [propia];
     return [propia, ...usuarios.filter((u) => u.id !== user.id)];
   }, [usuarios, user]);
 

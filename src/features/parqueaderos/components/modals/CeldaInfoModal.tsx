@@ -418,6 +418,24 @@ export function CeldaInfoModal({
                     📅 Reservar Celda
                   </button>
                 )}
+                {/* Reportar no depende de que haya un vehículo dentro: el piso, la
+                    demarcación o la señalización de una celda vacía también se reportan, y
+                    hasta ahora no había desde dónde hacerlo. */}
+                {canReportarIncidentes && (
+                  <button
+                    onClick={incidenteAbiertoExiste ? undefined : onReportarIncidente}
+                    disabled={incidenteAbiertoExiste}
+                    title={incidenteAbiertoExiste ? "Ya existe un incidente abierto para esta celda o vehículo." : "Reportar incidente o novedad"}
+                    style={{
+                      flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`,
+                      background: "#fff", color: C.textLight, fontSize: 12, fontWeight: 700,
+                      fontFamily: "inherit", cursor: incidenteAbiertoExiste ? "not-allowed" : "pointer",
+                      opacity: incidenteAbiertoExiste ? 0.55 : 1,
+                    }}
+                  >
+                    ⚠️ {incidenteAbiertoExiste ? "Ya reportado" : "Reportar"}
+                  </button>
+                )}
                 {canSolicitarReserva && onSolicitarReserva && (
                   <button
                     onClick={onSolicitarReserva}

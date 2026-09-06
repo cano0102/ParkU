@@ -13,6 +13,9 @@ interface IncidentesGridProps {
   celdaDe: (id?: string) => Celda | undefined;
   vehiculoDe: (id?: string) => Vehiculo | undefined;
   nombreUsuarioAsignado: (id?: string) => string | undefined;
+  /** Quién levantó cada reporte, y de quién es el vehículo implicado. */
+  nombreUsuarioReporta: (id?: string) => string | undefined;
+  conductorDe: (vehiculoId?: string) => { nombre: string } | undefined;
   nombreParqueadero: (id: string) => string;
   onView: (incidente: Incidente) => void;
   onEdit: (incidente: Incidente) => void;
@@ -21,7 +24,7 @@ interface IncidentesGridProps {
 }
 
 /** Grid de tarjetas de incidente, o el estado vacío cuando el filtro no arroja resultados. */
-export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioAsignado, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidentesGridProps) {
+export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioAsignado, nombreUsuarioReporta, conductorDe, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidentesGridProps) {
   if (incidentes.length === 0) {
     return (
       <div style={{
@@ -56,6 +59,8 @@ export function IncidentesGrid({ incidentes, celdaDe, vehiculoDe, nombreUsuarioA
           incidente={incidente}
           celda={celdaDe(incidente.celdaId)}
           vehiculoPlaca={vehiculoDe(incidente.vehiculoId)?.placa}
+          propietarioNombre={conductorDe(incidente.vehiculoId)?.nombre}
+          reportanteNombre={nombreUsuarioReporta(incidente.usuarioReportaId)}
           asignadoNombre={nombreUsuarioAsignado(incidente.usuarioAsignadoId)}
           nombreParqueadero={nombreParqueadero(incidente.parqueaderoId)}
           onView={() => onView(incidente)}

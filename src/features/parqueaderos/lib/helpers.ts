@@ -73,6 +73,8 @@ export interface IncidenteForm {
   /** En qué consiste, cuando el tipo es "otro". */
   tipoOtro: string;
   prioridad: PrioridadNovedad | "";
+  /** Vehículo implicado, cuando el reporte no viene ya con uno (p. ej. desde una celda). */
+  vehiculoId: string;
   usuarioAsignadoId: string;
 }
 

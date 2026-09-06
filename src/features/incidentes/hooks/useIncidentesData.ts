@@ -86,6 +86,14 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const celdaDe = (id?: string) => (id ? celdaPorId.get(id) : undefined);
   const vehiculoDe = (id?: string) => (id ? vehiculoPorId.get(id) : undefined);
   const nombreUsuarioAsignado = (id?: string) => (id ? usuarioPorId.get(id)?.nombre : undefined);
+  /* Quién reportó. La lista de usuarios solo la puede leer un Administrador, así que para el
+     resto se cae al nombre de la propia cuenta cuando el reporte es suyo — que es el caso
+     más frecuente— y a un guion cuando no hay forma de resolverlo. */
+  const nombreUsuarioReporta = (id?: string) => {
+    if (!id) return undefined;
+    if (user && id === user.id) return user.nombre;
+    return usuarioPorId.get(id)?.nombre;
+  };
   // Trazabilidad del incidente hacia la persona: novedad -> vehiculo_id -> conductor_principal
   // (no hay FK directa novedad->conductor, ver services/api/incidentes.ts).
   const conductorDe = (vehiculoId?: string) => {
@@ -210,6 +218,7 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     vehiculoDe,
     conductorDe,
     nombreUsuarioAsignado,
+    nombreUsuarioReporta,
     ocupanteDeCelda,
     pendientes,
     enProceso,
