@@ -41,7 +41,10 @@ const vigilante: Usuario = {
   id: "u2", correo: "ana@sena.edu.co", password: "", nombre: "Ana Martínez R.", numero: "", rol: ROLES.VIGILANTE, estado: "activo",
 };
 
-const emptyForm = (): IncidenteForm => ({ descripcion: "", tipoNovedad: "otro", prioridad: "media", usuarioAsignadoId: "" });
+const emptyForm = (): IncidenteForm => ({
+  clase: "incidente", usuarioReportaId: "u1", descripcion: "",
+  tipoNovedad: "", tipoOtro: "", prioridad: "", usuarioAsignadoId: "",
+});
 
 function baseProps(overrides: Partial<Parameters<typeof IncidenteModal>[0]> = {}) {
   return {
@@ -97,11 +100,11 @@ describe("IncidenteModal — tipo, prioridad y asignar a", () => {
     const user = userEvent.setup();
     render(<ControlledWrapper />);
 
-    await user.selectOptions(screen.getByLabelText("Tipo"), "danio");
+    await user.selectOptions(screen.getByLabelText("Tipo *"), "danio");
     await user.selectOptions(screen.getByLabelText("Prioridad *"), "critica");
     await user.selectOptions(screen.getByLabelText("Asignar a"), "Ana Martínez R.");
 
-    expect(screen.getByLabelText("Tipo")).toHaveValue("danio");
+    expect(screen.getByLabelText("Tipo *")).toHaveValue("danio");
     expect(screen.getByLabelText("Prioridad *")).toHaveValue("critica");
     expect(screen.getByLabelText("Asignar a")).toHaveValue("u2");
   });

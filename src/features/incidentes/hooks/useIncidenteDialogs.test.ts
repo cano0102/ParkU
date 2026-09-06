@@ -9,7 +9,8 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.f
 
 function incidenteBase(overrides: Partial<Incidente>): Incidente {
   return {
-    id: 'i1', tipoNovedad: 'otro', prioridad: 'media', descripcion: 'Preexistente',
+    id: 'i1', clase: 'incidente', tipoNovedad: 'otro', tipoOtro: '', usuarioReportaId: '1',
+    prioridad: 'media', descripcion: 'Preexistente',
     parqueaderoId: '1', celdaId: '', vehiculoId: '', usuarioAsignadoId: '',
     fecha: '2025-06-01T00:00:00.000Z', estado: 'pendiente', justificacionCierre: '',
     ...overrides,

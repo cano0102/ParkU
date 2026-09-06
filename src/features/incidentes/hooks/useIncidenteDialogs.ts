@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { Incidente, TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
+import type { Incidente, TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
 import { ESTADOS_ABIERTOS, type EstadoIncidente } from "../lib/constants";
 import { requiereEncargado, requiereMotivo } from "../lib/transiciones";
 import type { IncidentesData } from "./useIncidentesData";
 
 const emptyFormData = () => ({
+  clase: "incidente" as ClaseNovedad,
+  tipoOtro: "",
+  usuarioReportaId: "",
   descripcion: "",
   parqueaderoId: "",
   celdaId: "",
@@ -89,6 +92,9 @@ export function useIncidenteDialogs(data: IncidentesData) {
       celdaId: incidente.celdaId || "",
       vehiculoId: incidente.vehiculoId || "",
       usuarioAsignadoId: incidente.usuarioAsignadoId || "",
+      clase: incidente.clase,
+      tipoOtro: incidente.tipoOtro || "",
+      usuarioReportaId: incidente.usuarioReportaId || "",
       tipoNovedad: incidente.tipoNovedad,
       prioridad: incidente.prioridad,
       estado: incidente.estado,

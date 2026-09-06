@@ -1,9 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { useControlSalida, useRemoveControlSalida, useUpdateControlSalida } from "./useControlSalida";
+import { useControlSalida, useUpdateControlSalida } from "./useControlSalida";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
-import { useCeldas, useParqueaderos, useUpdateCelda } from "@/features/parqueaderos";
+import { useCeldas, useParqueaderos, useUpdateCelda, useIncidenteReporte } from "@/features/parqueaderos";
+import { useCreateIncidente } from "@/features/incidentes";
+import type { Incidente } from "@/services/api/incidentes";
+import { useUsuarios } from "@/features/usuarios";
+import type { Usuario } from "@/services/api/usuarios";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { PAGE_SIZE } from "../lib/helpers";
 
 /** Datos, filtros, paginación y eliminación del historial de entrada/salida. */
@@ -13,21 +19,16 @@ export function useControlSalidaPage() {
   const { data: celdas = [] } = useCeldas();
   const { data: conductores = [] } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
-  const removeControlSalidaMutation = useRemoveControlSalida();
   const updateControlSalidaMutation = useUpdateControlSalida();
   const updateCeldaMutation = useUpdateCelda();
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" cuando la mutación en realidad falla.
-  const deleteControlSalida = useCallback(
-    (id: string) => removeControlSalidaMutation.mutateAsync(id),
-    [removeControlSalidaMutation]
-  );
 
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | "en_parqueadero" | "finalizado">("todos");
   const [filterParqueadero, setFilterParqueadero] = useState<string>("todos");
   const [page, setPage] = useState(1);
-  const [confirmDelete, setConfirmDelete] = useState<ControlSalida | null>(null);
+
 
   const getVehiculo = useCallback((vehiculoId: string) => vehiculos.find((v) => v.id === vehiculoId), [vehiculos]);
   const getCelda = useCallback((celdaId: string) => celdas.find((c) => c.id === celdaId), [celdas]);
@@ -97,7 +98,50 @@ export function useControlSalidaPage() {
     [filteredControles, currentPage]
   );
 
-  const handleDelete = useCallback((control: ControlSalida) => setConfirmDelete(control), []);
+  /* Un movimiento registrado es historia del parqueadero: no se borra, se consulta. La
+     acción de eliminar desaparece y en su lugar queda la ficha completa. */
+  const createIncidenteMutation = useCreateIncidente();
+  const addIncidente = useCallback(
+    (data: Omit<Incidente, "id" | "fecha">) => createIncidenteMutation.mutateAsync({ ...data, fecha: new Date().toISOString() }),
+    [createIncidenteMutation],
+  );
+
+  /* Quién puede figurar como autor del reporte: siempre la propia cuenta, más el resto de
+     personas cuando la lista está disponible (solo Admin puede listar usuarios). */
+  const { user } = useAuth();
+  const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
+  const usuariosReportantes = useMemo<Usuario[]>(() => {
+    if (!user) return [];
+    const propia: Usuario = {
+      id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
+      password: "", numero: user.numero ?? "", estado: "activo",
+    };
+    return [propia, ...usuarios.filter((u) => u.id !== user.id)];
+  }, [usuarios, user]);
+
+  const [detalle, setDetalle] = useState<ControlSalida | null>(null);
+  const verDetalle = useCallback((control: ControlSalida) => setDetalle(control), []);
+
+  /* Reportar desde aquí ahorra volver a buscar lo que esta pantalla ya tiene delante: la
+     celda, el parqueadero y el vehículo del movimiento. Es el mismo formulario del plano
+     (mismas reglas de qué exige un incidente y qué una novedad). */
+  const [reporteAbierto, setReporteAbierto] = useState(false);
+  const reporte = useIncidenteReporte(
+    { addIncidente },
+    null,
+    null,
+    (m) => setReporteAbierto(m === "incidente"),
+  );
+  const abrirReporteDe = useCallback((control: ControlSalida) => {
+    const vehiculo = getVehiculo(control.vehiculoId);
+    const celda = getCelda(control.celdaId);
+    reporte.abrirReporte({
+      parqueaderoId: control.parqueaderoId,
+      celdaId: control.celdaId,
+      vehiculoId: control.vehiculoId,
+      etiqueta: `${celda ? `Celda ${celda.numero}` : "Sin celda"}${vehiculo ? ` · ${vehiculo.placa}` : ""}`,
+    });
+  }, [reporte, getVehiculo, getCelda]);
 
   // Registrar salida directo desde esta pantalla — antes el único lugar donde liberar una
   // celda era el mapa/tabla de Parqueaderos (ver useReservaCelda.ts#handleRequestLiberar,
@@ -121,19 +165,6 @@ export function useControlSalidaPage() {
     [updateControlSalidaMutation, updateCeldaMutation]
   );
 
-  const confirmDeleteAction = useCallback(async () => {
-    if (!confirmDelete) return;
-    try {
-      await deleteControlSalida(confirmDelete.id);
-      toast.success("Registro eliminado correctamente");
-      setConfirmDelete(null);
-    } catch (error) {
-      // El toast de error ya lo muestra el manejador centralizado de mutaciones
-      // (services/core/queryFactory.ts).
-      console.error("Error deleting control de salida:", error);
-    }
-  }, [confirmDelete, deleteControlSalida]);
-
   const clearFilters = useCallback(() => {
     setSearch("");
     setFilterEstado("todos");
@@ -145,12 +176,13 @@ export function useControlSalidaPage() {
   return {
     controlesSalida, parqueaderos,
     search, setSearch, filterEstado, setFilterEstado, filterParqueadero, setFilterParqueadero,
-    confirmDelete, setConfirmDelete,
     getVehiculo, getCelda, getParqueadero, getUsuarioConductor,
     celdasDisponibles, vehiculosEnParqueadero, vehiculosSalidos,
     filteredControles, paginatedControles,
     currentPage, totalPages, setPage,
-    handleDelete, confirmDeleteAction, clearFilters, hasActiveFilters, handleLiberar,
+    detalle, verDetalle, cerrarDetalle: () => setDetalle(null), usuariosReportantes,
+    reporte, abrirReporteDe, reporteAbierto,
+    clearFilters, hasActiveFilters, handleLiberar,
     isLoading,
   };
 }

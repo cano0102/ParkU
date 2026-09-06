@@ -3,7 +3,7 @@ import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Celda } from "@/services/api/celdas";
-import type { TipoNovedad, PrioridadNovedad, Incidente } from "@/services/api/incidentes";
+import type { TipoNovedad, PrioridadNovedad, Incidente, ClaseNovedad } from "@/services/api/incidentes";
 import { theme } from "@/styles/theme";
 import { IncidenteBasicFields } from "./IncidenteBasicFields";
 import { IncidenteVehiculoAsignadoFields } from "./IncidenteVehiculoAsignadoFields";
@@ -11,6 +11,11 @@ import { IncidenteVehiculoAsignadoFields } from "./IncidenteVehiculoAsignadoFiel
 const C = theme;
 
 interface IncidenteFormData {
+  clase: ClaseNovedad;
+  /** En qué consiste, cuando el tipo es "otro". */
+  tipoOtro: string;
+  /** Quién reporta: por defecto quien está usando la aplicación. */
+  usuarioReportaId: string;
   descripcion: string;
   parqueaderoId: string;
   celdaId: string;

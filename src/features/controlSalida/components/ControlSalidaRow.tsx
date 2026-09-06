@@ -2,7 +2,8 @@ import {
   IconCar as Car,
   IconLogout as LogOut,
   IconCircleLetterP as ParkingCircle,
-  IconTrash as Trash2,
+  IconEye as Eye,
+  IconAlertTriangle as AlertTriangle,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { ControlSalida } from "@/services/api/controlSalida";
@@ -22,7 +23,12 @@ interface ControlSalidaRowProps {
   celda: Celda | undefined;
   usuario: Conductor | null | undefined;
   parqueadero: Parqueadero | null | undefined;
-  onDelete: (control: ControlSalida) => void;
+  /** Abre la ficha completa del movimiento. Un registro no se borra —es historia del
+   *  parqueadero—, se consulta. */
+  onVerDetalle: (control: ControlSalida) => void;
+  /** Reportar un incidente o novedad sobre este movimiento: lleva ya la celda, el
+   *  parqueadero y el vehículo, que es justo lo que costaba volver a buscar. */
+  onReportar?: (control: ControlSalida) => void;
   /** Registra la salida de un registro activo y libera su celda — mismo par de llamadas que
    *  ya usa el flujo "Liberar Celda" del mapa/tabla de Parqueaderos, disponible acá también
    *  para quien busque esa acción por el nombre de esta pantalla. */
@@ -30,7 +36,7 @@ interface ControlSalidaRowProps {
 }
 
 /** Una fila del historial: vehículo, conductor, celda, parqueadero, entrada/salida, estadía y acciones. */
-export function ControlSalidaRow({ control, vehiculo, celda, usuario, parqueadero, onDelete, onLiberar }: ControlSalidaRowProps) {
+export function ControlSalidaRow({ control, vehiculo, celda, usuario, parqueadero, onVerDetalle, onReportar, onLiberar }: ControlSalidaRowProps) {
   const esActivo = control.estado === "en_parqueadero";
   const esHoy = isSameDay(control.fechaEntrada, new Date());
 
@@ -121,13 +127,24 @@ export function ControlSalidaRow({ control, vehiculo, celda, usuario, parqueader
         )}
         <button
           className="action-btn"
-          title="Eliminar"
-          aria-label="Eliminar registro"
-          onClick={() => onDelete(control)}
-          style={{ background: "transparent", color: COLORS.danger, padding: 6 }}
+          title="Ver detalle"
+          aria-label={`Ver detalle del movimiento de ${vehiculo?.placa || "el vehículo"}`}
+          onClick={() => onVerDetalle(control)}
+          style={{ background: "transparent", color: COLORS.textLight, padding: 6 }}
         >
-          <Trash2 size={13} />
+          <Eye size={13} />
         </button>
+        {onReportar && (
+          <button
+            className="action-btn"
+            title="Reportar incidente o novedad"
+            aria-label={`Reportar incidente o novedad de ${vehiculo?.placa || "el vehículo"}`}
+            onClick={() => onReportar(control)}
+            style={{ background: "transparent", color: COLORS.warning, padding: 6 }}
+          >
+            <AlertTriangle size={13} />
+          </button>
+        )}
       </div>
     </div>
   );

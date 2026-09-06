@@ -1,7 +1,8 @@
 import React, { memo, useState } from "react";
 import {
   IconCar as Car,
-  IconEye as Eye,
+  IconAlertTriangle as AlertTriangle,
+  IconChevronDown as ChevronDown,
   IconPencil as Pencil,
   IconMapPin as MapPin,
   IconTrash as Trash2,
@@ -16,12 +17,15 @@ const C = theme;
 /* ============================================================
    VISTA TABLA
 ============================================================ */
-export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onDelete, onToggleEstado, onCellClick, cellMatchesSearch, celdaTieneIncidenteAbierto, canManage }: {
+export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEdit, onDelete, onToggleEstado, onReportar, onCellClick, cellMatchesSearch, celdaTieneIncidenteAbierto, canManage }: {
   parqueaderos: Parqueadero[];
   celdas: Celda[];
   getOcupante: (celdaId: string) => Ocupante | null;
   onEdit: (p: Parqueadero) => void;
   onDelete: (p: Parqueadero) => void;
+  /** Reportar un incidente o una novedad sobre este parqueadero, sin pasar por una celda:
+   *  hay cosas que le pasan al parqueadero entero (el portón, la iluminación). */
+  onReportar?: (p: Parqueadero) => void;
   onToggleEstado: (p: Parqueadero) => void;
   onCellClick: (c: Celda) => void;
   cellMatchesSearch: (c: Celda) => boolean;
@@ -73,7 +77,14 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ fontWeight: 800, color: C.text }}>{pq.nombre}</div>
-                    <div style={{ fontSize: 10, color: C.textLight, marginBottom: 3 }}>{pq.zona || pq.ubicacion} · {celdasPq.length} celdas</div>
+                    <div style={{ fontSize: 10, color: C.textLight, marginBottom: 3, display: "flex", alignItems: "center", gap: 4 }}>
+                      <span>{pq.zona || pq.ubicacion} · {celdasPq.length} celdas</span>
+                      {/* Que se pueda desplegar no se adivina: sin esta señal, las celdas de un
+                          parqueadero quedaban escondidas detrás de un clic que nadie sabía dar. */}
+                      <span style={{ color: C.primary, fontWeight: 700 }}>
+                        · {isExpanded ? "ocultar celdas" : "ver celdas"}
+                      </span>
+                    </div>
                     <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
                       {Object.entries(TIPO_CELDA_CONFIG).map(([tipo, cfg]) => {
                         const total = celdasPq.filter(c => c.tipo === tipo).length;
@@ -131,11 +142,26 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                   )}
                 </div>
                 <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-                  <button title="Ver celdas" onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : pq.id); }}
+                  <button
+                    title={isExpanded ? "Ocultar celdas" : "Ver celdas"}
+                    aria-label={isExpanded ? "Ocultar celdas" : "Ver celdas"}
+                    aria-expanded={isExpanded}
+                    onClick={e => { e.stopPropagation(); setExpandedId(isExpanded ? null : pq.id); }}
                     style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
                     onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
-                    <Eye size={13} />
+                    {/* El galón gira al desplegar: es la convención de "aquí hay más". */}
+                    <ChevronDown size={15} style={{ transition: "transform .18s ease", transform: isExpanded ? "rotate(180deg)" : "none" }} />
                   </button>
+                  {onReportar && (
+                    <button
+                      title="Reportar incidente o novedad"
+                      aria-label={`Reportar incidente o novedad en ${pq.nombre}`}
+                      onClick={e => { e.stopPropagation(); onReportar(pq); }}
+                      style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.warning, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}
+                      onMouseEnter={e => (e.currentTarget.style.background = "#F1F5F9")} onMouseLeave={e => (e.currentTarget.style.background = "transparent")}>
+                      <AlertTriangle size={13} />
+                    </button>
+                  )}
                   {canManage && (
                     <button title="Editar" onClick={e => { e.stopPropagation(); onEdit(pq); }}
                       style={{ width: 28, height: 28, borderRadius: 7, border: "none", background: "transparent", color: C.textLight, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}

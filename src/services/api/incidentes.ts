@@ -14,6 +14,14 @@
  */
 import { apiFetch, crearConRespaldo } from '../core/http';
 
+/**
+ * Un INCIDENTE es un daño, un choque o una problemática: ocurre sobre algo concreto (una
+ * celda, un vehículo) y necesita tipo y prioridad para poder atenderlo. Una NOVEDAD es una
+ * observación de la operación, sin gravedad: no arrastra celda ni vehículo, y solo la
+ * registra el personal del parqueadero. Ver la migración 007 de la API.
+ */
+export type ClaseNovedad = 'incidente' | 'novedad';
+
 export type TipoNovedad = 'danio' | 'accidente' | 'mal_estacionamiento' | 'queja' | 'otro';
 export type PrioridadNovedad = 'baja' | 'media' | 'alta' | 'critica';
 /* `rechazado` es el CERRADA de la API. El nombre cambió porque "cerrado" y "resuelto"
@@ -24,7 +32,12 @@ export type EstadoNovedad = 'pendiente' | 'en_proceso' | 'resuelto' | 'rechazado
 
 export interface Incidente {
   id: string;
+  clase: ClaseNovedad;
   tipoNovedad: TipoNovedad;
+  /** En qué consiste, cuando el tipo es "otro". Vacío en cualquier otro caso. */
+  tipoOtro: string;
+  /** Quién lo reportó. El personal autorizado puede dejarlo a nombre de otra persona. */
+  usuarioReportaId: string;
   prioridad: PrioridadNovedad;
   descripcion: string;
   parqueaderoId: string;
@@ -48,7 +61,10 @@ const ESTADO_A_API: Record<EstadoNovedad, string> = {
 
 interface ApiNovedad {
   id: number;
-  tipo_novedad: string;
+  clase?: string;
+  tipo_novedad: string | null;
+  tipo_otro?: string | null;
+  usuario_reporta_id?: number | null;
   prioridad: string;
   descripcion: string;
   parqueadero_id: number | null;
@@ -63,7 +79,10 @@ interface ApiNovedad {
 function toFrontend(n: ApiNovedad): Incidente {
   return {
     id: String(n.id),
-    tipoNovedad: TIPO_DESDE_API[n.tipo_novedad] ?? 'otro',
+    clase: (n.clase?.toLowerCase() as ClaseNovedad) ?? 'incidente',
+    tipoNovedad: (n.tipo_novedad ? TIPO_DESDE_API[n.tipo_novedad] : undefined) ?? 'otro',
+    tipoOtro: n.tipo_otro ?? '',
+    usuarioReportaId: n.usuario_reporta_id != null ? String(n.usuario_reporta_id) : '',
     prioridad: (n.prioridad?.toLowerCase() as PrioridadNovedad) ?? 'media',
     descripcion: n.descripcion,
     parqueaderoId: n.parqueadero_id != null ? String(n.parqueadero_id) : '',
@@ -78,7 +97,10 @@ function toFrontend(n: ApiNovedad): Incidente {
 
 function toApiPayload(data: Partial<Omit<Incidente, 'id'>>): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
+  if (data.clase !== undefined) payload.clase = data.clase.toUpperCase();
   if (data.tipoNovedad !== undefined) payload.tipo_novedad = data.tipoNovedad.toUpperCase();
+  if (data.tipoOtro !== undefined) payload.tipo_otro = data.tipoOtro || null;
+  if (data.usuarioReportaId !== undefined) payload.usuario_reporta_id = data.usuarioReportaId ? Number(data.usuarioReportaId) : undefined;
   if (data.prioridad !== undefined) payload.prioridad = data.prioridad.toUpperCase();
   if (data.descripcion !== undefined) payload.descripcion = data.descripcion;
   if (data.parqueaderoId !== undefined) payload.parqueadero_id = data.parqueaderoId ? Number(data.parqueaderoId) : null;

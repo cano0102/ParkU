@@ -40,7 +40,8 @@ describe('services/incidentes (novedades)', () => {
   it('create envía la fecha calculada por el llamador como fecha_hora (antes se perdía en toApiPayload)', async () => {
     const fecha = '2025-03-04T10:00:00.000Z';
     const creado = await incidentes.create({
-      tipoNovedad: 'otro', prioridad: 'media', descripcion: 'Con fecha explícita',
+      clase: 'incidente', tipoNovedad: 'otro', tipoOtro: '', usuarioReportaId: '1',
+      prioridad: 'media', descripcion: 'Con fecha explícita',
       parqueaderoId: '1', celdaId: '', vehiculoId: '', usuarioAsignadoId: '',
       fecha, estado: 'pendiente', justificacionCierre: '',
     });
@@ -56,7 +57,7 @@ describeCrudContract<Incidente>(
   'incidentes',
   incidentes,
   () => ({
-    tipoNovedad: 'otro',
+    clase: 'incidente', tipoNovedad: 'otro', tipoOtro: '', usuarioReportaId: '1',
     prioridad: 'media',
     descripcion: 'Incidente de prueba',
     parqueaderoId: '1',

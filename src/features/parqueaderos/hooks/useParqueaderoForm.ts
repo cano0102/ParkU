@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import {
   type FormParqueadero, normalizarTexto, validarFormParqueadero, evaluarEliminacionParqueadero, NOMBRE_PQ_MAX,
+  HORA_OPERACION_INICIO, HORA_OPERACION_FIN,
 } from "../lib/helpers";
 import { agruparPorCategoria, reconciliarTodasLasCategorias } from "../lib/celdasReconciliacion";
 import type { ParqueaderosData } from "./useParqueaderosData";
@@ -10,7 +11,7 @@ import type { ModalKind } from "./useModalController";
 
 const emptyPqForm = (): FormParqueadero => ({
   nombre: "", ubicacion: "", acceso: "regional", tipo: "general",
-  capacidadMaxima: 10, horaInicio: "06:00", horaFin: "22:00", zona: "", piso: "", descripcion: "",
+  capacidadMaxima: 10, zona: "", piso: "", descripcion: "",
   estado: "activo", celdasCarros: 0, celdasMotos: 0, celdasMovilidadReducida: 0,
 });
 
@@ -61,7 +62,7 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     const activas = (lista: typeof celdasDelPq) => lista.filter((c) => c.estado !== "inactiva").length;
     setPqFormRaw({
       nombre: pq.nombre, ubicacion: pq.ubicacion, acceso: pq.acceso, tipo: pq.tipo,
-      capacidadMaxima: pq.capacidadMaxima, horaInicio: pq.horaInicio, horaFin: pq.horaFin,
+      capacidadMaxima: pq.capacidadMaxima,
       zona: pq.zona, piso: pq.piso, descripcion: pq.descripcion, estado: pq.estado,
       celdasCarros: activas(grupos.carros), celdasMotos: activas(grupos.motos), celdasMovilidadReducida: activas(grupos.movilidadReducida),
     });
@@ -78,7 +79,11 @@ export function useParqueaderoForm(data: ParqueaderosData, openModal: ModalKind,
     try {
       const creado = await addParqueadero({
         nombre, ubicacion: pqForm.ubicacion.trim(), acceso: pqForm.acceso, tipo: pqForm.tipo,
-        capacidadMaxima: pqForm.capacidadMaxima, horaInicio: pqForm.horaInicio, horaFin: pqForm.horaFin,
+        capacidadMaxima: pqForm.capacidadMaxima,
+        // El horario no se pide ni se edita: todos los parqueaderos operan en la misma
+        // franja, y guardarlo por parqueadero solo abría la puerta a que un dato dijera una
+        // cosa y la regla de operación (HORA_OPERACION_*) dijera otra.
+        horaInicio: HORA_OPERACION_INICIO, horaFin: HORA_OPERACION_FIN,
         zona: pqForm.zona.trim(), piso: pqForm.piso.trim(), descripcion: pqForm.descripcion.trim(),
         estado: pqForm.estado,
       });

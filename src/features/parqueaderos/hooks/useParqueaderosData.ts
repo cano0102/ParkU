@@ -13,6 +13,7 @@ import type { Reserva } from "@/services/api/reservas";
 import { useIncidentes, useCreateIncidente } from "@/features/incidentes";
 import type { Incidente } from "@/services/api/incidentes";
 import { useUsuarios } from "@/features/usuarios";
+import type { Usuario } from "@/services/api/usuarios";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { useMemo } from "react";
@@ -39,6 +40,19 @@ export function useParqueaderosData() {
   // quien de verdad gestiona incidentes en campo) en vez de exponer la lista completa.
   const { data: usuarios = [] } = useUsuarios({ enabled: user?.rol === ROLES.ADMIN });
   const usuariosAsignables = useMemo(() => usuarios.filter((u) => u.rol === ROLES.VIGILANTE), [usuarios]);
+
+  /* Quién puede figurar como autor de un reporte. Siempre la propia cuenta —es el caso normal
+     y el único que no depende de poder listar usuarios, que es cosa de Admin—, más el resto
+     de personas registradas cuando la lista está disponible: alguien se acerca a portería a
+     reportar algo y el reporte tiene que quedar a su nombre, no al del vigilante. */
+  const usuariosReportantes = useMemo(() => {
+    if (!user) return [];
+    const propia: Usuario = {
+      id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
+      password: "", numero: user.numero ?? "", estado: "activo",
+    };
+    return [propia, ...usuarios.filter((u) => u.id !== user.id)];
+  }, [usuarios, user]);
 
   const createParqueaderoMutation = useCreateParqueadero();
   const updateParqueaderoMutation = useUpdateParqueadero();
@@ -89,7 +103,8 @@ export function useParqueaderosData() {
     createIncidenteMutation.mutateAsync({ ...data, fecha: new Date().toISOString() });
 
   return {
-    parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas, incidentes, usuariosAsignables,
+    parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas, incidentes,
+    usuariosAsignables, usuariosReportantes,
     addParqueadero, updateParqueadero, deleteParqueadero, addCelda, updateCelda, deleteCelda, cambiarDisponibilidadCelda, generarCeldasEnLote,
     addConductor, addVehiculo, updateVehiculo,
     addControlSalida, updateControlSalida, addReserva, updateReserva, addIncidente,

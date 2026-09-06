@@ -23,7 +23,7 @@ export function useParqueaderosPage() {
   const filters = useParqueaderosFilters(data, modal.getOcupante);
   const pqFormState = useParqueaderoForm(data, modal.openModal, modal.setOpenModal);
   const ingreso = useIngresoVehiculo(data, modal.celdaActiva, modal.parqueaderoActivo, modal.setOpenModal);
-  const scanner = useOcrScanner(modal.celdaActiva, ingreso.setVehiculoForm, modal.openModal, modal.setOpenModal, ingreso.registrarEnCelda);
+  const scanner = useOcrScanner(modal.celdaActiva, ingreso.setVehiculoForm, modal.openModal, modal.setOpenModal);
   const reserva = useReservaCelda(data, modal.celdaActiva, modal.getOcupante, data.updateControlSalida, modal.setOpenModal);
   const incidente = useIncidenteReporte(data, modal.celdaActiva, modal.ocupanteActivo, modal.setOpenModal);
 

@@ -10,7 +10,7 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero, TipoParqueadero, AccesoParqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Conductor } from "@/services/api/conductores";
-import type { TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
+import type { TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
 import {
   PLACA_CARRO_REGEX, PLACA_MOTO_REGEX, PLACA_REGEX,
   validarPlacaColombiana, validarPlacaCarro, validarPlacaMoto,
@@ -32,8 +32,9 @@ export interface FormParqueadero {
   acceso: AccesoParqueadero;
   tipo: TipoParqueadero;
   capacidadMaxima: number;
-  horaInicio: string;
-  horaFin: string;
+  /* El horario NO está aquí a propósito: todos los parqueaderos operan en la misma franja
+     (HORA_OPERACION_INICIO/FIN), así que no es un dato por parqueadero. Pedirlo solo permitía
+     guardar un horario que contradijera la regla con la que después se valida todo. */
   zona: string;
   piso: string;
   descripcion: string;
@@ -60,9 +61,18 @@ export interface VehiculoForm {
 }
 
 export interface IncidenteForm {
+  /** Incidente (daño/choque/problemática) o novedad (observación de la operación). Lo
+   *  primero que se elige: cambia qué datos hacen falta. Ver la migración 007 de la API. */
+  clase: ClaseNovedad;
+  /** Quién reporta. Por defecto quien está usando la aplicación. */
+  usuarioReportaId: string;
   descripcion: string;
-  tipoNovedad: TipoNovedad;
-  prioridad: PrioridadNovedad;
+  /** "" mientras no se ha elegido: son obligatorios, y un valor por defecto los convertiría
+   *  en una elección que nadie hizo. */
+  tipoNovedad: TipoNovedad | "";
+  /** En qué consiste, cuando el tipo es "otro". */
+  tipoOtro: string;
+  prioridad: PrioridadNovedad | "";
   usuarioAsignadoId: string;
 }
 
@@ -328,8 +338,6 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
     return null;
   }
 
-  if (!form.horaInicio || !form.horaFin) return "Debes definir la hora de apertura y de cierre.";
-  if (horaAMinutos(form.horaFin) <= horaAMinutos(form.horaInicio)) return "La hora de cierre debe ser posterior a la hora de apertura.";
   return null;
 }
 

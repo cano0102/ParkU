@@ -8,9 +8,9 @@ import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
 import { ParqueaderosHero } from "./components/ParqueaderosHero";
 import { ParqueaderosTopbar } from "./components/ParqueaderosTopbar";
+import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ParkingMap } from "./components/map/ParkingMap";
 import { ParqueaderosTable } from "./components/ParqueaderosTable";
-import { SmartAssignModal } from "./components/modals/SmartAssignModal";
 import { ParqueaderoFormModal } from "./components/modals/ParqueaderoFormModal";
 import { IngresoModal } from "./components/modals/IngresoModal";
 import { CeldaInfoModal } from "./components/modals/CeldaInfoModal";
@@ -62,10 +62,8 @@ export default function Parqueaderos() {
           onActiveTabChange={filters.setActiveTab}
           activeFilters={filters.activeFilters}
           onClearFilters={filters.clearFilters}
-          onOpenSmartAssign={() => modal.setOpenModal("smartAssign")}
           onOpenCreate={pqFormState.openCreate}
           canCrearParqueadero={hasPermission("celdas")}
-          canAsignacionInteligente={hasPermission("asignaciones")}
         />
 
         {data.isLoading ? (
@@ -86,6 +84,9 @@ export default function Parqueaderos() {
                 onEdit={pqFormState.openEdit}
                 onDelete={pqFormState.handleDeleteRequest}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
+                onReportar={hasPermission("incidentes")
+                  ? (pq: Parqueadero) => incidente.abrirReporte({ parqueaderoId: pq.id, etiqueta: pq.nombre })
+                  : undefined}
                 onCellClick={handleCellClick}
                 cellMatchesSearch={filters.cellMatchesSearch}
                 celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
@@ -316,6 +317,9 @@ export default function Parqueaderos() {
         setIncidenteForm={incidente.setIncidenteForm}
         incidenteError={incidente.incidenteError}
         usuariosAsignables={data.usuariosAsignables}
+        usuariosReportantes={data.usuariosReportantes}
+        puedeRegistrarNovedades={incidente.puedeRegistrarNovedades}
+        etiquetaContexto={incidente.objetivo?.etiqueta}
         onClose={incidente.closeIncidenteModal}
         onSubmit={incidente.registrarIncidente}
       />
@@ -333,16 +337,6 @@ export default function Parqueaderos() {
         onCapture={scanner.handleCaptureOcr}
         onFileOCR={scanner.handleFileOCR}
         onSimOCR={scanner.handleSimOCR}
-      />
-
-      <SmartAssignModal
-        open={modal.openModal === "smartAssign"}
-        parqueaderos={data.parqueaderos}
-        celdas={data.celdas}
-        onClose={scanner.closeSmartAssign}
-        onAssign={scanner.handleSmartAssign}
-        openScanner={() => scanner.abrirScannerDesde("smartAssign")}
-        scannedPlate={scanner.scannedPlate}
       />
     </>
   );

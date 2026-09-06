@@ -5,7 +5,10 @@ import { compararIncidentes } from "./orden";
 function incidente(over: Partial<Incidente>): Incidente {
   return {
     id: "1",
+    clase: "incidente",
     tipoNovedad: "otro",
+    tipoOtro: "",
+    usuarioReportaId: "1",
     prioridad: "media",
     descripcion: "",
     parqueaderoId: "1",

@@ -5,15 +5,24 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { createAppBackends } from '@/test/appFakeApi';
 import { ControlSalidaPage } from './ControlSalidaPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
+import { AuthProvider } from '@/context/AuthContext';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
-vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
+vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock, AUTH_EXPIRED_EVENT: 'parku:auth-expired' }));
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
 function renderControlSalida(client = createTestQueryClient()) {
+  // Con sesión: la pantalla deja el reporte a nombre de quien la está usando.
+  localStorage.setItem('parkuToken', 'fake-token-1');
+  localStorage.setItem(
+    'parkUUser',
+    JSON.stringify({ id: '1', correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', numero: '3101234567', rol: 1 }),
+  );
   return render(
     <QueryClientProvider client={client}>
-      <ControlSalidaPage />
+      <AuthProvider>
+        <ControlSalidaPage />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
@@ -38,23 +47,24 @@ describe('features/controlSalida', () => {
     await waitFor(() => expect(screen.getByText('No se encontraron registros')).toBeInTheDocument());
   });
 
-  it('abre el diálogo de confirmación al eliminar y lo cancela sin borrar el registro', async () => {
+  /* Un movimiento registrado es historia del parqueadero: no se borra. En su lugar se
+     consulta la ficha completa, que es lo que la fila no alcanza a mostrar. */
+  it('ya no ofrece eliminar un registro', async () => {
+    renderControlSalida();
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
+
+    expect(screen.queryByLabelText(/Eliminar registro/)).not.toBeInTheDocument();
+  });
+
+  it('abre el detalle del movimiento con lo que no cabe en la fila', async () => {
     const user = userEvent.setup();
     renderControlSalida();
-    await waitFor(() => expect(screen.getAllByLabelText('Eliminar registro')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
 
-    await user.click(screen.getByLabelText('Eliminar registro'));
+    await user.click(screen.getByLabelText(/Ver detalle del movimiento/));
 
-    expect(
-      await screen.findByText(/El registro del vehículo ABC123 se eliminará permanentemente/)
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByText('Cancelar'));
-
-    await waitFor(() =>
-      expect(screen.queryByText(/se eliminará permanentemente/)).not.toBeInTheDocument()
-    );
-    expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0);
+    expect(await screen.findByText('Detalle del movimiento')).toBeInTheDocument();
+    expect(screen.getAllByText('Estadía').length).toBeGreaterThan(1);
   });
 
   it('registra la salida y libera la celda desde el botón "Registrar salida" de la fila', async () => {
@@ -72,17 +82,19 @@ describe('features/controlSalida', () => {
     expect(screen.queryByLabelText('Registrar salida y liberar la celda')).not.toBeInTheDocument();
   });
 
-  it('elimina el registro al confirmar en el diálogo', async () => {
+  /* Reportar desde aquí ahorra volver a buscar lo que la pantalla ya tiene delante: la celda,
+     el parqueadero y el vehículo del movimiento. */
+  it('abre el reporte de incidente con el contexto del movimiento', async () => {
     const user = userEvent.setup();
     renderControlSalida();
-    await waitFor(() => expect(screen.getAllByLabelText('Eliminar registro')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0));
 
-    await user.click(screen.getByLabelText('Eliminar registro'));
-    await screen.findByText(/se eliminará permanentemente/);
+    await user.click(screen.getByLabelText(/Reportar incidente o novedad/));
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
-
-    await waitFor(() => expect(screen.getByText('No se encontraron registros')).toBeInTheDocument());
-    expect(screen.queryByText('ABC123')).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('¿Qué vas a reportar? *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Reportado por *')).toHaveValue('1');
+    // El tipo arranca sin elegir: es obligatorio, y un valor por defecto sería una elección
+    // que nadie hizo.
+    expect(screen.getByLabelText('Tipo *')).toHaveValue('');
   });
 });

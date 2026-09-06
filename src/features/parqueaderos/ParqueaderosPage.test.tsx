@@ -303,18 +303,28 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     await waitFor(() => expect(screen.queryByText('PQ-3 Torre C')).not.toBeInTheDocument());
   });
 
-  it('el botón "Asignación Inteligente" abre el modal correspondiente', async () => {
+  /* Que una fila del listado esconda las celdas del parqueadero no se adivina: sin una señal
+     visible, ese clic no lo da nadie. */
+  it('la fila del parqueadero anuncia que se despliega, y despliega sus celdas', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('PQ-1 Torre A');
 
-    await user.click(screen.getByRole('button', { name: /Asignación Inteligente/i }));
+    const boton = screen.getAllByRole('button', { name: 'Ver celdas' })[0];
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getAllByText('· ver celdas').length).toBeGreaterThan(0);
 
-    const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Asignación Inteligente')).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(/El sistema buscará la celda óptima libre/i)
-    ).toBeInTheDocument();
+    await user.click(boton);
+
+    await waitFor(() => expect(screen.getAllByRole('button', { name: 'Ocultar celdas' })[0]).toBeInTheDocument());
+    expect(screen.getAllByText('· ocultar celdas').length).toBeGreaterThan(0);
+  });
+
+  it('ya no ofrece la Asignación Inteligente', async () => {
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+
+    expect(screen.queryByRole('button', { name: /Asignación Inteligente/i })).not.toBeInTheDocument();
   });
 
   it('asistente de "Estacionar Vehículo": buscar conductor por nombre, elegir su vehículo y registrar el ingreso', async () => {

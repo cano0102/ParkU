@@ -2,7 +2,7 @@ import { IconAlertTriangle as AlertTriangle, IconFileText as FileText } from "@t
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Usuario } from "@/services/api/usuarios";
-import type { TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
+import type { TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
 import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL } from "@/features/incidentes";
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
@@ -24,26 +24,72 @@ interface IncidenteModalProps {
   /** Ya filtrados a rol Vigilante — ver useParqueaderosData.ts. Vacío si el usuario actual no
    *  puede listar /api/usuarios (no es Admin) o no hay ningún Vigilante registrado. */
   usuariosAsignables: Usuario[];
+  /** Candidatos a "quién reporta". Puede venir vacío: se ofrece igual la propia cuenta. */
+  usuariosReportantes?: Usuario[];
+  /** Solo el personal del parqueadero registra novedades; a Comunidad SENA ni se le ofrece. */
+  puedeRegistrarNovedades?: boolean;
+  /** Lo que se está mirando al reportar (celda, vehículo, o solo el parqueadero). */
+  etiquetaContexto?: string;
   onClose: () => void;
   onSubmit: () => void;
 }
 
 export function IncidenteModal({
   open, celdaActiva, ocupanteActivo, parqueaderoActivo, incidenteForm, setIncidenteForm,
-  incidenteError, usuariosAsignables, onClose, onSubmit,
+  incidenteError, usuariosAsignables, usuariosReportantes = [], puedeRegistrarNovedades = false,
+  etiquetaContexto, onClose, onSubmit,
 }: IncidenteModalProps) {
   const entrada = ocupanteActivo ? formatearFechaHora(ocupanteActivo.fechaEntrada) : null;
+  /* Una novedad es una observación de la operación: no ocurre sobre una celda ni un vehículo,
+     y no hay nada que clasificar ni priorizar. Pedir esos datos solo obligaba a inventarlos. */
+  const esNovedad = incidenteForm.clase === "novedad";
+  const puedeEnviar = !incidenteError && !!incidenteForm.descripcion.trim()
+    && (esNovedad || (!!incidenteForm.tipoNovedad
+      && (incidenteForm.tipoNovedad !== "otro" || !!incidenteForm.tipoOtro.trim())));
   return (
     <Modal open={open} onClose={onClose} maxWidth={520}>
       <ModalHeader
-        eyebrow={`Celda ${celdaActiva?.numero ?? ""} · ${ocupanteActivo?.vehiculo.placa || ""}`}
-        title="Registrar Incidente"
+        eyebrow={etiquetaContexto ?? `Celda ${celdaActiva?.numero ?? ""} · ${ocupanteActivo?.vehiculo.placa || ""}`}
+        title={esNovedad ? "Registrar Novedad" : "Registrar Incidente"}
         icon={<AlertTriangle size={18} color={C.primary} />}
         onClose={onClose}
       />
       <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* Lo primero, porque cambia todo lo demás: un incidente pide tipo, prioridad y ocurre
+            sobre una celda; una novedad es solo una observación de la operación. */}
+        {puedeRegistrarNovedades && (
+          <div>
+            <label style={labelStyle} htmlFor="incidente-clase">¿Qué vas a reportar? *</label>
+            <select
+              id="incidente-clase"
+              value={incidenteForm.clase}
+              onChange={(e) => setIncidenteForm(prev => ({ ...prev, clase: e.target.value as ClaseNovedad }))}
+              style={selectStyle}
+            >
+              <option value="incidente">Incidente — daño, choque o problemática</option>
+              <option value="novedad">Novedad — observación de la operación</option>
+            </select>
+          </div>
+        )}
+
+        {/* Un reporte sin autor no se le puede devolver a nadie. Por defecto es de quien está
+            usando la aplicación; el personal puede dejarlo a nombre de quien se lo comunicó. */}
         <div>
-          <label style={labelStyle} htmlFor="incidente-descripcion">Descripción del incidente *</label>
+          <label style={labelStyle} htmlFor="incidente-reporta">Reportado por *</label>
+          <select
+            id="incidente-reporta"
+            value={incidenteForm.usuarioReportaId}
+            onChange={(e) => setIncidenteForm(prev => ({ ...prev, usuarioReportaId: e.target.value }))}
+            style={selectStyle}
+          >
+            {usuariosReportantes.map((u) => (
+              <option key={u.id} value={u.id}>{u.nombre}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={labelStyle} htmlFor="incidente-descripcion">{esNovedad ? "Descripción de la novedad *" : "Descripción del incidente *"}</label>
           <textarea
             id="incidente-descripcion"
             rows={3}
@@ -69,34 +115,55 @@ export function IncidenteModal({
           )}
         </div>
 
-        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <div>
-            <label style={labelStyle} htmlFor="incidente-tipo">Tipo</label>
-            <select
-              id="incidente-tipo"
-              value={incidenteForm.tipoNovedad}
-              onChange={(e) => setIncidenteForm(prev => ({ ...prev, tipoNovedad: e.target.value as TipoNovedad }))}
-              style={selectStyle}
-            >
-              {(Object.keys(TIPO_NOVEDAD_LABEL) as TipoNovedad[]).map((t) => (
-                <option key={t} value={t}>{TIPO_NOVEDAD_LABEL[t]}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label style={labelStyle} htmlFor="incidente-prioridad">Prioridad *</label>
-            <select
-              id="incidente-prioridad"
-              value={incidenteForm.prioridad}
-              onChange={(e) => setIncidenteForm(prev => ({ ...prev, prioridad: e.target.value as PrioridadNovedad }))}
-              style={selectStyle}
-            >
-              {(Object.keys(PRIORIDAD_LABEL) as PrioridadNovedad[]).map((p) => (
-                <option key={p} value={p}>{PRIORIDAD_LABEL[p]}</option>
-              ))}
-            </select>
-          </div>
-        </div>
+        {!esNovedad && (
+          <>
+            <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div>
+                <label style={labelStyle} htmlFor="incidente-tipo">Tipo *</label>
+                <select
+                  id="incidente-tipo"
+                  value={incidenteForm.tipoNovedad}
+                  onChange={(e) => setIncidenteForm(prev => ({ ...prev, tipoNovedad: e.target.value as TipoNovedad | "" }))}
+                  style={selectStyle}
+                >
+                  <option value="">Selecciona el tipo…</option>
+                  {(Object.keys(TIPO_NOVEDAD_LABEL) as TipoNovedad[]).map((t) => (
+                    <option key={t} value={t}>{TIPO_NOVEDAD_LABEL[t]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle} htmlFor="incidente-prioridad">Prioridad *</label>
+                <select
+                  id="incidente-prioridad"
+                  value={incidenteForm.prioridad}
+                  onChange={(e) => setIncidenteForm(prev => ({ ...prev, prioridad: e.target.value as PrioridadNovedad | "" }))}
+                  style={selectStyle}
+                >
+                  <option value="">Selecciona la prioridad…</option>
+                  {(Object.keys(PRIORIDAD_LABEL) as PrioridadNovedad[]).map((p) => (
+                    <option key={p} value={p}>{PRIORIDAD_LABEL[p]}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* "Otro" sin decir qué es no clasifica nada: esa precisión se perdía. */}
+            {incidenteForm.tipoNovedad === "otro" && (
+              <div>
+                <label style={labelStyle} htmlFor="incidente-tipo-otro">¿De qué tipo se trata? *</label>
+                <input
+                  id="incidente-tipo-otro"
+                  value={incidenteForm.tipoOtro}
+                  onChange={(e) => setIncidenteForm(prev => ({ ...prev, tipoOtro: e.target.value }))}
+                  maxLength={100}
+                  placeholder="Ej.: fuga de agua, falla eléctrica…"
+                  style={{ ...selectStyle, background: "#fff" }}
+                />
+              </div>
+            )}
+          </>
+        )}
 
         <div>
           <label style={labelStyle} htmlFor="incidente-asignado">Asignar a</label>
@@ -118,6 +185,7 @@ export function IncidenteModal({
           )}
         </div>
 
+        {!esNovedad && (
         <div data-testid="incidente-info-automatica" style={{ fontSize: 12, color: C.textLight, background: C.bg, padding: "12px 14px", borderRadius: 10, border: `1px solid ${C.border}` }}>
           <div style={{ fontWeight: 600, marginBottom: 4, color: C.text }}>Información automática:</div>
           <div>Parqueadero: <strong>{parqueaderoActivo?.nombre || "No registrado"}</strong></div>
@@ -134,30 +202,31 @@ export function IncidenteModal({
             </>
           )}
         </div>
+        )}
       </div>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}` }}>
         <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
         <button
           onClick={onSubmit}
-          disabled={!incidenteForm.descripcion.trim()}
+          disabled={!puedeEnviar}
           style={{
             padding: "10px 24px",
             borderRadius: 12,
             border: "none",
-            background: incidenteForm.descripcion.trim() ? C.primary : "#E2E8F0",
-            color: incidenteForm.descripcion.trim() ? "#fff" : C.textLight,
+            background: puedeEnviar ? C.primary : "#E2E8F0",
+            color: puedeEnviar ? "#fff" : C.textLight,
             fontSize: 13,
             fontWeight: 800,
-            cursor: incidenteForm.descripcion.trim() ? "pointer" : "not-allowed",
+            cursor: puedeEnviar ? "pointer" : "not-allowed",
             fontFamily: "inherit",
             display: "flex",
             alignItems: "center",
             gap: 8,
-            boxShadow: incidenteForm.descripcion.trim() ? "0 6px 18px rgba(57,169,0,.22)" : undefined,
+            boxShadow: puedeEnviar ? "0 6px 18px rgba(57,169,0,.22)" : undefined,
           }}
         >
           <FileText size={16} />
-          Registrar Incidente
+          {esNovedad ? "Registrar Novedad" : "Registrar Incidente"}
         </button>
       </div>
     </Modal>

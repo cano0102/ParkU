@@ -36,7 +36,8 @@ const ocupanteActivo: Ocupante = {
 
 function incidenteBase(overrides: Partial<Incidente>): Incidente {
   return {
-    id: 'i1', tipoNovedad: 'otro', prioridad: 'media', descripcion: 'Preexistente',
+    id: 'i1', clase: 'incidente', tipoNovedad: 'otro', tipoOtro: '', usuarioReportaId: '1',
+    prioridad: 'media', descripcion: 'Preexistente',
     parqueaderoId: '1', celdaId: '', vehiculoId: '', usuarioAsignadoId: '',
     fecha: '2025-06-01T00:00:00.000Z', estado: 'pendiente', justificacionCierre: '',
     ...overrides,
@@ -50,7 +51,11 @@ function setup(data: { addIncidente: ReturnType<typeof vi.fn> }) {
 }
 
 async function llenarYRegistrar(result: ReturnType<typeof setup>['result']) {
-  act(() => result.current.setIncidenteForm((f) => ({ ...f, descripcion: 'Se rayó la pintura' })));
+  // Tipo y prioridad son obligatorios en un incidente: sin ellos el formulario ni siquiera
+  // llega a intentar registrar nada.
+  act(() => result.current.setIncidenteForm((f) => ({
+    ...f, descripcion: 'Se rayó la pintura', tipoNovedad: 'danio', prioridad: 'media',
+  })));
   await act(async () => { await result.current.registrarIncidente(); });
 }
 
@@ -142,5 +147,76 @@ describe('useIncidenteReporte — bloqueo de incidente duplicado (celda/vehícul
     setup(data);
 
     expect(useIncidentesMock).toHaveBeenCalledWith({ enabled: true });
+  });
+});
+
+/* Un incidente hay que poder clasificarlo y ordenarlo; una novedad es solo una observación de
+   la operación y no tiene nada de eso que dar. */
+describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthMock.mockReturnValue({ user: { id: '1', rol: ROLES.ADMIN } });
+    useIncidentesMock.mockReturnValue({ data: [] });
+  });
+
+  it('no registra un incidente sin tipo ni prioridad', async () => {
+    const data = { addIncidente: vi.fn() };
+    const { result } = setup(data);
+
+    act(() => result.current.setIncidenteForm((f) => ({ ...f, descripcion: 'Algo pasó' })));
+    await act(async () => { await result.current.registrarIncidente(); });
+
+    expect(data.addIncidente).not.toHaveBeenCalled();
+    expect(result.current.incidenteError).toMatch(/tipo/i);
+  });
+
+  it('con el tipo "otro" exige decir de qué se trata', async () => {
+    const data = { addIncidente: vi.fn() };
+    const { result } = setup(data);
+
+    act(() => result.current.setIncidenteForm((f) => ({
+      ...f, descripcion: 'Algo raro', tipoNovedad: 'otro', prioridad: 'baja',
+    })));
+    await act(async () => { await result.current.registrarIncidente(); });
+
+    expect(data.addIncidente).not.toHaveBeenCalled();
+
+    act(() => result.current.setIncidenteForm((f) => ({ ...f, tipoOtro: 'Fuga de agua' })));
+    await act(async () => { await result.current.registrarIncidente(); });
+
+    expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({ tipoOtro: 'Fuga de agua' }));
+  });
+
+  it('una novedad no pide tipo ni prioridad, y no arrastra celda ni vehículo', async () => {
+    const data = { addIncidente: vi.fn().mockResolvedValue(undefined) };
+    const { result } = setup(data);
+
+    act(() => result.current.setIncidenteForm((f) => ({
+      ...f, clase: 'novedad', descripcion: 'El portón hace ruido',
+    })));
+    await act(async () => { await result.current.registrarIncidente(); });
+
+    expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({
+      clase: 'novedad', celdaId: '', vehiculoId: '',
+    }));
+  });
+
+  it('deja el reporte a nombre de quien se elija', async () => {
+    const data = { addIncidente: vi.fn().mockResolvedValue(undefined) };
+    const { result } = setup(data);
+
+    act(() => result.current.setIncidenteForm((f) => ({
+      ...f, descripcion: 'Choque leve', tipoNovedad: 'accidente', prioridad: 'alta', usuarioReportaId: '7',
+    })));
+    await act(async () => { await result.current.registrarIncidente(); });
+
+    expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({ usuarioReportaId: '7' }));
+  });
+
+  it('Comunidad SENA no puede registrar novedades: ni se le ofrece', () => {
+    useAuthMock.mockReturnValue({ user: { id: '5', rol: ROLES.CONDUCTOR } });
+    const { result } = setup({ addIncidente: vi.fn() });
+
+    expect(result.current.puedeRegistrarNovedades).toBe(false);
   });
 });

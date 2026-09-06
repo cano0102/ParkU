@@ -4,7 +4,6 @@ import {
   IconPlus as Plus,
   IconSearch as Search,
   IconX as X,
-  IconBolt as Zap,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { TIPOS_PARQUEADERO, capitalizar } from "../lib/helpers";
@@ -20,12 +19,10 @@ interface ParqueaderosTopbarProps {
   onActiveTabChange: (tab: "map" | "table") => void;
   activeFilters: number;
   onClearFilters: () => void;
-  onOpenSmartAssign: () => void;
   onOpenCreate: () => void;
   /** true si el rol puede crear parqueaderos (permiso "celdas"). */
   canCrearParqueadero: boolean;
   /** true si el rol puede usar la asignación inteligente (permiso "asignaciones"). */
-  canAsignacionInteligente: boolean;
 }
 
 const TABS = [
@@ -36,8 +33,8 @@ const TABS = [
 /** Buscador + filtro de tipo + toggle lista/plano + accesos a asignación inteligente y crear parqueadero. */
 export function ParqueaderosTopbar({
   search, onSearchChange, filterTipo, onFilterTipoChange, activeTab, onActiveTabChange,
-  activeFilters, onClearFilters, onOpenSmartAssign, onOpenCreate,
-  canCrearParqueadero, canAsignacionInteligente,
+  activeFilters, onClearFilters, onOpenCreate,
+  canCrearParqueadero,
 }: ParqueaderosTopbarProps) {
   return (
     <div className="pq-topbar">
@@ -87,11 +84,6 @@ export function ParqueaderosTopbar({
         </button>
       )}
 
-      {canAsignacionInteligente && (
-        <button onClick={onOpenSmartAssign} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
-          <Zap size={14} color="#F59E0B" />Asignación Inteligente
-        </button>
-      )}
       {canCrearParqueadero && (
         <button onClick={onOpenCreate} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 18px", borderRadius: 11, border: "none", background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit", boxShadow: "0 4px 14px rgba(57,169,0,.25)" }}>
           <Plus size={15} />Nuevo Parqueadero

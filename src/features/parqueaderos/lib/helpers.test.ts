@@ -110,7 +110,7 @@ describe('superaEstadiaLimite', () => {
 function form(overrides: Partial<FormParqueadero> = {}): FormParqueadero {
   return {
     nombre: 'PQ Nuevo', ubicacion: 'Bloque A', acceso: 'regional', tipo: 'general',
-    capacidadMaxima: 10, horaInicio: '06:00', horaFin: '22:00', zona: '', piso: '', descripcion: '',
+    capacidadMaxima: 10, zona: '', piso: '', descripcion: '',
     estado: 'activo', celdasCarros: 2, celdasMotos: 1, celdasMovilidadReducida: 0,
     ...overrides,
   };

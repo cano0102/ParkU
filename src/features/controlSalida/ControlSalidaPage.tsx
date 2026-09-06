@@ -1,9 +1,11 @@
-import { ConfirmDialog, LoadingState } from "@/components/shared";
+import { LoadingState, Modal } from "@/components/shared";
 import { useControlSalidaPage } from "./hooks/useControlSalidaPage";
 import { controlSalidaStyles } from "./lib/styles";
 import { ControlSalidaHero } from "./components/ControlSalidaHero";
 import { ControlSalidaToolbar } from "./components/ControlSalidaToolbar";
 import { ControlSalidaTable } from "./components/ControlSalidaTable";
+import { ControlSalidaDetalleModal } from "./components/ControlSalidaDetalleModal";
+import { IncidenteModal } from "@/features/parqueaderos";
 
 export function ControlSalidaPage() {
   const p = useControlSalidaPage();
@@ -46,20 +48,43 @@ export function ControlSalidaPage() {
             getCelda={p.getCelda}
             getUsuarioConductor={p.getUsuarioConductor}
             getParqueadero={p.getParqueadero}
-            onDelete={p.handleDelete}
+            onVerDetalle={p.verDetalle}
+            onReportar={p.abrirReporteDe}
             onLiberar={p.handleLiberar}
           />
         )}
       </div>
 
-      <ConfirmDialog
-        open={!!p.confirmDelete}
-        onConfirm={p.confirmDeleteAction}
-        onCancel={() => p.setConfirmDelete(null)}
-        title="Eliminar registro"
-        message={`El registro del vehículo ${p.confirmDelete ? p.getVehiculo(p.confirmDelete.vehiculoId)?.placa || "—" : ""} se eliminará permanentemente. Esta acción no se puede revertir.`}
-        confirmLabel="Eliminar"
-        tone="danger"
+      {/* La ficha completa del movimiento: lo que no cabe en la fila. */}
+      <Modal open={!!p.detalle} onClose={p.cerrarDetalle} maxWidth={460}>
+        {p.detalle && (
+          <ControlSalidaDetalleModal
+            control={p.detalle}
+            vehiculo={p.getVehiculo(p.detalle.vehiculoId)}
+            celda={p.getCelda(p.detalle.celdaId)}
+            conductor={p.getUsuarioConductor(p.detalle.vehiculoId)}
+            parqueadero={p.getParqueadero(p.detalle.parqueaderoId)}
+            onClose={p.cerrarDetalle}
+          />
+        )}
+      </Modal>
+
+      {/* Reportar sobre un movimiento: el formulario ya llega con su celda, su parqueadero y
+          su vehículo, que es lo que costaba volver a buscar. */}
+      <IncidenteModal
+        open={p.reporteAbierto}
+        celdaActiva={null}
+        ocupanteActivo={null}
+        parqueaderoActivo={null}
+        incidenteForm={p.reporte.incidenteForm}
+        setIncidenteForm={p.reporte.setIncidenteForm}
+        incidenteError={p.reporte.incidenteError}
+        usuariosAsignables={[]}
+        usuariosReportantes={p.usuariosReportantes}
+        puedeRegistrarNovedades={p.reporte.puedeRegistrarNovedades}
+        etiquetaContexto={p.reporte.objetivo?.etiqueta}
+        onClose={p.reporte.closeIncidenteModal}
+        onSubmit={p.reporte.registrarIncidente}
       />
     </>
   );

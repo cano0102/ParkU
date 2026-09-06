@@ -6,7 +6,7 @@ import { tipoVehiculoDesdePlaca } from "../lib/helpers";
 import { useOcrPlaca, preprocesarImagenArchivo, calcularRoiDesdeGuia } from "../lib/ocrAdapter";
 import type { ModalKind } from "./useModalController";
 
-type ScannerOrigin = "ingreso" | "smartAssign" | null;
+type ScannerOrigin = "ingreso" | null;
 
 /** Cámara + reconocimiento óptico de placas: captura en vivo, archivo subido y el simulador de demo. */
 export function useOcrScanner(
@@ -14,14 +14,12 @@ export function useOcrScanner(
   setVehiculoForm: React.Dispatch<React.SetStateAction<VehiculoForm>>,
   openModal: ModalKind,
   setOpenModal: (m: ModalKind) => void,
-  registrarEnCelda: (celda: Celda, placa: string, conductor: string, esOficial: boolean) => Promise<boolean>
 ) {
   const [ocrLoading, setOcrLoading] = useState(false);
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [ocrFlash, setOcrFlash] = useState(false);
   const [camaraLista, setCamaraLista] = useState(false);
   const [scannerOrigin, setScannerOrigin] = useState<ScannerOrigin>(null);
-  const [scannedPlate, setScannedPlate] = useState<string | undefined>(undefined);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const guiaRef = useRef<HTMLDivElement>(null);
@@ -62,7 +60,7 @@ export function useOcrScanner(
     setOpenModal("scanner");
   }, [setOpenModal]);
 
-  const cerrarScanner = useCallback(() => setOpenModal(scannerOrigin === "smartAssign" ? "smartAssign" : "ingreso"), [scannerOrigin, setOpenModal]);
+  const cerrarScanner = useCallback(() => setOpenModal("ingreso"), [setOpenModal]);
 
   /* Avisa si la placa detectada por OCR no coincide con el tipo de la celda que se
      está registrando (p. ej. escanear una placa de carro para una celda de moto). */
@@ -86,8 +84,7 @@ export function useOcrScanner(
     }));
     toast.success(`Placa detectada: ${d.placa}`);
     avisarSiTipoNoCoincide(d.placa);
-    if (scannerOrigin === "smartAssign") setScannedPlate(d.placa);
-  }, [setVehiculoForm, avisarSiTipoNoCoincide, scannerOrigin]);
+  }, [setVehiculoForm, avisarSiTipoNoCoincide]);
 
   const handleCaptureOcr = useCallback(async () => {
     if (!videoRef.current) return;
@@ -97,11 +94,11 @@ export function useOcrScanner(
       const d = await reconocer(videoRef.current, roi);
       setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
       aplicarDeteccion(d);
-      if (scannerOrigin === "smartAssign") { cerrarCamara(); setOpenModal("smartAssign"); }
-      else { cerrarCamara(); setOpenModal("ingreso"); }
+      cerrarCamara();
+      setOpenModal("ingreso");
     } catch (e) { setOcrError(e instanceof Error ? e.message : "Error al escanear."); }
     finally { setOcrLoading(false); }
-  }, [reconocer, aplicarDeteccion, scannerOrigin, cerrarCamara, setOpenModal]);
+  }, [reconocer, aplicarDeteccion, cerrarCamara, setOpenModal]);
 
   const handleFileOCR = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if (!f) return;
@@ -114,14 +111,13 @@ export function useOcrScanner(
           const d = await reconocerLicencia(url);
           setOcrFlash(true); setTimeout(() => setOcrFlash(false), 1200);
           aplicarDeteccion(d);
-          if (scannerOrigin === "smartAssign") setOpenModal("smartAssign");
-          else setOpenModal("ingreso");
+          setOpenModal("ingreso");
         } catch (err) { setOcrError(err instanceof Error ? err.message : "No se reconoció la placa."); }
         finally { setOcrLoading(false); }
       };
       reader.readAsDataURL(f);
     } catch { setOcrError("No se pudo procesar la imagen."); setOcrLoading(false); }
-  }, [reconocerLicencia, aplicarDeteccion, scannerOrigin, setOpenModal]);
+  }, [reconocerLicencia, aplicarDeteccion, setOpenModal]);
 
   const handleSimOCR = useCallback((p: string, con: string, rol: string, marca: string, modelo: string, color: string) => {
     setOcrLoading(true);
@@ -131,27 +127,14 @@ export function useOcrScanner(
         setOcrFlash(false);
         setVehiculoForm({ placa: p, conductor: con, esOficial: rol === "Oficial", marca, modelo, color });
         avisarSiTipoNoCoincide(p);
-        if (scannerOrigin === "smartAssign") { setScannedPlate(p); setOpenModal("smartAssign"); }
-        else { setOpenModal("ingreso"); }
+        setOpenModal("ingreso");
       }, 1000);
     }, 800);
-  }, [setVehiculoForm, avisarSiTipoNoCoincide, scannerOrigin, setOpenModal]);
-
-  const handleSmartAssign = useCallback(async (celda: Celda, placa: string, conductorNombre: string, esOficial: boolean) => {
-    await registrarEnCelda(celda, placa, conductorNombre, esOficial);
-    setScannedPlate(undefined);
-  }, [registrarEnCelda]);
-
-  const closeSmartAssign = useCallback(() => {
-    setOpenModal(null);
-    setScannedPlate(undefined);
-    setScannerOrigin(null);
-  }, [setOpenModal]);
+  }, [setVehiculoForm, avisarSiTipoNoCoincide, setOpenModal]);
 
   return {
     videoRef, guiaRef, camaraLista, setCamaraLista,
-    ocrLoading, ocrError, ocrFlash, scannedPlate,
+    ocrLoading, ocrError, ocrFlash,
     abrirScannerDesde, cerrarScanner, handleCaptureOcr, handleFileOCR, handleSimOCR,
-    handleSmartAssign, closeSmartAssign,
   };
 }
