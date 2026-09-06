@@ -136,7 +136,12 @@ export function SelectorBuscable({
               disabled={deshabilitado}
               placeholder={placeholder}
               value={busqueda}
-              onFocus={() => setEnfocado(true)}
+              /* Se despliega con un gesto de la persona: un clic, o la flecha abajo para quien
+                  navega con teclado. NO con el foco a secas — al abrirse un modal el navegador
+                  enfoca su primer campo, y con `onFocus` la lista se abría sola nada más
+                  entrar al formulario, que es justo lo que no se quiere. */
+              onClick={() => setEnfocado(true)}
+              onKeyDown={(e) => { if (e.key === "ArrowDown") setEnfocado(true); }}
               // En diferido: un clic sobre una sugerencia quita el foco del campo antes de
               // llegar a su onClick, y cerrar la lista al instante se lo llevaría por delante.
               onBlur={() => setTimeout(() => setEnfocado(false), 150)}

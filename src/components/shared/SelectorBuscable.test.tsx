@@ -69,4 +69,26 @@ describe("SelectorBuscable — cuándo sugiere", () => {
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Cambiar parqueadero" })).toBeInTheDocument();
   });
+  /* Al abrirse un modal el navegador enfoca su primer campo: si eso desplegara la lista, el
+     formulario aparecería con una pared de opciones que nadie pidió. */
+  it("recibir el foco no despliega nada; hace falta un clic", async () => {
+    const user = userEvent.setup();
+    pintar();
+
+    screen.getByLabelText("Parqueadero").focus();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText("Parqueadero"));
+    expect(await screen.findByRole("listbox")).toBeInTheDocument();
+  });
+
+  it("con el teclado se abre con la flecha abajo", async () => {
+    const user = userEvent.setup();
+    pintar();
+
+    screen.getByLabelText("Parqueadero").focus();
+    await user.keyboard("{ArrowDown}");
+
+    expect(await screen.findByRole("listbox")).toBeInTheDocument();
+  });
 });

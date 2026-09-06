@@ -44,7 +44,10 @@ export const VehiculoView = memo(({
       <div
         style={{
           padding: "1.6rem 1.8rem 1.4rem",
-          background: `linear-gradient(135deg, ${tipoStyle.dot}, ${tipoStyle.dot}cc)`,
+          /* Verde de marca, como el resto de cabeceras de la aplicación. Teñirla del color
+             del tipo hacía que la misma pantalla fuera azul o ámbar según el vehículo, y esa
+             ficha dejaba de parecer parte de ParkU. El tipo se distingue en su insignia. */
+          background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryDark})`,
           color: "#fff",
           borderRadius: "24px 24px 0 0",
           position: "relative",

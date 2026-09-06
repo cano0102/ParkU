@@ -43,12 +43,16 @@ export const getTipoUsuarioStyle = (nombre: string) => ({
   label: nombre || "Sin tipo",
 });
 
+/* El tipo de vehículo se lee por su icono y su etiqueta; el color solo acompaña. Antes cada
+   tipo traía tonos propios, parecidos pero distintos a los del sistema, y una ficha de
+   vehículo se veía de otra aplicación. Ahora salen del tema: los mismos azul, ámbar, verde,
+   violeta y rojo que usa el resto. */
 const TIPO_VEHICULO_STYLES: Record<Vehiculo["tipo"], { bg: string; text: string; border: string; dot: string; label: string; icon: typeof Car }> = {
-  carro:     { bg: "#EFF6FF", text: "#2563EB", border: "#BFDBFE", dot: "#3B82F6", label: "Carro",     icon: Car },
-  moto:      { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A", dot: "#F59E0B", label: "Moto",      icon: Bike },
-  bicicleta: { bg: "#ECFDF5", text: "#047857", border: "#A7F3D0", dot: "#10B981", label: "Bicicleta", icon: Wind },
-  camion:    { bg: "#F5F3FF", text: "#6D28D9", border: "#DDD6FE", dot: "#8B5CF6", label: "Camión",    icon: Truck },
-  bus:       { bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA", dot: "#EF4444", label: "Bus",       icon: BusIcon },
+  carro:     { bg: theme.infoBg,      text: "#1D4ED8",         border: "#BFDBFE",          dot: theme.info,    label: "Carro",     icon: Car },
+  moto:      { bg: theme.amberBg,     text: "#92400E",         border: "#FDE68A",          dot: theme.amber,   label: "Moto",      icon: Bike },
+  bicicleta: { bg: theme.successBg,   text: theme.successText, border: theme.primaryLight, dot: theme.success, label: "Bicicleta", icon: Wind },
+  camion:    { bg: "#F5F3FF",         text: "#6D28D9",         border: "#DDD6FE",          dot: theme.purple,  label: "Camión",    icon: Truck },
+  bus:       { bg: theme.dangerBg,    text: theme.dangerText,  border: theme.dangerBorder, dot: theme.danger,  label: "Bus",       icon: BusIcon },
 };
 
 /**
