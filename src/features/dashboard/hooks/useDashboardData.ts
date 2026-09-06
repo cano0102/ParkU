@@ -131,7 +131,17 @@ export function useDashboardData() {
     };
   }, [lots]);
 
-  const incidentesPendientes = useMemo(() => incidentes.filter((i) => i.estado === "pendiente"), [incidentes]);
+  /* Un incidente (daño, choque, problemática) y una novedad (observación de la operación) se
+     atienden distinto: contarlos juntos hacía que un parqueadero con tres observaciones
+     pareciera tener tres averías sin resolver. */
+  const incidentesPendientes = useMemo(
+    () => incidentes.filter((i) => i.estado === "pendiente" && i.clase !== "novedad"),
+    [incidentes],
+  );
+  const novedadesPendientes = useMemo(
+    () => incidentes.filter((i) => i.estado === "pendiente" && i.clase === "novedad"),
+    [incidentes],
+  );
 
   const reservaCounts = useMemo(() => ({
     pendiente: reservas.filter((r) => r.estado === "pendiente").length,
@@ -205,7 +215,7 @@ export function useDashboardData() {
   return {
     filter, setFilter, selectedId, setSelectedId,
     lots, movements, visibleLots, selectedLot, totals,
-    incidentesPendientes, reservaCounts, alerts, selectedStats,
+    incidentesPendientes, novedadesPendientes, reservaCounts, alerts, selectedStats,
     vehiculosActivos, conductoresActivos, vehicleDistribution, conductorDistribution,
     accessibility, entradas, salidas, isLoading,
   };

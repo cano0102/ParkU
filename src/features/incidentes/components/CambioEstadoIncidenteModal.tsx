@@ -6,7 +6,7 @@ import {
 import type { Usuario } from "@/services/api/usuarios";
 import { theme } from "@/styles/theme";
 import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
-import { requiereEncargado } from "../lib/transiciones";
+import { recomiendaEncargado } from "../lib/transiciones";
 
 const C = theme;
 
@@ -26,29 +26,31 @@ export interface CambioEstadoIncidenteModalProps {
  *
  * Son dos cosas que el estado por sí solo no dice, y que después nadie puede reconstruir:
  *
- * - **Quién responde por él.** Un incidente "en proceso" sin encargado es trabajo sin dueño:
- *   nadie sabe a quién preguntarle, y al final no lo atiende nadie.
- * - **Por qué se descartó.** Un reporte rechazado o cancelado sin motivo desaparece sin
- *   respuesta para quien se tomó el trabajo de reportarlo — y es justo lo que esa persona ve
- *   al entrar a mirar qué pasó con él.
+ * - **Quién responde por él.** Es a quien se le pregunta después, así que se sugiere al
+ *   avanzar — pero seguir sin asignarlo es una decisión válida y tiene su propio botón:
+ *   bloquear el trabajo real por un dato administrativo no ayuda a nadie.
+ * - **Por qué se descartó.** Esto sí se exige. Un reporte rechazado o cancelado sin motivo
+ *   desaparece sin respuesta para quien se tomó el trabajo de levantarlo — y es justo lo que
+ *   esa persona ve al entrar a mirar qué pasó con él.
  *
- * Nunca hacen falta las dos a la vez: avanzar pide encargado, descartar pide motivo.
+ * Nunca hacen falta las dos a la vez: avanzar sugiere encargado, descartar exige motivo.
  */
 export function CambioEstadoIncidenteModal({
   destino, descripcion, usuariosAsignables, onCancel, onConfirm,
 }: CambioEstadoIncidenteModalProps) {
-  const pideEncargado = requiereEncargado(destino);
+  const pideEncargado = recomiendaEncargado(destino);
   const [usuarioAsignadoId, setUsuarioAsignadoId] = useState("");
   const [motivo, setMotivo] = useState("");
 
   const cfg = ESTADO_CONFIG[destino];
-  const valor = pideEncargado ? usuarioAsignadoId : motivo.trim();
-  const invalido = !valor;
+  /* El encargado se recomienda; el motivo se exige. Descartar un reporte sin explicar por qué
+     lo deja sin respuesta para quien lo levantó, y eso sí bloquea. */
+  const invalido = pideEncargado ? false : !motivo.trim();
 
-  const confirmar = () => {
+  const confirmar = (conEncargado = true) => {
     if (invalido) return;
     onConfirm(pideEncargado
-      ? { usuarioAsignadoId }
+      ? (conEncargado && usuarioAsignadoId ? { usuarioAsignadoId } : {})
       : { justificacionCierre: motivo.trim() });
   };
 
@@ -62,13 +64,13 @@ export function CambioEstadoIncidenteModal({
           {pideEncargado ? <UserCog size={17} /> : <Message size={17} />}
         </span>
         <h2 style={{ fontSize: 16, fontWeight: 900, color: C.text }}>
-          {pideEncargado ? "Asigna un encargado" : `Motivo para marcar como ${cfg.label.toLowerCase()}`}
+          {pideEncargado ? "¿Quién se hace cargo?" : `Motivo para marcar como ${cfg.label.toLowerCase()}`}
         </h2>
       </div>
 
       <p style={{ fontSize: 12, color: C.textLight, lineHeight: 1.5, marginBottom: 14 }}>
         {pideEncargado
-          ? `Para pasar el incidente a "${cfg.label}" alguien tiene que responder por él. Solo pueden encargarse Administradores y Vigilantes.`
+          ? `Conviene que alguien responda por el incidente al pasarlo a "${cfg.label}": es a quien se le pregunta después. Puedes seguir sin asignarlo. Solo pueden encargarse Administradores y Vigilantes.`
           : "Quien reportó el incidente verá este motivo en su panel, así que explica por qué no procede."}
       </p>
 
@@ -118,7 +120,7 @@ export function CambioEstadoIncidenteModal({
         </label>
       )}
 
-      <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
         <button
           onClick={onCancel}
           style={{
@@ -128,16 +130,30 @@ export function CambioEstadoIncidenteModal({
         >
           Cancelar
         </button>
+        {/* Seguir sin encargado es una decisión válida, no un descuido: se ofrece como tal. */}
+        {pideEncargado && (
+          <button
+            onClick={() => confirmar(false)}
+            style={{
+              flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`,
+              background: "#fff", color: C.textLight, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            Continuar sin encargado
+          </button>
+        )}
         <button
-          onClick={confirmar}
-          disabled={invalido}
+          onClick={() => confirmar(true)}
+          disabled={invalido || (pideEncargado && !usuarioAsignadoId)}
           style={{
             flex: 1, padding: "10px", borderRadius: 11, border: "none",
-            background: invalido ? C.border : C.primary, color: "#fff",
-            fontSize: 13, fontWeight: 800, cursor: invalido ? "not-allowed" : "pointer", fontFamily: "inherit",
+            background: invalido || (pideEncargado && !usuarioAsignadoId) ? C.border : C.primary, color: "#fff",
+            fontSize: 13, fontWeight: 800,
+            cursor: invalido || (pideEncargado && !usuarioAsignadoId) ? "not-allowed" : "pointer",
+            fontFamily: "inherit",
           }}
         >
-          {pideEncargado ? "Guardar y continuar" : "Guardar motivo"}
+          {pideEncargado ? "Asignar y continuar" : "Guardar motivo"}
         </button>
       </div>
     </div>

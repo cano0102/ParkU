@@ -93,6 +93,7 @@ export default function Dashboard() {
           <AvisosPanel
             reservasPendientes={puedeGestionarReservas ? d.reservaCounts.pendiente : 0}
             incidentesPendientes={puedeGestionarIncidentes ? d.incidentesPendientes.length : 0}
+            novedadesPendientes={puedeGestionarIncidentes ? d.novedadesPendientes.length : 0}
             onVerReservas={() => navigate("/app/reservas")}
             onVerIncidentes={() => navigate("/app/incidentes")}
           />

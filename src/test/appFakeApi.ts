@@ -132,6 +132,13 @@ export const incidentesSeed = [
     parqueadero_id: 1, celda_id: null, vehiculo_id: null, usuario_asignado_id: null, usuario_reporta_id: 1,
     fecha_hora: '2025-06-20T07:15:00.000Z', estado: 'CERRADA', justificacion_cierre: 'Reparada por mantenimiento',
   },
+  /* Una NOVEDAD: observación de la operación, sin tipo ni prioridad ni celda. Está en la
+     semilla a propósito, para que las pruebas puedan distinguirla de una avería. */
+  {
+    id: 4, clase: 'NOVEDAD', tipo_novedad: null, prioridad: null, descripcion: 'El portón hace ruido al abrir',
+    parqueadero_id: 1, celda_id: null, vehiculo_id: null, usuario_asignado_id: null, usuario_reporta_id: 1,
+    fecha_hora: '2025-06-21T07:15:00.000Z', estado: 'PENDIENTE', justificacion_cierre: null,
+  },
 ];
 
 export const catalogosSeed = [

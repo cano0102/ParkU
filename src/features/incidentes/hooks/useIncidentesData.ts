@@ -16,7 +16,7 @@ import {
 } from "./useIncidentes";
 import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
 import { compararIncidentes } from "../lib/orden";
-import { esEstadoFinal, puedeCambiarA, requiereEncargado, requiereMotivo } from "../lib/transiciones";
+import { esEstadoFinal, puedeCambiarA, requiereMotivo } from "../lib/transiciones";
 
 interface UseIncidentesDataOptions {
   /** El listado de incidentes hay que intentarlo igual para Comunidad SENA — no existe otra
@@ -161,14 +161,10 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
       return;
     }
 
-    /* Un incidente no avanza sin alguien que responda por él, y no se descarta sin decir por
-       qué. Las dos reglas las aplica también el backend (novedades.service.js); aquí evitan
-       enviar una petición que ya se sabe que va a fallar. */
-    const encargado = extra?.usuarioAsignadoId || incidente.usuarioAsignadoId;
-    if (requiereEncargado(nuevoEstado) && !encargado) {
-      toast.error("Asigna un encargado antes de mover el incidente a ese estado.");
-      return;
-    }
+    /* Descartar un reporte sin decir por qué lo deja sin respuesta para quien se tomó el
+       trabajo de levantarlo. Lo aplica también el backend (novedades.service.js); aquí evita
+       enviar una petición que ya se sabe que va a fallar. El encargado, en cambio, se
+       recomienda pero no se exige. */
     const motivo = extra?.justificacionCierre ?? incidente.justificacionCierre;
     if (requiereMotivo(nuevoEstado) && !motivo?.trim()) {
       toast.error(`Escribe el motivo para marcar el incidente como ${ESTADO_CONFIG[nuevoEstado].label.toLowerCase()}.`);

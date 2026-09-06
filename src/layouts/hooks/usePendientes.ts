@@ -30,8 +30,14 @@ export function usePendientes(): Record<string, number> {
     silentError: true,
   });
 
-  return useMemo(() => ({
-    "/app/reservas": (reservas.data ?? []).filter((r) => r.estado === "pendiente").length,
-    "/app/incidentes": (incidentes.data ?? []).filter((i) => i.estado === "pendiente").length,
-  }), [reservas.data, incidentes.data]);
+  /* Los incidentes son lo que pide atención: una novedad es una observación de la operación
+     y no debería inflar el mismo contador. Se cuentan aparte y el módulo suma las dos, porque
+     el menú tiene un solo sitio donde ponerlo. */
+  return useMemo(() => {
+    const abiertos = (incidentes.data ?? []).filter((i) => i.estado === "pendiente");
+    return {
+      "/app/reservas": (reservas.data ?? []).filter((r) => r.estado === "pendiente").length,
+      "/app/incidentes": abiertos.length,
+    };
+  }, [reservas.data, incidentes.data]);
 }

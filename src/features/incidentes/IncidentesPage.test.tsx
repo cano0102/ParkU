@@ -123,9 +123,9 @@ describe('features/incidentes', () => {
     expect(within(tarjeta).getAllByText('Rechazado').length).toBeGreaterThan(0);
   });
 
-  /* Un incidente no avanza sin alguien que responda por él: el selector ya no aplica el
-     cambio, abre primero el formulario del encargado. */
-  it('pide un encargado antes de poner un incidente en proceso', async () => {
+  /* El encargado se recomienda: el selector no aplica el cambio de una, abre el formulario
+     para poder asignarlo. */
+  it('sugiere un encargado antes de poner un incidente en proceso', async () => {
     const user = userEvent.setup();
     renderIncidentes();
     const descripcion = await screen.findByText('Vehículo mal estacionado bloqueando entrada');
@@ -138,7 +138,7 @@ describe('features/incidentes', () => {
 
     const encargado = await screen.findByRole('combobox', { name: 'Encargado del incidente' });
     await user.selectOptions(encargado, '2');
-    await user.click(screen.getByRole('button', { name: 'Guardar y continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Asignar y continuar' }));
 
     await waitFor(() => {
       const actualizada = screen.getByText('Vehículo mal estacionado bloqueando entrada').closest('.incidente-card') as HTMLElement;
@@ -197,7 +197,7 @@ describe('features/incidentes', () => {
 
     await user.selectOptions(within(tarjeta).getByRole('combobox'), 'en_proceso');
     await user.selectOptions(await screen.findByRole('combobox', { name: 'Encargado del incidente' }), '2');
-    await user.click(screen.getByRole('button', { name: 'Guardar y continuar' }));
+    await user.click(screen.getByRole('button', { name: 'Asignar y continuar' }));
     await waitFor(() => {
       const t = screen.getByText('Derrame de aceite con posible caída de vehículo').closest('.incidente-card') as HTMLElement;
       expect(within(t).getByRole('combobox')).toHaveValue('en_proceso');
@@ -280,5 +280,23 @@ describe('features/incidentes — incidentes y novedades conviven', () => {
     // tarjetas que se estiran, porque todas medirían lo mismo (nada).
     expect(alturas.every((h) => /^\d+px$/.test(h))).toBe(true);
     expect(new Set(alturas).size).toBe(1);
+  });
+});
+
+/* Tener a alguien a cargo es lo deseable, pero bloquear el avance por eso paraba el trabajo
+   real por un dato administrativo. */
+describe('features/incidentes — el encargado se recomienda, no se exige', () => {
+  it('deja avanzar sin asignar a nadie', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    // El primero que siga abierto: las pruebas de este archivo comparten la semilla y van
+    // cerrando reportes, así que fijar uno concreto lo ataría al orden de ejecución.
+    const [selector] = await screen.findAllByRole('combobox', { name: 'Cambiar estado del incidente' });
+
+    await user.selectOptions(selector, 'en_proceso');
+    await screen.findByRole('combobox', { name: 'Encargado del incidente' });
+    await user.click(screen.getByRole('button', { name: 'Continuar sin encargado' }));
+
+    await waitFor(() => expect(selector).toHaveValue('en_proceso'));
   });
 });

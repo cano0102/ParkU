@@ -11,9 +11,9 @@ import type { EstadoIncidente } from "./constants";
 export const ESTADOS_FINALES: EstadoIncidente[] = ["resuelto", "rechazado", "cancelado"];
 
 /**
- * Estados que exigen un encargado antes de poder ponerse: alguien tiene que responder por el
- * incidente. Sin esto, un incidente podía quedar "en proceso" sin que nadie lo estuviera
- * atendiendo, y no había a quién preguntarle.
+ * Estados en los que conviene tener un encargado: alguien a quien preguntarle por el
+ * incidente. Es una recomendación, no un requisito — exigirlo paraba el trabajo real por un
+ * dato administrativo, así que la aplicación lo sugiere al cambiar de estado y sigue.
  */
 export const ESTADOS_CON_ENCARGADO: EstadoIncidente[] = ["en_proceso", "resuelto"];
 
@@ -24,8 +24,8 @@ export const ESTADOS_CON_ENCARGADO: EstadoIncidente[] = ["en_proceso", "resuelto
  */
 export const ESTADOS_CON_MOTIVO: EstadoIncidente[] = ["rechazado", "cancelado"];
 
-/** true si pasar a `estado` exige tener un encargado asignado. */
-export function requiereEncargado(estado: EstadoIncidente): boolean {
+/** true si al pasar a `estado` conviene sugerir un encargado (no se exige). */
+export function recomiendaEncargado(estado: EstadoIncidente): boolean {
   return ESTADOS_CON_ENCARGADO.includes(estado);
 }
 

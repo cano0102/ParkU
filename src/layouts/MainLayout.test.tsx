@@ -37,8 +37,10 @@ describe("MainLayout — avisos en el menú", () => {
   it("marca el módulo de Incidentes con los que están sin atender", async () => {
     renderLayout();
 
-    // La API falsa trae dos novedades en estado PENDIENTE.
-    await waitFor(() => expect(screen.getAllByText("2").length).toBeGreaterThan(0));
+    /* La semilla trae tres reportes pendientes: dos incidentes y una novedad. El menú tiene un
+       solo sitio por módulo, así que su señal los suma —lo que hay que atender ahí dentro—; el
+       dashboard sí los separa en recuadros distintos. */
+    await waitFor(() => expect(screen.getAllByText("3").length).toBeGreaterThan(0));
   });
 
   it("no marca los módulos que no tienen nada esperando", async () => {

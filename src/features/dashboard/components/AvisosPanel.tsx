@@ -3,6 +3,7 @@ import {
   IconCalendarClock as CalendarClock,
   IconCircleCheck as CheckCircle2,
   IconFileAlert as FileWarning,
+  IconClipboardList as ClipboardList,
   IconChevronRight as ChevronRight,
 } from "@tabler/icons-react";
 import type { ElementType } from "react";
@@ -14,6 +15,8 @@ const C = theme;
 interface AvisosPanelProps {
   reservasPendientes: number;
   incidentesPendientes: number;
+  /** Observaciones de la operación sin atender. Van en su propio recuadro: no son averías. */
+  novedadesPendientes: number;
   onVerReservas: () => void;
   onVerIncidentes: () => void;
 }
@@ -36,7 +39,7 @@ interface Aviso {
  * módulo hasta que alguien entra a mirarlos. Esto los pone donde sí se ven, con el número y
  * un camino directo — y cuando no hay nada pendiente lo dice, que también es información.
  */
-export function AvisosPanel({ reservasPendientes, incidentesPendientes, onVerReservas, onVerIncidentes }: AvisosPanelProps) {
+export function AvisosPanel({ reservasPendientes, incidentesPendientes, novedadesPendientes, onVerReservas, onVerIncidentes }: AvisosPanelProps) {
   const avisos: Aviso[] = [];
 
   if (reservasPendientes > 0) {
@@ -65,6 +68,19 @@ export function AvisosPanel({ reservasPendientes, incidentesPendientes, onVerRes
     });
   }
 
+  if (novedadesPendientes > 0) {
+    avisos.push({
+      clave: "novedades",
+      icono: ClipboardList,
+      titulo: `${novedadesPendientes} ${novedadesPendientes === 1 ? "novedad registrada" : "novedades registradas"}`,
+      detalle: "Observaciones de la operación",
+      color: "#3730A3",
+      fondo: "#EEF2FF",
+      borde: "#C7D2FE",
+      onClick: onVerIncidentes,
+    });
+  }
+
   if (avisos.length === 0) {
     return (
       <motion.div variants={fadeUp} className="grid gap-5 sm:grid-cols-2">
@@ -72,7 +88,7 @@ export function AvisosPanel({ reservasPendientes, incidentesPendientes, onVerRes
           <CheckCircle2 size={20} color={C.primary} className="shrink-0" />
           <div>
             <p className="text-sm font-bold text-[#2D7D00]">Nada pendiente por revisar</p>
-            <p className="text-xs text-[#3F7D2E]">Sin solicitudes de reserva ni incidentes sin atender</p>
+            <p className="text-xs text-[#3F7D2E]">Sin solicitudes de reserva, incidentes ni novedades sin atender</p>
           </div>
         </div>
       </motion.div>

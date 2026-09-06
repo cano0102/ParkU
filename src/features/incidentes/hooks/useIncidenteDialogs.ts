@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Incidente, TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
 import { ESTADOS_ABIERTOS, type EstadoIncidente } from "../lib/constants";
-import { requiereEncargado, requiereMotivo } from "../lib/transiciones";
+import { recomiendaEncargado, requiereMotivo } from "../lib/transiciones";
 import type { IncidentesData } from "./useIncidentesData";
 
 const emptyFormData = () => ({
@@ -37,7 +37,7 @@ export function useIncidenteDialogs(data: IncidentesData) {
     const incidente = incidentes.find((i) => i.id === id);
     if (!incidente || incidente.estado === destino) return;
 
-    const faltaEncargado = requiereEncargado(destino) && !incidente.usuarioAsignadoId;
+    const faltaEncargado = recomiendaEncargado(destino) && !incidente.usuarioAsignadoId;
     if (faltaEncargado || requiereMotivo(destino)) {
       setCambioEstado({ incidente, destino });
       return;

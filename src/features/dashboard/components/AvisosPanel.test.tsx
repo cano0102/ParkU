@@ -8,6 +8,7 @@ describe("AvisosPanel", () => {
   const props = {
     reservasPendientes: 0,
     incidentesPendientes: 0,
+    novedadesPendientes: 0,
     onVerReservas: vi.fn(),
     onVerIncidentes: vi.fn(),
   };
@@ -40,5 +41,21 @@ describe("AvisosPanel", () => {
 
     expect(screen.getByText("Nada pendiente por revisar")).toBeInTheDocument();
     expect(screen.queryAllByRole("button")).toHaveLength(0);
+  });
+  /* Una avería y una observación de turno no se atienden igual: contarlas juntas hacía que un
+     parqueadero con tres observaciones pareciera tener tres averías sin resolver. */
+  it("cuenta las novedades aparte de los incidentes", () => {
+    render(<AvisosPanel {...props} incidentesPendientes={2} novedadesPendientes={3} />);
+
+    expect(screen.getByText("2 incidentes reportados")).toBeInTheDocument();
+    expect(screen.getByText("3 novedades registradas")).toBeInTheDocument();
+    expect(screen.getAllByRole("button")).toHaveLength(2);
+  });
+
+  it("una novedad sola no se disfraza de incidente", () => {
+    render(<AvisosPanel {...props} novedadesPendientes={1} />);
+
+    expect(screen.getByText("1 novedad registrada")).toBeInTheDocument();
+    expect(screen.queryByText(/incidente/)).not.toBeInTheDocument();
   });
 });

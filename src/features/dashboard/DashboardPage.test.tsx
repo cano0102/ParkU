@@ -73,8 +73,19 @@ describe('features/dashboard — avisos de pendientes', () => {
     iniciarSesion(1);
     renderDashboard();
 
-    // La semilla trae dos novedades PENDIENTE.
+    // La semilla trae dos incidentes PENDIENTE.
     await waitFor(() => expect(screen.getByText('2 incidentes reportados')).toBeInTheDocument());
+  });
+
+  /* Una avería y una observación de turno no se atienden igual: sumarlas hacía que un
+     parqueadero con observaciones pareciera tener averías sin resolver. */
+  it('cuenta las novedades en su propio recuadro, no con los incidentes', async () => {
+    iniciarSesion(1);
+    renderDashboard();
+
+    await waitFor(() => expect(screen.getByText('1 novedad registrada')).toBeInTheDocument());
+    // La novedad de la semilla no infló el número de incidentes.
+    expect(screen.getByText('2 incidentes reportados')).toBeInTheDocument();
   });
 
   it('un rol sin permiso sobre esos módulos no ve el recuadro', async () => {
