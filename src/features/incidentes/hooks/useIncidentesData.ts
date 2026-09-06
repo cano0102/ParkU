@@ -114,6 +114,12 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     if (user && id === user.id) return user.nombre;
     return usuarioPorId.get(id)?.nombre;
   };
+  /** El correo de una cuenta: es por donde se la contacta desde el detalle de un reporte. */
+  const correoUsuario = (id?: string) => {
+    if (!id) return undefined;
+    if (user && id === user.id) return user.correo;
+    return usuarioPorId.get(id)?.correo;
+  };
   // Trazabilidad del incidente hacia la persona: novedad -> vehiculo_id -> conductor_principal
   // (no hay FK directa novedad->conductor, ver services/api/incidentes.ts).
   const conductorDe = (vehiculoId?: string) => {
@@ -244,6 +250,10 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     conductorDe,
     nombreUsuarioAsignado,
     nombreUsuarioReporta,
+    correoUsuario,
+    /* Abrir la ficha de una persona desde el reporte es cosa de quien gestiona: Comunidad SENA
+       ve el nombre y el correo, pero Usuarios y Conductores no son módulos suyos. */
+    puedeAbrirPerfiles: !esConductor,
     ocupanteDeCelda,
     pendientes,
     enProceso,

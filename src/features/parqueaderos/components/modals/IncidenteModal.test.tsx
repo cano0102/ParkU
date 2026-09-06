@@ -8,6 +8,7 @@ import type { Usuario } from "@/services/api/usuarios";
 import { ROLES } from "@/services/core/roles";
 import type { Ocupante, IncidenteForm } from "../../lib/helpers";
 import { IncidenteModal } from "./IncidenteModal";
+import { elegirEnBuscador } from "@/test/selectorBuscable";
 
 const celdaActiva: Celda = {
   id: "2", parqueaderoId: "1", numero: "C-002", tipo: "carro", usabilidad: "general",
@@ -104,15 +105,16 @@ describe("IncidenteModal — tipo, prioridad y asignar a", () => {
 
     await user.selectOptions(screen.getByLabelText("Tipo *"), "danio");
     await user.selectOptions(screen.getByLabelText("Prioridad *"), "critica");
-    await user.selectOptions(screen.getByLabelText("Asignar a"), "Ana Martínez R.");
+    await elegirEnBuscador(user, "Encargado", "Ana Martínez R.");
 
     expect(screen.getByLabelText("Tipo *")).toHaveValue("danio");
     expect(screen.getByLabelText("Prioridad *")).toHaveValue("critica");
-    expect(screen.getByLabelText("Asignar a")).toHaveValue("u2");
+    // El encargado elegido queda a la vista, ya sin la lista desplegada.
+    expect(screen.getByText("Ana Martínez R.")).toBeInTheDocument();
   });
 
-  it('muestra un aviso cuando no hay ningún Vigilante disponible para asignar', () => {
+  it('dice que no hay nadie a quien asignar, en vez de dejar la lista muda', () => {
     render(<IncidenteModal {...baseProps({ usuariosAsignables: [] })} />);
-    expect(screen.getByText(/Solo se puede asignar a un Vigilante/)).toBeInTheDocument();
+    expect(screen.getByText(/No hay nadie disponible para asignar/)).toBeInTheDocument();
   });
 });

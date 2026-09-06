@@ -6,8 +6,7 @@ import type { Usuario } from "@/services/api/usuarios";
 import type { TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
 import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL } from "@/features/incidentes";
 import { theme } from "@/styles/theme";
-import { Modal } from "@/components/shared";
-import { ModalHeader } from "@/components/shared";
+import { Modal, ModalHeader, SelectorBuscable } from "@/components/shared";
 import { IncidenteForm, Ocupante, formatearFechaHora, formatearDuracion } from "../../lib/helpers";
 
 const C = theme;
@@ -63,6 +62,7 @@ export function IncidenteModal({
       <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
         {/* Lo primero, porque cambia todo lo demás: un incidente pide tipo, prioridad y ocurre
             sobre una celda; una novedad es solo una observación de la operación. */}
+        <div className="pq-modal-two-col" style={{ display: "grid", gridTemplateColumns: puedeRegistrarNovedades ? "1fr 1fr" : "1fr", gap: 12, alignItems: "start" }}>
         {puedeRegistrarNovedades && (
           <div>
             <label style={labelStyle} htmlFor="incidente-clase">¿Qué vas a reportar? *</label>
@@ -72,29 +72,26 @@ export function IncidenteModal({
               onChange={(e) => setIncidenteForm(prev => ({ ...prev, clase: e.target.value as ClaseNovedad }))}
               style={selectStyle}
             >
-              <option value="incidente">Incidente — daño, choque o problemática</option>
-              <option value="novedad">Novedad — observación de la operación</option>
+              <option value="incidente">Incidente — daño o problemática</option>
+              <option value="novedad">Novedad — observación</option>
             </select>
           </div>
         )}
 
         {/* Un reporte sin autor no se le puede devolver a nadie. Por defecto es de quien está
             usando la aplicación; el personal puede dejarlo a nombre de quien se lo comunicó. */}
-        {/* Con una sola opción no hay nada que elegir: solo un Administrador puede dejar el
+        {/* Con una sola opción no hay nada que buscar: solo un Administrador puede dejar el
             reporte a nombre de otra persona; el resto reporta siempre a su nombre. */}
-        <div>
-          <label style={labelStyle} htmlFor="incidente-reporta">Reportado por *</label>
-          <select
-            id="incidente-reporta"
-            value={incidenteForm.usuarioReportaId}
-            onChange={(e) => setIncidenteForm(prev => ({ ...prev, usuarioReportaId: e.target.value }))}
-            disabled={usuariosReportantes.length <= 1}
-            style={{ ...selectStyle, cursor: usuariosReportantes.length <= 1 ? "not-allowed" : "pointer" }}
-          >
-            {usuariosReportantes.map((u) => (
-              <option key={u.id} value={u.id}>{u.nombre}</option>
-            ))}
-          </select>
+        <SelectorBuscable
+          id="incidente-reporta"
+          label="Reportado por *"
+          opciones={usuariosReportantes.map((u) => ({ id: u.id, titulo: u.nombre, subtitulo: u.correo }))}
+          valor={incidenteForm.usuarioReportaId}
+          onChange={(id) => setIncidenteForm(prev => ({ ...prev, usuarioReportaId: id }))}
+          deshabilitado={usuariosReportantes.length <= 1}
+          placeholder="Buscar por nombre o correo…"
+          textoVacio="Ninguna cuenta coincide"
+        />
         </div>
 
         <div>
@@ -164,25 +161,20 @@ export function IncidenteModal({
             {/* Solo los vehículos de quien reporta: ofrecer la flota entera obligaba a buscar
                 una placa entre cientos, y casi siempre es uno de los suyos. */}
             {!vehiculoFijado && (
-              <div>
-                <label style={labelStyle} htmlFor="incidente-vehiculo">Vehículo implicado</label>
-                <select
-                  id="incidente-vehiculo"
-                  value={incidenteForm.vehiculoId}
-                  onChange={(e) => setIncidenteForm(prev => ({ ...prev, vehiculoId: e.target.value }))}
-                  style={selectStyle}
-                >
-                  <option value="">Ninguno en particular</option>
-                  {vehiculosDelReportante.map((v) => (
-                    <option key={v.id} value={v.id}>{v.placa} — {v.marca} {v.modelo}</option>
-                  ))}
-                </select>
-                {vehiculosDelReportante.length === 0 && (
-                  <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
-                    Quien reporta no tiene vehículos registrados.
-                  </p>
-                )}
-              </div>
+              <SelectorBuscable
+                id="incidente-vehiculo"
+                label="Vehículo implicado"
+                opciones={vehiculosDelReportante.map((v) => ({
+                  id: v.id, titulo: v.placa, subtitulo: `${v.marca} ${v.modelo}`,
+                }))}
+                valor={incidenteForm.vehiculoId}
+                onChange={(id) => setIncidenteForm(prev => ({ ...prev, vehiculoId: id }))}
+                placeholder="Buscar por placa…"
+                textoVacio={vehiculosDelReportante.length === 0
+                  ? "Quien reporta no tiene vehículos registrados"
+                  : "Ninguna placa coincide"}
+                textoSinSeleccion="Ninguno en particular"
+              />
             )}
 
             {/* "Otro" sin decir qué es no clasifica nada: esa precisión se perdía. */}
@@ -203,25 +195,17 @@ export function IncidenteModal({
         )}
 
         {puedeRegistrarNovedades && (
-        <div>
-          <label style={labelStyle} htmlFor="incidente-asignado">Asignar a</label>
-          <select
+          <SelectorBuscable
             id="incidente-asignado"
-            value={incidenteForm.usuarioAsignadoId}
-            onChange={(e) => setIncidenteForm(prev => ({ ...prev, usuarioAsignadoId: e.target.value }))}
-            style={selectStyle}
-          >
-            <option value="">Sin asignar</option>
-            {usuariosAsignables.map((u) => (
-              <option key={u.id} value={u.id}>{u.nombre}</option>
-            ))}
-          </select>
-          {usuariosAsignables.length === 0 && (
-            <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
-              Solo se puede asignar a un Vigilante — no hay ninguno disponible (o no tienes permiso para ver la lista de usuarios).
-            </p>
-          )}
-        </div>
+            label="Encargado"
+            opciones={usuariosAsignables.map((u) => ({ id: u.id, titulo: u.nombre, subtitulo: u.correo }))}
+            valor={incidenteForm.usuarioAsignadoId}
+            onChange={(id) => setIncidenteForm(prev => ({ ...prev, usuarioAsignadoId: id }))}
+            placeholder="Buscar por nombre o correo…"
+            textoVacio="No hay nadie disponible para asignar"
+            textoSinSeleccion="Sin asignar"
+            ayuda="Se recomienda, no es obligatorio: es a quien se le pregunta después."
+          />
         )}
 
         {!esNovedad && (

@@ -112,6 +112,9 @@ export function Incidentes() {
             conductorDocumento={p.conductorDe(p.selectedIncidente.vehiculoId)?.numeroDocumento}
             asignadoNombre={p.nombreUsuarioAsignado(p.selectedIncidente.usuarioAsignadoId)}
             reportanteNombre={p.nombreUsuarioReporta(p.selectedIncidente.usuarioReportaId)}
+            reportanteCorreo={p.correoUsuario(p.selectedIncidente.usuarioReportaId)}
+            asignadoCorreo={p.correoUsuario(p.selectedIncidente.usuarioAsignadoId)}
+            puedeAbrirPerfiles={p.puedeAbrirPerfiles}
             nombreParqueadero={p.nombreParqueadero(p.selectedIncidente.parqueaderoId)}
             onClose={() => p.setViewOpen(false)}
             onEdit={() => p.openEdit(p.selectedIncidente!)}

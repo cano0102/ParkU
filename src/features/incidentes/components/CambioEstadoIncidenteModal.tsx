@@ -5,6 +5,7 @@ import {
 } from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { theme } from "@/styles/theme";
+import { SelectorBuscable } from "@/components/shared";
 import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
 import { recomiendaEncargado } from "../lib/transiciones";
 
@@ -80,28 +81,14 @@ export function CambioEstadoIncidenteModal({
       </div>
 
       {pideEncargado ? (
-        <label style={{ display: "block" }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: C.text }}>Encargado</span>
-          <select
-            aria-label="Encargado del incidente"
-            value={usuarioAsignadoId}
-            onChange={(e) => setUsuarioAsignadoId(e.target.value)}
-            style={{
-              width: "100%", marginTop: 6, padding: "9px 10px", borderRadius: 10,
-              border: `1px solid ${C.border}`, fontSize: 13, fontFamily: "inherit", background: "#fff", color: C.text,
-            }}
-          >
-            <option value="">Selecciona quién se hace cargo…</option>
-            {usuariosAsignables.map((u) => (
-              <option key={u.id} value={u.id}>{u.nombre}</option>
-            ))}
-          </select>
-          {usuariosAsignables.length === 0 && (
-            <span style={{ display: "block", marginTop: 6, fontSize: 11, color: C.danger, fontWeight: 600 }}>
-              No hay administradores ni vigilantes disponibles para asignar.
-            </span>
-          )}
-        </label>
+        <SelectorBuscable
+          label="Encargado"
+          opciones={usuariosAsignables.map((u) => ({ id: u.id, titulo: u.nombre, subtitulo: u.correo }))}
+          valor={usuarioAsignadoId}
+          onChange={setUsuarioAsignadoId}
+          placeholder="Buscar por nombre o correo…"
+          textoVacio="No hay administradores ni vigilantes disponibles"
+        />
       ) : (
         <label style={{ display: "block" }}>
           <span style={{ fontSize: 11, fontWeight: 800, color: C.text }}>Motivo</span>

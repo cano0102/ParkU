@@ -2,6 +2,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Usuario } from "@/services/api/usuarios";
 import type { TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
 import { theme } from "@/styles/theme";
+import { SelectorBuscable } from "@/components/shared";
 import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL } from "../lib/constants";
 
 const C = theme;
@@ -81,20 +82,20 @@ export function IncidenteVehiculoAsignadoFields({
         )}
       </div>
 
-      <div>
-        <label htmlFor="vehiculo" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-          Vehículo (opcional)
-        </label>
-        <select id="vehiculo" value={vehiculoId} onChange={(e) => onVehiculoChange(e.target.value)} style={selectStyle}>
-          <option value="">Ninguno</option>
-          {vehiculos.map((v) => (
-            <option key={v.id} value={v.id}>{v.placa} — {v.marca} {v.modelo ?? ""}</option>
-          ))}
-        </select>
-        <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
-          Si seleccionas una celda ocupada, el vehículo se sugiere automáticamente.
-        </p>
-      </div>
+      {/* Buscable: la flota entera en un desplegable obligaba a recorrer cientos de placas. */}
+      <SelectorBuscable
+        id="vehiculo"
+        label="Vehículo (opcional)"
+        opciones={vehiculos.map((v) => ({
+          id: v.id, titulo: v.placa, subtitulo: `${v.marca} ${v.modelo ?? ""}`.trim(),
+        }))}
+        valor={vehiculoId}
+        onChange={onVehiculoChange}
+        placeholder="Buscar por placa…"
+        textoVacio="Ninguna placa coincide"
+        textoSinSeleccion="Ninguno"
+        ayuda="Si seleccionas una celda ocupada, el vehículo se sugiere automáticamente."
+      />
 
       {!puedeClasificar && (
         <p style={{ fontSize: 10, color: C.textLight }}>
@@ -104,20 +105,17 @@ export function IncidenteVehiculoAsignadoFields({
 
       {puedeClasificar && (
       <div>
-        <label htmlFor="asignadoA" style={{ display: "block", fontSize: 12, fontWeight: 700, color: C.text, marginBottom: 6 }}>
-          Asignar a
-        </label>
-        <select id="asignadoA" value={usuarioAsignadoId} onChange={(e) => onUsuarioAsignadoChange(e.target.value)} style={selectStyle}>
-          <option value="">Sin asignar</option>
-          {usuarios.map((u) => (
-            <option key={u.id} value={u.id}>{u.nombre}</option>
-          ))}
-        </select>
-        {usuarios.length === 0 && (
-          <p style={{ fontSize: 10, color: C.textLight, marginTop: 4 }}>
-            Solo se puede asignar a un Vigilante — no hay ninguno disponible (o no tienes permiso para ver la lista de usuarios).
-          </p>
-        )}
+        <SelectorBuscable
+          id="asignadoA"
+          label="Encargado"
+          opciones={usuarios.map((u) => ({ id: u.id, titulo: u.nombre, subtitulo: u.correo }))}
+          valor={usuarioAsignadoId}
+          onChange={onUsuarioAsignadoChange}
+          placeholder="Buscar por nombre o correo…"
+          textoVacio="No hay nadie disponible para asignar"
+          textoSinSeleccion="Sin asignar"
+          ayuda="Se recomienda, no es obligatorio: es a quien se le pregunta después."
+        />
       </div>
       )}
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -61,11 +61,10 @@ describe('features/incidentes — ConductorIncidentes (rol Comunidad SENA)', () 
     await user.click(screen.getByRole('button', { name: /Reportar incidente/i }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Nuevo Incidente' })).toBeInTheDocument();
 
-    // El selector de vehículo solo debe ofrecer los propios (placa ABC123, vehiculo 1).
-    const selectVehiculo = screen.getByLabelText('Vehículo (opcional)') as HTMLSelectElement;
-    const opciones = Array.from(selectVehiculo.options).map((o) => o.textContent);
-    expect(opciones.some((o) => o?.includes('ABC123'))).toBe(true);
-    expect(opciones.some((o) => o?.includes('DEF456'))).toBe(false);
+    // El buscador de vehículo solo debe sugerir los propios (placa ABC123, vehículo 1).
+    const sugerencias = screen.getByRole('listbox', { name: 'Sugerencias de Vehículo (opcional)' });
+    expect(within(sugerencias).getByText('ABC123')).toBeInTheDocument();
+    expect(within(sugerencias).queryByText('DEF456')).not.toBeInTheDocument();
   });
 
   it('no ofrece prioridad ni "Asignar a": quien solo reporta no clasifica su propio reporte', async () => {
@@ -77,7 +76,7 @@ describe('features/incidentes — ConductorIncidentes (rol Comunidad SENA)', () 
     await screen.findByRole('heading', { level: 2, name: 'Nuevo Incidente' });
 
     expect(screen.queryByLabelText('Prioridad')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Asignar a')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Encargado')).not.toBeInTheDocument();
     // Sí se le explica qué pasa con su reporte en vez de dejar el hueco sin más.
     expect(screen.getByText(/queda/i)).toBeInTheDocument();
     // El tipo sí lo elige quien reporta (describe QUÉ vio, no la urgencia).

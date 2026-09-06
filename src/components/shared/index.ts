@@ -1,6 +1,7 @@
 export { Modal } from './Modal';
 export { ConfirmDialog } from './ConfirmDialog';
 export { FormField } from './FormField';
+export { SelectorBuscable, type OpcionBuscable } from './SelectorBuscable';
 export { StatusBadge } from './StatusBadge';
 export { Toaster } from './Toaster';
 export { ErrorBoundary } from './ErrorBoundary';

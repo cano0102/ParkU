@@ -7,6 +7,7 @@ import { createAppBackends } from '@/test/appFakeApi';
 import { AuthProvider } from '@/context/AuthContext';
 import { Incidentes } from './IncidentesPage';
 import { createTestQueryClient } from '@/test/queryWrapper';
+import { elegirEnBuscador } from '@/test/selectorBuscable';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({
@@ -83,7 +84,7 @@ describe('features/incidentes', () => {
 
     const descripcionUnica = `Incidente de prueba ${Date.now()}`;
     await user.type(screen.getByLabelText('Descripción *'), descripcionUnica);
-    await user.selectOptions(screen.getByLabelText('Parqueadero *'), 'PQ-1 Torre A');
+    await elegirEnBuscador(user, 'Parqueadero *', 'PQ-1 Torre A');
     // Tipo y prioridad son obligatorios: un incidente hay que poder clasificarlo y ordenarlo.
     await user.selectOptions(screen.getByLabelText('Tipo *'), 'danio');
     await user.selectOptions(screen.getByLabelText('Prioridad'), 'alta');
@@ -136,8 +137,8 @@ describe('features/incidentes', () => {
       'en_proceso',
     );
 
-    const encargado = await screen.findByRole('combobox', { name: 'Encargado del incidente' });
-    await user.selectOptions(encargado, '2');
+    await screen.findByLabelText('Encargado');
+    await elegirEnBuscador(user, 'Encargado', 'Ana Martínez R.');
     await user.click(screen.getByRole('button', { name: 'Asignar y continuar' }));
 
     await waitFor(() => {
@@ -196,7 +197,8 @@ describe('features/incidentes', () => {
     const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
 
     await user.selectOptions(within(tarjeta).getByRole('combobox'), 'en_proceso');
-    await user.selectOptions(await screen.findByRole('combobox', { name: 'Encargado del incidente' }), '2');
+    await screen.findByLabelText('Encargado');
+    await elegirEnBuscador(user, 'Encargado', 'Ana Martínez R.');
     await user.click(screen.getByRole('button', { name: 'Asignar y continuar' }));
     await waitFor(() => {
       const t = screen.getByText('Derrame de aceite con posible caída de vehículo').closest('.incidente-card') as HTMLElement;
@@ -294,9 +296,28 @@ describe('features/incidentes — el encargado se recomienda, no se exige', () =
     const [selector] = await screen.findAllByRole('combobox', { name: 'Cambiar estado del incidente' });
 
     await user.selectOptions(selector, 'en_proceso');
-    await screen.findByRole('combobox', { name: 'Encargado del incidente' });
+    await screen.findByLabelText('Encargado');
     await user.click(screen.getByRole('button', { name: 'Continuar sin encargado' }));
 
     await waitFor(() => expect(selector).toHaveValue('en_proceso'));
+  });
+});
+
+/* El detalle es donde se contacta a las personas del reporte: sin el correo hay que salir a
+   buscarlas a otro módulo. */
+describe('features/incidentes — el detalle contacta a las personas', () => {
+  it('muestra el correo de quien reportó y lleva a su ficha', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    const descripcion = await screen.findByText('Vehículo mal estacionado bloqueando entrada');
+    const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
+
+    await user.click(within(tarjeta).getByRole('button', { name: 'Ver detalle del incidente' }));
+
+    const dialog = await screen.findByRole('dialog');
+    // El correo acompaña al nombre en la fila de quien reportó (aparece también en la del
+    // conductor del vehículo, que en la semilla es la misma persona).
+    expect(within(dialog).getByText('Reportado por')).toBeInTheDocument();
+    expect(within(dialog).getAllByText(/ana\.martinez@sena\.edu\.co/).length).toBeGreaterThan(0);
   });
 });

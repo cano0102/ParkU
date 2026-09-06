@@ -92,7 +92,9 @@ describe('features/controlSalida', () => {
     await user.click(screen.getByLabelText(/Reportar incidente o novedad/));
 
     expect(await screen.findByLabelText('¿Qué vas a reportar? *')).toBeInTheDocument();
-    expect(screen.getByLabelText('Reportado por *')).toHaveValue('1');
+    // Con una sola cuenta posible el campo queda fijo con su nombre a la vista: solo un
+    // administrador puede dejar el reporte a nombre de otra persona.
+    expect(screen.getByText('Administrador ParkU')).toBeInTheDocument();
     // El tipo arranca sin elegir: es obligatorio, y un valor por defecto sería una elección
     // que nadie hizo.
     expect(screen.getByLabelText('Tipo *')).toHaveValue('');

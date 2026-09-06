@@ -5,6 +5,7 @@ import type { Usuario } from "@/services/api/usuarios";
 import type { Celda } from "@/services/api/celdas";
 import type { TipoNovedad, PrioridadNovedad, Incidente, ClaseNovedad } from "@/services/api/incidentes";
 import { theme } from "@/styles/theme";
+import { SelectorBuscable } from "@/components/shared";
 import { IncidenteBasicFields } from "./IncidenteBasicFields";
 import { IncidenteVehiculoAsignadoFields } from "./IncidenteVehiculoAsignadoFields";
 
@@ -118,6 +119,9 @@ export function IncidenteFormModal({
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {/* Lo primero, porque cambia el resto: un incidente ocurre sobre una celda y exige
               tipo y prioridad; una novedad es una observación de la operación. */}
+          {/* Los dos campos de cabecera, uno al lado del otro: son cortos, y en columna
+              empujaban el resto del formulario fuera de la pantalla. */}
+          <div className="incidentes-form-grid" style={{ display: "grid", gridTemplateColumns: puedeRegistrarNovedades ? "1fr 1fr" : "1fr", gap: 12, alignItems: "start" }}>
           {puedeRegistrarNovedades && (
             <div>
               <label htmlFor="incidente-form-clase" style={etiqueta}>¿Qué vas a registrar? *</label>
@@ -127,26 +131,23 @@ export function IncidenteFormModal({
                 onChange={(e) => setFormData((f) => ({ ...f, clase: e.target.value as ClaseNovedad }))}
                 style={campo}
               >
-                <option value="incidente">Incidente — daño, choque o problemática</option>
-                <option value="novedad">Novedad — observación de la operación</option>
+                <option value="incidente">Incidente — daño o problemática</option>
+                <option value="novedad">Novedad — observación</option>
               </select>
             </div>
           )}
 
           {/* Un reporte sin autor no se le puede devolver a nadie. */}
-          <div>
-            <label htmlFor="incidente-form-reporta" style={etiqueta}>Reportado por *</label>
-            <select
-              id="incidente-form-reporta"
-              value={formData.usuarioReportaId}
-              onChange={(e) => setFormData((f) => ({ ...f, usuarioReportaId: e.target.value }))}
-              disabled={usuariosReportantes.length <= 1}
-              style={{ ...campo, cursor: usuariosReportantes.length <= 1 ? "not-allowed" : "pointer" }}
-            >
-              {usuariosReportantes.map((u) => (
-                <option key={u.id} value={u.id}>{u.nombre}</option>
-              ))}
-            </select>
+          <SelectorBuscable
+            id="incidente-form-reporta"
+            label="Reportado por *"
+            opciones={usuariosReportantes.map((u) => ({ id: u.id, titulo: u.nombre, subtitulo: u.correo }))}
+            valor={formData.usuarioReportaId}
+            onChange={(id) => setFormData((f) => ({ ...f, usuarioReportaId: id }))}
+            deshabilitado={usuariosReportantes.length <= 1}
+            placeholder="Buscar por nombre o correo…"
+            textoVacio="Ninguna cuenta coincide"
+          />
           </div>
 
           <IncidenteBasicFields

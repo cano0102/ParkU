@@ -128,7 +128,13 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12, flex: 1, minHeight: 0, overflow: "hidden" }}>
+        {/* El alto fijo mantiene la rejilla cuadrada, pero lo que no cabe no puede
+            desaparecer —el motivo de un rechazo es justo lo que hay que leer—: este bloque
+            hace scroll dentro de la propia tarjeta. */}
+        <div
+          className="incidente-card-datos"
+          style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2 }}
+        >
           {tipoTexto && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
               <AlertTriangle size={12} color={C.textLight} />
@@ -173,13 +179,7 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
               <div style={{ fontSize: 9, fontWeight: 800, color: cfg.text, textTransform: "uppercase", letterSpacing: .5 }}>
                 Motivo
               </div>
-              <div
-                title={incidente.justificacionCierre}
-                style={{
-                  fontSize: 11, color: cfg.text, lineHeight: 1.45,
-                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
-                }}
-              >
+              <div style={{ fontSize: 11, color: cfg.text, lineHeight: 1.45 }}>
                 {incidente.justificacionCierre}
               </div>
             </div>

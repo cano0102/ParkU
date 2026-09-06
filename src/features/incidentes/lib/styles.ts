@@ -7,6 +7,12 @@ export const incidentesStyles = `
   .incidentes-root *{ box-sizing:border-box; font-family:'Montserrat',sans-serif; }
   .incidente-card{ transition:box-shadow .18s,transform .18s; }
   .incidente-card:hover{ box-shadow:0 8px 28px rgba(15,23,42,.1); transform:translateY(-1px); }
+  /* La barra del scroll interno de la tarjeta: fina y discreta, para que no compita con el
+     contenido en un espacio tan pequeño. */
+  .incidente-card-datos{ scrollbar-width:thin; scrollbar-color:#CBD5E1 transparent; }
+  .incidente-card-datos::-webkit-scrollbar{ width:4px; }
+  .incidente-card-datos::-webkit-scrollbar-thumb{ background:#CBD5E1; border-radius:99px; }
+  .incidente-card-datos::-webkit-scrollbar-track{ background:transparent; }
   .action-btn{ transition:background .15s,color .15s; }
   .action-btn:hover{ background:#F1F5F9 !important; color:#0F172A !important; }
   .delete-btn:hover{ background:#FEE2E2 !important; color:#DC2626 !important; }

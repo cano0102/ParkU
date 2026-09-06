@@ -27,15 +27,20 @@ interface IncidenteViewModalProps {
   conductorNombre?: string;
   conductorDocumento?: string;
   asignadoNombre?: string;
+  asignadoCorreo?: string;
   /** Quién levantó el reporte: sin esto no hay a quién volver a preguntarle qué pasó. */
   reportanteNombre?: string;
+  reportanteCorreo?: string;
+  /** true si quien mira puede abrir la ficha de esas personas (Administrador o Vigilante).
+   *  Comunidad SENA ve el nombre y el correo, pero no navega a módulos que no le tocan. */
+  puedeAbrirPerfiles?: boolean;
   nombreParqueadero: string;
   onClose: () => void;
   onEdit: () => void;
 }
 
 /** Vista de solo lectura del detalle de un incidente. */
-export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, reportanteNombre, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
+export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, asignadoCorreo, reportanteNombre, reportanteCorreo, puedeAbrirPerfiles = false, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
   const navigate = useNavigate();
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
@@ -55,8 +60,19 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
             : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad],
           icon: AlertTriangle, onClick: undefined,
         }]),
+    /* Quién reportó y quién está a cargo, con su correo: es lo que permite contactarlos sin
+       salir a buscarlos. Y si quien mira puede gestionarlos, la fila lleva a su ficha —a
+       Conductores para quien reportó, a Usuarios para el encargado—, que es donde está el
+       resto de sus datos. */
     ...(reportanteNombre
-      ? [{ label: "Reportado por", value: reportanteNombre, icon: UserPlus, onClick: undefined }]
+      ? [{
+          label: "Reportado por",
+          value: reportanteCorreo ? `${reportanteNombre} · ${reportanteCorreo}` : reportanteNombre,
+          icon: UserPlus,
+          onClick: puedeAbrirPerfiles
+            ? () => navigate(`/app/conductores?q=${encodeURIComponent(reportanteCorreo || reportanteNombre)}`)
+            : undefined,
+        }]
       : []),
     {
       label: "Parqueadero", value: nombreParqueadero, icon: MapPin,
@@ -73,7 +89,16 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
     ...(conductorNombre
       ? [{ label: "Conductor", value: conductorDocumento ? `${conductorNombre} · ${conductorDocumento}` : conductorNombre, icon: User, onClick: undefined }]
       : []),
-    ...(asignadoNombre ? [{ label: "A cargo de", value: asignadoNombre, icon: User, onClick: undefined }] : []),
+    ...(asignadoNombre
+      ? [{
+          label: "A cargo de",
+          value: asignadoCorreo ? `${asignadoNombre} · ${asignadoCorreo}` : asignadoNombre,
+          icon: User,
+          onClick: puedeAbrirPerfiles
+            ? () => navigate(`/app/usuarios?q=${encodeURIComponent(asignadoCorreo || asignadoNombre)}`)
+            : undefined,
+        }]
+      : []),
     ...(incidente.justificacionCierre
       ? [{ label: "Motivo", value: incidente.justificacionCierre, icon: AlertTriangle, onClick: undefined }]
       : []),
