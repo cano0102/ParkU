@@ -10,6 +10,8 @@ import { IncidentesGrid } from "./components/IncidentesGrid";
 import { IncidenteFormModal } from "./components/IncidenteFormModal";
 import { IncidenteViewModal } from "./components/IncidenteViewModal";
 import { ConfirmDeleteIncidenteModal } from "./components/ConfirmDeleteIncidenteModal";
+import { CambioEstadoIncidenteModal } from "./components/CambioEstadoIncidenteModal";
+import { esEstadoFinal } from "./lib/transiciones";
 import { ConductorIncidentes } from "./components/ConductorIncidentes";
 
 const C = theme;
@@ -61,7 +63,7 @@ export function Incidentes() {
               onView={p.openView}
               onEdit={p.openEdit}
               onDelete={p.handleDelete}
-              onCambiarEstado={p.cambiarEstado}
+              onCambiarEstado={p.solicitarCambioEstado}
             />
           </>
         )}
@@ -70,7 +72,10 @@ export function Incidentes() {
       <Modal open={p.dialogOpen} onClose={p.closeForm} maxWidth={640}>
         <IncidenteFormModal
           isEditing={p.isEditing}
-          showJustificacionCierre={p.isEditing && p.selectedIncidente?.estado === "resuelto"}
+          /* El motivo/justificación acompaña a un desenlace: resuelto (cómo se resolvió) o
+             rechazado/cancelado (por qué no procedía). Antes solo salía en "resuelto", así que
+             un reporte descartado no tenía dónde guardar la explicación al editarlo. */
+          showJustificacionCierre={p.isEditing && !!p.selectedIncidente && esEstadoFinal(p.selectedIncidente.estado)}
           formData={p.formData}
           setFormData={p.setFormData}
           formTouched={p.formTouched}
@@ -103,6 +108,20 @@ export function Incidentes() {
             nombreParqueadero={p.nombreParqueadero(p.selectedIncidente.parqueaderoId)}
             onClose={() => p.setViewOpen(false)}
             onEdit={() => p.openEdit(p.selectedIncidente!)}
+          />
+        )}
+      </Modal>
+
+      {/* Antes de mover un incidente de estado se pide lo que ese estado exige: un encargado
+          para avanzar, un motivo para descartarlo. */}
+      <Modal open={!!p.cambioEstado} onClose={p.cerrarCambioEstado} maxWidth={440}>
+        {p.cambioEstado && (
+          <CambioEstadoIncidenteModal
+            destino={p.cambioEstado.destino}
+            descripcion={p.cambioEstado.incidente.descripcion}
+            usuariosAsignables={p.usuariosAsignables}
+            onCancel={p.cerrarCambioEstado}
+            onConfirm={p.confirmarCambioEstado}
           />
         )}
       </Modal>

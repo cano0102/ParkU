@@ -13,7 +13,7 @@ import {
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
-import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
+import { ESTADO_CONFIG, PRIORIDAD_CONFIG, type EstadoIncidente } from "../lib/constants";
 import { esEstadoFinal, transicionesDe } from "../lib/transiciones";
 import { CeldaBadgeInline, EstadoBadgeInline } from "./IncidenteBadges";
 
@@ -35,11 +35,15 @@ interface IncidenteCardProps {
 export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidenteCardProps) {
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
-  // Resuelto, cerrado y cancelado son finales: en vez del selector se muestra la etiqueta
+  // Resuelto, rechazado y cancelado son finales: en vez del selector se muestra la etiqueta
   // con un candado (la guarda equivalente vive en useIncidentesData.cambiarEstado, y el
   // backend debe impedirlo también). Ver lib/transiciones.ts.
   const estadoBloqueado = esEstadoFinal(incidente.estado);
   const destinos = transicionesDe(incidente.estado);
+  /* La urgencia tiene que verse antes de leer la tarjeta: en una lista de veinte iguales,
+     saber cuál es crítica obligaba a abrirlas una por una. El color va en la barra superior
+     (lo que se ve de lejos) y repetido en una etiqueta, para no depender solo del color. */
+  const prioridad = PRIORIDAD_CONFIG[incidente.prioridad];
 
   return (
     <div
@@ -50,7 +54,10 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre,
         boxShadow: "0 2px 8px rgba(15,23,42,.05)",
       }}
     >
-      <div style={{ height: 3, background: incidente.estado === "resuelto" ? C.success : C.warning }} />
+      <div
+        style={{ height: 4, background: prioridad.barra }}
+        title={`Prioridad ${prioridad.label.toLowerCase()}`}
+      />
 
       <div style={{ padding: "14px" }}>
         <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
@@ -73,6 +80,14 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre,
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               <EstadoBadgeInline estado={incidente.estado} />
+              <span style={{
+                display: "inline-flex", alignItems: "center", gap: 4, padding: "2px 8px", borderRadius: 999,
+                fontSize: 10, fontWeight: 800, background: prioridad.bg, color: prioridad.text,
+                border: `1px solid ${prioridad.border}`,
+              }}>
+                <span style={{ width: 6, height: 6, borderRadius: "50%", background: prioridad.barra }} />
+                {prioridad.label}
+              </span>
               {celda && <CeldaBadgeInline numero={celda.numero} estado={celda.estado} />}
             </div>
           </div>
@@ -102,6 +117,14 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, asignadoNombre,
             <Clock size={10} />
             <span>{fecha.toLocaleDateString("es-CO")} · {fecha.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
+          {incidente.justificacionCierre && (
+            <div style={{ padding: "8px 10px", borderRadius: 9, background: cfg.bg, border: `1px solid ${cfg.border}` }}>
+              <div style={{ fontSize: 9, fontWeight: 800, color: cfg.text, textTransform: "uppercase", letterSpacing: .5 }}>
+                Motivo
+              </div>
+              <div style={{ fontSize: 11, color: cfg.text, lineHeight: 1.45 }}>{incidente.justificacionCierre}</div>
+            </div>
+          )}
         </div>
 
         <div style={{

@@ -3,7 +3,7 @@ import { esEstadoFinal, puedeCambiarA, transicionesDe } from "./transiciones";
 
 describe("features/incidentes/lib/transiciones", () => {
   it("deja avanzar un incidente pendiente a cualquier otro estado", () => {
-    expect(transicionesDe("pendiente")).toEqual(["en_proceso", "resuelto", "cerrado", "cancelado"]);
+    expect(transicionesDe("pendiente")).toEqual(["en_proceso", "resuelto", "rechazado", "cancelado"]);
   });
 
   it("deja pasar de en proceso a resuelto", () => {
@@ -11,8 +11,8 @@ describe("features/incidentes/lib/transiciones", () => {
     expect(transicionesDe("en_proceso")).not.toContain("en_proceso");
   });
 
-  it("no deja cambiar el estado de un incidente resuelto, cerrado o cancelado", () => {
-    for (const estado of ["resuelto", "cerrado", "cancelado"] as const) {
+  it("no deja cambiar el estado de un incidente resuelto, rechazado o cancelado", () => {
+    for (const estado of ["resuelto", "rechazado", "cancelado"] as const) {
       expect(esEstadoFinal(estado)).toBe(true);
       expect(transicionesDe(estado)).toEqual([]);
       expect(puedeCambiarA(estado, "pendiente")).toBe(false);

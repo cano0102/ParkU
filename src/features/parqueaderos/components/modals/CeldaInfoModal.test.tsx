@@ -188,15 +188,36 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
      celda retenida, una reserva de la tarde no hay forma de cancelarla en toda la mañana. */
   it("deja cancelar la reserva que viene, con la celda todavía libre", () => {
     const onCancelarReserva = vi.fn();
-    render(<CeldaInfoModal {...props([reservaEn(240, 60)])} onCancelarReserva={onCancelarReserva} />);
+    const reserva = reservaEn(240, 60);
+    render(<CeldaInfoModal {...props([reserva])} onCancelarReserva={onCancelarReserva} />);
 
-    fireEvent.click(screen.getByText(/Cancelar reserva de las 14:00/));
-    expect(onCancelarReserva).toHaveBeenCalled();
+    fireEvent.click(screen.getByLabelText("Cancelar la reserva de las 14:00"));
+    expect(onCancelarReserva).toHaveBeenCalledWith(reserva);
+  });
+
+  /* Con varias reservas el mismo día hay que poder elegir cuál se cancela: cancelar "la de la
+     celda" tocaba siempre la primera, que casi nunca es la que se quiere quitar. */
+  it("cancela la reserva que se eligió, no la primera de la lista", () => {
+    const onCancelarReserva = vi.fn();
+    const temprana = reservaEn(180, 60);
+    const tardia = reservaEn(300, 60, { id: "r2" });
+    render(<CeldaInfoModal {...props([temprana, tardia])} onCancelarReserva={onCancelarReserva} />);
+
+    fireEvent.click(screen.getByLabelText("Cancelar la reserva de las 15:00"));
+    expect(onCancelarReserva).toHaveBeenCalledWith(tardia);
   });
 
   it("sin reservas por delante no ofrece cancelar nada", () => {
     render(<CeldaInfoModal {...props([])} />);
-    expect(screen.queryByText(/Cancelar reserva/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Cancelar la reserva/)).not.toBeInTheDocument();
+  });
+
+  /* Quien no registra ingresos (Comunidad SENA desde el plano) ve la agenda, pero no la toca. */
+  it("no ofrece cancelar a quien solo puede mirar", () => {
+    render(<CeldaInfoModal {...props([reservaEn(240, 60)])} canRegistrarIngreso={false} />);
+
+    expect(screen.getByText("Reservas de esta celda")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Cancelar la reserva/)).not.toBeInTheDocument();
   });
 });
 

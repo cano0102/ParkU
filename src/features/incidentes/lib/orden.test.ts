@@ -23,12 +23,12 @@ describe("features/incidentes/lib/orden", () => {
   it("deja los finalizados después de los abiertos aunque tengan más prioridad o sean más recientes", () => {
     const abiertoBaja = incidente({ id: "abierto", prioridad: "baja", fecha: "2025-01-01T10:00:00.000Z" });
     const resueltoCritico = incidente({ id: "resuelto", estado: "resuelto", prioridad: "critica", fecha: "2025-12-01T10:00:00.000Z" });
-    const cerradoCritico = incidente({ id: "cerrado", estado: "cerrado", prioridad: "critica", fecha: "2025-12-31T10:00:00.000Z" });
+    const cerradoCritico = incidente({ id: "rechazado", estado: "rechazado", prioridad: "critica", fecha: "2025-12-31T10:00:00.000Z" });
 
     const orden = [resueltoCritico, cerradoCritico, abiertoBaja].sort(compararIncidentes).map((i) => i.id);
 
     expect(orden[0]).toBe("abierto");
-    expect(orden.slice(1).sort()).toEqual(["cerrado", "resuelto"]);
+    expect(orden.slice(1).sort()).toEqual(["rechazado", "resuelto"]);
   });
 
   it("ordena los abiertos por prioridad, de crítica a baja", () => {

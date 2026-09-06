@@ -31,7 +31,9 @@ interface CeldaInfoModalProps {
   vehiculoReservado: Vehiculo | null;
   parqueaderoActivo: Parqueadero | null;
   onClose: () => void;
-  onCancelarReserva: () => void;
+  /** Cancelar UNA reserva concreta de la celda: una celda puede tener varias el mismo día,
+   *  así que la elige quien pulsa, no el componente. */
+  onCancelarReserva: (reserva: Reserva) => void;
   onEstacionarOficial: () => void;
   onNavigateConductor: (nombre: string) => void;
   onLiberar: () => void;
@@ -219,6 +221,20 @@ export function CeldaInfoModal({
                     <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 800, textTransform: "uppercase", letterSpacing: .5, color: colorEtiqueta }}>
                       {etiqueta}
                     </span>
+                    {canRegistrarIngreso && (
+                      <button
+                        onClick={() => onCancelarReserva(r)}
+                        title={`Cancelar la reserva de las ${comoHora(inicioDe(r))}`}
+                        aria-label={`Cancelar la reserva de las ${comoHora(inicioDe(r))}`}
+                        style={{
+                          flexShrink: 0, width: 24, height: 24, borderRadius: 7, cursor: "pointer",
+                          border: `1px solid ${C.border}`, background: "#fff", color: C.danger,
+                          fontSize: 12, fontWeight: 800, fontFamily: "inherit", lineHeight: 1,
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -267,7 +283,9 @@ export function CeldaInfoModal({
                     Estacionar {vehiculoReservado.placa}
                   </button>
                 )}
-                <button onClick={onCancelarReserva} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Cancelar Reserva</button>
+                {reservaActiva && (
+                  <button onClick={() => onCancelarReserva(reservaActiva)} style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}>🔓 Cancelar Reserva</button>
+                )}
                 {!parqueaderoInactivo && (
                   <button onClick={onEstacionarOficial} style={{ flex: 1, padding: "10px", borderRadius: 11, border: "none", background: C.text, color: "#fff", fontSize: 12, fontWeight: 800, cursor: "pointer", fontFamily: "inherit" }}>Estacionar Oficial</button>
                 )}
@@ -398,17 +416,6 @@ export function CeldaInfoModal({
                     style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
                   >
                     📅 Reservar Celda
-                  </button>
-                )}
-                {/* Cancelar la reserva que viene, sin esperar a que empiece. Antes esto solo
-                    existía con la celda retenida, así que una reserva de la tarde no se podía
-                    cancelar desde el plano en toda la mañana. */}
-                {canRegistrarIngreso && !confirmandoEstacionar && agenda?.proxima && (
-                  <button
-                    onClick={onCancelarReserva}
-                    style={{ flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
-                  >
-                    🔓 Cancelar reserva de las {comoHora(inicioDe(agenda.proxima))}
                   </button>
                 )}
                 {canSolicitarReserva && onSolicitarReserva && (

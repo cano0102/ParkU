@@ -1,13 +1,13 @@
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import type { Celda } from "@/services/api/celdas";
+import type { Reserva } from "@/services/api/reservas";
 import { ReservaFormState } from "../components/modals/ReservaModal";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 import { buscarConflictoHorario, validarFranja, franjaSugerida } from "@/features/reservas";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN, motivoCeldaPreferencialNoApta } from "../lib/helpers";
-import { agendaDeCelda } from "../lib/agendaCelda";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
@@ -164,31 +164,33 @@ export function useReservaCelda(
   }, [reservaForm, data, celdaActiva, setOpenModal]);
 
   /** La reserva viva de la celda abierta: es la que se cancelaría desde aquí. */
-  /* La reserva sobre la que actúan "Cancelar reserva" y su formulario de motivo: la que rige
-     ahora, y si no hay ninguna en curso, la siguiente. Antes se tomaba la primera viva que
-     apareciera en la lista — con varias reservas el mismo día en la misma celda, eso podía
-     cancelar una franja distinta de la que el modal estaba mostrando. */
-  const agendaDeLaCelda = celdaActiva ? agendaDeCelda(celdaActiva.id, data.reservas) : null;
-  const reservaDeLaCelda = agendaDeLaCelda?.vigente ?? agendaDeLaCelda?.proxima ?? null;
+  /* Cuál se está cancelando. Una celda puede tener varias reservas el mismo día, así que la
+     elige quien pulsa: derivarla ("la que rige", "la primera de la lista") cancelaba una
+     franja distinta de la que la persona tenía delante. */
+  const [reservaACancelar, setReservaACancelar] = useState<Reserva | null>(null);
 
-  /** Abre el formulario de cancelación — el mismo que usa el módulo de Reservas. */
-  const handleCancelarReserva = useCallback(() => setOpenModal("cancelarReserva"), [setOpenModal]);
+  /** Abre el formulario de cancelación de UNA reserva — el mismo que usa el módulo de Reservas. */
+  const handleCancelarReserva = useCallback((reserva: Reserva) => {
+    setReservaACancelar(reserva);
+    setOpenModal("cancelarReserva");
+  }, [setOpenModal]);
 
   /**
    * Cancela con el motivo escrito. La celda NO se toca desde aquí: el backend la libera al
    * cambiar el estado de la reserva (y solo si seguía reservada, no si ya entró un vehículo).
    */
   const confirmarCancelarReserva = useCallback(async (motivo: string) => {
-    if (!reservaDeLaCelda) { setOpenModal(null); return; }
+    if (!reservaACancelar) { setOpenModal(null); return; }
     try {
-      await data.updateReserva(reservaDeLaCelda.id, { estado: "cancelada", motivoRechazo: motivo });
+      await data.updateReserva(reservaACancelar.id, { estado: "cancelada", motivoRechazo: motivo });
       toast.info("Reserva cancelada.");
+      setReservaACancelar(null);
       setOpenModal(null);
     } catch (error) {
       // El aviso de error lo muestra el manejador central de mutaciones.
       console.error("Error cancelling reserva:", error);
     }
-  }, [reservaDeLaCelda, data, setOpenModal]);
+  }, [reservaACancelar, data, setOpenModal]);
 
   const handleRequestLiberar = useCallback(async () => {
     if (!celdaActiva) return;
@@ -212,6 +214,6 @@ export function useReservaCelda(
   return {
     reservaForm, setReservaForm, reservaError,
     openReservaFromCelda, handleCrearReserva, handleCancelarReserva, confirmarCancelarReserva,
-    reservaDeLaCelda, handleRequestLiberar,
+    reservaACancelar, handleRequestLiberar,
   };
 }

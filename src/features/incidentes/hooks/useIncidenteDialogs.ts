@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Incidente, TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
-import { ESTADOS_ABIERTOS } from "../lib/constants";
+import { ESTADOS_ABIERTOS, type EstadoIncidente } from "../lib/constants";
+import { requiereEncargado, requiereMotivo } from "../lib/transiciones";
 import type { IncidentesData } from "./useIncidentesData";
 
 const emptyFormData = () => ({
@@ -18,7 +19,31 @@ const emptyFormData = () => ({
 
 /** Los tres modales de Incidentes: crear/editar (con su validación en vivo), ver detalle y confirmar eliminación. */
 export function useIncidenteDialogs(data: IncidentesData) {
-  const { celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda } = data;
+  const { celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda, cambiarEstado } = data;
+
+  /* Cambiar el estado de un incidente no siempre es un clic: avanzar exige un encargado que
+     responda por él, y descartarlo exige decir por qué (lo lee quien lo reportó). Cuando
+     falta ese dato se pide antes de aplicar el cambio, en vez de dejar que el backend lo
+     rechace con un error que no explica qué hacer. */
+  const [cambioEstado, setCambioEstado] = useState<{ incidente: Incidente; destino: EstadoIncidente } | null>(null);
+
+  const solicitarCambioEstado = (id: string, destino: EstadoIncidente) => {
+    const incidente = incidentes.find((i) => i.id === id);
+    if (!incidente || incidente.estado === destino) return;
+
+    const faltaEncargado = requiereEncargado(destino) && !incidente.usuarioAsignadoId;
+    if (faltaEncargado || requiereMotivo(destino)) {
+      setCambioEstado({ incidente, destino });
+      return;
+    }
+    cambiarEstado(id, destino);
+  };
+
+  const confirmarCambioEstado = async (datos: { usuarioAsignadoId?: string; justificacionCierre?: string }) => {
+    if (!cambioEstado) return;
+    await cambiarEstado(cambioEstado.incidente.id, cambioEstado.destino, datos);
+    setCambioEstado(null);
+  };
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
@@ -176,5 +201,9 @@ export function useIncidenteDialogs(data: IncidentesData) {
     handleSave,
     handleDelete,
     confirmDeleteAction,
+    cambioEstado,
+    solicitarCambioEstado,
+    confirmarCambioEstado,
+    cerrarCambioEstado: () => setCambioEstado(null),
   };
 }

@@ -283,11 +283,11 @@ export default function Parqueaderos() {
       {/* Cancelar la reserva de una celda pide motivo, igual que en el módulo de Reservas:
           es el mismo formulario, para que se pida lo mismo se entre por donde se entre. */}
       <Modal open={modal.openModal === "cancelarReserva"} onClose={() => modal.setOpenModal(null)} maxWidth={420}>
-        {reserva.reservaDeLaCelda && (
+        {reserva.reservaACancelar && (
           <MotivoReservaModal
             accion="cancelar"
-            placa={data.vehiculos.find((v) => v.id === reserva.reservaDeLaCelda!.vehiculoId)?.placa || "—"}
-            fecha={reserva.reservaDeLaCelda.fechaReserva}
+            placa={data.vehiculos.find((v) => v.id === reserva.reservaACancelar!.vehiculoId)?.placa || "—"}
+            fecha={`${reserva.reservaACancelar.fechaReserva} · ${reserva.reservaACancelar.horaInicio}–${reserva.reservaACancelar.horaFin}`}
             onCancel={() => modal.setOpenModal(null)}
             onConfirm={reserva.confirmarCancelarReserva}
           />

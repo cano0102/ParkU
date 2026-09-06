@@ -89,7 +89,7 @@ describe('useIncidenteReporte — bloqueo de incidente duplicado (celda/vehícul
     expect(toast.error).toHaveBeenCalled();
   });
 
-  it('no bloquea si el incidente existente para esa celda ya está resuelto/cerrado/cancelado', async () => {
+  it('no bloquea si el incidente existente para esa celda ya está resuelto/rechazado/cancelado', async () => {
     useIncidentesMock.mockReturnValue({
       data: [incidenteBase({ id: 'viejo', celdaId: celdaActiva.id, estado: 'resuelto' })],
     });

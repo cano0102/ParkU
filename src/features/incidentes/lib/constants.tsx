@@ -31,7 +31,7 @@ export const ESTADO_CONFIG: Record<EstadoIncidente, {
   pendiente: { bg: "#FEF3C7", text: "#92400E", border: "#FDE68A", dot: "#F59E0B", label: "Pendiente", icon: <AlertTriangle size={10} /> },
   en_proceso: { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", dot: "#2563EB", label: "En proceso", icon: <Clock size={10} /> },
   resuelto: { bg: "#DCFCE7", text: "#166534", border: "#BBF7D0", dot: "#22C55E", label: "Resuelto", icon: <CheckCircle size={10} /> },
-  cerrado: { bg: "#F1F5F9", text: "#475569", border: "#CBD5E1", dot: "#64748B", label: "Cerrado", icon: <Archive size={10} /> },
+  rechazado: { bg: "#F1F5F9", text: "#475569", border: "#CBD5E1", dot: "#64748B", label: "Rechazado", icon: <Archive size={10} /> },
   cancelado: { bg: "#FEE2E2", text: "#991B1B", border: "#FCA5A5", dot: "#EF4444", label: "Cancelado", icon: <XCircle size={10} /> },
 };
 
@@ -48,4 +48,18 @@ export const PRIORIDAD_LABEL: Record<PrioridadNovedad, string> = {
   media: "Media",
   alta: "Alta",
   critica: "Crítica",
+};
+
+/**
+ * Color de cada prioridad. La urgencia de un incidente tiene que verse antes de leerlo: en
+ * una lista de veinte tarjetas iguales, saber cuál es crítica exigía abrir una por una.
+ * `barra` tiñe el borde superior de la tarjeta y el resto arma la etiqueta.
+ */
+export const PRIORIDAD_CONFIG: Record<PrioridadNovedad, {
+  barra: string; bg: string; text: string; border: string; label: string;
+}> = {
+  baja:    { barra: "#94A3B8", bg: "#F1F5F9", text: "#475569", border: "#CBD5E1", label: "Baja" },
+  media:   { barra: "#3B82F6", bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE", label: "Media" },
+  alta:    { barra: "#F59E0B", bg: "#FEF3C7", text: "#92400E", border: "#FDE68A", label: "Alta" },
+  critica: { barra: "#DC2626", bg: "#FEE2E2", text: "#991B1B", border: "#FCA5A5", label: "Crítica" },
 };

@@ -30,7 +30,7 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
   );
 
   // Celdas con un incidente/novedad todavía abierto (pendiente o en proceso) — se usa para el
-  // aviso visual (⚠️) en el plano y la tabla; uno ya resuelto/cerrado/cancelado no cuenta, esa
+  // aviso visual (⚠️) en el plano y la tabla; uno ya resuelto/rechazado/cancelado no cuenta, esa
   // celda vuelve a verse "limpia" aunque conserve su historial.
   const celdasConIncidenteAbierto = useMemo(
     () => new Set(incidentes.filter((i) => i.estado === "pendiente" || i.estado === "en_proceso").map((i) => i.celdaId)),

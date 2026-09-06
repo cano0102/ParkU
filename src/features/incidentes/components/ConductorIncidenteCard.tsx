@@ -7,7 +7,7 @@ import {
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
-import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL } from "../lib/constants";
+import { TIPO_NOVEDAD_LABEL, PRIORIDAD_CONFIG, ESTADO_CONFIG } from "../lib/constants";
 import { EstadoBadgeInline, CeldaBadgeInline } from "./IncidenteBadges";
 
 const C = theme;
@@ -38,6 +38,8 @@ const TOOLTIP_ACCION_NO_DISPONIBLE = "Disponible próximamente: el backend aún 
 export function ConductorIncidenteCard({ incidente, celda, nombreParqueadero, onEdit, onCancelar }: ConductorIncidenteCardProps) {
   const fecha = new Date(incidente.fecha);
   const gestionable = ESTADOS_GESTIONABLES.includes(incidente.estado);
+  const prioridad = PRIORIDAD_CONFIG[incidente.prioridad];
+  const cfgEstado = ESTADO_CONFIG[incidente.estado];
 
   return (
     <div
@@ -46,6 +48,7 @@ export function ConductorIncidenteCard({ incidente, celda, nombreParqueadero, on
         overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)",
       }}
     >
+      <div style={{ height: 4, background: prioridad.barra }} title={`Prioridad ${prioridad.label.toLowerCase()}`} />
       <div style={{ padding: 14 }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10, marginBottom: 8 }}>
           <p style={{ fontSize: 13, fontWeight: 800, color: C.text, lineHeight: 1.3 }}>{incidente.descripcion}</p>
@@ -56,8 +59,13 @@ export function ConductorIncidenteCard({ incidente, celda, nombreParqueadero, on
           <span style={{ fontSize: 10, fontWeight: 700, color: C.textLight, background: "#F1F5F9", padding: "2px 8px", borderRadius: 999 }}>
             {TIPO_NOVEDAD_LABEL[incidente.tipoNovedad]}
           </span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: C.textLight, background: "#F1F5F9", padding: "2px 8px", borderRadius: 999 }}>
-            Prioridad {PRIORIDAD_LABEL[incidente.prioridad]}
+          <span style={{
+            display: "inline-flex", alignItems: "center", gap: 4, fontSize: 10, fontWeight: 800,
+            background: prioridad.bg, color: prioridad.text, border: `1px solid ${prioridad.border}`,
+            padding: "2px 8px", borderRadius: 999,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: prioridad.barra }} />
+            Prioridad {prioridad.label}
           </span>
           {celda && <CeldaBadgeInline numero={celda.numero} estado={celda.estado} />}
         </div>
@@ -72,6 +80,23 @@ export function ConductorIncidenteCard({ incidente, celda, nombreParqueadero, on
             <span>{fecha.toLocaleDateString("es-CO")} · {fecha.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
         </div>
+
+        {/* La respuesta que recibió: si su reporte se rechazó o se canceló, esto es lo único
+            que le explica por qué. Sin ello, el reporte cambiaba de estado y quien se tomó el
+            trabajo de reportarlo se quedaba sin saber qué pasó. */}
+        {incidente.justificacionCierre && (
+          <div style={{
+            padding: "10px 12px", borderRadius: 10, marginBottom: 12,
+            background: cfgEstado.bg, border: `1px solid ${cfgEstado.border}`,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 800, color: cfgEstado.text, textTransform: "uppercase", letterSpacing: .5 }}>
+              Motivo de {cfgEstado.label.toLowerCase()}
+            </div>
+            <p style={{ fontSize: 11, color: cfgEstado.text, lineHeight: 1.45, marginTop: 2 }}>
+              {incidente.justificacionCierre}
+            </p>
+          </div>
+        )}
 
         {gestionable ? (
           <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 10, display: "flex", gap: 8 }}>

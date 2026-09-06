@@ -29,8 +29,13 @@ const COLORS = theme;
 export default function Dashboard() {
   const navigate = useNavigate();
   const now = useClock();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const esComunidadSena = user?.rol === ROLES.CONDUCTOR;
+  /* Los avisos son trabajo por hacer, y solo tiene sentido enseñárselos a quien puede
+     hacerlo: Administrador y Vigilante. Se decide por permiso y no por el id del rol para
+     que un rol creado a medida con esos mismos permisos también los vea. */
+  const puedeGestionarReservas = !esComunidadSena && hasPermission("reservas");
+  const puedeGestionarIncidentes = !esComunidadSena && hasPermission("incidentes");
   const d = useDashboardData();
 
   // El rol Comunidad SENA (Conductor) no tiene permiso en la API real para
@@ -84,12 +89,14 @@ export default function Dashboard() {
 
         {/* Lo que espera a alguien va arriba, antes que cualquier estadística: son las dos
             cosas que alguien tiene que ir a resolver hoy. */}
-        <AvisosPanel
-          reservasPendientes={d.reservaCounts.pendiente}
-          incidentesPendientes={d.incidentesPendientes.length}
-          onVerReservas={() => navigate("/app/reservas")}
-          onVerIncidentes={() => navigate("/app/incidentes")}
-        />
+        {(puedeGestionarReservas || puedeGestionarIncidentes) && (
+          <AvisosPanel
+            reservasPendientes={puedeGestionarReservas ? d.reservaCounts.pendiente : 0}
+            incidentesPendientes={puedeGestionarIncidentes ? d.incidentesPendientes.length : 0}
+            onVerReservas={() => navigate("/app/reservas")}
+            onVerIncidentes={() => navigate("/app/incidentes")}
+          />
+        )}
 
         <div className="grid gap-6 xl:grid-cols-12">
           <ParqueaderosPanel

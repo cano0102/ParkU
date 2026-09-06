@@ -9,7 +9,7 @@ const PESO_PRIORIDAD: Record<PrioridadNovedad, number> = {
   baja: 1,
 };
 
-/** Los estados finalizados (resuelto/cerrado/cancelado) se muestran DESPUÉS de los
+/** Los estados finalizados (resuelto/rechazado/cancelado) se muestran DESPUÉS de los
  *  abiertos, sin importar su prioridad ni su fecha. Reutiliza `ESTADOS_ABIERTOS`
  *  (lib/constants.tsx) para no tener dos definiciones de "incidente abierto". */
 function grupoDeEstado(estado: EstadoIncidente): number {
@@ -20,7 +20,7 @@ function grupoDeEstado(estado: EstadoIncidente): number {
  * Orden de gestión de la lista de incidentes:
  *
  *   1. Abiertos (pendiente / en proceso), de mayor a menor prioridad.
- *   2. Finalizados (resuelto / cerrado / cancelado), al final.
+ *   2. Finalizados (resuelto / rechazado / cancelado), al final.
  *
  * Dentro de cada grupo se desempata por prioridad y, a igual prioridad, por fecha
  * más reciente primero (que era el único criterio anterior). Es la ÚNICA ordenación

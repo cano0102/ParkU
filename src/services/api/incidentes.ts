@@ -5,7 +5,7 @@
  * verificarRol en el backend) — para un Conductor esta lista queda vacía.
  *
  * Sin equivalente mock: `tipoNovedad`/`prioridad` (obligatorios en la API
- * real) y el estado gana 3 valores nuevos (`en_proceso/cerrado/cancelado`)
+ * real) y el estado gana 3 valores nuevos (`en_proceso/rechazado/cancelado`)
  * sobre el ciclo pendiente/resuelto que ya tenía el mock. `evidencia`
  * (imagen en base64 embebida) se elimina: la API real la modela como un
  * sub-recurso aparte (`evidencia_novedad`, con URL, no base64 inline) que
@@ -16,7 +16,11 @@ import { apiFetch, crearConRespaldo } from '../core/http';
 
 export type TipoNovedad = 'danio' | 'accidente' | 'mal_estacionamiento' | 'queja' | 'otro';
 export type PrioridadNovedad = 'baja' | 'media' | 'alta' | 'critica';
-export type EstadoNovedad = 'pendiente' | 'en_proceso' | 'resuelto' | 'cerrado' | 'cancelado';
+/* `rechazado` es el CERRADA de la API. El nombre cambió porque "cerrado" y "resuelto"
+   contaban lo mismo (el incidente terminó bien) y no había forma de decir "esto no procede":
+   ahora CERRADA es justamente ese desenlace, y como todo desenlace negativo exige un motivo
+   que lee quien reportó. */
+export type EstadoNovedad = 'pendiente' | 'en_proceso' | 'resuelto' | 'rechazado' | 'cancelado';
 
 export interface Incidente {
   id: string;
@@ -36,10 +40,10 @@ const TIPO_DESDE_API: Record<string, TipoNovedad> = {
   DANIO: 'danio', ACCIDENTE: 'accidente', MAL_ESTACIONAMIENTO: 'mal_estacionamiento', QUEJA: 'queja', OTRO: 'otro',
 };
 const ESTADO_DESDE_API: Record<string, EstadoNovedad> = {
-  PENDIENTE: 'pendiente', EN_PROCESO: 'en_proceso', RESUELTA: 'resuelto', CERRADA: 'cerrado', CANCELADA: 'cancelado',
+  PENDIENTE: 'pendiente', EN_PROCESO: 'en_proceso', RESUELTA: 'resuelto', CERRADA: 'rechazado', CANCELADA: 'cancelado',
 };
 const ESTADO_A_API: Record<EstadoNovedad, string> = {
-  pendiente: 'PENDIENTE', en_proceso: 'EN_PROCESO', resuelto: 'RESUELTA', cerrado: 'CERRADA', cancelado: 'CANCELADA',
+  pendiente: 'PENDIENTE', en_proceso: 'EN_PROCESO', resuelto: 'RESUELTA', rechazado: 'CERRADA', cancelado: 'CANCELADA',
 };
 
 interface ApiNovedad {

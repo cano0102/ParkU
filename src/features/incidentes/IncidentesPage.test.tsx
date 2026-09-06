@@ -21,7 +21,16 @@ vi.mock('@/services/core/http', () => ({
 }));
 apiFetchMock.mockImplementation(createAppBackends().apiFetch);
 
+function iniciarSesionAdmin() {
+  localStorage.setItem('parkuToken', 'fake-token-1');
+  localStorage.setItem(
+    'parkUUser',
+    JSON.stringify({ id: '1', correo: 'admin@sena.edu.co', nombre: 'Administrador ParkU', numero: '3101234567', rol: 1 }),
+  );
+}
+
 function renderIncidentes(client = createTestQueryClient()) {
+  iniciarSesionAdmin();
   return render(
     <MemoryRouter>
       <QueryClientProvider client={client}>
@@ -101,28 +110,79 @@ describe('features/incidentes', () => {
     expect(posicion('Barrera dañada')).toBe(descripciones.length - 1);
   });
 
-  it('no ofrece cambio de estado en un incidente cerrado', async () => {
+  it('no ofrece cambio de estado en un incidente rechazado', async () => {
     renderIncidentes();
     const descripcion = await screen.findByText('Barrera dañada en el acceso norte');
     const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
 
     // Sin selector de estado: solo la etiqueta del estado final.
     expect(within(tarjeta).queryByRole('combobox')).not.toBeInTheDocument();
-    expect(within(tarjeta).getAllByText('Cerrado').length).toBeGreaterThan(0);
+    expect(within(tarjeta).getAllByText('Rechazado').length).toBeGreaterThan(0);
   });
 
-  it('cambia el estado de un incidente abierto con el selector de la tarjeta', async () => {
+  /* Un incidente no avanza sin alguien que responda por él: el selector ya no aplica el
+     cambio, abre primero el formulario del encargado. */
+  it('pide un encargado antes de poner un incidente en proceso', async () => {
     const user = userEvent.setup();
     renderIncidentes();
     const descripcion = await screen.findByText('Vehículo mal estacionado bloqueando entrada');
     const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
 
-    const selector = within(tarjeta).getByRole('combobox', { name: 'Cambiar estado del incidente' });
-    await user.selectOptions(selector, 'en_proceso');
+    await user.selectOptions(
+      within(tarjeta).getByRole('combobox', { name: 'Cambiar estado del incidente' }),
+      'en_proceso',
+    );
+
+    const encargado = await screen.findByRole('combobox', { name: 'Encargado del incidente' });
+    await user.selectOptions(encargado, '2');
+    await user.click(screen.getByRole('button', { name: 'Guardar y continuar' }));
 
     await waitFor(() => {
       const actualizada = screen.getByText('Vehículo mal estacionado bloqueando entrada').closest('.incidente-card') as HTMLElement;
       expect(within(actualizada).getByRole('combobox')).toHaveValue('en_proceso');
+    });
+  });
+
+  /* Y si no se completa, no pasa nada: el cambio se aplica al confirmar, no al elegirlo. */
+  it('deja el incidente como estaba si se cancela el formulario', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    const descripcion = await screen.findByText('Derrame de aceite con posible caída de vehículo');
+    const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
+
+    await user.selectOptions(
+      within(tarjeta).getByRole('combobox', { name: 'Cambiar estado del incidente' }),
+      'rechazado',
+    );
+    await screen.findByRole('textbox', { name: 'Motivo del cambio de estado' });
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    await waitFor(() => {
+      const actualizada = screen.getByText('Derrame de aceite con posible caída de vehículo').closest('.incidente-card') as HTMLElement;
+      expect(within(actualizada).getByRole('combobox')).toHaveValue('pendiente');
+    });
+  });
+
+  /* Descartar un reporte exige explicar por qué: ese texto es lo que ve quien lo reportó. */
+  it('pide el motivo antes de rechazar un reporte, y lo deja escrito', async () => {
+    const user = userEvent.setup();
+    renderIncidentes();
+    const descripcion = await screen.findByText('Vehículo mal estacionado bloqueando entrada');
+    const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
+
+    await user.selectOptions(
+      within(tarjeta).getByRole('combobox', { name: 'Cambiar estado del incidente' }),
+      'rechazado',
+    );
+
+    const motivo = await screen.findByRole('textbox', { name: 'Motivo del cambio de estado' });
+    await user.type(motivo, 'El vehículo ya fue retirado');
+    await user.click(screen.getByRole('button', { name: 'Guardar motivo' }));
+
+    await waitFor(() => {
+      const actualizada = screen.getByText('Vehículo mal estacionado bloqueando entrada').closest('.incidente-card') as HTMLElement;
+      expect(within(actualizada).getAllByText('Rechazado').length).toBeGreaterThan(0);
+      expect(within(actualizada).getByText('El vehículo ya fue retirado')).toBeInTheDocument();
     });
   });
 
@@ -133,6 +193,8 @@ describe('features/incidentes', () => {
     const tarjeta = descripcion.closest('.incidente-card') as HTMLElement;
 
     await user.selectOptions(within(tarjeta).getByRole('combobox'), 'en_proceso');
+    await user.selectOptions(await screen.findByRole('combobox', { name: 'Encargado del incidente' }), '2');
+    await user.click(screen.getByRole('button', { name: 'Guardar y continuar' }));
     await waitFor(() => {
       const t = screen.getByText('Derrame de aceite con posible caída de vehículo').closest('.incidente-card') as HTMLElement;
       expect(within(t).getByRole('combobox')).toHaveValue('en_proceso');

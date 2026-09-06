@@ -6,6 +6,7 @@ import { useParqueaderos, useCeldas } from "@/features/parqueaderos";
 import { useControlSalida } from "@/features/controlSalida";
 import { useVehiculos, useConductores } from "@/features/conductores";
 import { useUsuarios } from "@/features/usuarios";
+import type { Usuario } from "@/services/api/usuarios";
 import type { Incidente } from "@/services/api/incidentes";
 import {
   useIncidentes,
@@ -15,7 +16,7 @@ import {
 } from "./useIncidentes";
 import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
 import { compararIncidentes } from "../lib/orden";
-import { esEstadoFinal, puedeCambiarA } from "../lib/transiciones";
+import { esEstadoFinal, puedeCambiarA, requiereEncargado, requiereMotivo } from "../lib/transiciones";
 
 interface UseIncidentesDataOptions {
   /** El listado de incidentes hay que intentarlo igual para Comunidad SENA — no existe otra
@@ -60,10 +61,26 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const vehiculoPorId = useMemo(() => new Map(vehiculos.map((v) => [v.id, v])), [vehiculos]);
 
   const usuarioPorId = useMemo(() => new Map(usuarios.map((u) => [u.id, u])), [usuarios]);
-  // "Asignar a" solo debe ofrecer Vigilantes (son quienes de verdad gestionan incidentes en
-  // campo) — `usuarios` completo se conserva aparte para resolver el nombre de un incidente ya
-  // asignado antes de este cambio, aunque esa persona ya no sea Vigilante.
-  const usuariosAsignables = useMemo(() => usuarios.filter((u) => u.rol === ROLES.VIGILANTE), [usuarios]);
+  /* Quién puede quedar de encargado: Administrador o Vigilante, los dos roles que gestionan
+     el parqueadero (es la misma regla del backend, en novedades.service.js). `usuarios`
+     completo se conserva aparte para resolver el nombre de un incidente ya asignado, aunque
+     esa persona haya cambiado de rol después.
+
+     `GET /usuarios` es solo para Administrador, así que a un Vigilante esta lista le llega
+     vacía; para que pueda hacerse cargo igual, se añade su propia cuenta. Es además la
+     operación normal: el vigilante de turno toma el incidente que va a atender. */
+  const usuariosAsignables = useMemo(() => {
+    const gestores = usuarios.filter((u) => u.rol === ROLES.VIGILANTE || u.rol === ROLES.ADMIN);
+    const puedeEncargarse = user && (user.rol === ROLES.VIGILANTE || user.rol === ROLES.ADMIN);
+    if (puedeEncargarse && !gestores.some((u) => u.id === user.id)) {
+      const propia: Usuario = {
+        id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
+        password: "", numero: user.numero ?? "", estado: "activo",
+      };
+      return [propia, ...gestores];
+    }
+    return gestores;
+  }, [usuarios, user]);
 
   const nombreParqueadero = (id: string) => parqueaderoPorId.get(id)?.nombre ?? "—";
   const celdaDe = (id?: string) => (id ? celdaPorId.get(id) : undefined);
@@ -95,13 +112,17 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   /**
    * Cambia el estado de un incidente respetando las transiciones válidas
    * (lib/transiciones.ts): desde pendiente o en proceso se puede avanzar, mientras que
-   * resuelto, cerrado y cancelado son finales y ya no admiten cambios. La tarjeta solo
+   * resuelto, rechazado y cancelado son finales y ya no admiten cambios. La tarjeta solo
    * ofrece los destinos válidos; estas guardas cubren cualquier otra vía de llamada.
    * El backend debe aplicar la misma regla.
    */
-  const cambiarEstado = async (id: string, nuevoEstado: EstadoIncidente) => {
+  const cambiarEstado = async (
+    id: string,
+    nuevoEstado: EstadoIncidente,
+    extra?: { usuarioAsignadoId?: string; justificacionCierre?: string },
+  ) => {
     const incidente = incidentes.find((i) => i.id === id);
-    if (!incidente || incidente.estado === nuevoEstado) return;
+    if (!incidente || (incidente.estado === nuevoEstado && !extra)) return;
 
     if (esEstadoFinal(incidente.estado)) {
       toast.error(`Un incidente ${ESTADO_CONFIG[incidente.estado].label.toLowerCase()} ya no puede cambiar de estado.`);
@@ -112,8 +133,26 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
       return;
     }
 
+    /* Un incidente no avanza sin alguien que responda por él, y no se descarta sin decir por
+       qué. Las dos reglas las aplica también el backend (novedades.service.js); aquí evitan
+       enviar una petición que ya se sabe que va a fallar. */
+    const encargado = extra?.usuarioAsignadoId || incidente.usuarioAsignadoId;
+    if (requiereEncargado(nuevoEstado) && !encargado) {
+      toast.error("Asigna un encargado antes de mover el incidente a ese estado.");
+      return;
+    }
+    const motivo = extra?.justificacionCierre ?? incidente.justificacionCierre;
+    if (requiereMotivo(nuevoEstado) && !motivo?.trim()) {
+      toast.error(`Escribe el motivo para marcar el incidente como ${ESTADO_CONFIG[nuevoEstado].label.toLowerCase()}.`);
+      return;
+    }
+
     try {
-      await updateIncidente(id, { estado: nuevoEstado });
+      await updateIncidente(id, {
+        estado: nuevoEstado,
+        ...(extra?.usuarioAsignadoId ? { usuarioAsignadoId: extra.usuarioAsignadoId } : {}),
+        ...(extra?.justificacionCierre ? { justificacionCierre: extra.justificacionCierre } : {}),
+      });
       toast.success(`Incidente marcado como "${ESTADO_CONFIG[nuevoEstado].label}"`);
     } catch (error) {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
