@@ -321,6 +321,8 @@ export default function Parqueaderos() {
         puedeRegistrarNovedades={incidente.puedeRegistrarNovedades}
         vehiculosDelReportante={incidente.vehiculosDelReportante}
         vehiculoFijado={!!incidente.objetivo?.vehiculoId}
+        evidencias={incidente.evidencias}
+        onEvidenciasChange={incidente.setEvidencias}
         etiquetaContexto={incidente.objetivo?.etiqueta}
         onClose={incidente.closeIncidenteModal}
         onSubmit={incidente.registrarIncidente}

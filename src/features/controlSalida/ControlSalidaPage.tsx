@@ -84,6 +84,8 @@ export function ControlSalidaPage() {
         puedeRegistrarNovedades={p.reporte.puedeRegistrarNovedades}
         vehiculosDelReportante={p.reporte.vehiculosDelReportante}
         vehiculoFijado={!!p.reporte.objetivo?.vehiculoId}
+        evidencias={p.reporte.evidencias}
+        onEvidenciasChange={p.reporte.setEvidencias}
         etiquetaContexto={p.reporte.objetivo?.etiqueta}
         onClose={p.reporte.closeIncidenteModal}
         onSubmit={p.reporte.registrarIncidente}

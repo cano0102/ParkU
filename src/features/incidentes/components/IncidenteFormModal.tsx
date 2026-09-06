@@ -6,6 +6,8 @@ import type { Celda } from "@/services/api/celdas";
 import type { TipoNovedad, PrioridadNovedad, Incidente, ClaseNovedad } from "@/services/api/incidentes";
 import { theme } from "@/styles/theme";
 import { SelectorBuscable } from "@/components/shared";
+import type { Evidencia } from "@/services/api/evidencias";
+import { EvidenciasField } from "./EvidenciasField";
 import { IncidenteBasicFields } from "./IncidenteBasicFields";
 import { IncidenteVehiculoAsignadoFields } from "./IncidenteVehiculoAsignadoFields";
 
@@ -41,6 +43,10 @@ interface IncidenteFormModalProps {
   usuariosReportantes: Usuario[];
   /** Solo el personal del parqueadero registra novedades. */
   puedeRegistrarNovedades: boolean;
+  /** Fotos elegidas y aún sin enviar, y las que ya están guardadas (al editar). */
+  evidencias: File[];
+  onEvidenciasChange: (archivos: File[]) => void;
+  evidenciasExistentes: Evidencia[];
   showJustificacionCierre: boolean;
   formData: IncidenteFormData;
   setFormData: (updater: (f: IncidenteFormData) => IncidenteFormData) => void;
@@ -66,7 +72,8 @@ interface IncidenteFormModalProps {
 
 /** Modal de crear/editar incidente: header, campos y acciones. */
 export function IncidenteFormModal({
-  isEditing, usuariosReportantes, puedeRegistrarNovedades, showJustificacionCierre,
+  isEditing, usuariosReportantes, puedeRegistrarNovedades,
+  evidencias, onEvidenciasChange, evidenciasExistentes, showJustificacionCierre,
   formData, setFormData, formTouched, formErrors, formInvalido, markTouched,
   parqueaderos, vehiculos, usuarios, puedeClasificar = true, celdasDelParqueadero, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
   onParqueaderoChange, onCeldaChange, onClose, onSave,
@@ -167,6 +174,16 @@ export function IncidenteFormModal({
             onCeldaChange={onCeldaChange}
             ocupanteDeCelda={ocupanteDeCelda}
           />
+
+          {/* Una foto prueba lo que la descripción solo cuenta. Una novedad no las lleva:
+              una observación de turno no necesita respaldo gráfico. */}
+          {formData.clase !== "novedad" && (
+            <EvidenciasField
+              archivos={evidencias}
+              onChange={onEvidenciasChange}
+              existentes={evidenciasExistentes}
+            />
+          )}
 
           <IncidenteVehiculoAsignadoFields
             vehiculoId={formData.vehiculoId}

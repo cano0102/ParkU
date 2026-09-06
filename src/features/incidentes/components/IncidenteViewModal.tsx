@@ -15,6 +15,8 @@ import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
 import { CELDA_ESTADO_CONFIG, ESTADO_CONFIG, TIPO_NOVEDAD_LABEL } from "../lib/constants";
+import type { Evidencia } from "@/services/api/evidencias";
+import { EvidenciasField } from "./EvidenciasField";
 
 const C = theme;
 
@@ -34,13 +36,15 @@ interface IncidenteViewModalProps {
   /** true si quien mira puede abrir la ficha de esas personas (Administrador o Vigilante).
    *  Comunidad SENA ve el nombre y el correo, pero no navega a módulos que no le tocan. */
   puedeAbrirPerfiles?: boolean;
+  /** Las fotos guardadas del reporte. */
+  evidencias?: Evidencia[];
   nombreParqueadero: string;
   onClose: () => void;
   onEdit: () => void;
 }
 
 /** Vista de solo lectura del detalle de un incidente. */
-export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, asignadoCorreo, reportanteNombre, reportanteCorreo, puedeAbrirPerfiles = false, nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
+export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, asignadoCorreo, reportanteNombre, reportanteCorreo, puedeAbrirPerfiles = false, evidencias = [], nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
   const navigate = useNavigate();
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
@@ -193,6 +197,14 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
             </div>
           </div>
         ))}
+
+        {/* Las fotos que respaldan el reporte: es lo que evita tener que ir a mirarlo en
+            persona. Una novedad no las lleva. */}
+        {!esNovedad && evidencias.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <EvidenciasField archivos={[]} onChange={() => {}} existentes={evidencias} soloLectura />
+          </div>
+        )}
 
         {incidente.justificacionCierre && (
           <div style={{

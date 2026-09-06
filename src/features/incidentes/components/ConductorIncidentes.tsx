@@ -98,6 +98,9 @@ export function ConductorIncidentes() {
           isEditing={dialogs.isEditing}
           usuariosReportantes={data.usuariosReportantes}
           puedeRegistrarNovedades={false}
+          evidencias={dialogs.evidencias}
+          onEvidenciasChange={dialogs.setEvidencias}
+          evidenciasExistentes={dialogs.evidenciasExistentes}
           showJustificacionCierre={false}
           formData={dialogs.formData}
           setFormData={dialogs.setFormData}

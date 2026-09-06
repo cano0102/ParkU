@@ -123,9 +123,16 @@ async function parseJsonSafe(res: Response): Promise<unknown> {
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   const { body, auth = true, headers, ...rest } = options;
 
+  /* Un envío con archivo viaja como FormData: el navegador tiene que poner él mismo el
+     Content-Type, porque incluye el `boundary` que separa las partes. Si lo fijáramos a
+     application/json —como el resto de peticiones— el servidor no sabría dónde empieza cada
+     campo y el archivo nunca llegaría. Pasa por aquí igual que todo lo demás para no perder
+     el token, el timeout ni el manejo de errores. */
+  const esFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+
   const ejecutar = async (): Promise<Response> => {
     const h: Record<string, string> = {
-      'Content-Type': 'application/json',
+      ...(esFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(headers as Record<string, string> | undefined),
     };
     if (auth) {
@@ -135,7 +142,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     return fetchConTimeout(`${BASE_URL}${path}`, {
       ...rest,
       headers: h,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
+      body: esFormData ? (body as FormData) : (body !== undefined ? JSON.stringify(body) : undefined),
     });
   };
 

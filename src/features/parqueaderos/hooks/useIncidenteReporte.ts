@@ -8,6 +8,7 @@ import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Ocupante, IncidenteForm } from "../lib/helpers";
 import type { PrioridadNovedad } from "@/services/api/incidentes";
+import { subirVarias } from "@/services/api/evidencias";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 
@@ -77,6 +78,9 @@ export function useIncidenteReporte(
   const { data: incidentes = [] } = useIncidentes({ enabled: !esConductor });
 
   const [incidenteForm, setIncidenteFormRaw] = useState<IncidenteForm>(emptyIncidenteForm());
+  /* Las fotos van aparte del formulario: la API las cuelga del reporte ya creado
+     (`/novedades/:id/evidencias`), así que no pueden viajar en el mismo envío. */
+  const [evidencias, setEvidencias] = useState<File[]>([]);
   const [incidenteError, setIncidenteError] = useState<string | null>(null);
   const [incidenteTocado, setIncidenteTocado] = useState(false);
   /* Contexto explícito: cuando el reporte se abre desde fuera del plano (entrada/salida, la
@@ -99,6 +103,7 @@ export function useIncidenteReporte(
   const abrirReporte = useCallback((ctx: ContextoReporte) => {
     setContexto(ctx);
     setIncidenteFormRaw(emptyIncidenteForm(user?.id ?? ""));
+    setEvidencias([]);
     setIncidenteError(null);
     setIncidenteTocado(false);
     setOpenModal("incidente");
@@ -107,6 +112,7 @@ export function useIncidenteReporte(
   const closeIncidenteModal = useCallback(() => {
     setOpenModal(null);
     setIncidenteFormRaw(emptyIncidenteForm());
+    setEvidencias([]);
     setIncidenteError(null);
     setIncidenteTocado(false);
     setContexto(null);
@@ -153,7 +159,7 @@ export function useIncidenteReporte(
     }
 
     try {
-      await data.addIncidente({
+      const creado = await data.addIncidente({
         clase: incidenteForm.clase,
         descripcion: incidenteForm.descripcion.trim(),
         parqueaderoId: objetivo.parqueaderoId,
@@ -176,14 +182,29 @@ export function useIncidenteReporte(
         estado: "pendiente",
         justificacionCierre: "",
       });
+      /* Las fotos se suben con el reporte ya creado, que es cuando existe el id al que
+         colgarlas. Si alguna falla, el reporte NO se pierde: ya quedó guardado y se avisa de
+         lo que no subió, en vez de dar todo por fallido. Una novedad no lleva fotos. */
+      let avisoEvidencias = "";
+      if (!esNovedad && evidencias.length && creado?.id) {
+        const { subidas, errores } = await subirVarias(creado.id, evidencias);
+        if (errores.length) {
+          avisoEvidencias = ` Se subieron ${subidas} de ${evidencias.length} imágenes.`;
+          toast.error(errores[0]);
+        }
+      }
+
       closeIncidenteModal();
-      toast.success(esNovedad ? "Novedad registrada correctamente." : "Incidente registrado correctamente.");
+      toast.success(
+        (esNovedad ? "Novedad registrada correctamente." : "Incidente registrado correctamente.")
+        + avisoEvidencias,
+      );
     } catch (error) {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
       // (services/core/queryFactory.ts).
       console.error("Error registering incidente:", error);
     }
-  }, [objetivo, incidenteForm, esConductor, incidenteAbiertoExisteParaCeldaActiva, data, closeIncidenteModal]);
+  }, [objetivo, incidenteForm, evidencias, esConductor, incidenteAbiertoExisteParaCeldaActiva, data, closeIncidenteModal]);
 
   /* Los vehículos de quien reporta. Un conductor se identifica por su cuenta de usuario, así
      que se llega a sus vehículos por ahí: ofrecer la flota entera obligaba a buscar una placa
@@ -196,6 +217,7 @@ export function useIncidenteReporte(
 
   return {
     incidenteForm, setIncidenteForm, incidenteError,
+    evidencias, setEvidencias,
     vehiculosDelReportante,
     closeIncidenteModal, registrarIncidente, abrirReporte,
     incidenteAbiertoExisteParaCeldaActiva,

@@ -7,6 +7,7 @@ import type { TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api
 import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL } from "@/features/incidentes";
 import { theme } from "@/styles/theme";
 import { Modal, ModalHeader, SelectorBuscable } from "@/components/shared";
+import { EvidenciasField } from "@/features/incidentes";
 import { IncidenteForm, Ocupante, formatearFechaHora, formatearDuracion } from "../../lib/helpers";
 
 const C = theme;
@@ -31,6 +32,9 @@ interface IncidenteModalProps {
   vehiculosDelReportante?: Vehiculo[];
   /** true si el contexto ya trae vehículo: entonces no hay nada que elegir. */
   vehiculoFijado?: boolean;
+  /** Las fotos elegidas, que se suben cuando el reporte ya existe. */
+  evidencias?: File[];
+  onEvidenciasChange?: (archivos: File[]) => void;
   /** Solo el personal del parqueadero registra novedades; a Comunidad SENA ni se le ofrece. */
   puedeRegistrarNovedades?: boolean;
   /** Lo que se está mirando al reportar (celda, vehículo, o solo el parqueadero). */
@@ -42,7 +46,8 @@ interface IncidenteModalProps {
 export function IncidenteModal({
   open, celdaActiva, ocupanteActivo, parqueaderoActivo, incidenteForm, setIncidenteForm,
   incidenteError, usuariosAsignables, usuariosReportantes = [], puedeRegistrarNovedades = false,
-  vehiculosDelReportante = [], vehiculoFijado = false, etiquetaContexto, onClose, onSubmit,
+  vehiculosDelReportante = [], vehiculoFijado = false, evidencias = [], onEvidenciasChange,
+  etiquetaContexto, onClose, onSubmit,
 }: IncidenteModalProps) {
   const entrada = ocupanteActivo ? formatearFechaHora(ocupanteActivo.fechaEntrada) : null;
   /* Una novedad es una observación de la operación: no ocurre sobre una celda ni un vehículo,
@@ -175,6 +180,12 @@ export function IncidenteModal({
                   : "Ninguna placa coincide"}
                 textoSinSeleccion="Ninguno en particular"
               />
+            )}
+
+            {/* Una foto prueba lo que la descripción solo cuenta. No se piden en una novedad:
+                una observación de turno no necesita respaldo gráfico. */}
+            {onEvidenciasChange && (
+              <EvidenciasField archivos={evidencias} onChange={onEvidenciasChange} />
             )}
 
             {/* "Otro" sin decir qué es no clasifica nada: esa precisión se perdía. */}

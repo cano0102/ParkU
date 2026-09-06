@@ -78,6 +78,9 @@ export function Incidentes() {
           isEditing={p.isEditing}
           usuariosReportantes={p.usuariosReportantes}
           puedeRegistrarNovedades={p.puedeRegistrarNovedades}
+          evidencias={p.evidencias}
+          onEvidenciasChange={p.setEvidencias}
+          evidenciasExistentes={p.evidenciasExistentes}
           /* El motivo/justificación acompaña a un desenlace: resuelto (cómo se resolvió) o
              rechazado/cancelado (por qué no procedía). Antes solo salía en "resuelto", así que
              un reporte descartado no tenía dónde guardar la explicación al editarlo. */
@@ -115,6 +118,7 @@ export function Incidentes() {
             reportanteCorreo={p.correoUsuario(p.selectedIncidente.usuarioReportaId)}
             asignadoCorreo={p.correoUsuario(p.selectedIncidente.usuarioAsignadoId)}
             puedeAbrirPerfiles={p.puedeAbrirPerfiles}
+            evidencias={p.evidenciasExistentes}
             nombreParqueadero={p.nombreParqueadero(p.selectedIncidente.parqueaderoId)}
             onClose={() => p.setViewOpen(false)}
             onEdit={() => p.openEdit(p.selectedIncidente!)}

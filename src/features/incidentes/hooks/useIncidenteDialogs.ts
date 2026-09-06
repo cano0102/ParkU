@@ -4,6 +4,7 @@ import type { Incidente, TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/s
 import { ESTADOS_ABIERTOS, type EstadoIncidente } from "../lib/constants";
 import { recomiendaEncargado, requiereMotivo } from "../lib/transiciones";
 import type { IncidentesData } from "./useIncidentesData";
+import { listar as listarEvidencias, subirVarias, type Evidencia } from "@/services/api/evidencias";
 
 const emptyFormData = () => ({
   clase: "incidente" as ClaseNovedad,
@@ -58,6 +59,11 @@ export function useIncidenteDialogs(data: IncidentesData) {
   const [confirmDelete, setConfirmDelete] = useState<Incidente | null>(null);
 
   const [formData, setFormData] = useState(emptyFormData());
+  /* Las fotos van aparte: la API las cuelga del reporte ya creado, así que no viajan en el
+     mismo envío que el resto del formulario. */
+  const [evidencias, setEvidencias] = useState<File[]>([]);
+  /* Las que ya están guardadas (al editar): cuentan para el máximo de tres y se muestran. */
+  const [evidenciasExistentes, setEvidenciasExistentes] = useState<Evidencia[]>([]);
   const [formTouched, setFormTouched] = useState<{ descripcion?: boolean; parqueaderoId?: boolean }>({});
 
   /* Validación en tiempo real. Un incidente hay que poder clasificarlo y ordenarlo, así que
@@ -86,6 +92,8 @@ export function useIncidenteDialogs(data: IncidentesData) {
 
   const resetForm = () => {
     setFormData(emptyFormData());
+    setEvidencias([]);
+    setEvidenciasExistentes([]);
     setFormTouched({});
     setIsEditing(false);
     setSelectedIncidente(null);
@@ -118,11 +126,15 @@ export function useIncidenteDialogs(data: IncidentesData) {
     setIsEditing(true);
     setViewOpen(false);
     setDialogOpen(true);
+    // Las fotos ya guardadas se cargan aparte: el listado de incidentes no las trae.
+    listarEvidencias(incidente.id).then(setEvidenciasExistentes).catch(() => setEvidenciasExistentes([]));
   };
 
   const openView = (incidente: Incidente) => {
     setSelectedIncidente(incidente);
+    setEvidenciasExistentes([]);
     setViewOpen(true);
+    listarEvidencias(incidente.id).then(setEvidenciasExistentes).catch(() => setEvidenciasExistentes([]));
   };
 
   const closeForm = () => {
@@ -169,12 +181,25 @@ export function useIncidenteDialogs(data: IncidentesData) {
     }
 
     try {
+      /* Las fotos se suben con el reporte ya existente, que es cuando hay un id al que
+         colgarlas. Si alguna falla, lo demás ya quedó guardado: se avisa de lo que no subió
+         en vez de dar todo por perdido. Una novedad no lleva fotos. */
+      const subirFotos = async (id: string) => {
+        if (esNovedad || !evidencias.length) return "";
+        const { subidas, errores } = await subirVarias(id, evidencias);
+        if (!errores.length) return "";
+        toast.error(errores[0]);
+        return ` Se subieron ${subidas} de ${evidencias.length} imágenes.`;
+      };
+
       if (isEditing && selectedIncidente) {
         await updateIncidente(selectedIncidente.id, { ...formData });
-        toast.success("Incidente actualizado correctamente");
+        const aviso = await subirFotos(selectedIncidente.id);
+        toast.success("Incidente actualizado correctamente" + aviso);
       } else {
-        await addIncidente({ ...formData });
-        toast.success("Incidente registrado correctamente");
+        const creado = await addIncidente({ ...formData });
+        const aviso = creado?.id ? await subirFotos(creado.id) : "";
+        toast.success("Incidente registrado correctamente" + aviso);
       }
       closeForm();
     } catch (error) {
@@ -222,6 +247,9 @@ export function useIncidenteDialogs(data: IncidentesData) {
     handleSave,
     handleDelete,
     confirmDeleteAction,
+    evidencias,
+    setEvidencias,
+    evidenciasExistentes,
     cambioEstado,
     solicitarCambioEstado,
     confirmarCambioEstado,
