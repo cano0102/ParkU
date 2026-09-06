@@ -7,6 +7,8 @@ import {
   IconCircleX as XCircle,
 } from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
+import type { Vehiculo } from "@/services/api/vehiculos";
+import type { OpcionBuscable } from "@/components/shared";
 import type { EstadoNovedad, TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
 
 /** Config visual del estado de celda (mismo modelo que el módulo de Parqueaderos/Celdas). */
@@ -42,6 +44,32 @@ export const TIPO_NOVEDAD_LABEL: Record<TipoNovedad, string> = {
   queja: "Queja",
   otro: "Otro",
 };
+
+/**
+ * Las sugerencias de vehículo: una por cada persona vinculada al vehículo.
+ *
+ * Un carro puede tener copropietarios, y quien reporta necesita ver de quién es el que está
+ * eligiendo — si dos personas comparten uno, aparece dos veces, una por cada nombre. Sin eso,
+ * dos filas idénticas obligan a adivinar cuál corresponde.
+ *
+ * El id de la opción sigue siendo el del vehículo (es lo que se guarda en el reporte); lo que
+ * cambia entre filas hermanas es a quién se atribuye, que es lo que hay que distinguir.
+ */
+export function opcionesDeVehiculo(vehiculos: Vehiculo[]): OpcionBuscable[] {
+  return vehiculos.flatMap((v) => {
+    const duenios = v.copropietarios?.length
+      ? v.copropietarios
+      : [{ id: v.conductorId, nombre: v.conductorNombre, esPrincipal: true }];
+    const modelo = `${v.marca} ${v.modelo ?? ""}`.trim();
+    return duenios
+      .filter((d) => d.nombre)
+      .map((d) => ({
+        id: v.id,
+        titulo: `${v.placa} — ${d.nombre}`,
+        subtitulo: [modelo, d.esPrincipal ? "" : "copropietario"].filter(Boolean).join(" · "),
+      }));
+  });
+}
 
 export const PRIORIDAD_LABEL: Record<PrioridadNovedad, string> = {
   baja: "Baja",

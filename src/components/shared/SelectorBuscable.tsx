@@ -32,6 +32,15 @@ interface SelectorBuscableProps {
   deshabilitado?: boolean;
   /** Cuántas opciones se listan de una vez. Las demás aparecen al escribir. */
   maximoVisible?: number;
+  /**
+   * Si las sugerencias aparecen al desplegar el campo (true, lo normal) o solo cuando se
+   * escribe algo (false).
+   *
+   * Con listas muy largas —la flota entera de vehículos— abrirlas de golpe no ayuda: no se
+   * reconoce nada en las seis primeras y el formulario crece de repente. Ahí es mejor esperar
+   * a que la persona escriba la placa o el nombre.
+   */
+  sugerirAlDesplegar?: boolean;
 }
 
 /**
@@ -48,10 +57,11 @@ interface SelectorBuscableProps {
 export function SelectorBuscable({
   label, opciones, valor, onChange, id, placeholder = "Escribe para buscar…",
   textoVacio = "Sin resultados", textoSinSeleccion, error, ayuda, deshabilitado = false,
-  maximoVisible = 6,
+  maximoVisible = 6, sugerirAlDesplegar = true,
 }: SelectorBuscableProps) {
   const [busqueda, setBusqueda] = useState("");
   const [abierto, setAbierto] = useState(false);
+  const [enfocado, setEnfocado] = useState(false);
 
   const seleccionada = opciones.find((o) => o.id === valor);
 
@@ -67,7 +77,12 @@ export function SelectorBuscable({
     onChange(opcionId);
     setBusqueda("");
     setAbierto(false);
+    setEnfocado(false);
   };
+
+  /* Un formulario que abre todas sus listas a la vez es una pared de opciones que nadie pidió.
+     Se muestran cuando la persona va a ese campo, o en cuanto escribe algo. */
+  const mostrarSugerencias = !deshabilitado && (busqueda.trim() !== "" || (sugerirAlDesplegar && enfocado));
 
   return (
     <FormField label={label} error={error}>
@@ -121,6 +136,10 @@ export function SelectorBuscable({
               disabled={deshabilitado}
               placeholder={placeholder}
               value={busqueda}
+              onFocus={() => setEnfocado(true)}
+              // En diferido: un clic sobre una sugerencia quita el foco del campo antes de
+              // llegar a su onClick, y cerrar la lista al instante se lo llevaría por delante.
+              onBlur={() => setTimeout(() => setEnfocado(false), 150)}
               onChange={(e) => setBusqueda(e.target.value)}
               style={{
                 width: "100%", padding: "10px 12px 10px 32px", borderRadius: 10,
@@ -131,7 +150,7 @@ export function SelectorBuscable({
             />
           </div>
 
-          {!deshabilitado && (
+          {mostrarSugerencias && (
             <div
               role="listbox"
               // Nombre propio: si repitiera el de la etiqueta, el campo tendría dos elementos
@@ -180,7 +199,7 @@ export function SelectorBuscable({
 
           {/* Dejarlo sin elegir es una opción válida en algunos campos (el vehículo implicado,
               por ejemplo): se ofrece como acción, no como una fila más de la lista. */}
-          {textoSinSeleccion && !deshabilitado && (
+          {textoSinSeleccion && !deshabilitado && !mostrarSugerencias && (
             <button
               type="button"
               onClick={() => elegir("")}

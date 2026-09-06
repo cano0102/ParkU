@@ -21,6 +21,9 @@ export const theme = {
   bg: "#F5F7F8",
   surface: "#FFFFFF",
   surfaceHover: "#F8FAF8",
+  /* El gris muy claro de las filas de datos en un "ver detalle": separa cada dato del blanco
+     de la tarjeta sin pesar. Estaba escrito a mano en media docena de pantallas. */
+  surfaceSubtle: "#F8FAFC",
   white: "#FFFFFF",
 
   // Texto
@@ -38,9 +41,13 @@ export const theme = {
   danger: "#EF4444",
   dangerBg: "#FEE2E2",
   dangerBorder: "#FECACA",
+  /* El rojo de un texto sobre fondo claro: `danger` es el del icono o el borde, y sobre
+     `dangerBg` no llega al contraste que necesita una palabra para leerse. */
+  dangerText: "#B91C1C",
 
   success: "#16A34A",
   successBg: "#DCFCE7",
+  successText: "#166534",
 
   warning: "#F59E0B",
   warningBg: "#FEF3C7",

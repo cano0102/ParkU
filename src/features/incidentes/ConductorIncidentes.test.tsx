@@ -61,10 +61,12 @@ describe('features/incidentes — ConductorIncidentes (rol Comunidad SENA)', () 
     await user.click(screen.getByRole('button', { name: /Reportar incidente/i }));
     expect(await screen.findByRole('heading', { level: 2, name: 'Nuevo Incidente' })).toBeInTheDocument();
 
-    // El buscador de vehículo solo debe sugerir los propios (placa ABC123, vehículo 1).
+    /* El buscador de vehículo no sugiere hasta que se escribe: con la flota entera, abrirla de
+       golpe no ayuda a reconocer nada. Y solo debe ofrecer los propios (placa ABC123). */
+    await user.type(screen.getByLabelText('Vehículo (opcional)'), 'A');
     const sugerencias = screen.getByRole('listbox', { name: 'Sugerencias de Vehículo (opcional)' });
-    expect(within(sugerencias).getByText('ABC123')).toBeInTheDocument();
-    expect(within(sugerencias).queryByText('DEF456')).not.toBeInTheDocument();
+    expect(within(sugerencias).getByText(/ABC123/)).toBeInTheDocument();
+    expect(within(sugerencias).queryByText(/DEF456/)).not.toBeInTheDocument();
   });
 
   it('no ofrece prioridad ni "Asignar a": quien solo reporta no clasifica su propio reporte', async () => {

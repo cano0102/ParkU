@@ -113,8 +113,13 @@ describe("IncidenteModal — tipo, prioridad y asignar a", () => {
     expect(screen.getByText("Ana Martínez R.")).toBeInTheDocument();
   });
 
-  it('dice que no hay nadie a quien asignar, en vez de dejar la lista muda', () => {
+  it('dice que no hay nadie a quien asignar, en vez de dejar la lista muda', async () => {
+    const user = userEvent.setup();
     render(<IncidenteModal {...baseProps({ usuariosAsignables: [] })} />);
-    expect(screen.getByText(/No hay nadie disponible para asignar/)).toBeInTheDocument();
+
+    // Las sugerencias ya no salen solas: aparecen al ir al campo.
+    await user.click(screen.getByLabelText('Encargado'));
+
+    expect(await screen.findByText(/No hay nadie disponible para asignar/)).toBeInTheDocument();
   });
 });

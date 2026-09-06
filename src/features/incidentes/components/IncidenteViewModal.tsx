@@ -181,7 +181,7 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
             style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 12px", borderRadius: 12,
-              background: "#F8FAFC", border: `1px solid ${C.border}`,
+              background: C.surfaceSubtle, border: `1px solid ${C.border}`,
               marginBottom: 8,
               cursor: item.onClick ? "pointer" : "default",
             }}
@@ -209,7 +209,7 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
         {incidente.justificacionCierre && (
           <div style={{
             padding: "10px 12px", borderRadius: 12,
-            background: "#F0FDF4", border: `1px solid ${C.success}33`,
+            background: C.successBg, border: `1px solid ${C.success}33`,
             marginBottom: 8,
           }}>
             <div style={{ fontSize: 9, fontWeight: 700, color: C.success, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>

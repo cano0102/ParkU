@@ -166,7 +166,7 @@ export const RolViewModal = memo(({ rol, onClose, onEdit }: RolViewModalProps) =
           style={{
             height: 4,
             borderRadius: 999,
-            background: "#E2E8F0",
+            background: COLORS.border,
             marginBottom: 12,
             overflow: "hidden",
           }}
@@ -198,7 +198,7 @@ export const RolViewModal = memo(({ rol, onClose, onEdit }: RolViewModalProps) =
                 fontSize: 12,
                 fontWeight: 600,
                 border: `1px solid ${value ? `${accent}20` : COLORS.border}`,
-                background: value ? `${accent}06` : "#FAFAFA",
+                background: value ? `${accent}06` : COLORS.surfaceSubtle,
                 color: value ? COLORS.text : COLORS.textLight,
               }}
             >
@@ -206,7 +206,7 @@ export const RolViewModal = memo(({ rol, onClose, onEdit }: RolViewModalProps) =
               {value ? (
                 <CheckCircle2 size={14} color={accent} />
               ) : (
-                <XCircle size={14} color="#CBD5E1" />
+                <XCircle size={14} color={COLORS.borderStrong} />
               )}
             </div>
           ))}

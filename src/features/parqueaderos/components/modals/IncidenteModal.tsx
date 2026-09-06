@@ -4,7 +4,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Usuario } from "@/services/api/usuarios";
 import type { TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
-import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL } from "@/features/incidentes";
+import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL, opcionesDeVehiculo } from "@/features/incidentes";
 import { theme } from "@/styles/theme";
 import { Modal, ModalHeader, SelectorBuscable } from "@/components/shared";
 import { EvidenciasField } from "@/features/incidentes";
@@ -169,12 +169,11 @@ export function IncidenteModal({
               <SelectorBuscable
                 id="incidente-vehiculo"
                 label="Vehículo implicado"
-                opciones={vehiculosDelReportante.map((v) => ({
-                  id: v.id, titulo: v.placa, subtitulo: `${v.marca} ${v.modelo}`,
-                }))}
+                opciones={opcionesDeVehiculo(vehiculosDelReportante)}
                 valor={incidenteForm.vehiculoId}
                 onChange={(id) => setIncidenteForm(prev => ({ ...prev, vehiculoId: id }))}
-                placeholder="Buscar por placa…"
+                sugerirAlDesplegar={false}
+                placeholder="Escribe la placa o el nombre del dueño…"
                 textoVacio={vehiculosDelReportante.length === 0
                   ? "Quien reporta no tiene vehículos registrados"
                   : "Ninguna placa coincide"}

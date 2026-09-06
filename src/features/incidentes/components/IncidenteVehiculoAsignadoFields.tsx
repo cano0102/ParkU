@@ -3,7 +3,7 @@ import type { Usuario } from "@/services/api/usuarios";
 import type { TipoNovedad, PrioridadNovedad } from "@/services/api/incidentes";
 import { theme } from "@/styles/theme";
 import { SelectorBuscable } from "@/components/shared";
-import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL } from "../lib/constants";
+import { TIPO_NOVEDAD_LABEL, PRIORIDAD_LABEL, opcionesDeVehiculo } from "../lib/constants";
 
 const C = theme;
 const selectStyle = {
@@ -86,13 +86,13 @@ export function IncidenteVehiculoAsignadoFields({
       <SelectorBuscable
         id="vehiculo"
         label="Vehículo (opcional)"
-        opciones={vehiculos.map((v) => ({
-          id: v.id, titulo: v.placa, subtitulo: `${v.marca} ${v.modelo ?? ""}`.trim(),
-        }))}
+        opciones={opcionesDeVehiculo(vehiculos)}
         valor={vehiculoId}
         onChange={onVehiculoChange}
-        placeholder="Buscar por placa…"
-        textoVacio="Ninguna placa coincide"
+        // La flota entera abierta de golpe no ayuda a nadie: aquí se espera a que se escriba.
+        sugerirAlDesplegar={false}
+        placeholder="Escribe la placa o el nombre del dueño…"
+        textoVacio="Ningún vehículo coincide"
         textoSinSeleccion="Ninguno"
         ayuda="Si seleccionas una celda ocupada, el vehículo se sugiere automáticamente."
       />

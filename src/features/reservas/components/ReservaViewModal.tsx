@@ -99,7 +99,7 @@ export function ReservaViewModal({ reserva, vehiculo, celda, usuario, parqueader
             style={{
               display: "flex", alignItems: "center", gap: 10,
               padding: "10px 12px", borderRadius: 12,
-              background: "#F8FAFC", border: `1px solid ${C.border}`,
+              background: C.surfaceSubtle, border: `1px solid ${C.border}`,
               marginBottom: 8,
               cursor: item.onClick ? "pointer" : "default",
             }}
@@ -121,7 +121,7 @@ export function ReservaViewModal({ reserva, vehiculo, celda, usuario, parqueader
             style={{
               display: "flex", alignItems: "flex-start", gap: 10,
               padding: "10px 12px", borderRadius: 12,
-              background: "#FEF2F2", border: `1px solid #FECACA`,
+              background: C.dangerBg, border: `1px solid ${C.dangerBorder}`,
             }}
           >
             <Ban size={14} color={C.danger} style={{ marginTop: 1 }} />

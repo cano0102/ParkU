@@ -143,7 +143,7 @@ export const VehiculoView = memo(({
               gap: 10,
               padding: "10px 12px",
               borderRadius: 12,
-              background: "#F8FAFC",
+              background: COLORS.surfaceSubtle,
               border: `1px solid ${COLORS.border}`,
               marginBottom: 8,
             }}
@@ -173,7 +173,7 @@ export const VehiculoView = memo(({
             style={{
               padding: "10px 12px",
               borderRadius: 12,
-              background: "#F8FAFC",
+              background: COLORS.surfaceSubtle,
               border: `1px solid ${COLORS.border}`,
               marginBottom: 8,
             }}
@@ -210,7 +210,7 @@ export const VehiculoView = memo(({
                   key={p.id}
                   style={{
                     display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderRadius: 10,
-                    background: "#F8FAFC", border: `1px solid ${COLORS.border}`,
+                    background: COLORS.surfaceSubtle, border: `1px solid ${COLORS.border}`,
                   }}
                 >
                   {p.esPrincipal && <Crown size={13} color={tipoStyle.dot} style={{ flexShrink: 0 }} />}
@@ -230,7 +230,7 @@ export const VehiculoView = memo(({
                         title="Quitar copropietario"
                         style={{
                           display: "flex", alignItems: "center", gap: 4, border: "none",
-                          background: "rgba(220,38,38,.08)", color: "#B91C1C",
+                          background: "rgba(220,38,38,.08)", color: COLORS.dangerText,
                           fontSize: 10.5, fontWeight: 800, padding: "4px 9px", borderRadius: 999,
                           cursor: "pointer", fontFamily: "inherit", flexShrink: 0,
                         }}
@@ -270,8 +270,8 @@ export const VehiculoView = memo(({
               aria-label={`Eliminar vehículo ${vehiculo.placa}`}
               title="Eliminar este vehículo"
               style={{
-                width: 46, borderRadius: 12, border: "1px solid #FECACA",
-                background: "#FEF2F2", color: "#B91C1C", cursor: "pointer",
+                width: 46, borderRadius: 12, border: `1px solid ${COLORS.dangerBorder}`,
+                background: COLORS.dangerBg, color: COLORS.dangerText, cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >

@@ -115,7 +115,7 @@ export function ControlSalidaDetalleModal({
         </span>
 
         {datos.map((d) => (
-          <div key={d.etiqueta} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: 10, background: "#F8FAFC", border: `1px solid ${C.border}` }}>
+          <div key={d.etiqueta} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 11px", borderRadius: 10, background: C.surfaceSubtle, border: `1px solid ${C.border}` }}>
             {d.icono}
             <div>
               <div style={{ fontSize: 9, fontWeight: 800, color: C.textLight, textTransform: "uppercase", letterSpacing: .5 }}>{d.etiqueta}</div>
