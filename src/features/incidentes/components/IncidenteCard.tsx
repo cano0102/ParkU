@@ -37,7 +37,19 @@ interface IncidenteCardProps {
 }
 
 /** Tarjeta de un incidente en el grid: resumen, ubicación y acciones rápidas. */
-export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNombre, reportanteNombre, asignadoNombre, nombreParqueadero, onView, onEdit, onDelete, onCambiarEstado }: IncidenteCardProps) {
+export function IncidenteCard({
+  incidente,
+  celda,
+  vehiculoPlaca,
+  propietarioNombre,
+  reportanteNombre,
+  asignadoNombre,
+  nombreParqueadero,
+  onView,
+  onEdit,
+  onDelete,
+  onCambiarEstado,
+}: IncidenteCardProps) {
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
   // Resuelto, rechazado y cancelado son finales: en vez del selector se muestra la etiqueta
@@ -50,18 +62,19 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
      (lo que se ve de lejos) y repetido en una etiqueta, para no depender solo del color. */
   const prioridad = PRIORIDAD_CONFIG[incidente.prioridad];
   const esNovedad = incidente.clase === "novedad";
-  /* El tipo, con su precisión cuando es "otro": guardarlo y no mostrarlo lo volvía inútil. */
-  const tipoTexto = esNovedad
-    ? null
+  /* El título de la tarjeta es la clase del incidente (antes "tipo" en los formularios).
+     Cuando es "otro" se usa la precisión escrita a mano; en novedades se cae a "Novedad"
+     porque no hay tipoNovedad asociado. */
+  const claseTexto = esNovedad
+    ? "Novedad"
     : incidente.tipoNovedad === "otro" && incidente.tipoOtro
       ? incidente.tipoOtro
       : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad];
 
   return (
     /* Alto fijo: una descripción larga estiraba su tarjeta y descuadraba toda la fila de la
-       rejilla. Lo que no cabe se recorta con puntos suspensivos —la ficha completa está a un
-       clic— y las acciones quedan siempre a la misma altura, que es lo que se busca con el
-       ratón. */
+       rejilla. Lo que no cabe ahora scrollea dentro del bloque de datos —la ficha completa
+       sigue a un clic— y las acciones quedan siempre a la misma altura. */
     <div
       className="incidente-card"
       style={{
@@ -91,15 +104,17 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
               <AlertTriangle size={24} color={C.warning} />
             )}
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {/* Título = clase del incidente. Se recorta a una línea con elipsis para no
+                empujar los badges hacia abajo; el valor completo está en el tooltip. */}
             <p
-              title={incidente.descripcion}
+              title={claseTexto}
               style={{
                 fontSize: 14, fontWeight: 800, color: C.text, lineHeight: 1.3, marginBottom: 6,
-                display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}
             >
-              {incidente.descripcion}
+              {claseTexto}
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
               {/* Un incidente y una novedad se atienden distinto: si no se distinguen en la
@@ -130,17 +145,16 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
 
         {/* El alto fijo mantiene la rejilla cuadrada, pero lo que no cabe no puede
             desaparecer —el motivo de un rechazo es justo lo que hay que leer—: este bloque
-            hace scroll dentro de la propia tarjeta. */}
+            hace scroll dentro de la propia tarjeta. La descripción va al final, como texto
+            de cuerpo, para que la ficha se lea de lo general (ubicación, vehículo, quién)
+            a lo particular (qué pasó). */}
         <div
           className="incidente-card-datos"
-          style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12, flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2 }}
+          style={{
+            display: "flex", flexDirection: "column", gap: 8, marginBottom: 12,
+            flex: 1, minHeight: 0, overflowY: "auto", paddingRight: 2,
+          }}
         >
-          {tipoTexto && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
-              <AlertTriangle size={12} color={C.textLight} />
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{tipoTexto}</span>
-            </div>
-          )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 11, color: C.text }}>
             <MapPin size={12} color={C.textLight} />
             <span>
@@ -183,6 +197,25 @@ export function IncidenteCard({ incidente, celda, vehiculoPlaca, propietarioNomb
                 {incidente.justificacionCierre}
               </div>
             </div>
+          )}
+
+          {/* Descripción: al final, como texto de cuerpo. Respeta saltos de línea y palabras
+              largas, y si no cabe el scroll del contenedor se encarga. Sin clamp ni tooltip
+              porque aquí sí se lee completa. */}
+          {incidente.descripcion && (
+            <p
+              style={{
+                margin: 0,
+                fontSize: 11.5,
+                lineHeight: 1.5,
+                color: C.text,
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {incidente.descripcion}
+            </p>
           )}
         </div>
 
