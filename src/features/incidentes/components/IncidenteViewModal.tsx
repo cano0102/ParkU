@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   IconAlertTriangle as AlertTriangle,
@@ -5,6 +6,7 @@ import {
   IconCircleCheck as CheckCircle,
   IconClock as Clock,
   IconEdit as Edit,
+  IconFile as FileIcon,
   IconMapPin as MapPin,
   IconCircleLetterP as ParkingCircle,
   IconUser as User,
@@ -16,7 +18,6 @@ import type { Celda } from "@/services/api/celdas";
 import { theme } from "@/styles/theme";
 import { CELDA_ESTADO_CONFIG, ESTADO_CONFIG, TIPO_NOVEDAD_LABEL } from "../lib/constants";
 import type { Evidencia } from "@/services/api/evidencias";
-import { EvidenciasField } from "./EvidenciasField";
 
 const C = theme;
 
@@ -35,6 +36,137 @@ interface IncidenteViewModalProps {
   nombreParqueadero: string;
   onClose: () => void;
   onEdit: () => void;
+}
+
+/** Extrae la URL de una evidencia sin depender del nombre exacto del campo en el modelo. */
+function evidenciaUrl(ev: Evidencia): string {
+  const e = ev as unknown as Record<string, unknown>;
+  const v = e.url ?? e.archivoUrl ?? e.archivo ?? e.src ?? e.path ?? "";
+  return typeof v === "string" ? v : "";
+}
+
+/** Nombre legible de la evidencia, con fallback numerado. */
+function evidenciaNombre(ev: Evidencia, i: number): string {
+  const e = ev as unknown as Record<string, unknown>;
+  const v = e.nombre ?? e.nombreArchivo ?? e.name ?? "";
+  return typeof v === "string" && v.trim() ? v : `Evidencia ${i + 1}`;
+}
+
+/** Heurística para saber si la URL apunta a una imagen (o data URL de imagen). */
+function esImagen(url: string): boolean {
+  if (!url) return false;
+  if (url.startsWith("data:image")) return true;
+  return /\.(jpe?g|png|gif|webp|bmp|svg|avif)(\?|#|$)/i.test(url);
+}
+
+/** Galería de evidencias: thumbnails cuadradas, con lightbox al hacer clic. */
+function EvidenciaGallery({ evidencias }: { evidencias: Evidencia[] }) {
+  const [preview, setPreview] = useState<{ url: string; nombre: string } | null>(null);
+
+  return (
+    <>
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))",
+        gap: 8,
+      }}>
+        {evidencias.map((ev, i) => {
+          const url = evidenciaUrl(ev);
+          const nombre = evidenciaNombre(ev, i);
+          const esImg = esImagen(url);
+          const clickable = esImg && url;
+
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => clickable && setPreview({ url, nombre })}
+              title={nombre}
+              aria-label={`Ver ${nombre}`}
+              style={{
+                position: "relative",
+                aspectRatio: "1 / 1",
+                width: "100%",
+                borderRadius: 10,
+                overflow: "hidden",
+                border: `1px solid ${C.border}`,
+                background: C.surfaceSubtle,
+                padding: 0,
+                cursor: clickable ? "zoom-in" : "default",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              {esImg ? (
+                <img
+                  src={url}
+                  alt={nombre}
+                  loading="lazy"
+                  style={{
+                    width: "100%", height: "100%",
+                    objectFit: "cover", display: "block",
+                  }}
+                />
+              ) : (
+                <div style={{
+                  display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center",
+                  gap: 6, padding: 10, color: C.textLight,
+                  fontSize: 10, textAlign: "center", lineHeight: 1.2,
+                }}>
+                  <FileIcon size={22} />
+                  <span style={{ wordBreak: "break-word", maxWidth: "100%" }}>
+                    {nombre}
+                  </span>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {preview && (
+        <div
+          onClick={() => setPreview(null)}
+          role="dialog"
+          aria-label={preview.nombre}
+          style={{
+            position: "fixed", inset: 0, zIndex: 9999,
+            background: "rgba(15,23,42,.88)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 24, cursor: "zoom-out",
+          }}
+        >
+          <img
+            src={preview.url}
+            alt={preview.nombre}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "92vw", maxHeight: "88vh",
+              borderRadius: 12,
+              boxShadow: "0 24px 64px rgba(0,0,0,.55)",
+              cursor: "default",
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => setPreview(null)}
+            aria-label="Cerrar vista previa"
+            style={{
+              position: "absolute", top: 16, right: 16,
+              width: 36, height: 36, borderRadius: 10,
+              background: "rgba(255,255,255,.15)", border: "none",
+              color: "#fff", cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+    </>
+  );
 }
 
 /** Fila de dato en la ficha. Compacta, con o sin acción de navegación. */
@@ -108,8 +240,6 @@ export function IncidenteViewModal({
   const fecha = new Date(incidente.fecha);
   const esNovedad = incidente.clase === "novedad";
 
-  /* El título es la clase del incidente, no la descripción: la descripción larga vive en el
-     cuerpo, donde se puede leer completa sin reventar la cabecera. */
   const claseTexto = esNovedad
     ? "Novedad de la operación"
     : incidente.tipoNovedad === "otro" && incidente.tipoOtro
@@ -126,7 +256,6 @@ export function IncidenteViewModal({
       maxHeight: "88vh", borderRadius: 24, overflow: "hidden",
       background: "#fff",
     }}>
-      {/* Header compacto: el alto lo define el título corto y los badges, no la descripción. */}
       <div
         style={{
           padding: "1.1rem 1.4rem 1.1rem",
@@ -198,9 +327,7 @@ export function IncidenteViewModal({
         </div>
       </div>
 
-      {/* Cuerpo con scroll propio para no desbordar la ventana. */}
       <div style={{ padding: "1rem 1.4rem 1.2rem", overflowY: "auto", flex: 1, minHeight: 0 }}>
-        {/* Datos cortos en grid de 2 columnas: la ficha se lee en la mitad de alto. */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {!esNovedad && (
             <DatoFila
@@ -257,7 +384,6 @@ export function IncidenteViewModal({
           )}
         </div>
 
-        {/* Descripción: al final, ancho completo, con scroll propio si es muy larga. */}
         {incidente.descripcion && (
           <div style={{
             marginTop: 12,
@@ -303,21 +429,20 @@ export function IncidenteViewModal({
           </div>
         )}
 
-        {/* Evidencias: solo incidentes, con las fotos guardadas. */}
+        {/* Evidencias: galería propia. Solo incidentes (las novedades no llevan fotos). */}
         {!esNovedad && evidencias.length > 0 && (
           <div style={{ marginTop: 12 }}>
             <div style={{
               fontSize: 9, fontWeight: 800, color: C.textLight,
               textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6,
             }}>
-              Evidencias
+              Evidencias · {evidencias.length}
             </div>
-            <EvidenciasField archivos={[]} onChange={() => {}} existentes={evidencias} soloLectura />
+            <EvidenciaGallery evidencias={evidencias} />
           </div>
         )}
       </div>
 
-      {/* Footer fijo: el CTA de editar siempre visible, sin importar cuánto scrollee el cuerpo. */}
       <div style={{
         padding: "0.9rem 1.4rem 1.1rem",
         borderTop: `1px solid ${C.border}`,
