@@ -24,23 +24,66 @@ interface IncidenteViewModalProps {
   incidente: Incidente;
   celda: Celda | undefined;
   vehiculoPlaca?: string;
-  /** Conductor dueño del vehículo (vehiculo -> conductor_principal), para no perder la
-   *  trazabilidad hacia la persona aunque `novedad` no tenga un conductor_id directo. */
   conductorNombre?: string;
   conductorDocumento?: string;
   asignadoNombre?: string;
   asignadoCorreo?: string;
-  /** Quién levantó el reporte: sin esto no hay a quién volver a preguntarle qué pasó. */
   reportanteNombre?: string;
   reportanteCorreo?: string;
-  /** true si quien mira puede abrir la ficha de esas personas (Administrador o Vigilante).
-   *  Comunidad SENA ve el nombre y el correo, pero no navega a módulos que no le tocan. */
   puedeAbrirPerfiles?: boolean;
-  /** Las fotos guardadas del reporte. */
   evidencias?: Evidencia[];
   nombreParqueadero: string;
   onClose: () => void;
   onEdit: () => void;
+}
+
+/** Fila de dato en la ficha. Compacta, con o sin acción de navegación. */
+function DatoFila({
+  label, value, icon: Icon, onClick, span = 1,
+}: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<{ size?: number; color?: string }>;
+  onClick?: () => void;
+  span?: 1 | 2;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        gridColumn: span === 2 ? "span 2" : undefined,
+        display: "flex", alignItems: "flex-start", gap: 10,
+        padding: "9px 12px", borderRadius: 10,
+        background: C.surfaceSubtle, border: `1px solid ${C.border}`,
+        cursor: onClick ? "pointer" : "default",
+        minWidth: 0,
+      }}
+    >
+      <div style={{
+        width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+        background: "#fff", border: `1px solid ${C.border}`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        marginTop: 1,
+      }}>
+        <Icon size={13} color={C.textLight} />
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{
+          fontSize: 9, fontWeight: 800, color: C.textLight,
+          textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 2,
+        }}>
+          {label}
+        </div>
+        <div style={{
+          fontSize: 12.5, fontWeight: 600,
+          color: onClick ? C.primary : C.text,
+          lineHeight: 1.35, wordBreak: "break-word",
+        }}>
+          {value}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /** Vista de solo lectura del detalle de un incidente. */
@@ -63,107 +106,67 @@ export function IncidenteViewModal({
   const navigate = useNavigate();
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
-
   const esNovedad = incidente.clase === "novedad";
 
-  /* El título del modal es la clase del incidente (antes "tipo" en los formularios).
-     Cuando es "otro" se usa la precisión escrita a mano; en novedades se cae a
-     "Novedad de la operación" porque no hay subtipo asociado. La descripción dejó de
-     ser el título: ahora vive al final, como texto de cuerpo. */
+  /* El título es la clase del incidente, no la descripción: la descripción larga vive en el
+     cuerpo, donde se puede leer completa sin reventar la cabecera. */
   const claseTexto = esNovedad
     ? "Novedad de la operación"
     : incidente.tipoNovedad === "otro" && incidente.tipoOtro
       ? incidente.tipoOtro
       : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad];
 
-  const items = [
-    /* El subtipo (cuando es incidente) acompaña al título: el título dice "choque" o
-       "otro · rayón profundo", aquí queda desglosado. Las novedades no tienen subtipo. */
-    ...(esNovedad
-      ? []
-      : [{
-          label: "Tipo",
-          value: incidente.tipoNovedad === "otro" && incidente.tipoOtro
-            ? `Otro · ${incidente.tipoOtro}`
-            : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad],
-          icon: AlertTriangle, onClick: undefined,
-        }]),
-    /* Quién reportó y quién está a cargo, con su correo: es lo que permite contactarlos sin
-       salir a buscarlos. Y si quien mira puede gestionarlos, la fila lleva a su ficha —a
-       Conductores para quien reportó, a Usuarios para el encargado—, que es donde está el
-       resto de sus datos. */
-    ...(reportanteNombre
-      ? [{
-          label: "Reportado por",
-          value: reportanteCorreo ? `${reportanteNombre} · ${reportanteCorreo}` : reportanteNombre,
-          icon: UserPlus,
-          onClick: puedeAbrirPerfiles
-            ? () => navigate(`/app/conductores?q=${encodeURIComponent(reportanteCorreo || reportanteNombre)}`)
-            : undefined,
-        }]
-      : []),
-    {
-      label: "Parqueadero", value: nombreParqueadero, icon: MapPin,
-      onClick: () => navigate(`/app/parqueaderos?q=${encodeURIComponent(celda?.numero || nombreParqueadero)}`),
-    },
-    ...(celda
-      ? [{
-          label: "Celda", value: `${celda.numero} · ${CELDA_ESTADO_CONFIG[celda.estado].label} actualmente`, icon: ParkingCircle,
-          onClick: () => navigate(`/app/parqueaderos?q=${encodeURIComponent(celda.numero)}`),
-        }]
-      : []),
-    { label: "Fecha y hora", value: fecha.toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" }), icon: Clock, onClick: undefined },
-    ...(vehiculoPlaca ? [{ label: "Vehículo", value: vehiculoPlaca, icon: Car, onClick: undefined }] : []),
-    ...(conductorNombre
-      ? [{ label: "Conductor", value: conductorDocumento ? `${conductorNombre} · ${conductorDocumento}` : conductorNombre, icon: User, onClick: undefined }]
-      : []),
-    ...(asignadoNombre
-      ? [{
-          label: "A cargo de",
-          value: asignadoCorreo ? `${asignadoNombre} · ${asignadoCorreo}` : asignadoNombre,
-          icon: User,
-          onClick: puedeAbrirPerfiles
-            ? () => navigate(`/app/usuarios?q=${encodeURIComponent(asignadoCorreo || asignadoNombre)}`)
-            : undefined,
-        }]
-      : []),
-    /* Ojo: la justificación de cierre ya no va aquí como item. Aparece destacada más abajo,
-       junto a la descripción — tenerla dos veces (una como dato y otra como bloque) era
-       ruido. */
-  ];
+  const tipoDetalle = !esNovedad && incidente.tipoNovedad !== "otro" && incidente.tipoOtro
+    ? incidente.tipoOtro
+    : null;
 
   return (
-    <div>
+    <div style={{
+      display: "flex", flexDirection: "column",
+      maxHeight: "88vh", borderRadius: 24, overflow: "hidden",
+      background: "#fff",
+    }}>
+      {/* Header compacto: el alto lo define el título corto y los badges, no la descripción. */}
       <div
         style={{
-          padding: "1.6rem 1.8rem 1.4rem",
+          padding: "1.1rem 1.4rem 1.1rem",
           background: `linear-gradient(135deg, ${C.primary}, ${C.primaryDark})`,
           color: "#fff",
-          borderRadius: "24px 24px 0 0",
           position: "relative",
           overflow: "hidden",
+          flexShrink: 0,
         }}
       >
         <div style={{
-          position: "absolute", width: 200, height: 200, borderRadius: "50%",
-          background: "rgba(255,255,255,.07)", top: -80, right: -60,
+          position: "absolute", width: 180, height: 180, borderRadius: "50%",
+          background: "rgba(255,255,255,.07)", top: -70, right: -50,
         }} />
         <div style={{ position: "relative", zIndex: 2 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-            <div
-              style={{
-                width: 52, height: 52, borderRadius: 14,
-                background: "rgba(255,255,255,.18)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >
-              {incidente.estado === "resuelto" ? <CheckCircle size={24} /> : <AlertTriangle size={24} />}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 800, letterSpacing: 0.7,
+                textTransform: "uppercase", opacity: 0.85, marginBottom: 4,
+              }}>
+                {esNovedad ? "Novedad" : "Incidente"} · {cfg.label}
+              </div>
+              <h2
+                title={claseTexto}
+                style={{
+                  margin: 0, fontSize: 19, fontWeight: 800, lineHeight: 1.25,
+                  wordBreak: "break-word",
+                  display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                }}
+              >
+                {claseTexto}
+              </h2>
             </div>
             <button
               onClick={onClose}
               aria-label="Cerrar"
               style={{
-                width: 32, height: 32, borderRadius: 9,
+                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
                 background: "rgba(255,255,255,.15)", border: "none",
                 color: "#fff", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -172,118 +175,158 @@ export function IncidenteViewModal({
               <X size={15} />
             </button>
           </div>
-          {/* Título = clase del incidente. Se recorta a dos líneas por si el subtipo escrito
-              a mano es largo; el valor completo queda en el tooltip. */}
-          <h2
-            title={claseTexto}
-            style={{
-              marginTop: 12, fontSize: 18, fontWeight: 800, lineHeight: 1.3,
-              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
-              overflow: "hidden", wordBreak: "break-word",
-            }}
-          >
-            {claseTexto}
-          </h2>
+
           <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
-            <span style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
-              background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#fff" }} />
-              {cfg.label}
-            </span>
             {celda && (
               <span style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: "4px 12px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+                display: "inline-flex", alignItems: "center", gap: 5,
+                padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 800,
                 background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
               }}>
                 <ParkingCircle size={11} /> Celda {celda.numero}
               </span>
             )}
+            <span style={{
+              display: "inline-flex", alignItems: "center", gap: 5,
+              padding: "3px 10px", borderRadius: 999, fontSize: 10, fontWeight: 800,
+              background: "rgba(255,255,255,.18)", border: "1px solid rgba(255,255,255,.25)",
+            }}>
+              <Clock size={11} />
+              {fecha.toLocaleDateString("es-CO", { day: "2-digit", month: "short" })} · {fecha.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
+            </span>
           </div>
         </div>
       </div>
 
-      <div style={{ padding: "1.4rem 1.8rem" }}>
-        {items.map((item) => (
-          <div
-            key={item.label}
-            onClick={item.onClick}
-            style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 12px", borderRadius: 12,
-              background: C.surfaceSubtle, border: `1px solid ${C.border}`,
-              marginBottom: 8,
-              cursor: item.onClick ? "pointer" : "default",
-            }}
-          >
-            <item.icon size={14} color={C.textLight} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
-                {item.label}
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: item.onClick ? C.primary : C.text, wordBreak: "break-word" }}>
-                {item.value}
-              </div>
-            </div>
-          </div>
-        ))}
+      {/* Cuerpo con scroll propio para no desbordar la ventana. */}
+      <div style={{ padding: "1rem 1.4rem 1.2rem", overflowY: "auto", flex: 1, minHeight: 0 }}>
+        {/* Datos cortos en grid de 2 columnas: la ficha se lee en la mitad de alto. */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          {!esNovedad && (
+            <DatoFila
+              label="Tipo"
+              value={tipoDetalle
+                ? `${TIPO_NOVEDAD_LABEL[incidente.tipoNovedad]} · ${tipoDetalle}`
+                : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad]}
+              icon={AlertTriangle}
+            />
+          )}
+          {celda && (
+            <DatoFila
+              label="Celda"
+              value={`${celda.numero} · ${CELDA_ESTADO_CONFIG[celda.estado].label}`}
+              icon={ParkingCircle}
+              onClick={() => navigate(`/app/parqueaderos?q=${encodeURIComponent(celda.numero)}`)}
+            />
+          )}
+          <DatoFila
+            label="Parqueadero"
+            value={nombreParqueadero}
+            icon={MapPin}
+            onClick={() => navigate(`/app/parqueaderos?q=${encodeURIComponent(celda?.numero || nombreParqueadero)}`)}
+          />
+          {vehiculoPlaca && (
+            <DatoFila label="Vehículo" value={vehiculoPlaca} icon={Car} />
+          )}
+          {conductorNombre && (
+            <DatoFila
+              label="Conductor"
+              value={conductorDocumento ? `${conductorNombre} · ${conductorDocumento}` : conductorNombre}
+              icon={User}
+            />
+          )}
+          {reportanteNombre && (
+            <DatoFila
+              label="Reportado por"
+              value={reportanteCorreo ? `${reportanteNombre} · ${reportanteCorreo}` : reportanteNombre}
+              icon={UserPlus}
+              onClick={puedeAbrirPerfiles
+                ? () => navigate(`/app/conductores?q=${encodeURIComponent(reportanteCorreo || reportanteNombre)}`)
+                : undefined}
+            />
+          )}
+          {asignadoNombre && (
+            <DatoFila
+              label="A cargo de"
+              value={asignadoCorreo ? `${asignadoNombre} · ${asignadoCorreo}` : asignadoNombre}
+              icon={User}
+              onClick={puedeAbrirPerfiles
+                ? () => navigate(`/app/usuarios?q=${encodeURIComponent(asignadoCorreo || asignadoNombre)}`)
+                : undefined}
+            />
+          )}
+        </div>
 
-        {/* Descripción: al final del resto de datos y como texto de cuerpo, no como título.
-            Conserva saltos de línea y rompe palabras largas para no desbordar el modal. El
-            modal padre gestiona el scroll cuando el contenido crece. */}
+        {/* Descripción: al final, ancho completo, con scroll propio si es muy larga. */}
         {incidente.descripcion && (
           <div style={{
-            padding: "10px 12px", borderRadius: 12,
+            marginTop: 12,
+            padding: "10px 12px", borderRadius: 10,
             background: C.surfaceSubtle, border: `1px solid ${C.border}`,
-            marginBottom: 8,
           }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 800, color: C.textLight,
+              textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6,
+            }}>
               Descripción
             </div>
             <p style={{
               margin: 0,
-              fontSize: 12.5,
-              color: C.text,
-              lineHeight: 1.55,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              overflowWrap: "anywhere",
+              maxHeight: 160, overflowY: "auto",
+              fontSize: 12.5, color: C.text, lineHeight: 1.5,
+              whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere",
+              paddingRight: 4,
             }}>
               {incidente.descripcion}
             </p>
           </div>
         )}
 
-        {/* Las fotos que respaldan el reporte: es lo que evita tener que ir a mirarlo en
-            persona. Una novedad no las lleva. */}
-        {!esNovedad && evidencias.length > 0 && (
-          <div style={{ marginBottom: 10 }}>
-            <EvidenciasField archivos={[]} onChange={() => {}} existentes={evidencias} soloLectura />
-          </div>
-        )}
-
         {incidente.justificacionCierre && (
           <div style={{
-            padding: "10px 12px", borderRadius: 12,
+            marginTop: 10,
+            padding: "10px 12px", borderRadius: 10,
             background: C.successBg, border: `1px solid ${C.success}33`,
-            marginBottom: 8,
           }}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: C.success, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 800, color: C.success,
+              textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 4,
+            }}>
               Justificación de cierre
             </div>
-            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            <div style={{
+              fontSize: 12, color: C.text, lineHeight: 1.45,
+              whiteSpace: "pre-wrap", wordBreak: "break-word",
+            }}>
               {incidente.justificacionCierre}
             </div>
           </div>
         )}
 
+        {/* Evidencias: solo incidentes, con las fotos guardadas. */}
+        {!esNovedad && evidencias.length > 0 && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 800, color: C.textLight,
+              textTransform: "uppercase", letterSpacing: 0.6, marginBottom: 6,
+            }}>
+              Evidencias
+            </div>
+            <EvidenciasField archivos={[]} onChange={() => {}} existentes={evidencias} soloLectura />
+          </div>
+        )}
+      </div>
+
+      {/* Footer fijo: el CTA de editar siempre visible, sin importar cuánto scrollee el cuerpo. */}
+      <div style={{
+        padding: "0.9rem 1.4rem 1.1rem",
+        borderTop: `1px solid ${C.border}`,
+        background: "#fff", flexShrink: 0,
+      }}>
         <button
           onClick={onEdit}
           style={{
-            marginTop: 12, width: "100%", padding: "12px 20px", borderRadius: 12,
+            width: "100%", padding: "11px 20px", borderRadius: 12,
             border: "none", background: C.primary, color: "#fff",
             fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
