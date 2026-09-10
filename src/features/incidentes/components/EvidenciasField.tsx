@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  IconFile as FileIcon,
   IconPhotoOff as PhotoOff,
   IconX as X,
 } from "@tabler/icons-react";
@@ -9,8 +8,8 @@ import type { Evidencia } from "@/services/api/evidencias";
 
 const C = theme;
 
-/* Si el backend sirve archivos desde otro host/puerto, define VITE_API_URL en tu .env.
-   Solo se usa para completar URLs relativas; las absolutas y data URLs no se tocan. */
+/* Define VITE_API_URL en tu .env si el backend sirve archivos desde otro host.
+   Ej: VITE_API_URL=http://localhost:8000  (sin barra final) */
 const API_BASE = (import.meta as any).env?.VITE_API_URL ?? "";
 
 function resolverUrl(url: string): string {
@@ -20,24 +19,32 @@ function resolverUrl(url: string): string {
   return `${API_BASE}/${url}`;
 }
 
+/** Nombre visible: descripción si la hay, si no "Evidencia N". */
+function nombreDe(ev: Evidencia, i: number): string {
+  const d = (ev.descripcion ?? "").trim();
+  return d || `Evidencia ${i + 1}`;
+}
+
 /**
- * Carga una evidencia y devuelve un blob URL listo para <img>. Necesario cuando el backend
- * exige el header Authorization: un <img src> plano no lo manda y la imagen sale rota.
- * Si la URL ya es accesible sin auth, se puede saltar esta ruta.
+ * Carga la evidencia con fetch (para mandar el token) y devuelve un blob URL.
+ * Si el fetch falla, deja que el <img> intente directo por si el backend no pide auth.
  */
-function useEvidenciaBlob(url: string, activo: boolean) {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+function useEvidenciaSrc(url: string): { src: string | null; error: boolean; cargando: boolean } {
+  const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState(false);
+  const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    if (!activo || !url) return;
-    // data: y blob: no necesitan fetch, se usan tal cual.
-    if (/^(data:|blob:)/i.test(url)) { setBlobUrl(url); return; }
+    if (!url) { setCargando(false); setError(true); return; }
+    if (/^(data:|blob:)/i.test(url)) { setSrc(url); setCargando(false); return; }
 
     let cancelado = false;
     let objectUrl: string | null = null;
+    setCargando(true); setError(false); setSrc(null);
 
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    const token = typeof window !== "undefined"
+      ? localStorage.getItem("token") ?? localStorage.getItem("access_token")
+      : null;
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
     fetch(url, { headers, credentials: "include" })
@@ -48,36 +55,47 @@ function useEvidenciaBlob(url: string, activo: boolean) {
       .then((blob) => {
         if (cancelado) return;
         objectUrl = URL.createObjectURL(blob);
-        setBlobUrl(objectUrl);
+        setSrc(objectUrl);
+        setCargando(false);
       })
-      .catch(() => { if (!cancelado) setError(true); });
+      .catch(() => {
+        // Fallback: algunos backends sirven la imagen sin auth por CORS simple.
+        // Probar directo por si el token no era necesario o la ruta es pública.
+        if (cancelado) return;
+        const img = new Image();
+        img.onload = () => { if (!cancelado) { setSrc(url); setCargando(false); } };
+        img.onerror = () => { if (!cancelado) { setError(true); setCargando(false); } };
+        img.src = url;
+      });
 
     return () => {
       cancelado = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [url, activo]);
+  }, [url]);
 
-  return { blobUrl, error };
+  return { src, error, cargando };
 }
 
 function EvidenciaThumb({
-  evidencia, onPreview,
+  evidencia, indice, onPreview,
 }: {
   evidencia: Evidencia;
+  indice: number;
   onPreview: (url: string, nombre: string) => void;
 }) {
-  const url = resolverUrl(evidencia.url || "");
-  const nombre = evidencia.descripcion?.trim() || "Evidencia del incidente";
-  const { blobUrl, error } = useEvidenciaBlob(url, true);
-
-  const cargando = !blobUrl && !error;
+  const urlOriginal = (evidencia.url ?? "").trim();
+  const url = resolverUrl(urlOriginal);
+  const nombre = nombreDe(evidencia, indice);
+  const { src, error, cargando } = useEvidenciaSrc(url);
 
   return (
     <button
       type="button"
-      onClick={() => blobUrl && onPreview(blobUrl, nombre)}
-      title={nombre}
+      onClick={() => src && onPreview(src, nombre)}
+      /* El title muestra la URL cruda: pásale el ratón por encima y sabrás si viene vacía,
+         relativa o absoluta sin abrir la consola. */
+      title={urlOriginal ? `URL: ${urlOriginal}` : "Sin URL en la respuesta"}
       aria-label={`Ver ${nombre}`}
       style={{
         position: "relative",
@@ -88,17 +106,16 @@ function EvidenciaThumb({
         border: `1px solid ${C.border}`,
         background: C.surfaceSubtle,
         padding: 0,
-        cursor: blobUrl ? "zoom-in" : "default",
+        cursor: src ? "zoom-in" : "default",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      {blobUrl ? (
+      {src ? (
         <img
-          src={blobUrl}
+          src={src}
           alt={nombre}
-          loading="lazy"
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
       ) : cargando ? (
@@ -108,10 +125,12 @@ function EvidenciaThumb({
           display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           gap: 6, padding: 10, color: C.textLight,
-          fontSize: 10, textAlign: "center", lineHeight: 1.2,
+          fontSize: 10, textAlign: "center", lineHeight: 1.25,
         }}>
           <PhotoOff size={22} />
-          <span>No se pudo cargar</span>
+          <span style={{ wordBreak: "break-word", maxWidth: "100%" }}>
+            {!urlOriginal ? "Sin URL" : error ? "No se pudo cargar" : "Error"}
+          </span>
         </div>
       )}
     </button>
@@ -129,10 +148,11 @@ export function EvidenciaGallery({ evidencias }: { evidencias: Evidencia[] }) {
         gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))",
         gap: 8,
       }}>
-        {evidencias.map((ev) => (
+        {evidencias.map((ev, i) => (
           <EvidenciaThumb
-            key={ev.id}
+            key={ev.id ?? i}
             evidencia={ev}
+            indice={i}
             onPreview={(url, nombre) => setPreview({ url, nombre })}
           />
         ))}
