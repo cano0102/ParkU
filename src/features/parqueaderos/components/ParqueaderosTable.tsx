@@ -10,7 +10,11 @@ import {
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
-import { Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getCeldaVisualConfig, capitalizar, estaFueraDeHorarioOperacion, superaEstadiaLimite } from "../lib/helpers";
+import {
+  Ocupante, CELDA_CONFIG, TIPO_CELDA_CONFIG, getCeldaVisualConfig,
+  esCeldaPreferencial, capitalizar,
+  estaFueraDeHorarioOperacion, superaEstadiaLimite,
+} from "../lib/helpers";
 
 const C = theme;
 
@@ -62,6 +66,15 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
             return acc;
           }, {});
 
+          // Celdas de movilidad reducida de este parqueadero. Una celda MR es
+          // `tipo: "carro"` + `usabilidad: "movilidad_reducida"` (ver helpers.ts), así que se
+          // detecta con esCeldaPreferencial() y NO con `c.tipo === "movilidad reducida"`.
+          // Este chip se dibuja al inicio de la fila, antes del icono y del nombre, porque es
+          // la información cuya visibilidad urge al abrir la tabla.
+          const celdasMR = celdasPq.filter(esCeldaPreferencial);
+          const libresMR = celdasMR.filter(c => c.estado === "disponible").length;
+          const cfgMR = TIPO_CELDA_CONFIG["movilidad reducida"];
+
           return (
             <React.Fragment key={pq.id}>
               <div
@@ -72,6 +85,27 @@ export const ParqueaderosTable = memo(({ parqueaderos, celdas, getOcupante, onEd
                 onClick={() => setExpandedId(isExpanded ? null : pq.id)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  {/* Chip de movilidad reducida al inicio de la fila, con su icono indicativo.
+                      Solo se pinta si el parqueadero tiene celdas preferenciales. */}
+                  {celdasMR.length > 0 && (() => {
+                    const IconMR = cfgMR.icon;
+                    return (
+                      <span
+                        title={`Movilidad reducida: ${libresMR} libres de ${celdasMR.length}`}
+                        aria-label={`Movilidad reducida: ${libresMR} libres de ${celdasMR.length}`}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 4,
+                          padding: "4px 8px", borderRadius: 999,
+                          background: cfgMR.accentSoft, color: cfgMR.accentDark,
+                          border: `1px solid ${cfgMR.accent}`,
+                          fontSize: 10, fontWeight: 800, flexShrink: 0,
+                        }}
+                      >
+                        <IconMR size={12} strokeWidth={2.5} />
+                        {libresMR}/{celdasMR.length}
+                      </span>
+                    );
+                  })()}
                   <div style={{ width: 36, height: 36, borderRadius: 10, background: C.primaryPale, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                     <MapPin size={16} color={C.primary} />
                   </div>

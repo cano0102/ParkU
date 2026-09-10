@@ -35,15 +35,17 @@ export function ParkingLot({
   const activo = pq.estado === "activo";
   const estadoColor = activo ? CELDA_CONFIG.disponible.dotColor : C.danger;
   const hc = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
-  // Composición de la zona por tipo de vehículo, para distinguir de un vistazo
-  // qué parqueaderos son de carro, de moto o mixtos (celdas de movilidad reducida incluidas).
-  // Ya no viene precalculada en el parqueadero (la API real no la guarda ahí) — se cuenta
-  // directo sobre las celdas ya posicionadas en este plano.
+
+  // Composición de la zona por tipo de vehículo. El orden importa: "movilidad reducida"
+  // va PRIMERO porque es la categoría cuya visibilidad urge (una plaza preferencial ocupada
+  // por quien no la necesita es lo que más vale detectar de un vistazo). Además, las celdas
+  // de movilidad reducida ya NO se cuentan también como "carro" — antes aparecían sumadas
+  // en los dos chips porque una celda MR es `tipo: "carro"` + `usabilidad: "movilidad_reducida"`.
   const celdasLot = filas.flatMap((f) => f.celdas);
   const composicion = ([
-    { t: "carro" as const, n: celdasLot.filter((c) => c.tipo === "carro").length },
-    { t: "moto" as const, n: celdasLot.filter((c) => c.tipo === "moto").length },
     { t: "movilidad reducida" as const, n: celdasLot.filter((c) => c.usabilidad === "movilidad_reducida").length },
+    { t: "carro" as const, n: celdasLot.filter((c) => c.tipo === "carro" && c.usabilidad !== "movilidad_reducida").length },
+    { t: "moto" as const, n: celdasLot.filter((c) => c.tipo === "moto").length },
   ]).filter((x) => x.n > 0);
   const chipW = 32, chipGap = 5;
   const chipsW = composicion.length * chipW + Math.max(0, composicion.length - 1) * chipGap;
@@ -61,7 +63,9 @@ export function ParkingLot({
       <rect x={PADDING - 10} y={lotTop - 6} width={ancho - PADDING + 10} height={34} rx="8" fill="url(#sheenV)" />
       <text x={PADDING + 2} y={lotTop + 10} fill="#fff" fontSize="10.5" fontWeight="900">{pq.nombre.toUpperCase()}</text>
       <text x={PADDING + 2} y={lotTop + 22} fill="rgba(255,255,255,.8)" fontSize="7.5" fontWeight="bold">{pq.zona ? `ZONA ${pq.zona.toUpperCase()}` : pq.ubicacion.toUpperCase()}</text>
-      {/* Chips de composición: cuántas celdas de cada tipo tiene esta zona */}
+      {/* Chips de composición: cuántas celdas de cada tipo tiene esta zona.
+          El orden del array pone "movilidad reducida" primero, así que su icono indicativo
+          queda al inicio de la cabecera del parqueadero (junto al nombre), tal como se pidió. */}
       {composicion.map(({ t, n }) => {
         const cfg = getTipoCeldaConfig(t);
         const Icon = cfg.icon;

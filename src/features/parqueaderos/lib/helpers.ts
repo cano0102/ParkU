@@ -110,15 +110,21 @@ export const CELDA_CONFIG = {
    getTipoCeldaConfig() y se ve/cuenta como si fuera de carro en todo el módulo: plano, tabla,
    tooltip, leyenda). `movilidad reducida` no es un `Celda.tipo` real (esa distinción vive en
    `Celda.usabilidad`) — se mantiene como bucket sintético para el chip de composición del
-   plano (ver ParkingLot.tsx), que sí arma esa categoría a mano desde `usabilidad`. */
+   plano (ver ParkingLot.tsx), que sí arma esa categoría a mano desde `usabilidad`.
+
+   ⚠️ COLORES INTERCAMBIADOS A PROPÓSITO: los colores de `carro` y de `movilidad reducida`
+   están invertidos respecto a su definición original. El icono de carro va pintado en el
+   violeta que antes identificaba a movilidad reducida, y viceversa. Esto se hizo por pedido
+   expreso del producto. Si en el futuro se quiere revertir, basta con volver a poner
+   accent/accentSoft/accentDark originales en cada bloque. */
 export const TIPO_CELDA_CONFIG = {
   carro: {
     label: "Carro",
     shortLabel: "Carro",
     icon: Car,
-    accent: "#3B82F6",      // azul
-    accentSoft: "#DBEAFE",
-    accentDark: "#1D4ED8",
+    accent: "#8B5CF6",      // violeta — antes era de movilidad reducida
+    accentSoft: "#EDE9FE",
+    accentDark: "#6D28D9",
   },
   moto: {
     label: "Moto",
@@ -156,9 +162,9 @@ export const TIPO_CELDA_CONFIG = {
     label: "Movilidad Reducida",
     shortLabel: "M. Reducida",
     icon: Accessibility,
-    accent: "#8B5CF6",      // violeta
-    accentSoft: "#EDE9FE",
-    accentDark: "#6D28D9",
+    accent: "#3B82F6",      // azul — antes era de carro
+    accentSoft: "#DBEAFE",
+    accentDark: "#1D4ED8",
   },
 } as const;
 
