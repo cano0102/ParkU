@@ -27,9 +27,16 @@ export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing 
   const idsGuardados = useMemo(() => permisosGuardados ?? new Set<string>(), [permisosGuardados]);
   const {
     form, permisosSeleccionados, togglePermiso, toggleModulo,
-    setDescripcion, setEstado, nombreErrorVisible, formInvalido,
+    setDescripcion, setEstado, nombreErrorVisible, permisosError, formInvalido,
     handleNombreChange, markNombreTocado, handleSubmit,
-  } = useRolForm({ initial, onSave, existingRoles, editingRolId, permisosGuardados: idsGuardados });
+  } = useRolForm({
+    initial,
+    onSave,
+    existingRoles,
+    editingRolId,
+    permisosGuardados: idsGuardados,
+    permisosCatalogo,
+  });
 
   return (
     <form onSubmit={handleSubmit}>
@@ -109,6 +116,7 @@ export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing 
           seleccionados={permisosSeleccionados}
           onToggle={togglePermiso}
           onToggleModulo={toggleModulo}
+          error={permisosError}
         />
       </div>
 
