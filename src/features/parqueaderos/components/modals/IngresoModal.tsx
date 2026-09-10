@@ -93,12 +93,12 @@ export function IngresoModal({
   const mostrarDatosVehiculoManual = !!placaActual && !vehiculoEncontrado;
   return (
     <Modal open={open} onClose={onClose}>
-      <ModalHeader eyebrow={`Celda ${celdaActiva?.numero ?? ""}`} title="Registrar Vehículo" icon={<Car size={18} color={C.primary} />} onClose={onClose} />
+      <ModalHeader eyebrow={`Celda ${celdaActiva?.numero ?? ""}`} title="Estacionar Vehículo" icon={<Car size={18} color={C.primary} />} onClose={onClose} />
       <div style={{ padding: "1.4rem 1.8rem", display: "flex", flexDirection: "column", gap: 14 }}>
         {parqueaderoInactivo && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 12px", borderRadius: 10, background: C.dangerBg, border: `1px solid ${C.dangerBorder}` }}>
             <AlertTriangle size={15} color={C.danger} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: C.danger }}>Este parqueadero está inactivo y no acepta nuevos registros.</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: C.danger }}>Este parqueadero está inactivo y no acepta nuevos estacionamientos.</span>
           </div>
         )}
         {motivoBloqueoLive && (
@@ -245,7 +245,7 @@ export function IngresoModal({
         <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
         <button disabled={!ingresoValid} onClick={onSubmit}
           style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: ingresoValid ? C.primary : "#E2E8F0", color: ingresoValid ? "#fff" : C.textLight, fontSize: 13, fontWeight: 800, cursor: ingresoValid ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: ingresoValid ? "0 6px 18px rgba(57,169,0,.22)" : undefined }}>
-          Registrar Vehículo
+          Estacionar Vehículo
         </button>
       </div>
     </Modal>
