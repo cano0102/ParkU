@@ -20,19 +20,41 @@ export function Incidentes() {
   const { user } = useAuth();
   const p = useIncidentesPage();
 
-  // El rol Comunidad SENA (Conductor) no puede listar el /novedades completo en la API
-  // real (403) ni gestionar los de otros — mismo patrón que ConductorDashboard.tsx: una
-  // vista propia y más simple en vez del panel de gestión que usan Admin/Vigilante.
+  // El rol Comunidad SENA (Conductor) ya no reporta incidentes del parqueadero: solo puede
+  // gestionar su acceso propio (entrada/salida). Si llega a esta ruta por una URL directa,
+  // se bloquea para evitar que se reabra el flujo de incidentes del establecimiento.
   if (user?.rol === ROLES.CONDUCTOR) {
-    return <ConductorIncidentes />;
+    return (
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: 200,
+          padding: 24,
+          color: C.textLight,
+          fontWeight: 600,
+        }}
+      >
+        No tienes permisos para consultar incidentes del parqueadero.
+      </div>
+    );
   }
 
   return (
     <>
       <style>{incidentesStyles}</style>
 
-      <div className="incidentes-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <IncidentesHero pendientes={p.pendientes} enProceso={p.enProceso} resueltos={p.resueltos} total={p.incidentes.length} />
+      <div
+        className="incidentes-root"
+        style={{ display: "flex", flexDirection: "column", gap: 16 }}
+      >
+        <IncidentesHero
+          pendientes={p.pendientes}
+          enProceso={p.enProceso}
+          resueltos={p.resueltos}
+          total={p.incidentes.length}
+        />
 
         <IncidentesToolbar
           search={p.search}
@@ -52,7 +74,8 @@ export function Incidentes() {
           <>
             {p.activeFiltersCount > 0 && (
               <p style={{ fontSize: 11, color: C.textLight }}>
-                Mostrando <strong>{p.filteredIncidentes.length}</strong> incidente{p.filteredIncidentes.length !== 1 ? "s" : ""}
+                Mostrando <strong>{p.filteredIncidentes.length}</strong>{" "}
+                incidente{p.filteredIncidentes.length !== 1 ? "s" : ""}
               </p>
             )}
 
@@ -84,7 +107,11 @@ export function Incidentes() {
           /* El motivo/justificación acompaña a un desenlace: resuelto (cómo se resolvió) o
              rechazado/cancelado (por qué no procedía). Antes solo salía en "resuelto", así que
              un reporte descartado no tenía dónde guardar la explicación al editarlo. */
-          showJustificacionCierre={p.isEditing && !!p.selectedIncidente && esEstadoFinal(p.selectedIncidente.estado)}
+          showJustificacionCierre={
+            p.isEditing &&
+            !!p.selectedIncidente &&
+            esEstadoFinal(p.selectedIncidente.estado)
+          }
           formData={p.formData}
           setFormData={p.setFormData}
           formTouched={p.formTouched}
@@ -105,21 +132,39 @@ export function Incidentes() {
         />
       </Modal>
 
-      <Modal open={p.viewOpen} onClose={() => p.setViewOpen(false)} maxWidth={480}>
+      <Modal
+        open={p.viewOpen}
+        onClose={() => p.setViewOpen(false)}
+        maxWidth={480}
+      >
         {p.selectedIncidente && (
           <IncidenteViewModal
             incidente={p.selectedIncidente}
             celda={p.celdaDe(p.selectedIncidente.celdaId)}
             vehiculoPlaca={p.vehiculoDe(p.selectedIncidente.vehiculoId)?.placa}
-            conductorNombre={p.conductorDe(p.selectedIncidente.vehiculoId)?.nombre}
-            conductorDocumento={p.conductorDe(p.selectedIncidente.vehiculoId)?.numeroDocumento}
-            asignadoNombre={p.nombreUsuarioAsignado(p.selectedIncidente.usuarioAsignadoId)}
-            reportanteNombre={p.nombreUsuarioReporta(p.selectedIncidente.usuarioReportaId)}
-            reportanteCorreo={p.correoUsuario(p.selectedIncidente.usuarioReportaId)}
-            asignadoCorreo={p.correoUsuario(p.selectedIncidente.usuarioAsignadoId)}
+            conductorNombre={
+              p.conductorDe(p.selectedIncidente.vehiculoId)?.nombre
+            }
+            conductorDocumento={
+              p.conductorDe(p.selectedIncidente.vehiculoId)?.numeroDocumento
+            }
+            asignadoNombre={p.nombreUsuarioAsignado(
+              p.selectedIncidente.usuarioAsignadoId,
+            )}
+            reportanteNombre={p.nombreUsuarioReporta(
+              p.selectedIncidente.usuarioReportaId,
+            )}
+            reportanteCorreo={p.correoUsuario(
+              p.selectedIncidente.usuarioReportaId,
+            )}
+            asignadoCorreo={p.correoUsuario(
+              p.selectedIncidente.usuarioAsignadoId,
+            )}
             puedeAbrirPerfiles={p.puedeAbrirPerfiles}
             evidencias={p.evidenciasExistentes}
-            nombreParqueadero={p.nombreParqueadero(p.selectedIncidente.parqueaderoId)}
+            nombreParqueadero={p.nombreParqueadero(
+              p.selectedIncidente.parqueaderoId,
+            )}
             onClose={() => p.setViewOpen(false)}
             onEdit={() => p.openEdit(p.selectedIncidente!)}
           />
@@ -128,7 +173,11 @@ export function Incidentes() {
 
       {/* Antes de mover un incidente de estado se pide lo que ese estado exige: un encargado
           para avanzar, un motivo para descartarlo. */}
-      <Modal open={!!p.cambioEstado} onClose={p.cerrarCambioEstado} maxWidth={440}>
+      <Modal
+        open={!!p.cambioEstado}
+        onClose={p.cerrarCambioEstado}
+        maxWidth={440}
+      >
         {p.cambioEstado && (
           <CambioEstadoIncidenteModal
             destino={p.cambioEstado.destino}
@@ -140,7 +189,11 @@ export function Incidentes() {
         )}
       </Modal>
 
-      <Modal open={!!p.confirmDelete} onClose={() => p.setConfirmDelete(null)} maxWidth={380}>
+      <Modal
+        open={!!p.confirmDelete}
+        onClose={() => p.setConfirmDelete(null)}
+        maxWidth={380}
+      >
         {p.confirmDelete && (
           <ConfirmDeleteIncidenteModal
             descripcion={p.confirmDelete.descripcion}

@@ -3,7 +3,10 @@ import { useLocation } from "react-router-dom";
 import { Modal, LoadingState } from "@/components/shared";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
-import { vehiculosDeConductor, vehiculosOperables } from "@/features/conductores";
+import {
+  vehiculosDeConductor,
+  vehiculosOperables,
+} from "@/features/conductores";
 import { ROLES } from "@/services/core/roles";
 import { useReservasPage } from "./hooks/useReservasPage";
 import { useSolicitarReserva } from "./hooks/useSolicitarReserva";
@@ -30,15 +33,28 @@ export function Reservas() {
   // siendo el del dueño principal y el vínculo queda en `copropietarios` — filtrar solo por
   // `conductorId` dejaba al copropietario sin poder reservar con un vehículo que sí es suyo.
   const misVehiculos = useMemo(
-    () => vehiculosOperables(vehiculosDeConductor(p.vehiculos, p.miConductorId)),
-    [p.vehiculos, p.miConductorId]
+    () =>
+      vehiculosOperables(vehiculosDeConductor(p.vehiculos, p.miConductorId)),
+    [p.vehiculos, p.miConductorId],
   );
-  const solicitud = useSolicitarReserva(misVehiculos, p.celdas, p.parqueaderos, p.vehiculos, p.controlesSalida, p.reservasTodas);
+  const solicitud = useSolicitarReserva(
+    misVehiculos,
+    p.celdas,
+    p.parqueaderos,
+    p.vehiculos,
+    p.controlesSalida,
+    p.reservasTodas,
+    p.miConductorId,
+  );
 
   // Se llega aquí desde el plano de Parqueaderos con una celda ya elegida ("Solicitar esta
   // celda"): se abre el formulario con ella puesta, para no obligar a buscarla otra vez.
   const location = useLocation();
-  const celdaPedida = (location.state as { solicitarCelda?: { celdaId: string; parqueaderoId: string } } | null)?.solicitarCelda;
+  const celdaPedida = (
+    location.state as {
+      solicitarCelda?: { celdaId: string; parqueaderoId: string };
+    } | null
+  )?.solicitarCelda;
   useEffect(() => {
     if (!celdaPedida) return;
     solicitud.abrirCon(celdaPedida);
@@ -51,7 +67,10 @@ export function Reservas() {
     <>
       <style>{reservasStyles}</style>
 
-      <div className="reservas-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div
+        className="reservas-root"
+        style={{ display: "flex", flexDirection: "column", gap: 16 }}
+      >
         <ReservasHero
           counts={p.counts}
           filterEstado={p.filterEstado}
@@ -86,7 +105,8 @@ export function Reservas() {
           <>
             {p.activeFiltersCount > 0 && (
               <p style={{ fontSize: 11, color: C.textLight }}>
-                Mostrando <strong>{p.filteredReservas.length}</strong> resultado{p.filteredReservas.length !== 1 ? "s" : ""}
+                Mostrando <strong>{p.filteredReservas.length}</strong> resultado
+                {p.filteredReservas.length !== 1 ? "s" : ""}
               </p>
             )}
 
@@ -98,7 +118,10 @@ export function Reservas() {
               getConductorReserva={p.getConductorReserva}
               getParqueadero={p.getParqueadero}
               canDelete={puedeEliminarReserva}
-              onView={(reserva) => { p.setViewingReserva(reserva); p.setViewOpen(true); }}
+              onView={(reserva) => {
+                p.setViewingReserva(reserva);
+                p.setViewOpen(true);
+              }}
               onDelete={p.handleDelete}
               puedeCancelar={p.puedeCancelar}
               onCancel={p.handleCancelar}
@@ -107,23 +130,34 @@ export function Reservas() {
         )}
       </div>
 
-      <Modal open={p.viewOpen} onClose={() => p.setViewOpen(false)} maxWidth={450}>
-        {p.viewingReserva && (() => {
-          const celda = p.getCelda(p.viewingReserva.celdaId);
-          return (
-            <ReservaViewModal
-              reserva={p.viewingReserva}
-              vehiculo={p.getVehiculo(p.viewingReserva.vehiculoId)}
-              celda={celda}
-              usuario={p.getConductorReserva(p.viewingReserva)}
-              parqueadero={celda ? p.getParqueadero(celda.parqueaderoId) : undefined}
-              onClose={() => p.setViewOpen(false)}
-            />
-          );
-        })()}
+      <Modal
+        open={p.viewOpen}
+        onClose={() => p.setViewOpen(false)}
+        maxWidth={450}
+      >
+        {p.viewingReserva &&
+          (() => {
+            const celda = p.getCelda(p.viewingReserva.celdaId);
+            return (
+              <ReservaViewModal
+                reserva={p.viewingReserva}
+                vehiculo={p.getVehiculo(p.viewingReserva.vehiculoId)}
+                celda={celda}
+                usuario={p.getConductorReserva(p.viewingReserva)}
+                parqueadero={
+                  celda ? p.getParqueadero(celda.parqueaderoId) : undefined
+                }
+                onClose={() => p.setViewOpen(false)}
+              />
+            );
+          })()}
       </Modal>
 
-      <Modal open={!!p.confirmDelete} onClose={() => p.setConfirmDelete(null)} maxWidth={380}>
+      <Modal
+        open={!!p.confirmDelete}
+        onClose={() => p.setConfirmDelete(null)}
+        maxWidth={380}
+      >
         {p.confirmDelete && (
           <ConfirmDeleteReservaModal
             placa={p.getVehiculo(p.confirmDelete.vehiculoId)?.placa || "—"}
@@ -137,7 +171,11 @@ export function Reservas() {
       {/* Cancelar es distinto de eliminar: la reserva se conserva con estado "cancelada"
           (es historial), y por eso quien la pidió también puede hacerlo. El motivo es
           obligatorio: es lo que verá esa persona en su historial. */}
-      <Modal open={!!p.confirmCancelar} onClose={() => p.setConfirmCancelar(null)} maxWidth={420}>
+      <Modal
+        open={!!p.confirmCancelar}
+        onClose={() => p.setConfirmCancelar(null)}
+        maxWidth={420}
+      >
         {p.confirmCancelar && (
           <MotivoReservaModal
             accion="cancelar"
@@ -149,7 +187,11 @@ export function Reservas() {
         )}
       </Modal>
 
-      <Modal open={!!p.confirmRechazar} onClose={() => p.setConfirmRechazar(null)} maxWidth={420}>
+      <Modal
+        open={!!p.confirmRechazar}
+        onClose={() => p.setConfirmRechazar(null)}
+        maxWidth={420}
+      >
         {p.confirmRechazar && (
           <MotivoReservaModal
             accion="rechazar"
@@ -161,7 +203,11 @@ export function Reservas() {
         )}
       </Modal>
 
-      <Modal open={solicitud.open} onClose={() => solicitud.setOpen(false)} maxWidth={620}>
+      <Modal
+        open={solicitud.open}
+        onClose={() => solicitud.setOpen(false)}
+        maxWidth={620}
+      >
         <SolicitarReservaModal
           /* Ya filtrados por el tipo de la celda cuando hay una elegida (ver el hook). */
           misVehiculos={solicitud.vehiculosOfrecidos}
@@ -175,15 +221,42 @@ export function Reservas() {
           horaFin={solicitud.form.horaFin}
           motivo={solicitud.form.motivo}
           error={solicitud.error}
-          onVehiculoChange={(v) => solicitud.setForm({ ...solicitud.form, vehiculoId: v })}
-          onParqueaderoChange={(v) => solicitud.setForm({ ...solicitud.form, parqueaderoId: v, celdaId: "" })}
-          onCeldaChange={(v) => solicitud.setForm({ ...solicitud.form, celdaId: v })}
-          onFechaChange={(v) => solicitud.setForm({ ...solicitud.form, ...solicitud.ajustar({ ...solicitud.form, fechaReserva: v }) })}
+          onVehiculoChange={(v) =>
+            solicitud.setForm({ ...solicitud.form, vehiculoId: v })
+          }
+          onParqueaderoChange={(v) =>
+            solicitud.setForm({
+              ...solicitud.form,
+              parqueaderoId: v,
+              celdaId: "",
+            })
+          }
+          onCeldaChange={(v) =>
+            solicitud.setForm({ ...solicitud.form, celdaId: v })
+          }
+          onFechaChange={(v) =>
+            solicitud.setForm({
+              ...solicitud.form,
+              ...solicitud.ajustar({ ...solicitud.form, fechaReserva: v }),
+            })
+          }
           /* Las tres pasan por `ajustar`: mover el inicio empuja el fin para que siga
              habiendo una hora entre los dos, que era justo lo que no se respetaba. */
-          onHoraInicioChange={(v) => solicitud.setForm({ ...solicitud.form, ...solicitud.ajustar({ ...solicitud.form, horaInicio: v }) })}
-          onHoraFinChange={(v) => solicitud.setForm({ ...solicitud.form, ...solicitud.ajustar({ ...solicitud.form, horaFin: v }) })}
-          onMotivoChange={(v) => solicitud.setForm({ ...solicitud.form, motivo: v })}
+          onHoraInicioChange={(v) =>
+            solicitud.setForm({
+              ...solicitud.form,
+              ...solicitud.ajustar({ ...solicitud.form, horaInicio: v }),
+            })
+          }
+          onHoraFinChange={(v) =>
+            solicitud.setForm({
+              ...solicitud.form,
+              ...solicitud.ajustar({ ...solicitud.form, horaFin: v }),
+            })
+          }
+          onMotivoChange={(v) =>
+            solicitud.setForm({ ...solicitud.form, motivo: v })
+          }
           onSubmit={solicitud.enviarSolicitud}
           onCancel={() => solicitud.setOpen(false)}
         />

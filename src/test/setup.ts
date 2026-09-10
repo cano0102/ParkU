@@ -1,4 +1,5 @@
 import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
 // Red de seguridad: ningún test debe llegar a la red real (menos aún a la API
@@ -18,6 +19,7 @@ function beforeEachFetchGuard() {
 }
 
 afterEach(() => {
+  cleanup();
   // Cada test puede instalar su propio mock de fetch; se restaura el guard
   // genérico entre tests para que un mock de un archivo no se filtre a otro.
   if (globalThis.fetch !== originalFetch) beforeEachFetchGuard();
@@ -29,10 +31,10 @@ if (!window.matchMedia) {
     matches: false,
     media: query,
     onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
+    addListener: () => { },
+    removeListener: () => { },
+    addEventListener: () => { },
+    removeEventListener: () => { },
     dispatchEvent: () => false,
   }) as unknown as MediaQueryList;
 }
@@ -40,9 +42,9 @@ if (!window.matchMedia) {
 // jsdom no implementa ResizeObserver; algunos primitivos de Radix lo usan.
 if (!('ResizeObserver' in window)) {
   class ResizeObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() { }
+    unobserve() { }
+    disconnect() { }
   }
   // @ts-expect-error - stub mínimo suficiente para los componentes bajo test
   window.ResizeObserver = ResizeObserverStub;
@@ -51,9 +53,9 @@ if (!('ResizeObserver' in window)) {
 // jsdom no implementa IntersectionObserver; Landing.tsx lo usa para animaciones de scroll.
 if (!('IntersectionObserver' in window)) {
   class IntersectionObserverStub {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe() { }
+    unobserve() { }
+    disconnect() { }
     takeRecords() { return []; }
   }
   // @ts-expect-error - stub mínimo suficiente para los componentes bajo test

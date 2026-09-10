@@ -7,13 +7,29 @@ import { CeldaInfoModal } from "./CeldaInfoModal";
 import { agendaDeCelda } from "../../lib/agendaCelda";
 
 const celdaDisponible: Celda = {
-  id: "1", parqueaderoId: "1", numero: "C-001", tipo: "carro", usabilidad: "general",
-  estado: "disponible", ocupada: false, observaciones: "",
+  id: "1",
+  parqueaderoId: "1",
+  numero: "C-001",
+  tipo: "carro",
+  usabilidad: "general",
+  estado: "disponible",
+  ocupada: false,
+  observaciones: "",
 };
 
 const parqueaderoActivo: Parqueadero = {
-  id: "1", nombre: "PQ-1", ubicacion: "Bloque A", acceso: "regional", capacidadMaxima: 10,
-  horaInicio: "05:00", horaFin: "21:00", estado: "activo", zona: "", piso: "", descripcion: "", tipo: "general",
+  id: "1",
+  nombre: "PQ-1",
+  ubicacion: "Bloque A",
+  acceso: "regional",
+  capacidadMaxima: 10,
+  horaInicio: "05:00",
+  horaFin: "21:00",
+  estado: "activo",
+  zona: "",
+  piso: "",
+  descripcion: "",
+  tipo: "general",
 };
 
 const noop = () => {};
@@ -44,7 +60,11 @@ function baseProps(canManageCeldas: boolean) {
 
 /* Las reservas se construyen relativas al reloj: lo que se prueba es justamente la distancia
    entre "ahora" y la reserva, así que una fecha fija dejaría de tocar la regla mañana. */
-function reservaEn(desdeMin: number, duracionMin: number, over: Partial<Reserva> = {}): Reserva {
+function reservaEn(
+  desdeMin: number,
+  duracionMin: number,
+  over: Partial<Reserva> = {},
+): Reserva {
   const hhmm = (min: number) => {
     const d = new Date(Date.now() + min * 60000);
     return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -52,9 +72,18 @@ function reservaEn(desdeMin: number, duracionMin: number, over: Partial<Reserva>
   const inicio = new Date(Date.now() + desdeMin * 60000);
   const fecha = `${inicio.getFullYear()}-${String(inicio.getMonth() + 1).padStart(2, "0")}-${String(inicio.getDate()).padStart(2, "0")}`;
   return {
-    id: "r1", tipoReserva: "visitante", vehiculoId: "v1", celdaId: "1", conductorId: "c1",
-    motivo: "", fechaReserva: fecha, horaInicio: hhmm(desdeMin), horaFin: hhmm(desdeMin + duracionMin),
-    estado: "activa", motivoRechazo: "", ...over,
+    id: "r1",
+    tipoReserva: "visitante",
+    vehiculoId: "v1",
+    celdaId: "1",
+    conductorId: "c1",
+    motivo: "",
+    fechaReserva: fecha,
+    horaInicio: hhmm(desdeMin),
+    horaFin: hhmm(desdeMin + duracionMin),
+    estado: "activa",
+    motivoRechazo: "",
+    ...over,
   };
 }
 
@@ -65,12 +94,16 @@ describe("CeldaInfoModal — botón Reservar Celda", () => {
   // solicitud pendiente. Ver hallazgo 🔴 N3 del informe de auditoría.
   it('se muestra cuando el rol tiene el permiso "celdas" (Admin/Vigilante)', () => {
     render(<CeldaInfoModal {...baseProps(true)} />);
-    expect(screen.getByText("Reservar Celda", { exact: false })).toBeInTheDocument();
+    expect(
+      screen.getByText("Reservar Celda", { exact: false }),
+    ).toBeInTheDocument();
   });
 
   it('NO se muestra cuando el rol no tiene el permiso "celdas" (Comunidad SENA)', () => {
     render(<CeldaInfoModal {...baseProps(false)} />);
-    expect(screen.queryByText("Reservar Celda", { exact: false })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Reservar Celda", { exact: false }),
+    ).not.toBeInTheDocument();
   });
 });
 
@@ -78,7 +111,11 @@ describe("CeldaInfoModal — solicitar la celda (rol Conductor)", () => {
   it("ofrece solicitarla a quien puede reservar pero no gestionar celdas", async () => {
     const onSolicitarReserva = vi.fn();
     render(
-      <CeldaInfoModal {...baseProps(false)} canSolicitarReserva onSolicitarReserva={onSolicitarReserva} />
+      <CeldaInfoModal
+        {...baseProps(false)}
+        canSolicitarReserva
+        onSolicitarReserva={onSolicitarReserva}
+      />,
     );
 
     const boton = screen.getByText("Solicitar esta celda", { exact: false });
@@ -89,12 +126,24 @@ describe("CeldaInfoModal — solicitar la celda (rol Conductor)", () => {
 
   it("no la ofrece si no se pasa la acción (Admin: ese ya tiene Reservar Celda)", () => {
     render(<CeldaInfoModal {...baseProps(true)} />);
-    expect(screen.queryByText("Solicitar esta celda", { exact: false })).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Solicitar esta celda", { exact: false }),
+    ).not.toBeInTheDocument();
   });
 
   it("a quien no puede estacionar no le dice que la celda es para estacionar", () => {
-    render(<CeldaInfoModal {...baseProps(false)} canSolicitarReserva onSolicitarReserva={vi.fn()} />);
-    expect(screen.getByText("Celda disponible: puedes solicitarla", { exact: false })).toBeInTheDocument();
+    render(
+      <CeldaInfoModal
+        {...baseProps(false)}
+        canSolicitarReserva
+        onSolicitarReserva={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText("Celda disponible: puedes solicitarla", {
+        exact: false,
+      }),
+    ).toBeInTheDocument();
   });
 });
 
@@ -104,23 +153,30 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
      franja se salía del día en cuanto la suite corría de tarde: una reserva de las 23:24 a
      las 00:24 queda, sobre una sola fecha, terminando ANTES de empezar. */
   beforeEach(() => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-03-10T10:00:00"));
   });
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   const props = (reservas: Reserva[]) => ({
     ...baseProps(false),
     canRegistrarIngreso: true,
     agenda: agendaDeCelda("1", reservas),
-    agendaDetallada: reservas.map((r) => ({ id: r.id, placa: "ABC123", conductor: "María Gómez" })),
+    agendaDetallada: reservas.map((r) => ({
+      id: r.id,
+      placa: "ABC123",
+      conductor: "María Gómez",
+    })),
   });
 
   it("lista las reservas de la celda, no solo la que la retiene ahora", () => {
-    render(<CeldaInfoModal {...props([
-      reservaEn(180, 60),
-      reservaEn(300, 60, { id: "r2" }),
-    ])} />);
+    render(
+      <CeldaInfoModal
+        {...props([reservaEn(180, 60), reservaEn(300, 60, { id: "r2" })])}
+      />,
+    );
 
     expect(screen.getByText("Reservas de esta celda")).toBeInTheDocument();
     expect(screen.getAllByText("ABC123 · María Gómez")).toHaveLength(2);
@@ -130,11 +186,20 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
      acepta antes de abrir el asistente, no después de llenarlo. */
   it("pide confirmar el desalojo antes de estacionar cuando hay una reserva por delante", () => {
     const onEstacionarVehiculo = vi.fn();
-    render(<CeldaInfoModal {...props([reservaEn(240, 60)])} onEstacionarVehiculo={onEstacionarVehiculo} />);
+    render(
+      <CeldaInfoModal
+        {...props([reservaEn(240, 60)])}
+        onEstacionarVehiculo={onEstacionarVehiculo}
+      />,
+    );
 
     fireEvent.click(screen.getByText("Estacionar Vehículo"));
     expect(onEstacionarVehiculo).not.toHaveBeenCalled();
-    expect(screen.getByText(/debes asegurar que el vehículo salga máximo 30 min antes de la reserva/)).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /debes asegurar que el vehículo salga máximo 30 min antes de la reserva/,
+      ),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByText("Entiendo, estacionar"));
     expect(onEstacionarVehiculo).toHaveBeenCalled();
@@ -142,7 +207,12 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
 
   it("no pide confirmar nada si la celda no tiene ninguna reserva por delante", () => {
     const onEstacionarVehiculo = vi.fn();
-    render(<CeldaInfoModal {...props([])} onEstacionarVehiculo={onEstacionarVehiculo} />);
+    render(
+      <CeldaInfoModal
+        {...props([])}
+        onEstacionarVehiculo={onEstacionarVehiculo}
+      />,
+    );
 
     fireEvent.click(screen.getByText("Estacionar Vehículo"));
     expect(onEstacionarVehiculo).toHaveBeenCalled();
@@ -152,7 +222,9 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
     render(<CeldaInfoModal {...props([reservaEn(60, 60)])} />);
 
     expect(screen.getByText("Estacionar Vehículo")).toBeDisabled();
-    expect(screen.getByText(/no da tiempo a usarla y desalojarla/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/no da tiempo a usarla y desalojarla/),
+    ).toBeInTheDocument();
   });
 
   /* Ese bloqueo es para los demás: quien reservó puede llegar antes de su hora, y tiene que
@@ -163,12 +235,20 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
       <CeldaInfoModal
         {...props([reservaEn(60, 60)])}
         vehiculoReservado={{
-          id: "v1", conductorId: "c1", conductorNombre: "María Gómez", placa: "ABC123",
-          tipo: "carro", marca: "Mazda", linea: "", modelo: 2021, color: "Gris",
-          descripcion: "", estado: "activo",
+          id: "v1",
+          conductorId: "c1",
+          conductorNombre: "María Gómez",
+          placa: "ABC123",
+          tipo: "carro",
+          marca: "Mazda",
+          linea: "",
+          modelo: 2021,
+          color: "Gris",
+          descripcion: "",
+          estado: "activo",
         }}
         onEstacionarReservado={onEstacionarReservado}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText(/Estacionar ABC123/));
@@ -178,10 +258,18 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
   /* El aviso que pidió el vigilante: 50 minutos antes de la reserva (veinte antes del plazo
      máximo de salida) para que le dé tiempo de contactar al conductor. */
   it("avisa de desalojar la celda ocupada cuando la reserva se acerca", () => {
-    const ocupada: Celda = { ...celdaDisponible, estado: "no_disponible", ocupada: true };
-    render(<CeldaInfoModal {...props([reservaEn(45, 60)])} celdaActiva={ocupada} />);
+    const ocupada: Celda = {
+      ...celdaDisponible,
+      estado: "no_disponible",
+      ocupada: true,
+    };
+    render(
+      <CeldaInfoModal {...props([reservaEn(45, 60)])} celdaActiva={ocupada} />,
+    );
 
-    expect(screen.getByText(/Contacta al conductor para que retire el vehículo/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Contacta al conductor para que retire el vehículo/),
+    ).toBeInTheDocument();
   });
 
   /* Cancelar no puede depender de que la reserva ya haya empezado: si solo se ofrece con la
@@ -189,7 +277,12 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
   it("deja cancelar la reserva que viene, con la celda todavía libre", () => {
     const onCancelarReserva = vi.fn();
     const reserva = reservaEn(240, 60);
-    render(<CeldaInfoModal {...props([reserva])} onCancelarReserva={onCancelarReserva} />);
+    render(
+      <CeldaInfoModal
+        {...props([reserva])}
+        onCancelarReserva={onCancelarReserva}
+      />,
+    );
 
     fireEvent.click(screen.getByLabelText("Cancelar la reserva de las 14:00"));
     expect(onCancelarReserva).toHaveBeenCalledWith(reserva);
@@ -201,7 +294,12 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
     const onCancelarReserva = vi.fn();
     const temprana = reservaEn(180, 60);
     const tardia = reservaEn(300, 60, { id: "r2" });
-    render(<CeldaInfoModal {...props([temprana, tardia])} onCancelarReserva={onCancelarReserva} />);
+    render(
+      <CeldaInfoModal
+        {...props([temprana, tardia])}
+        onCancelarReserva={onCancelarReserva}
+      />,
+    );
 
     fireEvent.click(screen.getByLabelText("Cancelar la reserva de las 15:00"));
     expect(onCancelarReserva).toHaveBeenCalledWith(tardia);
@@ -209,24 +307,35 @@ describe("CeldaInfoModal — la agenda de la celda", () => {
 
   it("sin reservas por delante no ofrece cancelar nada", () => {
     render(<CeldaInfoModal {...props([])} />);
-    expect(screen.queryByLabelText(/Cancelar la reserva/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/Cancelar la reserva/),
+    ).not.toBeInTheDocument();
   });
 
   /* Quien no registra ingresos (Comunidad SENA desde el plano) ve la agenda, pero no la toca. */
   it("no ofrece cancelar a quien solo puede mirar", () => {
-    render(<CeldaInfoModal {...props([reservaEn(240, 60)])} canRegistrarIngreso={false} />);
+    render(
+      <CeldaInfoModal
+        {...props([reservaEn(240, 60)])}
+        canRegistrarIngreso={false}
+      />,
+    );
 
     expect(screen.getByText("Reservas de esta celda")).toBeInTheDocument();
-    expect(screen.queryByLabelText(/Cancelar la reserva/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByLabelText(/Cancelar la reserva/),
+    ).not.toBeInTheDocument();
   });
 });
 
 describe("CeldaInfoModal — ajuste manual de estado", () => {
   beforeEach(() => {
-    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-03-10T10:00:00"));
   });
-  afterEach(() => { vi.useRealTimers(); });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   const props = (reservas: Reserva[]) => ({
     ...baseProps(true),
@@ -240,7 +349,12 @@ describe("CeldaInfoModal — ajuste manual de estado", () => {
      así mientras existiera cualquier reserva por delante. */
   it("deja cambiar el estado aunque la celda tenga una reserva por delante", () => {
     const p = props([reservaEn(240, 60)]);
-    render(<CeldaInfoModal {...p} celdaActiva={{ ...celdaDisponible, estado: "reservada" }} />);
+    render(
+      <CeldaInfoModal
+        {...p}
+        celdaActiva={{ ...celdaDisponible, estado: "reservada" }}
+      />,
+    );
 
     fireEvent.click(screen.getByText("Disponible"));
     expect(p.onSetEstadoManual).toHaveBeenCalledWith("disponible");
@@ -248,27 +362,47 @@ describe("CeldaInfoModal — ajuste manual de estado", () => {
 
   it("avisa de que ese cambio no cancela la reserva", () => {
     render(<CeldaInfoModal {...props([reservaEn(240, 60)])} />);
-    expect(screen.getByText(/cambiar el estado a mano no la cancela/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/cambiar el estado a mano no la cancela/),
+    ).toBeInTheDocument();
   });
 
   /* Lo que sí sigue bloqueando es un vehículo dentro: eso no es un estado, es un hecho. */
   it("no deja tocar el estado de una celda con un vehículo dentro", () => {
-    const ocupada: Celda = { ...celdaDisponible, estado: "no_disponible", ocupada: true };
+    const ocupada: Celda = {
+      ...celdaDisponible,
+      estado: "no_disponible",
+      ocupada: true,
+    };
     render(
       <CeldaInfoModal
         {...props([])}
         celdaActiva={ocupada}
         ocupanteActivo={{
-          vehiculo: { id: "v1", conductorId: "c1", conductorNombre: "María", placa: "ABC123", tipo: "carro", marca: "", linea: "", modelo: 2020, color: "", descripcion: "", estado: "activo" },
+          vehiculo: {
+            id: "v1",
+            conductorId: "c1",
+            conductorNombre: "María",
+            placa: "ABC123",
+            tipo: "carro",
+            marca: "",
+            linea: "",
+            modelo: 2020,
+            color: "",
+            descripcion: "",
+            estado: "activo",
+          },
           conductor: undefined,
           esOficial: false,
           controlId: "cs1",
           fechaEntrada: new Date().toISOString(),
         }}
-      />
+      />,
     );
 
-    expect(screen.getByText(/Debe registrarse la salida del vehículo/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Debe registrarse la salida del vehículo/),
+    ).toBeInTheDocument();
     expect(screen.queryByText("Disponible")).not.toBeInTheDocument();
   });
 });
@@ -283,7 +417,7 @@ describe("CeldaInfoModal — reportar sobre una celda libre", () => {
         {...baseProps(false)}
         canReportarIncidentes
         onReportarIncidente={onReportarIncidente}
-      />
+      />,
     );
 
     fireEvent.click(screen.getByText(/Reportar/));
@@ -291,7 +425,9 @@ describe("CeldaInfoModal — reportar sobre una celda libre", () => {
   });
 
   it("no lo ofrece a quien no tiene ese permiso", () => {
-    render(<CeldaInfoModal {...baseProps(false)} canReportarIncidentes={false} />);
+    render(
+      <CeldaInfoModal {...baseProps(false)} canReportarIncidentes={false} />,
+    );
     expect(screen.queryByText(/Reportar/)).not.toBeInTheDocument();
   });
 
@@ -303,7 +439,7 @@ describe("CeldaInfoModal — reportar sobre una celda libre", () => {
         canReportarIncidentes
         incidenteAbiertoExiste
         onReportarIncidente={onReportarIncidente}
-      />
+      />,
     );
 
     expect(screen.getByText(/Ya reportado/)).toBeDisabled();

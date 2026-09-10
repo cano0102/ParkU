@@ -52,6 +52,25 @@ describe('cuándo un vehículo no está disponible', () => {
     expect(reservaActivaDe('1', historial)).toBeUndefined();
   });
 
+  it('ignora una reserva de mañana cuando hoy se quiere usar otro vehículo o el mismo', () => {
+    const manana = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const fechaManana = `${manana.getFullYear()}-${String(manana.getMonth() + 1).padStart(2, '0')}-${String(manana.getDate()).padStart(2, '0')}`;
+    const reservaDeManana = { ...reserva('1', 'activa'), fechaReserva: fechaManana };
+
+    expect(vehiculoNoDisponible(vehiculo('1', 'ABC123'), [], [reservaDeManana])).toBeNull();
+    expect(reservaActivaDe('1', [reservaDeManana])).toBeUndefined();
+  });
+
+  it('sí bloquea una reserva del día de hoy, aunque el vehículo sea distinto y el conductor lo comparta', () => {
+    const hoy = new Date();
+    const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+    const usada = vehiculo('2', 'XYZ789', 'c2');
+    const flota = [vehiculo('1', 'ABC123', 'c1'), { ...usada, copropietarios: [{ id: 'c1', nombre: 'Ana', esPrincipal: false }, { id: 'c2', nombre: 'Beto', esPrincipal: true }] }];
+    const reservaHoy = { ...reserva('2', 'activa'), conductorId: 'c2', fechaReserva: fechaHoy };
+
+    expect(otroVehiculoDelConductorEnUso('c1', '1', flota, [], [reservaHoy])?.motivo).toMatch(/otro vehículo en uso/);
+  });
+
   it('lo de otro vehículo no le afecta', () => {
     expect(vehiculoEstaParqueado('1', [parqueado('2')])).toBe(false);
     expect(vehiculoNoDisponible(vehiculo('1', 'ABC123'), [parqueado('2')], [reserva('2', 'activa')])).toBeNull();

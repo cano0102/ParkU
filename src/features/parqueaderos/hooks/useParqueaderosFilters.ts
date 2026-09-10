@@ -15,8 +15,8 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
     const t = celdas.length;
     const o = celdas.filter((c) => c.estado === "no_disponible").length;
     const l = celdas.filter((c) => c.estado === "disponible").length;
-    const r = celdas.filter((c) => c.estado === "reservada").length;
-    return { total: t, ocupadas: o, libres: l, reservadas: r, pct: t ? Math.round((o / t) * 100) : 0 };
+    const m = celdas.filter((c) => c.estado === "mantenimiento").length;
+    return { total: t, ocupadas: o, libres: l, mantenimiento: m };
   }, [celdas]);
 
   const cellMatchesSearch = useCallback(

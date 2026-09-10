@@ -46,12 +46,22 @@ export function vehiculosOperables<T extends Pick<Vehiculo, "estado">>(vehiculos
   return vehiculos.filter((v) => v.estado === "activo");
 }
 
+function hoyISO(): string {
+  const ahora = new Date();
+  const pad = (valor: number) => String(valor).padStart(2, '0');
+  return `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}`;
+}
+
+function aplicaHoy(reserva: Pick<Reserva, "fechaReserva">): boolean {
+  return !reserva.fechaReserva || reserva.fechaReserva === hoyISO();
+}
+
 export function vehiculoEstaParqueado(vehiculoId: string, controlesSalida: ControlSalida[]): boolean {
   return controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.vehiculoId === vehiculoId);
 }
 
 export function reservaActivaDe(vehiculoId: string, reservas: Reserva[]): Reserva | undefined {
-  return reservas.find((r) => r.vehiculoId === vehiculoId && RESERVA_ESTADOS_ACTIVOS.has(r.estado));
+  return reservas.find((r) => r.vehiculoId === vehiculoId && RESERVA_ESTADOS_ACTIVOS.has(r.estado) && aplicaHoy(r));
 }
 
 export interface MotivoNoDisponible {
@@ -88,7 +98,7 @@ export function otroVehiculoDelConductorEnUso(
   controlesSalida: ControlSalida[],
   reservas: Reserva[]
 ): MotivoNoDisponible | null {
-  const otros = vehiculos.filter((v) => v.conductorId === conductorId && v.id !== vehiculoIdActual);
+  const otros = vehiculos.filter((v) => esDeConductor(v, conductorId) && v.id !== vehiculoIdActual);
   for (const otro of otros) {
     const motivo = vehiculoNoDisponible(otro, controlesSalida, reservas);
     if (motivo) {

@@ -95,12 +95,10 @@ export const PERMISOS_POR_ROL: Record<RolId, PermisosRol> = {
     asignaciones: false,
     entradaSalida: false,
     reservas: true,
-    // `true`: HU 07.1.11-07.1.14 (reportar/consultar/actualizar/cancelar sus propios
-    // incidentes) — ver ConductorIncidentes.tsx. En la API real hoy solo "reportar" (POST) y
-    // el historial funcionan de verdad para este rol; "consultar"/"actualizar"/"cancelar" ya
-    // están listos en el frontend pero dan 403 hasta que el backend abra esas rutas para que
-    // un Conductor gestione sus propios recursos (ver services/api/incidentes.ts).
-    incidentes: true,
+    // El conductor no reporta incidentes del parqueadero ni puede gestionarlos desde esta
+    // aplicación: solo registra su propio acceso al estacionamiento (entrada/salida) y la
+    // operación del vehículo queda bajo el personal autorizado.
+    incidentes: false,
     reconocimientoPlacas: false,
   },
 };

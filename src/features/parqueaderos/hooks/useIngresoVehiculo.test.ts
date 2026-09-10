@@ -150,6 +150,28 @@ describe('useIngresoVehiculo — celdas de tipo bicicleta/camión/bus (sin conve
     expect(data.addControlSalida).not.toHaveBeenCalled();
   });
 
+  it('permite registrar un vehículo compartido cuando el conductor seleccionado es copropietario', async () => {
+    const vehiculoCompartido: Vehiculo = {
+      ...vehiculoDeMaria,
+      id: 'v2',
+      placa: 'XYZ12D',
+      copropietarios: [{ id: 'c3', nombre: conductorPedro.nombre, esPrincipal: false }],
+    };
+    const data = buildData({
+      conductores: [conductorMaria, conductorPedro],
+      vehiculos: [vehiculoCompartido],
+    });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    let ok = false;
+    await act(async () => {
+      ok = await result.current.registrarEnCelda(celdaMoto, vehiculoCompartido.placa, conductorPedro.nombre, false, undefined, conductorPedro.id);
+    });
+
+    expect(ok).toBe(true);
+    expect(data.addControlSalida).toHaveBeenCalledWith(expect.objectContaining({ conductorId: 'c3' }));
+  });
+
   it('sigue rechazando un carro en una celda de moto con el mensaje original', async () => {
     const data = buildData();
     const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));

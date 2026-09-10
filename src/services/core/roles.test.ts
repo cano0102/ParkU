@@ -69,10 +69,12 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
     // tenían por no estar en `rol_permiso` los dejaría sin pantallas que sí pueden usar.
     const conductor = permisosDeVistas(ROLES.CONDUCTOR, []);
     expect(conductor).toEqual(PERMISOS_POR_ROL[ROLES.CONDUCTOR]);
+    expect(conductor.incidentes).toBe(false);
 
     const conUsuarios = permisosDeVistas(ROLES.CONDUCTOR, ['usuarios.consultar']);
     expect(conUsuarios.usuarios).toBe(true);
     expect(conUsuarios.reservas).toBe(true); // lo que ya tenía sigue ahí
+    expect(conUsuarios.incidentes).toBe(false);
   });
 
   it('toda pantalla del menú se puede abrir con algún permiso', () => {

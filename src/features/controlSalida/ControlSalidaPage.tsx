@@ -1,4 +1,6 @@
 import { LoadingState, Modal } from "@/components/shared";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import { useControlSalidaPage } from "./hooks/useControlSalidaPage";
 import { controlSalidaStyles } from "./lib/styles";
 import { ControlSalidaHero } from "./components/ControlSalidaHero";
@@ -9,12 +11,16 @@ import { IncidenteModal } from "@/features/parqueaderos";
 
 export function ControlSalidaPage() {
   const p = useControlSalidaPage();
+  const { user } = useAuth();
 
   return (
     <>
       <style>{controlSalidaStyles}</style>
 
-      <div className="control-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div
+        className="control-root"
+        style={{ display: "flex", flexDirection: "column", gap: 16 }}
+      >
         <ControlSalidaHero
           enParqueadero={p.vehiculosEnParqueadero.length}
           salidas={p.vehiculosSalidos.length}
@@ -49,7 +55,9 @@ export function ControlSalidaPage() {
             getUsuarioConductor={p.getUsuarioConductor}
             getParqueadero={p.getParqueadero}
             onVerDetalle={p.verDetalle}
-            onReportar={p.abrirReporteDe}
+            onReportar={
+              user?.rol !== ROLES.CONDUCTOR ? p.abrirReporteDe : undefined
+            }
             onLiberar={p.handleLiberar}
           />
         )}

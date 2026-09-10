@@ -63,9 +63,10 @@ export function useIncidenteReporte(
 ) {
   const { user } = useAuth();
   const esConductor = user?.rol === ROLES.CONDUCTOR;
-  /* Una novedad es un apunte de la operación del parqueadero: la escribe quien está en ella.
-     Comunidad SENA reporta incidentes (lo que le pasa a su vehículo o en la celda), y por eso
-     ni siquiera ve el selector. Misma regla que aplica el backend. */
+  /* El conductor ya no reporta incidentes del parqueadero: solo su propio acceso/estacionamiento
+     queda en el flujo de entrada/salida. Cualquier intento de abrir o enviar un reporte desde
+     este contexto se bloquea por seguridad, aunque la ruta se haya abierto por URL o por un
+     estado previo. */
   const puedeRegistrarNovedades = !esConductor;
 
   // GET /novedades da 403 para Comunidad SENA en la API real hoy (ver el comentario junto a
@@ -101,13 +102,17 @@ export function useIncidenteReporte(
 
   /** Abre el formulario sobre un contexto concreto (celda, vehículo o solo el parqueadero). */
   const abrirReporte = useCallback((ctx: ContextoReporte) => {
+    if (esConductor) {
+      toast.error("No puedes reportar incidentes del parqueadero desde este rol.");
+      return;
+    }
     setContexto(ctx);
     setIncidenteFormRaw(emptyIncidenteForm(user?.id ?? ""));
     setEvidencias([]);
     setIncidenteError(null);
     setIncidenteTocado(false);
     setOpenModal("incidente");
-  }, [setOpenModal, user?.id]);
+  }, [esConductor, setOpenModal, user?.id]);
 
   const closeIncidenteModal = useCallback(() => {
     setOpenModal(null);
@@ -142,6 +147,10 @@ export function useIncidenteReporte(
     : null), [contexto, celdaActiva, ocupanteActivo]);
 
   const registrarIncidente = useCallback(async () => {
+    if (esConductor) {
+      toast.error("No puedes reportar incidentes del parqueadero desde este rol.");
+      return;
+    }
     if (!objetivo) return;
     setIncidenteTocado(true);
     const error = validarIncidenteForm(incidenteForm, !esConductor);

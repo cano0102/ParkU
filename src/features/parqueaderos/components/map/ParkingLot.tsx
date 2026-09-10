@@ -2,8 +2,14 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { theme } from "@/styles/theme";
 import {
-  CELDA_CONFIG, LotLayout, Ocupante, getTipoCeldaConfig,
-  SPACE_W, GAP_X, LANE_H, PADDING,
+  CELDA_CONFIG,
+  LotLayout,
+  Ocupante,
+  getTipoCeldaConfig,
+  SPACE_W,
+  GAP_X,
+  LANE_H,
+  PADDING,
 } from "../../lib/helpers";
 import { MAP_THEME } from "./MapVisuals";
 import { ParkingCell } from "./ParkingCell";
@@ -22,112 +28,265 @@ interface ParkingLotProps extends LotLayout {
   onCellHover: (info: HoverInfo) => void;
   onCellHoverLeave: () => void;
   /** Si se pasa (rol con permiso "celdas"), el badge de estado se vuelve clicable. */
-  onLotPointerDown?: (e: React.PointerEvent<SVGGElement>, pq: Parqueadero) => void;
+  onLotPointerDown?: (
+    e: React.PointerEvent<SVGGElement>,
+    pq: Parqueadero,
+  ) => void;
 }
 
 /** Un parqueadero dibujado en el plano: cabecera con nombre/composición/stats, y sus filas de celdas. */
 export function ParkingLot({
-  pq, celdasPorFila, libres, ocupados, reservadas, pct, filas, lotTop, lotHeight, ancho,
-  getOcupante, cellMatchesSearch, celdaTieneIncidenteAbierto, marcasDeReserva = {},
-  onCellPointerDown, onCellHover, onCellHoverLeave,
+  pq,
+  celdasPorFila,
+  libres,
+  ocupados,
+  reservadas,
+  pct,
+  filas,
+  lotTop,
+  lotHeight,
+  ancho,
+  getOcupante,
+  cellMatchesSearch,
+  celdaTieneIncidenteAbierto,
+  marcasDeReserva = {},
+  onCellPointerDown,
+  onCellHover,
+  onCellHoverLeave,
   onLotPointerDown,
 }: ParkingLotProps) {
   const activo = pq.estado === "activo";
   const estadoColor = activo ? CELDA_CONFIG.disponible.dotColor : C.danger;
   const hc = pct >= 90 ? C.danger : pct >= 50 ? C.amber : C.primary;
 
-  // Composición de la zona por tipo de vehículo. El orden importa: "movilidad reducida"
-  // va PRIMERO porque es la categoría cuya visibilidad urge (una plaza preferencial ocupada
-  // por quien no la necesita es lo que más vale detectar de un vistazo). Además, las celdas
-  // de movilidad reducida ya NO se cuentan también como "carro" — antes aparecían sumadas
-  // en los dos chips porque una celda MR es `tipo: "carro"` + `usabilidad: "movilidad_reducida"`.
+  // Solo se mantiene el chip de movilidad reducida al inicio del parqueadero; el resto de
+  // categorías ya no se muestran en la cabecera para simplificar la lectura del estado.
   const celdasLot = filas.flatMap((f) => f.celdas);
-  const composicion = ([
-    { t: "movilidad reducida" as const, n: celdasLot.filter((c) => c.usabilidad === "movilidad_reducida").length },
-    { t: "carro" as const, n: celdasLot.filter((c) => c.tipo === "carro" && c.usabilidad !== "movilidad_reducida").length },
-    { t: "moto" as const, n: celdasLot.filter((c) => c.tipo === "moto").length },
-  ]).filter((x) => x.n > 0);
-  const chipW = 32, chipGap = 5;
-  const chipsW = composicion.length * chipW + Math.max(0, composicion.length - 1) * chipGap;
+  const celdasMR = celdasLot.filter(
+    (c) => c.usabilidad === "movilidad_reducida",
+  );
+  const chipW = 32,
+    chipGap = 5;
+  const chipsW = celdasMR.length > 0 ? chipW + chipGap : 0;
   let chipX = ancho - chipsW;
 
   return (
     <g>
-      <rect x={PADDING - 20} y={lotTop - 12} width={ancho - PADDING + 40} height={lotHeight + 12} rx="14" fill={MAP_THEME.asphaltPanel} stroke={MAP_THEME.panelBorder} strokeWidth="1.5" filter="url(#lotShadow)" />
+      <rect
+        x={PADDING - 20}
+        y={lotTop - 12}
+        width={ancho - PADDING + 40}
+        height={lotHeight + 12}
+        rx="14"
+        fill={MAP_THEME.asphaltPanel}
+        stroke={MAP_THEME.panelBorder}
+        strokeWidth="1.5"
+        filter="url(#lotShadow)"
+      />
       {/* Filo superior más claro: el panel se lee como una superficie ligeramente elevada
           sobre el asfalto en vez de un rectángulo plano del mismo tono. */}
-      <line x1={PADDING - 16} y1={lotTop - 11.3} x2={ancho + 18} y2={lotTop - 11.3} stroke="rgba(255,255,255,.14)" strokeWidth="1" />
-      <rect x={PADDING - 10} y={lotTop - 6} width={ancho - PADDING + 10} height={34} rx="8" fill={hc} />
+      <line
+        x1={PADDING - 16}
+        y1={lotTop - 11.3}
+        x2={ancho + 18}
+        y2={lotTop - 11.3}
+        stroke="rgba(255,255,255,.14)"
+        strokeWidth="1"
+      />
+      <rect
+        x={PADDING - 10}
+        y={lotTop - 6}
+        width={ancho - PADDING + 10}
+        height={34}
+        rx="8"
+        fill={hc}
+      />
       {/* Brillo superior sutil (mismo contorno redondeado que la cabecera, sin artefactos en las
           esquinas): le da un poco de volumen en vez de un color plano. */}
-      <rect x={PADDING - 10} y={lotTop - 6} width={ancho - PADDING + 10} height={34} rx="8" fill="url(#sheenV)" />
-      <text x={PADDING + 2} y={lotTop + 10} fill="#fff" fontSize="10.5" fontWeight="900">{pq.nombre.toUpperCase()}</text>
-      <text x={PADDING + 2} y={lotTop + 22} fill="rgba(255,255,255,.8)" fontSize="7.5" fontWeight="bold">{pq.zona ? `ZONA ${pq.zona.toUpperCase()}` : pq.ubicacion.toUpperCase()}</text>
-      {/* Chips de composición: cuántas celdas de cada tipo tiene esta zona.
-          El orden del array pone "movilidad reducida" primero, así que su icono indicativo
-          queda al inicio de la cabecera del parqueadero (junto al nombre), tal como se pidió. */}
-      {composicion.map(({ t, n }) => {
-        const cfg = getTipoCeldaConfig(t);
-        const Icon = cfg.icon;
-        const x = chipX;
-        chipX += chipW + chipGap;
-        return (
-          <g key={t} transform={`translate(${x},${lotTop + 3})`}>
-            <rect width={chipW} height={18} rx="6" fill="rgba(255,255,255,.24)" />
-            <Icon x={4} y={4} width={10} height={10} color="#fff" strokeWidth={2.75} />
-            <text x={chipW - 5} y={13} textAnchor="end" fontSize="9" fontWeight="900" fill="#fff">{n}</text>
-          </g>
-        );
-      })}
+      <rect
+        x={PADDING - 10}
+        y={lotTop - 6}
+        width={ancho - PADDING + 10}
+        height={34}
+        rx="8"
+        fill="url(#sheenV)"
+      />
+      <text
+        x={PADDING + 2}
+        y={lotTop + 10}
+        fill="#fff"
+        fontSize="10.5"
+        fontWeight="900"
+      >
+        {pq.nombre.toUpperCase()}
+      </text>
+      <text
+        x={PADDING + 2}
+        y={lotTop + 22}
+        fill="rgba(255,255,255,.8)"
+        fontSize="7.5"
+        fontWeight="bold"
+      >
+        {pq.zona ? `ZONA ${pq.zona.toUpperCase()}` : pq.ubicacion.toUpperCase()}
+      </text>
+      {/* Solo se conserva el indicador de movilidad reducida en la cabecera del parqueadero. */}
+      {celdasMR.length > 0 &&
+        (() => {
+          const cfg = getTipoCeldaConfig("movilidad reducida");
+          const Icon = cfg.icon;
+          const x = chipX;
+          return (
+            <g key="mr-header" transform={`translate(${x},${lotTop + 3})`}>
+              <rect
+                width={chipW}
+                height={18}
+                rx="6"
+                fill="rgba(255,255,255,.24)"
+              />
+              <Icon
+                x={4}
+                y={4}
+                width={10}
+                height={10}
+                color="#fff"
+                strokeWidth={2.75}
+              />
+              <text
+                x={chipW - 5}
+                y={13}
+                textAnchor="end"
+                fontSize="9"
+                fontWeight="900"
+                fill="#fff"
+              >
+                {celdasMR.length}
+              </text>
+            </g>
+          );
+        })()}
       <g transform={`translate(${PADDING - 10},${lotTop + 47})`}>
-        <circle cx="5" cy="-2.5" r="3.5" fill={CELDA_CONFIG.disponible.dotColor} />
-        <text x="13" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{libres} libres</text>
-        <circle cx="70" cy="-2.5" r="3.5" fill={CELDA_CONFIG.no_disponible.dotColor} />
-        <text x="78" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{ocupados} ocupados</text>
+        <circle
+          cx="5"
+          cy="-2.5"
+          r="3.5"
+          fill={CELDA_CONFIG.disponible.dotColor}
+        />
+        <text
+          x="13"
+          y="1"
+          fill={MAP_THEME.textDim}
+          fontSize="8.5"
+          fontWeight="bold"
+        >
+          {libres} libres
+        </text>
+        <circle
+          cx="70"
+          cy="-2.5"
+          r="3.5"
+          fill={CELDA_CONFIG.no_disponible.dotColor}
+        />
+        <text
+          x="78"
+          y="1"
+          fill={MAP_THEME.textDim}
+          fontSize="8.5"
+          fontWeight="bold"
+        >
+          {ocupados} ocupados
+        </text>
         {reservadas > 0 && (
           <g transform="translate(150,0)">
-            <circle cx="5" cy="-2.5" r="3.5" fill={CELDA_CONFIG.reservada.dotColor} />
-            <text x="13" y="1" fill={MAP_THEME.textDim} fontSize="8.5" fontWeight="bold">{reservadas} reservadas</text>
+            <circle
+              cx="5"
+              cy="-2.5"
+              r="3.5"
+              fill={CELDA_CONFIG.reservada.dotColor}
+            />
+            <text
+              x="13"
+              y="1"
+              fill={MAP_THEME.textDim}
+              fontSize="8.5"
+              fontWeight="bold"
+            >
+              {reservadas} reservadas
+            </text>
           </g>
         )}
         {/* Badge de estado activo/inactivo — mismo toggle que la vista tabla, clicable solo con permiso "celdas". */}
         <g
           transform={`translate(${ancho - PADDING + 10 - 64},0)`}
-          onPointerDown={onLotPointerDown ? (e) => onLotPointerDown(e, pq) : undefined}
+          onPointerDown={
+            onLotPointerDown ? (e) => onLotPointerDown(e, pq) : undefined
+          }
           style={{ cursor: onLotPointerDown ? "pointer" : "default" }}
         >
-          {onLotPointerDown && <title>{activo ? "Desactivar parqueadero" : "Activar parqueadero"}</title>}
+          {onLotPointerDown && (
+            <title>
+              {activo ? "Desactivar parqueadero" : "Activar parqueadero"}
+            </title>
+          )}
           <circle cx="5" cy="-2.5" r="3.5" fill={estadoColor} />
-          <text x="13" y="1" fill={activo ? MAP_THEME.textDim : "#F87171"} fontSize="8.5" fontWeight="bold" style={{ textTransform: "uppercase" }}>
+          <text
+            x="13"
+            y="1"
+            fill={activo ? MAP_THEME.textDim : "#F87171"}
+            fontSize="8.5"
+            fontWeight="bold"
+            style={{ textTransform: "uppercase" }}
+          >
             {pq.estado}
           </text>
         </g>
       </g>
 
-      {filas.map((fila, fi) => fila.esCarril ? (
-        <g key={`c-${fi}`}>
-          <rect x={PADDING - 8} y={fila.y - 4} width={celdasPorFila * (SPACE_W + GAP_X) + 16} height={LANE_H - 8} fill="url(#roadG)" rx="4" />
-          <line x1={PADDING} y1={fila.y + LANE_H / 2 - 4} x2={PADDING + celdasPorFila * (SPACE_W + GAP_X) - GAP_X} y2={fila.y + LANE_H / 2 - 4} stroke="#F5C344" strokeWidth="1.2" strokeDasharray="6,5" opacity=".4" />
-        </g>
-      ) : (
-        <g key={`f-${fi}`}>
-          {fila.celdas.map((celda) => (
-            <ParkingCell
-              key={celda.id}
-              celda={celda}
-              pqNombre={pq.nombre}
-              tipoPq={pq.tipo}
-              matches={cellMatchesSearch(celda)}
-              tieneIncidente={celdaTieneIncidenteAbierto(celda)}
-              ocupante={celda.estado === "no_disponible" ? getOcupante(celda.id) : null}
-              marcaReserva={marcasDeReserva[celda.id] ?? null}
-              onPointerDown={onCellPointerDown}
-              onHover={onCellHover}
-              onHoverLeave={onCellHoverLeave}
+      {filas.map((fila, fi) =>
+        fila.esCarril ? (
+          <g key={`c-${fi}`}>
+            <rect
+              x={PADDING - 8}
+              y={fila.y - 4}
+              width={celdasPorFila * (SPACE_W + GAP_X) + 16}
+              height={LANE_H - 8}
+              fill="url(#roadG)"
+              rx="4"
             />
-          ))}
-        </g>
-      ))}
+            <line
+              x1={PADDING}
+              y1={fila.y + LANE_H / 2 - 4}
+              x2={PADDING + celdasPorFila * (SPACE_W + GAP_X) - GAP_X}
+              y2={fila.y + LANE_H / 2 - 4}
+              stroke="#F5C344"
+              strokeWidth="1.2"
+              strokeDasharray="6,5"
+              opacity=".4"
+            />
+          </g>
+        ) : (
+          <g key={`f-${fi}`}>
+            {fila.celdas.map((celda) => (
+              <ParkingCell
+                key={celda.id}
+                celda={celda}
+                pqNombre={pq.nombre}
+                tipoPq={pq.tipo}
+                matches={cellMatchesSearch(celda)}
+                tieneIncidente={celdaTieneIncidenteAbierto(celda)}
+                ocupante={
+                  celda.estado === "no_disponible"
+                    ? getOcupante(celda.id)
+                    : null
+                }
+                marcaReserva={marcasDeReserva[celda.id] ?? null}
+                onPointerDown={onCellPointerDown}
+                onHover={onCellHover}
+                onHoverLeave={onCellHoverLeave}
+              />
+            ))}
+          </g>
+        ),
+      )}
     </g>
   );
 }

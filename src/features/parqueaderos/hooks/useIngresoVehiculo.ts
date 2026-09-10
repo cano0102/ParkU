@@ -136,7 +136,7 @@ export function useIngresoVehiculo(
     // lo que se veía en pantalla. Chequeo aquí (y no solo en el efecto de auto-relleno más
     // abajo) para que quede bloqueado sin importar quién llame a `registrarEnCelda` — también
     // lo usan el escáner OCR y la Asignación Inteligente, que no pasan por ese efecto.
-    if (vehiculoExistentePorPlaca?.conductorId && conductorExistente && vehiculoExistentePorPlaca.conductorId !== conductorExistente.id) {
+    if (vehiculoExistentePorPlaca && conductorExistente && !esDeConductor(vehiculoExistentePorPlaca, conductorExistente.id)) {
       const duenoReal = conductores.find((c) => c.id === vehiculoExistentePorPlaca.conductorId);
       setPlacaError(`Esta placa ya está registrada a nombre de ${duenoReal?.nombre ?? "otro conductor"} — selecciónalo o crea un nuevo vehículo.`);
       return false;

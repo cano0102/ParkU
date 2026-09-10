@@ -2,7 +2,12 @@ import { theme } from "@/styles/theme";
 import { LoadingState, Modal, ConfirmDialog } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
-import { ConductorFormModal, AgregarVehiculoModal, vehiculosDeConductor, vehiculosOperables } from "@/features/conductores";
+import {
+  ConductorFormModal,
+  AgregarVehiculoModal,
+  vehiculosDeConductor,
+  vehiculosOperables,
+} from "@/features/conductores";
 import { MotivoReservaModal } from "@/features/reservas";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
@@ -22,19 +27,36 @@ const C = theme;
 
 export default function Parqueaderos() {
   const {
-    navigate, hasPermission, data, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick,
-    conductorForm, agregarVehiculo, abrirCrearConductor, abrirCrearVehiculo,
+    navigate,
+    hasPermission,
+    data,
+    modal,
+    filters,
+    pqFormState,
+    ingreso,
+    scanner,
+    reserva,
+    incidente,
+    handleCellClick,
+    conductorForm,
+    agregarVehiculo,
+    abrirCrearConductor,
+    abrirCrearVehiculo,
   } = useParqueaderosPage();
   const { user } = useAuth();
 
   // Comunidad SENA (Conductor) solo puede reservar para su propio vehículo: el buscador del
   // modal de reserva no debe exponer la lista completa de vehículos/conductores del sistema.
   const esConductor = user?.rol === ROLES.CONDUCTOR;
-  const miConductor = esConductor ? data.conductores.find((c) => c.usuarioId === user!.id) : undefined;
+  const miConductor = esConductor
+    ? data.conductores.find((c) => c.usuarioId === user!.id)
+    : undefined;
   // Solo vehículos que pueden operar: los de una cuenta desactivada quedan fuera (ver
   // vehiculosOperables), salvo los que comparte con otro propietario que sigue activo.
   const vehiculosDelRol = vehiculosOperables(
-    esConductor ? vehiculosDeConductor(data.vehiculos, miConductor?.id) : data.vehiculos
+    esConductor
+      ? vehiculosDeConductor(data.vehiculos, miConductor?.id)
+      : data.vehiculos,
   );
   // La celda ya está elegida (la reserva se abre desde el plano), así que el selector solo
   // debe ofrecer vehículos que quepan en SU tipo: una celda de moto no admite un carro y
@@ -43,14 +65,20 @@ export default function Parqueaderos() {
   const vehiculosParaReserva = modal.celdaActiva
     ? vehiculosDelRol.filter((v) => v.tipo === modal.celdaActiva!.tipo)
     : vehiculosDelRol;
-  const conductoresParaReserva = (esConductor ? data.conductores.filter((c) => c.id === miConductor?.id) : data.conductores)
-    .filter((c) => c.estado === "activo");
+  const conductoresParaReserva = (
+    esConductor
+      ? data.conductores.filter((c) => c.id === miConductor?.id)
+      : data.conductores
+  ).filter((c) => c.estado === "activo");
 
   return (
     <>
       <style>{parqueaderosStyles}</style>
 
-      <div className="pq-root" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div
+        className="pq-root"
+        style={{ display: "flex", flexDirection: "column", gap: 16 }}
+      >
         <ParqueaderosHero stats={filters.stats} />
 
         <ParqueaderosTopbar
@@ -72,21 +100,30 @@ export default function Parqueaderos() {
           <>
             {filters.activeFilters > 0 && (
               <p style={{ fontSize: 11, color: C.textLight }}>
-                Mostrando <strong>{filters.filteredPqsConCeldas.length}</strong> resultado{filters.filteredPqsConCeldas.length !== 1 ? "s" : ""}
+                Mostrando <strong>{filters.filteredPqsConCeldas.length}</strong>{" "}
+                resultado{filters.filteredPqsConCeldas.length !== 1 ? "s" : ""}
               </p>
             )}
 
             {filters.activeTab === "table" && (
               <ParqueaderosTable
                 parqueaderos={filters.filteredPqsConCeldas}
-                celdas={filters.search.trim() ? filters.filteredCeldas : data.celdas}
+                celdas={
+                  filters.search.trim() ? filters.filteredCeldas : data.celdas
+                }
                 getOcupante={modal.getOcupante}
                 onEdit={pqFormState.openEdit}
                 onDelete={pqFormState.handleDeleteRequest}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
-                onReportar={hasPermission("incidentes")
-                  ? (pq: Parqueadero) => incidente.abrirReporte({ parqueaderoId: pq.id, etiqueta: pq.nombre })
-                  : undefined}
+                onReportar={
+                  hasPermission("incidentes") && user?.rol !== ROLES.CONDUCTOR
+                    ? (pq: Parqueadero) =>
+                        incidente.abrirReporte({
+                          parqueaderoId: pq.id,
+                          etiqueta: pq.nombre,
+                        })
+                    : undefined
+                }
                 onCellClick={handleCellClick}
                 cellMatchesSearch={filters.cellMatchesSearch}
                 celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
@@ -120,7 +157,11 @@ export default function Parqueaderos() {
         setPqForm={pqFormState.setPqForm}
         formError={pqFormState.formError}
         onClose={() => modal.setOpenModal(null)}
-        onSubmit={modal.openModal === "edit" ? pqFormState.handleEdit : pqFormState.handleCreate}
+        onSubmit={
+          modal.openModal === "edit"
+            ? pqFormState.handleEdit
+            : pqFormState.handleCreate
+        }
       />
 
       <ConfirmDialog
@@ -173,7 +214,11 @@ export default function Parqueaderos() {
 
       {/* Sub-pasos del asistente de "Estacionar Vehículo": crear conductor o vehículo sin
           perder la celda ni el resto del formulario (ver useParqueaderosPage.ts). */}
-      <Modal open={modal.openModal === "crearConductor"} onClose={() => modal.setOpenModal("ingreso")} maxWidth={780}>
+      <Modal
+        open={modal.openModal === "crearConductor"}
+        onClose={() => modal.setOpenModal("ingreso")}
+        maxWidth={780}
+      >
         <ConductorFormModal
           /* Alta rápida desde portería: sin centro de formación ni regional — esos campos
              siguen disponibles en el módulo Conductores, que es donde se completan. */
@@ -195,7 +240,11 @@ export default function Parqueaderos() {
         />
       </Modal>
 
-      <Modal open={modal.openModal === "crearVehiculo"} onClose={() => modal.setOpenModal("ingreso")} maxWidth={520}>
+      <Modal
+        open={modal.openModal === "crearVehiculo"}
+        onClose={() => modal.setOpenModal("ingreso")}
+        maxWidth={520}
+      >
         {agregarVehiculo.conductorActivo && (
           <AgregarVehiculoModal
             conductor={agregarVehiculo.conductorActivo}
@@ -210,13 +259,27 @@ export default function Parqueaderos() {
             descripcionVehiculo={agregarVehiculo.form.descripcionVehiculo}
             errors={agregarVehiculo.errors}
             touched={agregarVehiculo.touched}
-            onPlacaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, placa: v }))}
-            onTipoVehiculoChange={(tipo) => agregarVehiculo.setForm((f) => ({ ...f, tipoVehiculo: tipo }))}
-            onMarcaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, marca: v }))}
-            onLineaChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, linea: v }))}
-            onModeloChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, modelo: v }))}
-            onColorChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, color: v }))}
-            onDescripcionChange={(v) => agregarVehiculo.setForm((f) => ({ ...f, descripcionVehiculo: v }))}
+            onPlacaChange={(v) =>
+              agregarVehiculo.setForm((f) => ({ ...f, placa: v }))
+            }
+            onTipoVehiculoChange={(tipo) =>
+              agregarVehiculo.setForm((f) => ({ ...f, tipoVehiculo: tipo }))
+            }
+            onMarcaChange={(v) =>
+              agregarVehiculo.setForm((f) => ({ ...f, marca: v }))
+            }
+            onLineaChange={(v) =>
+              agregarVehiculo.setForm((f) => ({ ...f, linea: v }))
+            }
+            onModeloChange={(v) =>
+              agregarVehiculo.setForm((f) => ({ ...f, modelo: v }))
+            }
+            onColorChange={(v) =>
+              agregarVehiculo.setForm((f) => ({ ...f, color: v }))
+            }
+            onDescripcionChange={(v) =>
+              agregarVehiculo.setForm((f) => ({ ...f, descripcionVehiculo: v }))
+            }
             onMarkTouched={agregarVehiculo.markTouched}
             busquedaExistente={agregarVehiculo.busquedaExistente}
             onBusquedaExistenteChange={agregarVehiculo.setBusquedaExistente}
@@ -239,13 +302,16 @@ export default function Parqueaderos() {
         agendaDetallada={(modal.agendaActiva?.reservas ?? []).map((r) => ({
           id: r.id,
           placa: data.vehiculos.find((v) => v.id === r.vehiculoId)?.placa ?? "",
-          conductor: data.conductores.find((c) => c.id === r.conductorId)?.nombre ?? "",
+          conductor:
+            data.conductores.find((c) => c.id === r.conductorId)?.nombre ?? "",
         }))}
         parqueaderoActivo={modal.parqueaderoActivo}
         onClose={() => modal.setOpenModal(null)}
         onCancelarReserva={reserva.handleCancelarReserva}
         onEstacionarOficial={ingreso.abrirIngresoOficial}
-        onNavigateConductor={(nombre) => navigate(`/app/conductores?q=${encodeURIComponent(nombre)}`)}
+        onNavigateConductor={(nombre) =>
+          navigate(`/app/conductores?q=${encodeURIComponent(nombre)}`)
+        }
         onLiberar={reserva.handleRequestLiberar}
         onReportarIncidente={() => modal.setOpenModal("incidente")}
         onEstacionarVehiculo={ingreso.abrirIngresoVisitante}
@@ -253,25 +319,41 @@ export default function Parqueaderos() {
           const vehiculo = modal.vehiculoReservado;
           if (!vehiculo) return;
           const conductor = data.conductores.find(
-            (c) => c.id === (modal.reservaDestacada?.conductorId || vehiculo.conductorId)
+            (c) =>
+              c.id ===
+              (modal.reservaDestacada?.conductorId || vehiculo.conductorId),
           );
           ingreso.abrirIngresoReservado(vehiculo, conductor);
         }}
-        onReservarCelda={() => { if (modal.celdaActiva) reserva.openReservaFromCelda(modal.celdaActiva); }}
+        onReservarCelda={() => {
+          if (modal.celdaActiva)
+            reserva.openReservaFromCelda(modal.celdaActiva);
+        }}
         /* Quien ve el plano y puede reservar, pero no gestionar celdas (el caso del
            Conductor), no crea la reserva aquí: pide esta celda y la solicitud queda
            pendiente de aprobación en el módulo de Reservas. */
         conductorReserva={
           modal.reservaDestacada
-            ? data.conductores.find((c) => c.id === modal.reservaDestacada!.conductorId)?.nombre
-              ?? data.conductores.find((c) => c.id === modal.vehiculoReservado?.conductorId)?.nombre
+            ? (data.conductores.find(
+                (c) => c.id === modal.reservaDestacada!.conductorId,
+              )?.nombre ??
+              data.conductores.find(
+                (c) => c.id === modal.vehiculoReservado?.conductorId,
+              )?.nombre)
             : undefined
         }
-        canSolicitarReserva={!hasPermission("celdas") && hasPermission("reservas")}
+        canSolicitarReserva={
+          !hasPermission("celdas") && hasPermission("reservas")
+        }
         onSolicitarReserva={() => {
           if (!modal.celdaActiva) return;
           navigate("/app/reservas", {
-            state: { solicitarCelda: { celdaId: modal.celdaActiva.id, parqueaderoId: modal.celdaActiva.parqueaderoId } },
+            state: {
+              solicitarCelda: {
+                celdaId: modal.celdaActiva.id,
+                parqueaderoId: modal.celdaActiva.parqueaderoId,
+              },
+            },
           });
         }}
         canManageCeldas={hasPermission("celdas")}
@@ -283,11 +365,19 @@ export default function Parqueaderos() {
 
       {/* Cancelar la reserva de una celda pide motivo, igual que en el módulo de Reservas:
           es el mismo formulario, para que se pida lo mismo se entre por donde se entre. */}
-      <Modal open={modal.openModal === "cancelarReserva"} onClose={() => modal.setOpenModal(null)} maxWidth={420}>
+      <Modal
+        open={modal.openModal === "cancelarReserva"}
+        onClose={() => modal.setOpenModal(null)}
+        maxWidth={420}
+      >
         {reserva.reservaACancelar && (
           <MotivoReservaModal
             accion="cancelar"
-            placa={data.vehiculos.find((v) => v.id === reserva.reservaACancelar!.vehiculoId)?.placa || "—"}
+            placa={
+              data.vehiculos.find(
+                (v) => v.id === reserva.reservaACancelar!.vehiculoId,
+              )?.placa || "—"
+            }
             fecha={`${reserva.reservaACancelar.fechaReserva} · ${reserva.reservaACancelar.horaInicio}–${reserva.reservaACancelar.horaFin}`}
             onCancel={() => modal.setOpenModal(null)}
             onConfirm={reserva.confirmarCancelarReserva}

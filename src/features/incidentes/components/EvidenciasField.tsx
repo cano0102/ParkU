@@ -1,10 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  IconPhoto as Photo,
   IconPhotoOff as PhotoOff,
+  IconTrash as Trash,
+  IconUpload as Upload,
   IconX as X,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
-import type { Evidencia } from "@/services/api/evidencias";
+import {
+  MAX_EVIDENCIAS,
+  motivoArchivoInvalido,
+  type Evidencia,
+} from "@/services/api/evidencias";
 
 const C = theme;
 
@@ -29,56 +36,222 @@ function nombreDe(ev: Evidencia, i: number): string {
  * Carga la evidencia con fetch (para mandar el token) y devuelve un blob URL.
  * Si el fetch falla, deja que el <img> intente directo por si el backend no pide auth.
  */
-function useEvidenciaSrc(url: string): { src: string | null; error: boolean; cargando: boolean } {
+function useEvidenciaSrc(url: string): {
+  src: string | null;
+  error: boolean;
+  cargando: boolean;
+} {
   const [src, setSrc] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
-    if (!url) { setCargando(false); setError(true); return; }
-    if (/^(data:|blob:)/i.test(url)) { setSrc(url); setCargando(false); return; }
+    if (!url) {
+      setCargando(false);
+      setError(true);
+      return;
+    }
+    if (/^(data:|blob:)/i.test(url)) {
+      setSrc(url);
+      setCargando(false);
+      return;
+    }
 
-    let cancelado = false;
-    let objectUrl: string | null = null;
-    setCargando(true); setError(false); setSrc(null);
-
-    const token = typeof window !== "undefined"
-      ? localStorage.getItem("token") ?? localStorage.getItem("access_token")
-      : null;
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-
-    fetch(url, { headers, credentials: "include" })
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.blob();
-      })
-      .then((blob) => {
-        if (cancelado) return;
-        objectUrl = URL.createObjectURL(blob);
-        setSrc(objectUrl);
-        setCargando(false);
-      })
-      .catch(() => {
-        // Fallback: algunos backends sirven la imagen sin auth por CORS simple.
-        // Probar directo por si el token no era necesario o la ruta es pública.
-        if (cancelado) return;
-        const img = new Image();
-        img.onload = () => { if (!cancelado) { setSrc(url); setCargando(false); } };
-        img.onerror = () => { if (!cancelado) { setError(true); setCargando(false); } };
-        img.src = url;
-      });
-
-    return () => {
-      cancelado = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
+    setSrc(url);
+    setCargando(false);
+    setError(false);
   }, [url]);
 
   return { src, error, cargando };
 }
 
+export function EvidenciasField({
+  archivos,
+  onChange,
+  existentes = [],
+  soloLectura = false,
+}: {
+  archivos: File[];
+  onChange: (archivos: File[]) => void;
+  existentes?: Evidencia[];
+  soloLectura?: boolean;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const total = archivos.length + existentes.length;
+  const puedeAgregar = !soloLectura && total < MAX_EVIDENCIAS;
+
+  const manejarArchivos = (fileList: FileList | null) => {
+    if (!fileList || !fileList.length || soloLectura) return;
+
+    const lista = Array.from(fileList);
+    const validos: File[] = [];
+    const errores: string[] = [];
+
+    for (const archivo of lista) {
+      const motivo = motivoArchivoInvalido(archivo);
+      if (motivo) {
+        errores.push(motivo);
+        continue;
+      }
+      validos.push(archivo);
+    }
+
+    if (!validos.length) {
+      setError(errores[0] ?? "Archivo no válido.");
+      return;
+    }
+
+    const espaciables = Math.max(MAX_EVIDENCIAS - total, 0);
+    if (espaciables === 0) {
+      setError(`Solo puedes agregar un máximo de ${MAX_EVIDENCIAS} imágenes.`);
+      return;
+    }
+
+    const aceptados = validos.slice(0, espaciables);
+    const rechazados = validos.length - aceptados.length;
+
+    if (rechazados > 0) {
+      setError(`Solo puedes agregar un máximo de ${MAX_EVIDENCIAS} imágenes.`);
+    } else {
+      setError(null);
+    }
+
+    if (aceptados.length === 0) return;
+    onChange([...archivos, ...aceptados]);
+
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
+
+  if (soloLectura) {
+    return <EvidenciaGallery evidencias={existentes} />;
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            color: C.text,
+            fontWeight: 700,
+            fontSize: 12,
+          }}
+        >
+          <Photo size={14} />
+          <span>Evidencias</span>
+        </div>
+        <span style={{ fontSize: 11, color: C.textLight, fontWeight: 700 }}>
+          {total} de {MAX_EVIDENCIAS}
+        </span>
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        multiple
+        aria-label="Agregar evidencias"
+        onChange={(event) => manejarArchivos(event.target.files)}
+        style={{ display: "none" }}
+      />
+
+      {puedeAgregar && (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          style={{
+            width: "fit-content",
+            padding: "8px 12px",
+            borderRadius: 10,
+            border: `1px solid ${C.border}`,
+            background: C.surfaceSubtle,
+            color: C.text,
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+          }}
+        >
+          <Upload size={14} />
+          Otra más
+        </button>
+      )}
+
+      {error && (
+        <div style={{ fontSize: 12, color: "#b91c1c", fontWeight: 600 }}>
+          {error}
+        </div>
+      )}
+
+      {archivos.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+          {archivos.map((archivo, index) => (
+            <div
+              key={`${archivo.name}-${index}`}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 6,
+                padding: "6px 10px",
+                borderRadius: 999,
+                border: `1px solid ${C.border}`,
+                background: C.surfaceSubtle,
+                fontSize: 11,
+                color: C.text,
+              }}
+            >
+              <span
+                style={{
+                  maxWidth: 160,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {archivo.name}
+              </span>
+              <button
+                type="button"
+                aria-label={`Quitar ${archivo.name}`}
+                onClick={() => onChange(archivos.filter((_, i) => i !== index))}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  color: C.textLight,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: "pointer",
+                }}
+              >
+                <Trash size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function EvidenciaThumb({
-  evidencia, indice, onPreview,
+  evidencia,
+  indice,
+  onPreview,
 }: {
   evidencia: Evidencia;
   indice: number;
@@ -116,17 +289,30 @@ function EvidenciaThumb({
         <img
           src={src}
           alt={nombre}
-          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
         />
       ) : cargando ? (
         <span style={{ fontSize: 10, color: C.textLight }}>Cargando…</span>
       ) : (
-        <div style={{
-          display: "flex", flexDirection: "column",
-          alignItems: "center", justifyContent: "center",
-          gap: 6, padding: 10, color: C.textLight,
-          fontSize: 10, textAlign: "center", lineHeight: 1.25,
-        }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            padding: 10,
+            color: C.textLight,
+            fontSize: 10,
+            textAlign: "center",
+            lineHeight: 1.25,
+          }}
+        >
           <PhotoOff size={22} />
           <span style={{ wordBreak: "break-word", maxWidth: "100%" }}>
             {!urlOriginal ? "Sin URL" : error ? "No se pudo cargar" : "Error"}
@@ -139,15 +325,20 @@ function EvidenciaThumb({
 
 /** Galería de evidencias: thumbnails cuadradas, con lightbox al hacer clic. */
 export function EvidenciaGallery({ evidencias }: { evidencias: Evidencia[] }) {
-  const [preview, setPreview] = useState<{ url: string; nombre: string } | null>(null);
+  const [preview, setPreview] = useState<{
+    url: string;
+    nombre: string;
+  } | null>(null);
 
   return (
     <>
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))",
-        gap: 8,
-      }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(104px, 1fr))",
+          gap: 8,
+        }}
+      >
         {evidencias.map((ev, i) => (
           <EvidenciaThumb
             key={ev.id ?? i}
@@ -164,10 +355,15 @@ export function EvidenciaGallery({ evidencias }: { evidencias: Evidencia[] }) {
           role="dialog"
           aria-label={preview.nombre}
           style={{
-            position: "fixed", inset: 0, zIndex: 9999,
+            position: "fixed",
+            inset: 0,
+            zIndex: 9999,
             background: "rgba(15,23,42,.88)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 24, cursor: "zoom-out",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            cursor: "zoom-out",
           }}
         >
           <img
@@ -175,7 +371,8 @@ export function EvidenciaGallery({ evidencias }: { evidencias: Evidencia[] }) {
             alt={preview.nombre}
             onClick={(e) => e.stopPropagation()}
             style={{
-              maxWidth: "92vw", maxHeight: "88vh",
+              maxWidth: "92vw",
+              maxHeight: "88vh",
               borderRadius: 12,
               boxShadow: "0 24px 64px rgba(0,0,0,.55)",
               cursor: "default",
@@ -186,11 +383,19 @@ export function EvidenciaGallery({ evidencias }: { evidencias: Evidencia[] }) {
             onClick={() => setPreview(null)}
             aria-label="Cerrar vista previa"
             style={{
-              position: "absolute", top: 16, right: 16,
-              width: 36, height: 36, borderRadius: 10,
-              background: "rgba(255,255,255,.15)", border: "none",
-              color: "#fff", cursor: "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center",
+              position: "absolute",
+              top: 16,
+              right: 16,
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "rgba(255,255,255,.15)",
+              border: "none",
+              color: "#fff",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <X size={16} />

@@ -42,7 +42,8 @@ export function useSolicitarReserva(
   parqueaderos: Parqueadero[],
   todosLosVehiculos: Vehiculo[],
   controlesSalida: ControlSalida[],
-  reservasTodas: Reserva[]
+  reservasTodas: Reserva[],
+  miConductorId?: string | null
 ) {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<SolicitarReservaForm>(emptyForm());
@@ -136,6 +137,7 @@ export function useSolicitarReserva(
 
   const error = touched ? validar(form) : null;
   const markTouched = useCallback(() => setTouched(true), []);
+  const conductorSolicitanteId = miConductorId ?? vehiculoSeleccionado?.conductorId ?? "";
 
   const enviarSolicitud = useCallback(async () => {
     setTouched(true);
@@ -146,7 +148,7 @@ export function useSolicitarReserva(
         tipoReserva: "vehiculo_sena",
         vehiculoId: form.vehiculoId,
         celdaId: form.celdaId,
-        conductorId: vehiculoSeleccionado?.conductorId ?? "",
+        conductorId: conductorSolicitanteId,
         motivo: form.motivo.trim(),
         motivoRechazo: "",
         fechaReserva: form.fechaReserva,
@@ -161,7 +163,7 @@ export function useSolicitarReserva(
       // (services/core/queryFactory.ts).
       console.error("Error requesting reserva:", error);
     }
-  }, [form, validar, createReservaMutation, vehiculoSeleccionado]);
+  }, [form, validar, createReservaMutation, conductorSolicitanteId]);
 
   /** Deja la franja dentro de lo que se puede elegir tras cambiar la fecha o la hora. */
   const ajustar = useCallback(

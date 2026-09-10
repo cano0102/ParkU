@@ -100,6 +100,37 @@ describe('useSolicitarReserva', () => {
     expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
+  it('registra el conductor solicitante cuando el vehículo es compartido', async () => {
+    const vehiculoCompartido: Vehiculo = {
+      ...miCarro,
+      id: '2',
+      placa: 'XYZ999',
+      conductorId: '1',
+      copropietarios: [{ id: '2', nombre: 'Luis Pérez', esPrincipal: false }],
+    };
+    apiFetchMock.mockResolvedValue({
+      id: 99, tipo_reserva: 'VEHICULO_SENA', celda_id: 1, conductor_id: 2, vehiculo_id: 2,
+      motivo: 'Clase', fecha_hora_inicio: '2027-01-01T08:00:00.000Z', fecha_hora_fin: '2027-01-01T10:00:00.000Z', estado: 'PENDIENTE',
+    });
+    const client = createTestQueryClient();
+    const { result } = renderHook(
+      () => useSolicitarReserva([vehiculoCompartido], [celdaDisponibleCarro], [parqueadero], [vehiculoCompartido], [], [], '2'),
+      { wrapper: withQueryClient(client) }
+    );
+
+    act(() => result.current.abrir());
+    act(() => result.current.setForm({
+      ...result.current.form, parqueaderoId: '1', celdaId: '1',
+      fechaReserva: '2027-01-01', horaInicio: '08:00', horaFin: '10:00', motivo: 'Clase',
+    }));
+    await act(async () => result.current.enviarSolicitud());
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('Solicitud enviada')));
+    const llamada = apiFetchMock.mock.calls.find(([path]) => String(path) === '/reservas');
+    expect(llamada).toBeTruthy();
+    expect((llamada?.[1] as any).body.conductor_id).toBe(2);
+  });
+
   it('crea la reserva como pendiente y no toca la celda (queda a la espera de aprobación)', async () => {
     apiFetchMock.mockResolvedValue({
       id: 99, tipo_reserva: 'VEHICULO_SENA', celda_id: 1, conductor_id: 1, vehiculo_id: 1,
