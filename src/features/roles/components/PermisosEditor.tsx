@@ -5,7 +5,6 @@ import type { PermisoCatalogo } from "@/services/api/roles";
 const COLORS = theme;
 
 interface PermisosEditorProps {
-
   isLoading: boolean;
   permisosCatalogo: PermisoCatalogo[];
   /** Permisos marcados ahora mismo en el formulario. */
@@ -13,6 +12,8 @@ interface PermisosEditorProps {
   onToggle: (permisoId: string) => void;
   /** Marca o desmarca de golpe todos los permisos de un módulo. */
   onToggleModulo: (permisoIds: string[], marcar: boolean) => void;
+  /** Mensaje de error a mostrar bajo el editor (ej. "Selecciona al menos un permiso distinto de Dashboard"). */
+  error?: string;
 }
 
 /**
@@ -20,7 +21,14 @@ interface PermisosEditorProps {
  * agrupado por módulo, con selección por permiso o por módulo completo. Lo marcado se guarda
  * en `rol_permiso` al enviar el formulario (ver guardarPermisosDeRol en services/api/roles.ts).
  */
-export function PermisosEditor({ isLoading, permisosCatalogo, seleccionados, onToggle, onToggleModulo }: PermisosEditorProps) {
+export function PermisosEditor({
+  isLoading,
+  permisosCatalogo,
+  seleccionados,
+  onToggle,
+  onToggleModulo,
+  error,
+}: PermisosEditorProps) {
   const porModulo = new Map<string, PermisoCatalogo[]>();
   for (const permiso of permisosCatalogo) {
     const lista = porModulo.get(permiso.moduloNombre) ?? [];
@@ -97,6 +105,20 @@ export function PermisosEditor({ isLoading, permisosCatalogo, seleccionados, onT
             );
           })}
         </div>
+      )}
+
+      {error && (
+        <p
+          role="alert"
+          style={{
+            marginTop: 8,
+            fontSize: 11,
+            fontWeight: 700,
+            color: "#DC2626",
+          }}
+        >
+          {error}
+        </p>
       )}
     </section>
   );
