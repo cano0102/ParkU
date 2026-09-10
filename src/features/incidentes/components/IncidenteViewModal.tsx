@@ -44,17 +44,41 @@ interface IncidenteViewModalProps {
 }
 
 /** Vista de solo lectura del detalle de un incidente. */
-export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorNombre, conductorDocumento, asignadoNombre, asignadoCorreo, reportanteNombre, reportanteCorreo, puedeAbrirPerfiles = false, evidencias = [], nombreParqueadero, onClose, onEdit }: IncidenteViewModalProps) {
+export function IncidenteViewModal({
+  incidente,
+  celda,
+  vehiculoPlaca,
+  conductorNombre,
+  conductorDocumento,
+  asignadoNombre,
+  asignadoCorreo,
+  reportanteNombre,
+  reportanteCorreo,
+  puedeAbrirPerfiles = false,
+  evidencias = [],
+  nombreParqueadero,
+  onClose,
+  onEdit,
+}: IncidenteViewModalProps) {
   const navigate = useNavigate();
   const cfg = ESTADO_CONFIG[incidente.estado];
   const fecha = new Date(incidente.fecha);
 
   const esNovedad = incidente.clase === "novedad";
 
+  /* El título del modal es la clase del incidente (antes "tipo" en los formularios).
+     Cuando es "otro" se usa la precisión escrita a mano; en novedades se cae a
+     "Novedad de la operación" porque no hay subtipo asociado. La descripción dejó de
+     ser el título: ahora vive al final, como texto de cuerpo. */
+  const claseTexto = esNovedad
+    ? "Novedad de la operación"
+    : incidente.tipoNovedad === "otro" && incidente.tipoOtro
+      ? incidente.tipoOtro
+      : TIPO_NOVEDAD_LABEL[incidente.tipoNovedad];
+
   const items = [
-    /* Qué es: un incidente y una novedad se atienden distinto, y en una vista de solo lectura
-       era lo único que no se podía saber. */
-    { label: "Clase", value: esNovedad ? "Novedad de la operación" : "Incidente", icon: AlertTriangle, onClick: undefined },
+    /* El subtipo (cuando es incidente) acompaña al título: el título dice "choque" o
+       "otro · rayón profundo", aquí queda desglosado. Las novedades no tienen subtipo. */
     ...(esNovedad
       ? []
       : [{
@@ -103,9 +127,9 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
             : undefined,
         }]
       : []),
-    ...(incidente.justificacionCierre
-      ? [{ label: "Motivo", value: incidente.justificacionCierre, icon: AlertTriangle, onClick: undefined }]
-      : []),
+    /* Ojo: la justificación de cierre ya no va aquí como item. Aparece destacada más abajo,
+       junto a la descripción — tenerla dos veces (una como dato y otra como bloque) era
+       ruido. */
   ];
 
   return (
@@ -148,8 +172,17 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
               <X size={15} />
             </button>
           </div>
-          <h2 style={{ marginTop: 12, fontSize: 18, fontWeight: 800, lineHeight: 1.3 }}>
-            {incidente.descripcion}
+          {/* Título = clase del incidente. Se recorta a dos líneas por si el subtipo escrito
+              a mano es largo; el valor completo queda en el tooltip. */}
+          <h2
+            title={claseTexto}
+            style={{
+              marginTop: 12, fontSize: 18, fontWeight: 800, lineHeight: 1.3,
+              display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+              overflow: "hidden", wordBreak: "break-word",
+            }}
+          >
+            {claseTexto}
           </h2>
           <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
             <span style={{
@@ -187,16 +220,42 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
             }}
           >
             <item.icon size={14} color={C.textLight} />
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5 }}>
                 {item.label}
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: item.onClick ? C.primary : C.text }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: item.onClick ? C.primary : C.text, wordBreak: "break-word" }}>
                 {item.value}
               </div>
             </div>
           </div>
         ))}
+
+        {/* Descripción: al final del resto de datos y como texto de cuerpo, no como título.
+            Conserva saltos de línea y rompe palabras largas para no desbordar el modal. El
+            modal padre gestiona el scroll cuando el contenido crece. */}
+        {incidente.descripcion && (
+          <div style={{
+            padding: "10px 12px", borderRadius: 12,
+            background: C.surfaceSubtle, border: `1px solid ${C.border}`,
+            marginBottom: 8,
+          }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: C.textLight, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 6 }}>
+              Descripción
+            </div>
+            <p style={{
+              margin: 0,
+              fontSize: 12.5,
+              color: C.text,
+              lineHeight: 1.55,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              overflowWrap: "anywhere",
+            }}>
+              {incidente.descripcion}
+            </p>
+          </div>
+        )}
 
         {/* Las fotos que respaldan el reporte: es lo que evita tener que ir a mirarlo en
             persona. Una novedad no las lleva. */}
@@ -215,7 +274,7 @@ export function IncidenteViewModal({ incidente, celda, vehiculoPlaca, conductorN
             <div style={{ fontSize: 9, fontWeight: 700, color: C.success, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
               Justificación de cierre
             </div>
-            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 12, color: C.text, lineHeight: 1.45, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
               {incidente.justificacionCierre}
             </div>
           </div>
