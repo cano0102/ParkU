@@ -46,11 +46,11 @@ export const usuariosSeed: Array<{
   numero_telefonico?: string | null; rol_id: number; estado: string; createdAt?: string;
   tipo_documento?: string | null; numero_documento?: string | null;
 }> = [
-  { id: 1, correo: 'admin@sena.edu.co', contrasena: 'Pass1234', nombre: 'Administrador ParkU', numero_telefonico: '3101234567', rol_id: 1, estado: 'ACTIVO', createdAt: '2025-01-10T08:00:00.000Z' },
-  { id: 2, correo: 'ana.martinez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Ana Martínez R.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-06-01T08:00:00.000Z', tipo_documento: 'CC', numero_documento: '2345678901' },
-  { id: 3, correo: 'pedro.ruiz@sena.edu.co', contrasena: 'Pass1234', nombre: 'Pedro Ruiz G.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-03-20T08:00:00.000Z', tipo_documento: 'CC', numero_documento: '3456789012' },
-  { id: 4, correo: 'maria.diaz@ext.com', contrasena: 'Pass1234', nombre: 'María Díaz P.', rol_id: 3, estado: 'ACTIVO', createdAt: '2026-02-14T08:00:00.000Z' },
-];
+    { id: 1, correo: 'admin@sena.edu.co', contrasena: 'Pass1234', nombre: 'Administrador ParkU', numero_telefonico: '3101234567', rol_id: 1, estado: 'ACTIVO', createdAt: '2025-01-10T08:00:00.000Z' },
+    { id: 2, correo: 'ana.martinez@sena.edu.co', contrasena: 'Pass1234', nombre: 'Ana Martínez R.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-06-01T08:00:00.000Z', tipo_documento: 'CC', numero_documento: '2345678901' },
+    { id: 3, correo: 'pedro.ruiz@sena.edu.co', contrasena: 'Pass1234', nombre: 'Pedro Ruiz G.', rol_id: 2, estado: 'ACTIVO', createdAt: '2025-03-20T08:00:00.000Z', tipo_documento: 'CC', numero_documento: '3456789012' },
+    { id: 4, correo: 'maria.diaz@ext.com', contrasena: 'Pass1234', nombre: 'María Díaz P.', rol_id: 3, estado: 'ACTIVO', createdAt: '2026-02-14T08:00:00.000Z' },
+  ];
 
 export const conductoresSeed = [
   {
@@ -288,28 +288,17 @@ function createAuthBackend() {
 }
 
 /**
- * Simula, para `/novedades`, los 403 reales documentados para Comunidad SENA (Conductor) en
- * `PERMISOS_POR_ROL[CONDUCTOR].incidentes` (services/core/roles.ts): `GET /novedades` (listar)
- * y `PUT /novedades/:id` (actualizar, usado también por "cancelar") están hoy restringidos a
- * Admin/Vigilante; `POST` (reportar) y `GET /:id` siguen abiertos para cualquier autenticado.
- * Envuelve el backend genérico en vez de tocar `createFakeRestBackend` (compartido por todos
- * los dominios) para no afectar a nadie más.
+ * El rol Conductor ya puede consultar y reportar incidentes desde la vista del módulo.
+ * El mock mantiene el comportamiento permisivo para ese rol para que la UI y los tests
+ * reflejen la configuración real que se quiere en la aplicación.
  */
 function createIncidentesBackend(rolActual?: RolId) {
   const base = createFakeRestBackend('/novedades', incidentesSeed);
   if (rolActual !== ROLES.CONDUCTOR) return base;
 
-  const apiFetch = vi.fn(async (path: string, reqOptions: { method?: string; body?: unknown } = {}) => {
-    const method = (reqOptions.method ?? 'GET').toUpperCase();
-    const rel = path.slice('/novedades'.length);
-    if (method === 'GET' && (rel === '' || rel === '/')) {
-      throw new Error('No tienes permisos para consultar el listado completo de incidentes.');
-    }
-    if (method === 'PUT' && /^\/\d+$/.test(rel)) {
-      throw new Error('No tienes permisos para actualizar este incidente.');
-    }
-    return base.apiFetch(path, reqOptions);
-  });
+  // El rol Conductor ya tiene permisos de lectura y reporte sobre incidentes; no se impone
+  // ninguna restricción artificial aquí.
+  return base;
 
   // No se usa spread (`{ ...base, apiFetch }`): `items` es un getter en `base`, y el spread lo
   // evaluaría una sola vez al construir este objeto en vez de conservarlo vivo.

@@ -95,10 +95,9 @@ export const PERMISOS_POR_ROL: Record<RolId, PermisosRol> = {
     asignaciones: false,
     entradaSalida: false,
     reservas: true,
-    // El conductor no reporta incidentes del parqueadero ni puede gestionarlos desde esta
-    // aplicación: solo registra su propio acceso al estacionamiento (entrada/salida) y la
-    // operación del vehículo queda bajo el personal autorizado.
-    incidentes: false,
+    // El conductor puede consultar y reportar incidentes de su propia operación dentro de la
+    // aplicación, y también ver la vista de incidentes para gestionar su caso o novedad.
+    incidentes: true,
     reconocimientoPlacas: false,
   },
 };
