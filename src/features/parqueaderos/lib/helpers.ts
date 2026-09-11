@@ -90,8 +90,8 @@ export interface LotLayout {
    CONSTANTES
 ============================================================ */
 export const CELDA_CONFIG = {
-  disponible:    { bg:"#F0FBE8", border:"#A8D888", text:"#2F6B00", label:"Disponible",    dotColor:"#4CAF50", mapFill:"#1f2a22", mapStroke:"#4CAF50" },
-  no_disponible: { bg:"#1A1A1A", border:"#EF4444", text:"#ffffff", label:"Ocupado",       dotColor:"#EF4444", mapFill:"#2c1414", mapStroke:"#EF4444" },
+  disponible: { bg: "#F0FBE8", border: "#A8D888", text: "#2F6B00", label: "Disponible", dotColor: "#4CAF50", mapFill: "#1f2a22", mapStroke: "#4CAF50" },
+  no_disponible: { bg: "#1A1A1A", border: "#EF4444", text: "#ffffff", label: "Ocupado", dotColor: "#EF4444", mapFill: "#2c1414", mapStroke: "#EF4444" },
   /* En el PLANO, "reservada" se pinta como un estado averiado (fondo oscuro, borde rojo),
      igual que una celda ocupada sin vehículo. Ya no es un estado normal: desde que las
      reservas apartan una franja y no la celda entera, ninguna reserva pone la celda en este
@@ -99,9 +99,9 @@ export const CELDA_CONFIG = {
      de un vistazo es justamente eso. Los colores claros (bg/border/text/dotColor) se dejan
      como estaban: los usan las insignias y los contadores, donde "reservada" sigue siendo una
      etiqueta y no una avería. */
-  reservada:     { bg:"#FFFBEB", border:"#FCD34D", text:"#78350F", label:"Reservada",     dotColor:"#F59E0B", mapFill:"#2c1414", mapStroke:"#EF4444" },
-  mantenimiento: { bg:"#F1F5F9", border:"#94A3B8", text:"#334155", label:"Mantenimiento", dotColor:"#94A3B8", mapFill:"#23262b", mapStroke:"#94A3B8" },
-  inactiva:      { bg:"#F1F5F9", border:"#CBD5E1", text:"#475569", label:"Inactiva",      dotColor:"#94A3B8", mapFill:"#1c1f24", mapStroke:"#64748B" },
+  reservada: { bg: "#FFFBEB", border: "#FCD34D", text: "#78350F", label: "Reservada", dotColor: "#F59E0B", mapFill: "#2c1414", mapStroke: "#EF4444" },
+  mantenimiento: { bg: "#F1F5F9", border: "#94A3B8", text: "#334155", label: "Mantenimiento", dotColor: "#94A3B8", mapFill: "#23262b", mapStroke: "#94A3B8" },
+  inactiva: { bg: "#F1F5F9", border: "#CBD5E1", text: "#475569", label: "Inactiva", dotColor: "#94A3B8", mapFill: "#1c1f24", mapStroke: "#64748B" },
 } as const;
 
 /* Configuración visual por TIPO DE VEHÍCULO de la celda. `carro`/`moto`/`bicicleta`/`camion`/
@@ -112,19 +112,16 @@ export const CELDA_CONFIG = {
    `Celda.usabilidad`) — se mantiene como bucket sintético para el chip de composición del
    plano (ver ParkingLot.tsx), que sí arma esa categoría a mano desde `usabilidad`.
 
-   ⚠️ COLORES INTERCAMBIADOS A PROPÓSITO: los colores de `carro` y de `movilidad reducida`
-   están invertidos respecto a su definición original. El icono de carro va pintado en el
-   violeta que antes identificaba a movilidad reducida, y viceversa. Esto se hizo por pedido
-   expreso del producto. Si en el futuro se quiere revertir, basta con volver a poner
-   accent/accentSoft/accentDark originales en cada bloque. */
+   ✅ Colores de marca: carro y movilidad reducida tienen tonos diferenciados para que el
+   tipo de plaza sea inmediatamente reconocible en el plano y en la tabla. */
 export const TIPO_CELDA_CONFIG = {
   carro: {
     label: "Carro",
     shortLabel: "Carro",
     icon: Car,
-    accent: "#8B5CF6",      // violeta — antes era de movilidad reducida
-    accentSoft: "#EDE9FE",
-    accentDark: "#6D28D9",
+    accent: "#F59E0B",      // ámbar / naranja cálido
+    accentSoft: "#FEF3C7",
+    accentDark: "#B45309",
   },
   moto: {
     label: "Moto",
@@ -162,7 +159,7 @@ export const TIPO_CELDA_CONFIG = {
     label: "Movilidad Reducida",
     shortLabel: "M. Reducida",
     icon: Accessibility,
-    accent: "#3B82F6",      // azul — antes era de carro
+    accent: "#3B82F6",      // azul institucional
     accentSoft: "#DBEAFE",
     accentDark: "#1D4ED8",
   },
@@ -205,19 +202,19 @@ export const motivoCeldaPreferencialNoApta = (
 
 export const TIPOS_PARQUEADERO: TipoParqueadero[] = ["general", "docentes", "administrativos", "aprendices", "visitantes", "motos", "vehiculo_sena"];
 export const ACCESOS_PARQUEADERO: AccesoParqueadero[] = ["regional", "avenida_boyaca"];
-export const capitalizar = (s:string) => s.charAt(0).toUpperCase() + s.slice(1);
+export const capitalizar = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export const CONDUCTORES_SUGERIDOS = [
-  "Andrés Felipe Montoya","Claudia Patricia Restrepo","Juan Carlos Gómez",
-  "María Camila Torres","Diego Alejandro Castro","Sofía Elena Herrera",
-  "Luis Fernando Díaz","Paula Andrea Luna",
+  "Andrés Felipe Montoya", "Claudia Patricia Restrepo", "Juan Carlos Gómez",
+  "María Camila Torres", "Diego Alejandro Castro", "Sofía Elena Herrera",
+  "Luis Fernando Díaz", "Paula Andrea Luna",
 ];
 
 export const PLACAS_DEMO = [
-  { placa:"KLO234", conductor:"Carlos Mario Ruiz",      tipo:"carro", rol:"Docente",    marca:"Chevrolet", modelo:"Spark GT", color:"Gris" },
-  { placa:"MHX75E", conductor:"Liliana Patricia Castro", tipo:"moto",  rol:"Estudiante", marca:"Yamaha",    modelo:"FZ 25",    color:"Negro" },
-  { placa:"SNA012", conductor:"Oficial CEET SENA",       tipo:"carro", rol:"Oficial",    marca:"Renault",   modelo:"Duster",   color:"Blanco" },
-  { placa:"VIP789", conductor:"Héctor Fabio Jurado",     tipo:"carro", rol:"Visitante",  marca:"Mazda",     modelo:"3",        color:"Azul" },
+  { placa: "KLO234", conductor: "Carlos Mario Ruiz", tipo: "carro", rol: "Docente", marca: "Chevrolet", modelo: "Spark GT", color: "Gris" },
+  { placa: "MHX75E", conductor: "Liliana Patricia Castro", tipo: "moto", rol: "Estudiante", marca: "Yamaha", modelo: "FZ 25", color: "Negro" },
+  { placa: "SNA012", conductor: "Oficial CEET SENA", tipo: "carro", rol: "Oficial", marca: "Renault", modelo: "Duster", color: "Blanco" },
+  { placa: "VIP789", conductor: "Héctor Fabio Jurado", tipo: "carro", rol: "Visitante", marca: "Mazda", modelo: "3", color: "Azul" },
 ];
 
 /* SVG medidas
@@ -225,65 +222,65 @@ export const PLACAS_DEMO = [
    la placa siempre visible sobre el vehículo (no solo al pasar el mouse),
    clave para que un vigilante identifique carros de un vistazo o al tacto
    en una tablet, sin depender de hover. */
-export const SPACE_W=60,SPACE_H=42,GAP_X=7,ROW_GAP=10,LANE_H=46,PADDING=50,
-      SECTION_GAP=48,ROAD_Y=74,ROAD_H=38,HEADER_BLOCK=58;
+export const SPACE_W = 60, SPACE_H = 42, GAP_X = 7, ROW_GAP = 10, LANE_H = 46, PADDING = 50,
+  SECTION_GAP = 48, ROAD_Y = 74, ROAD_H = 38, HEADER_BLOCK = 58;
 
 /* ============================================================
    UTILS
 ============================================================ */
-const l2d:Record<string,string>={O:"0",I:"1",S:"5",B:"8",Z:"2",G:"6",D:"0",Q:"0"};
-const d2l:Record<string,string>={"0":"O","1":"I","5":"S","8":"B","2":"Z","6":"G"};
+const l2d: Record<string, string> = { O: "0", I: "1", S: "5", B: "8", Z: "2", G: "6", D: "0", Q: "0" };
+const d2l: Record<string, string> = { "0": "O", "1": "I", "5": "S", "8": "B", "2": "Z", "6": "G" };
 /* Corrige un carácter mal leído por el OCR según la posición esperada:
    letra (primeras 3), dígito (posiciones 4-5) o letra final (moto, posición 6). */
-const corregirCaracter=(c:string,esperaLetra:boolean)=>{
-  if(esperaLetra&&/[0-9]/.test(c)) return d2l[c]||c;
-  if(!esperaLetra&&/[A-Z]/.test(c)) return l2d[c]||c;
+const corregirCaracter = (c: string, esperaLetra: boolean) => {
+  if (esperaLetra && /[0-9]/.test(c)) return d2l[c] || c;
+  if (!esperaLetra && /[A-Z]/.test(c)) return l2d[c] || c;
   return c;
 };
 /* Intenta corregir un token de 6 caracteres probando AMBOS formatos posibles
    (carro: LLLDDD, moto: LLLDDL), ya que el OCR no sabe de antemano cuál es. */
-const intentarCorregirPlaca=(s:string):string|null=>{
-  if(s.length!==6) return null;
-  if(PLACA_REGEX.test(s)) return s;
-  const ch=s.split("");
-  const comoCarro=ch.map((c,i)=>corregirCaracter(c,i<3)).join("");
-  if(PLACA_CARRO_REGEX.test(comoCarro)) return comoCarro;
-  const comoMoto=ch.map((c,i)=>corregirCaracter(c,i<3||i===5)).join("");
-  if(PLACA_MOTO_REGEX.test(comoMoto)) return comoMoto;
+const intentarCorregirPlaca = (s: string): string | null => {
+  if (s.length !== 6) return null;
+  if (PLACA_REGEX.test(s)) return s;
+  const ch = s.split("");
+  const comoCarro = ch.map((c, i) => corregirCaracter(c, i < 3)).join("");
+  if (PLACA_CARRO_REGEX.test(comoCarro)) return comoCarro;
+  const comoMoto = ch.map((c, i) => corregirCaracter(c, i < 3 || i === 5)).join("");
+  if (PLACA_MOTO_REGEX.test(comoMoto)) return comoMoto;
   return null;
 };
-const intentarTokenComoPlaca=(tok:string)=>{
-  const l=tok.toUpperCase().replace(/[^A-Z0-9]/g,"");
-  if(l.length===6){
-    if(PLACA_REGEX.test(l)) return l;
+const intentarTokenComoPlaca = (tok: string) => {
+  const l = tok.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (l.length === 6) {
+    if (PLACA_REGEX.test(l)) return l;
     return intentarCorregirPlaca(l);
   }
   // Moto sin letra final (formato antiguo/desgastado): solo se valida tal cual,
   // sin intentar corrección de caracteres ambiguos (serían 5 posiciones, no 6).
-  if(l.length===5 && PLACA_MOTO_REGEX.test(l)) return l;
+  if (l.length === 5 && PLACA_MOTO_REGEX.test(l)) return l;
   return null;
 };
-export const limpiarTextoOCR=(raw:string)=>{
-  const tokens=raw.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
-  for(const t of tokens){ const c=intentarTokenComoPlaca(t); if(c) return c; }
-  for(let i=0;i<tokens.length-1;i++){ const c=intentarTokenComoPlaca(tokens[i]+tokens[i+1]); if(c) return c; }
+export const limpiarTextoOCR = (raw: string) => {
+  const tokens = raw.toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean);
+  for (const t of tokens) { const c = intentarTokenComoPlaca(t); if (c) return c; }
+  for (let i = 0; i < tokens.length - 1; i++) { const c = intentarTokenComoPlaca(tokens[i] + tokens[i + 1]); if (c) return c; }
   return "";
 };
-export const normalizarTexto=(t:string,max=60)=>t.trim().replace(/\s+/g," ").slice(0,max);
+export const normalizarTexto = (t: string, max = 60) => t.trim().replace(/\s+/g, " ").slice(0, max);
 /** Nombre de conductor válido: al menos nombre y apellido (2 palabras), solo letras. */
-export const validarNombreConductor=(n:string)=>{
-  const t=normalizarTexto(n,60);
-  return t.length>=3 && /^[A-ZÁÉÍÓÚÑÜ]+(\s[A-ZÁÉÍÓÚÑÜ]+)+$/i.test(t);
+export const validarNombreConductor = (n: string) => {
+  const t = normalizarTexto(n, 60);
+  return t.length >= 3 && /^[A-ZÁÉÍÓÚÑÜ]+(\s[A-ZÁÉÍÓÚÑÜ]+)+$/i.test(t);
 };
-export const horaAMinutos=(hhmm:string)=>{ const [h,m]=hhmm.split(":").map(Number); return h*60+(m||0); };
-export const formatearFechaHora=(iso:string)=>{
-  const d=new Date(iso);
-  return { fecha:d.toLocaleDateString("es-CO"), hora:d.toLocaleTimeString("es-CO",{hour:"2-digit",minute:"2-digit"}) };
+export const horaAMinutos = (hhmm: string) => { const [h, m] = hhmm.split(":").map(Number); return h * 60 + (m || 0); };
+export const formatearFechaHora = (iso: string) => {
+  const d = new Date(iso);
+  return { fecha: d.toLocaleDateString("es-CO"), hora: d.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" }) };
 };
-export const formatearDuracion=(iso:string)=>{
-  const m=Math.max(0,Math.floor((Date.now()-new Date(iso).getTime())/60000));
-  const h=Math.floor(m/60); const min=m%60;
-  return h>0?`${h}h ${min}m`:`${min}m`;
+export const formatearDuracion = (iso: string) => {
+  const m = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  const h = Math.floor(m / 60); const min = m % 60;
+  return h > 0 ? `${h}h ${min}m` : `${min}m`;
 };
 
 /** Umbral de estadía a partir del cual se avisa en la celda (no aplica a un ingreso marcado
@@ -403,24 +400,24 @@ const extraerCampoPorEtiqueta = (lineas: string[], etiquetaRegex: RegExp): strin
   return normalizarTexto(candidato.replace(/[^A-ZÁÉÍÓÚÑ0-9\s-]/gi, " "), 40);
 };
 
-export function extraerDatosDocumento(texto:string){
-  const limpio=texto.replace(/\r/g,"").replace(/\t/g," ");
-  const lineas=limpio.split("\n").map(l=>l.trim()).filter(Boolean);
-  const mayus=limpio.toUpperCase();
-  let placa="";
-  const idx=lineas.findIndex(l=>/PLACA/i.test(l));
-  if(idx!==-1){ const ctx=`${lineas[idx]} ${lineas[idx+1]||""}`; placa=limpiarTextoOCR(ctx.replace(/PLACA/gi," ")); }
-  if(!placa||!validarPlacaColombiana(placa)) placa=limpiarTextoOCR(mayus);
-  let conductor="";
-  const idxP=lineas.findIndex(l=>/PROPIETARIO|NOMBRE\s*Y\s*APELLIDOS|NOMBRE\s*DEL\s*PROPIETARIO/i.test(l));
-  if(idxP!==-1){ const ml=lineas[idxP].split(/[:#-]/).slice(1).join(" ").trim(); const cand=ml&&/[A-ZÁÉÍÓÚÑ]{3,}/.test(ml)?ml:lineas[idxP+1]||""; conductor=cand.replace(/[^A-ZÁÉÍÓÚÑ\s]/gi," ").replace(/\s+/g," ").trim(); }
+export function extraerDatosDocumento(texto: string) {
+  const limpio = texto.replace(/\r/g, "").replace(/\t/g, " ");
+  const lineas = limpio.split("\n").map(l => l.trim()).filter(Boolean);
+  const mayus = limpio.toUpperCase();
+  let placa = "";
+  const idx = lineas.findIndex(l => /PLACA/i.test(l));
+  if (idx !== -1) { const ctx = `${lineas[idx]} ${lineas[idx + 1] || ""}`; placa = limpiarTextoOCR(ctx.replace(/PLACA/gi, " ")); }
+  if (!placa || !validarPlacaColombiana(placa)) placa = limpiarTextoOCR(mayus);
+  let conductor = "";
+  const idxP = lineas.findIndex(l => /PROPIETARIO|NOMBRE\s*Y\s*APELLIDOS|NOMBRE\s*DEL\s*PROPIETARIO/i.test(l));
+  if (idxP !== -1) { const ml = lineas[idxP].split(/[:#-]/).slice(1).join(" ").trim(); const cand = ml && /[A-ZÁÉÍÓÚÑ]{3,}/.test(ml) ? ml : lineas[idxP + 1] || ""; conductor = cand.replace(/[^A-ZÁÉÍÓÚÑ\s]/gi, " ").replace(/\s+/g, " ").trim(); }
   /* MARCA y LÍNEA (nombre/versión del modelo, p.ej. "COROLLA") son campos estándar de la
      tarjeta de propiedad colombiana; "MODELO" en ese documento es el año, así que si no
      aparece LÍNEA se usa MODELO como respaldo en vez de dejar el campo vacío. */
   const marca = extraerCampoPorEtiqueta(lineas, /^MARCA\b/i);
   const modelo = extraerCampoPorEtiqueta(lineas, /^L[ÍI]NEA\b/i) || extraerCampoPorEtiqueta(lineas, /^MODELO\b/i);
   const color = extraerCampoPorEtiqueta(lineas, /^COLOR\b/i);
-  return { placa, conductor:normalizarTexto(conductor,60), marca, modelo, color, textoCompleto:limpio };
+  return { placa, conductor: normalizarTexto(conductor, 60), marca, modelo, color, textoCompleto: limpio };
 }
 
 /* ============================================================
