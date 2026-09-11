@@ -119,8 +119,10 @@ export const PERMISOS_VACIOS: PermisosRol = {
 };
 
 export function normalizarRolId(valor: unknown): RolId | null {
+  const rolesValidos = Object.values(ROLES) as RolId[];
+
   if (typeof valor === 'number' && Number.isInteger(valor)) {
-    return Object.values(ROLES).includes(valor) ? (valor as RolId) : null;
+    return rolesValidos.includes(valor as RolId) ? (valor as RolId) : null;
   }
 
   if (typeof valor === 'string') {
@@ -128,7 +130,7 @@ export function normalizarRolId(valor: unknown): RolId | null {
     if (!valorNormalizado) return null;
 
     const num = Number(valorNormalizado);
-    if (Number.isInteger(num) && Object.values(ROLES).includes(num)) {
+    if (Number.isInteger(num) && rolesValidos.includes(num as RolId)) {
       return num as RolId;
     }
 
@@ -153,7 +155,7 @@ export function esRolId(valor: unknown): valor is RolId {
   return normalizarRolId(valor) !== null;
 }
 
-export function permisosDeRol(rolId: number | null | undefined): PermisosRol | null {
+export function permisosDeRol(rolId: number | string | null | undefined): PermisosRol | null {
   const rol = normalizarRolId(rolId);
   return rol !== null ? PERMISOS_POR_ROL[rol] : null;
 }
@@ -164,7 +166,7 @@ const NOMBRES_ROL: Record<RolId, string> = {
   [ROLES.CONDUCTOR]: 'Conductor',
 };
 
-export function nombreDeRol(rolId: number | null | undefined): string {
+export function nombreDeRol(rolId: number | string | null | undefined): string {
   const rol = normalizarRolId(rolId);
   return rol !== null ? NOMBRES_ROL[rol] : 'Desconocido';
 }
@@ -225,7 +227,7 @@ export const VISTAS_POR_PERMISO: Record<string, (keyof PermisosRol)[]> = {
  *   /auth/verificar y /auth/perfil los incluyen).
  */
 export function permisosDeVistas(
-  rolId: number | null | undefined,
+  rolId: number | string | null | undefined,
   permisosBackend: readonly string[] = []
 ): PermisosRol {
   const rol = normalizarRolId(rolId);
