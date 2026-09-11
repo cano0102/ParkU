@@ -147,6 +147,7 @@ export const catalogosSeed = [
   { id: 3, nombre: 'Administrativo', descripcion: '', estado: true },
   { id: 4, nombre: 'Contratista', descripcion: '', estado: true },
   { id: 5, nombre: 'Visitante', descripcion: '', estado: true },
+  { id: 6, nombre: 'Otro', descripcion: '', estado: true },
 ];
 
 /**
