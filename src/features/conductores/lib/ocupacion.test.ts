@@ -61,6 +61,14 @@ describe('cuándo un vehículo no está disponible', () => {
     expect(reservaActivaDe('1', [reservaDeManana])).toBeUndefined();
   });
 
+  it('sólo valida el día seleccionado: si hoy está ocupado pero la reserva es para mañana, debe dejarse', () => {
+    const manana = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const fechaManana = `${manana.getFullYear()}-${String(manana.getMonth() + 1).padStart(2, '0')}-${String(manana.getDate()).padStart(2, '0')}`;
+
+    expect(vehiculoNoDisponible(vehiculo('1', 'ABC123'), [parqueado('1')], [reserva('1', 'activa')], fechaManana)).toBeNull();
+    expect(otroVehiculoDelConductorEnUso('c1', '1', [vehiculo('1', 'ABC123'), vehiculo('2', 'XYZ789')], [parqueado('2')], [reserva('2', 'activa')], fechaManana)).toBeNull();
+  });
+
   it('sí bloquea una reserva del día de hoy, aunque el vehículo sea distinto y el conductor lo comparta', () => {
     const hoy = new Date();
     const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;

@@ -52,16 +52,20 @@ function hoyISO(): string {
   return `${ahora.getFullYear()}-${pad(ahora.getMonth() + 1)}-${pad(ahora.getDate())}`;
 }
 
-function aplicaHoy(reserva: Pick<Reserva, "fechaReserva">): boolean {
-  return !reserva.fechaReserva || reserva.fechaReserva === hoyISO();
+function aplicaFecha(reserva: Pick<Reserva, "fechaReserva">, fechaObjetivo?: string): boolean {
+  const fecha = fechaObjetivo ?? hoyISO();
+  if (!reserva.fechaReserva) return fecha === hoyISO();
+  return reserva.fechaReserva === fecha;
 }
 
-export function vehiculoEstaParqueado(vehiculoId: string, controlesSalida: ControlSalida[]): boolean {
+export function vehiculoEstaParqueado(vehiculoId: string, controlesSalida: ControlSalida[], fechaObjetivo?: string): boolean {
+  const fecha = fechaObjetivo ?? hoyISO();
+  if (fecha !== hoyISO()) return false;
   return controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.vehiculoId === vehiculoId);
 }
 
-export function reservaActivaDe(vehiculoId: string, reservas: Reserva[]): Reserva | undefined {
-  return reservas.find((r) => r.vehiculoId === vehiculoId && RESERVA_ESTADOS_ACTIVOS.has(r.estado) && aplicaHoy(r));
+export function reservaActivaDe(vehiculoId: string, reservas: Reserva[], fechaObjetivo?: string): Reserva | undefined {
+  return reservas.find((r) => r.vehiculoId === vehiculoId && RESERVA_ESTADOS_ACTIVOS.has(r.estado) && aplicaFecha(r, fechaObjetivo));
 }
 
 export interface MotivoNoDisponible {
@@ -74,12 +78,13 @@ export interface MotivoNoDisponible {
 export function vehiculoNoDisponible(
   vehiculo: Pick<Vehiculo, "id" | "placa">,
   controlesSalida: ControlSalida[],
-  reservas: Reserva[]
+  reservas: Reserva[],
+  fechaObjetivo?: string,
 ): MotivoNoDisponible | null {
-  if (vehiculoEstaParqueado(vehiculo.id, controlesSalida)) {
+  if (vehiculoEstaParqueado(vehiculo.id, controlesSalida, fechaObjetivo)) {
     return { motivo: `El vehículo ${vehiculo.placa} ya está estacionado en un parqueadero.` };
   }
-  const reserva = reservaActivaDe(vehiculo.id, reservas);
+  const reserva = reservaActivaDe(vehiculo.id, reservas, fechaObjetivo);
   if (reserva) {
     return {
       motivo: `El vehículo ${vehiculo.placa} ya tiene una reserva ${reserva.estado === "activa" ? "activa" : "pendiente"} en otra celda.`,
@@ -96,11 +101,12 @@ export function otroVehiculoDelConductorEnUso(
   vehiculoIdActual: string | null,
   vehiculos: Vehiculo[],
   controlesSalida: ControlSalida[],
-  reservas: Reserva[]
+  reservas: Reserva[],
+  fechaObjetivo?: string,
 ): MotivoNoDisponible | null {
   const otros = vehiculos.filter((v) => esDeConductor(v, conductorId) && v.id !== vehiculoIdActual);
   for (const otro of otros) {
-    const motivo = vehiculoNoDisponible(otro, controlesSalida, reservas);
+    const motivo = vehiculoNoDisponible(otro, controlesSalida, reservas, fechaObjetivo);
     if (motivo) {
       return { motivo: `Este conductor ya tiene otro vehículo en uso (${otro.placa}). Libéralo antes de continuar con este.` };
     }

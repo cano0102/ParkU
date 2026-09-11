@@ -126,11 +126,11 @@ export function useReservaCelda(
       // tener otra reserva pendiente/activa en otra celda — un conductor solo usa un vehículo
       // suyo a la vez.
       const motivoNoDisponible =
-        vehiculoNoDisponible(vehiculoReservado, data.controlesSalida, data.reservas) ??
+        vehiculoNoDisponible(vehiculoReservado, data.controlesSalida, data.reservas, reservaForm.fechaReserva) ??
         (vehiculoReservado.conductorId
           ? otroVehiculoDelConductorEnUso(
-              vehiculoReservado.conductorId, vehiculoReservado.id, data.vehiculos, data.controlesSalida, data.reservas
-            )
+            vehiculoReservado.conductorId, vehiculoReservado.id, data.vehiculos, data.controlesSalida, data.reservas, reservaForm.fechaReserva
+          )
           : null);
       if (motivoNoDisponible) { setReservaError(motivoNoDisponible.motivo); return; }
 

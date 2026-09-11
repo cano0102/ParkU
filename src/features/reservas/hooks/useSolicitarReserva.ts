@@ -126,9 +126,9 @@ export function useSolicitarReserva(
     const vehiculo = todosLosVehiculos.find((v) => v.id === f.vehiculoId);
     if (vehiculo) {
       const motivoNoDisponible =
-        vehiculoNoDisponible(vehiculo, controlesSalida, reservasTodas) ??
+        vehiculoNoDisponible(vehiculo, controlesSalida, reservasTodas, f.fechaReserva) ??
         (vehiculo.conductorId
-          ? otroVehiculoDelConductorEnUso(vehiculo.conductorId, vehiculo.id, todosLosVehiculos, controlesSalida, reservasTodas)
+          ? otroVehiculoDelConductorEnUso(vehiculo.conductorId, vehiculo.id, todosLosVehiculos, controlesSalida, reservasTodas, f.fechaReserva)
           : null);
       if (motivoNoDisponible) return motivoNoDisponible.motivo;
     }
