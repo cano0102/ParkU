@@ -78,8 +78,14 @@ export function createFakeRestBackend<T extends { id: number }>(
     throw new Error(`fakeApi: sin handler para ${method} ${path}`);
   }
 
+  function reset() {
+    items = seed.map((i) => ({ ...i }));
+    nextId = items.reduce((max, i) => Math.max(max, i.id), 0) + 1;
+  }
+
   return {
     apiFetch: vi.fn(apiFetch),
+    reset,
     get items() {
       return items;
     },

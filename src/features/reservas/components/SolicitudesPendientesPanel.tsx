@@ -203,7 +203,7 @@ export function SolicitudesPendientesPanel({
                     "{reserva.motivo}"
                   </div>
                 )}
-                {expandida === reserva.id && conductor && (
+                {conductor && (
                   <div
                     style={{
                       marginTop: 10,
@@ -215,78 +215,90 @@ export function SolicitudesPendientesPanel({
                   >
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(180px, 1fr))",
-                        gap: 8,
+                        display: "flex",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                        gap: 12,
+                        fontSize: 10.5,
+                        color: C.textLight,
                       }}
                     >
-                      <div
+                      <span
                         style={{
-                          display: "flex",
+                          display: "inline-flex",
                           alignItems: "center",
                           gap: 6,
-                          fontSize: 10.5,
-                          color: C.textLight,
+                          fontWeight: 700,
+                          color: C.text,
                         }}
                       >
-                        <User size={12} color={C.primary} />{" "}
-                        <span style={{ fontWeight: 700 }}>Conductor</span>
-                      </div>
-                      <div
+                        <User size={12} color={C.primary} /> Solicitud de:{" "}
+                        {conductor.nombre}
+                      </span>
+                      <span
                         style={{
-                          display: "flex",
+                          display: "inline-flex",
                           alignItems: "center",
                           gap: 6,
-                          fontSize: 10.5,
-                          color: C.textLight,
                         }}
                       >
-                        <Mail size={12} color={C.primary} />{" "}
-                        <span>{conductor.correo || "Sin correo"}</span>
-                      </div>
-                      <div
+                        <Mail size={12} color={C.primary} />
+                        {conductor.correo || "Sin correo"}
+                      </span>
+                      <span
                         style={{
-                          display: "flex",
+                          display: "inline-flex",
                           alignItems: "center",
                           gap: 6,
-                          fontSize: 10.5,
-                          color: C.textLight,
                         }}
                       >
-                        <Phone size={12} color={C.primary} />{" "}
-                        <span>
-                          {conductor.numeroTelefonico || "Sin teléfono"}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          fontSize: 10.5,
-                          color: C.textLight,
-                        }}
-                      >
-                        <IdCard size={12} color={C.primary} />{" "}
-                        <span>
-                          {conductor.tipoDocumento || "—"} ·{" "}
-                          {conductor.numeroDocumento || "Sin documento"}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 6,
-                          fontSize: 10.5,
-                          color: C.textLight,
-                        }}
-                      >
-                        <Building size={12} color={C.primary} />{" "}
-                        <span>{conductor.centroFormacion || "Sin centro"}</span>
-                      </div>
+                        <Phone size={12} color={C.primary} />
+                        {conductor.numeroTelefonico || "Sin teléfono"}
+                      </span>
                     </div>
+
+                    {expandida === reserva.id && (
+                      <div
+                        style={{
+                          marginTop: 8,
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(180px, 1fr))",
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 10.5,
+                            color: C.textLight,
+                          }}
+                        >
+                          <IdCard size={12} color={C.primary} />{" "}
+                          <span>
+                            {conductor.tipoDocumento || "—"} ·{" "}
+                            {conductor.numeroDocumento || "Sin documento"}
+                          </span>
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 6,
+                            fontSize: 10.5,
+                            color: C.textLight,
+                          }}
+                        >
+                          <Building size={12} color={C.primary} />{" "}
+                          <span>
+                            {conductor.centroFormacion || "Sin centro"}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
                     {vehiculo && (
                       <div
                         style={{
