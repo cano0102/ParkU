@@ -11,7 +11,7 @@
  */
 import { apiFetch } from '../core/http';
 import { setTokens, clearTokens } from '../core/tokenStorage';
-import type { RolId } from '../core/roles';
+import { ROLES, normalizarRolId, type RolId } from '../core/roles';
 
 export interface AuthUser {
   id: string;
@@ -77,12 +77,13 @@ interface AuthEnvelope<T> {
 }
 
 function toAuthUser(u: ApiUsuario): AuthUser {
+  const rol = normalizarRolId(u.rol) ?? ROLES.CONDUCTOR;
   return {
     id: String(u.id),
     correo: u.correo,
     nombre: u.nombre,
     numero: u.numero ?? '',
-    rol: u.rol as RolId,
+    rol: rol as RolId,
     permisos: Array.isArray(u.permisos) ? u.permisos : [],
     rolNombre: u.rol_nombre ?? undefined,
     tipoDocumento: u.tipo_documento ?? undefined,
@@ -126,10 +127,10 @@ export async function register(data: RegisterInput): Promise<AuthUser> {
       // Los dos van juntos o no van: el backend responde 400 si llega solo uno.
       ...(data.identificacion?.trim()
         ? {
-            tipo_documento: data.tipoDocumento || 'CC',
-            numero_documento: data.identificacion.trim(),
-            ...(data.tipoUsuarioId ? { tipo_usuario_id: Number(data.tipoUsuarioId) } : {}),
-          }
+          tipo_documento: data.tipoDocumento || 'CC',
+          numero_documento: data.identificacion.trim(),
+          ...(data.tipoUsuarioId ? { tipo_usuario_id: Number(data.tipoUsuarioId) } : {}),
+        }
         : {}),
     },
   });

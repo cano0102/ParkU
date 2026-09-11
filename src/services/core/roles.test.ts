@@ -59,6 +59,12 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
     expect(vistas.usuarios).toBe(false);
   });
 
+  it('acepta roles que vienen como texto del backend y sigue dejando todo al Administrador', () => {
+    expect(permisosDeVistas('1', [])).toEqual(permisosDeVistas(ROLES.ADMIN, []));
+    expect(permisosDeVistas('ADMIN', [])).toEqual(permisosDeVistas(ROLES.ADMIN, []));
+    expect(permisosDeVistas('administrador', [])).toEqual(permisosDeVistas(ROLES.ADMIN, []));
+  });
+
   it('el Administrador lo ve todo sin mirar la tabla', () => {
     const vistas = permisosDeVistas(ROLES.ADMIN, []);
     expect(Object.values(vistas).every(Boolean)).toBe(true);

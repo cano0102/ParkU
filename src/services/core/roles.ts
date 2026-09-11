@@ -118,12 +118,44 @@ export const PERMISOS_VACIOS: PermisosRol = {
   reconocimientoPlacas: false,
 };
 
+export function normalizarRolId(valor: unknown): RolId | null {
+  if (typeof valor === 'number' && Number.isInteger(valor)) {
+    return Object.values(ROLES).includes(valor) ? (valor as RolId) : null;
+  }
+
+  if (typeof valor === 'string') {
+    const valorNormalizado = valor.trim();
+    if (!valorNormalizado) return null;
+
+    const num = Number(valorNormalizado);
+    if (Number.isInteger(num) && Object.values(ROLES).includes(num)) {
+      return num as RolId;
+    }
+
+    const mapa: Record<string, RolId> = {
+      admin: ROLES.ADMIN,
+      administrador: ROLES.ADMIN,
+      'administrador ': ROLES.ADMIN,
+      vigilante: ROLES.VIGILANTE,
+      conductor: ROLES.CONDUCTOR,
+      comunidadsena: ROLES.CONDUCTOR,
+      'comunidad sena': ROLES.CONDUCTOR,
+    };
+
+    const clave = valorNormalizado.toLowerCase();
+    return mapa[clave] ?? null;
+  }
+
+  return null;
+}
+
 export function esRolId(valor: unknown): valor is RolId {
-  return valor === ROLES.ADMIN || valor === ROLES.VIGILANTE || valor === ROLES.CONDUCTOR;
+  return normalizarRolId(valor) !== null;
 }
 
 export function permisosDeRol(rolId: number | null | undefined): PermisosRol | null {
-  return esRolId(rolId) ? PERMISOS_POR_ROL[rolId] : null;
+  const rol = normalizarRolId(rolId);
+  return rol !== null ? PERMISOS_POR_ROL[rol] : null;
 }
 
 const NOMBRES_ROL: Record<RolId, string> = {
@@ -133,7 +165,8 @@ const NOMBRES_ROL: Record<RolId, string> = {
 };
 
 export function nombreDeRol(rolId: number | null | undefined): string {
-  return esRolId(rolId) ? NOMBRES_ROL[rolId] : 'Desconocido';
+  const rol = normalizarRolId(rolId);
+  return rol !== null ? NOMBRES_ROL[rol] : 'Desconocido';
 }
 
 /**
@@ -195,10 +228,11 @@ export function permisosDeVistas(
   rolId: number | null | undefined,
   permisosBackend: readonly string[] = []
 ): PermisosRol {
-  if (rolId === ROLES.ADMIN) return { ...TODO_PERMITIDO };
+  const rol = normalizarRolId(rolId);
+  if (rol === ROLES.ADMIN) return { ...TODO_PERMITIDO };
 
-  const vistas: PermisosRol = esRolId(rolId)
-    ? { ...PERMISOS_POR_ROL[rolId] }
+  const vistas: PermisosRol = rol !== null
+    ? { ...PERMISOS_POR_ROL[rol] }
     : { ...PERMISOS_VACIOS, dashboard: true };
 
   for (const permiso of permisosBackend) {
