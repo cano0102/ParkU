@@ -33,18 +33,21 @@ export function ControlSalidaPage() {
           total={p.controlesSalida.length}
         />
 
-        <ControlSalidaToolbar
-          search={p.search}
-          onSearchChange={p.setSearch}
-          filterEstado={p.filterEstado}
-          onFilterEstadoChange={p.setFilterEstado}
-          filterParqueadero={p.filterParqueadero}
-          onFilterParqueaderoChange={p.setFilterParqueadero}
-          parqueaderos={p.parqueaderos}
-          filteredCount={p.filteredControles.length}
-          hasActiveFilters={p.hasActiveFilters}
-          onClearFilters={p.clearFilters}
-        />
+        {/* Comunidad SENA no busca ni filtra: solo ve los movimientos de sus vehículos. */}
+        {!esConductor && (
+          <ControlSalidaToolbar
+            search={p.search}
+            onSearchChange={p.setSearch}
+            filterEstado={p.filterEstado}
+            onFilterEstadoChange={p.setFilterEstado}
+            filterParqueadero={p.filterParqueadero}
+            onFilterParqueaderoChange={p.setFilterParqueadero}
+            parqueaderos={p.parqueaderos}
+            filteredCount={p.filteredControles.length}
+            hasActiveFilters={p.hasActiveFilters}
+            onClearFilters={p.clearFilters}
+          />
+        )}
 
         {p.isLoading ? (
           <LoadingState message="Cargando registros..." />

@@ -75,14 +75,17 @@ export function Reservas() {
           />
         )}
 
-        <ReservasToolbar
-          search={p.search}
-          onSearchChange={p.setSearch}
-          filterEstado={p.filterEstado}
-          onFilterEstadoChange={p.setFilterEstado}
-          activeFiltersCount={p.activeFiltersCount}
-          onClearFilters={p.clearFilters}
-        />
+        {/* Comunidad SENA no busca ni filtra: solo ve sus propias reservas, pocas y suyas. */}
+        {!esComunidadSena && (
+          <ReservasToolbar
+            search={p.search}
+            onSearchChange={p.setSearch}
+            filterEstado={p.filterEstado}
+            onFilterEstadoChange={p.setFilterEstado}
+            activeFiltersCount={p.activeFiltersCount}
+            onClearFilters={p.clearFilters}
+          />
+        )}
 
         {p.isLoading ? (
           <LoadingState message="Cargando reservas..." />
