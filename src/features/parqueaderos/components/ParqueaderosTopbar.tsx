@@ -21,6 +21,9 @@ interface ParqueaderosTopbarProps {
   onOpenCreate: () => void;
   /** true si el rol puede crear parqueaderos (permiso "celdas"). */
   canCrearParqueadero: boolean;
+  /** Oculta el buscador: el mapa de consulta del Conductor no tiene ocupantes que buscar
+   *  (no lee el registro de ingresos), y sus propias celdas ya salen resaltadas. */
+  ocultarBusqueda?: boolean;
   /** true si el rol puede usar la asignación inteligente (permiso "asignaciones"). */
 }
 
@@ -33,10 +36,11 @@ export function ParqueaderosTopbar({
   search, onSearchChange, filterTipo, onFilterTipoChange, activeTab, onActiveTabChange,
   activeFilters, onClearFilters, onOpenCreate,
   canCrearParqueadero,
+  ocultarBusqueda = false,
 }: ParqueaderosTopbarProps) {
   return (
     <div className="pq-topbar">
-      <div className="pq-search-wrap">
+      {!ocultarBusqueda && <div className="pq-search-wrap">
         <Search size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: C.textLight }} />
         <input
           value={search}
@@ -49,7 +53,7 @@ export function ParqueaderosTopbar({
             <X size={14} />
           </button>
         )}
-      </div>
+      </div>}
 
       <select
         value={filterTipo}

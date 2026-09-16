@@ -94,6 +94,7 @@ export default function Parqueaderos() {
           onClearFilters={filters.clearFilters}
           onOpenCreate={pqFormState.openCreate}
           canCrearParqueadero={hasPermission("celdas")}
+          ocultarBusqueda={esConductor}
         />
 
         {data.isLoading ? (
