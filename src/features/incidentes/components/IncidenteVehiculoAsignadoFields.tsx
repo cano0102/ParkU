@@ -83,10 +83,12 @@ export function IncidenteVehiculoAsignadoFields({
         )}
       </div>
 
-      {/* Buscable: la flota entera en un desplegable obligaba a recorrer cientos de placas. */}
+      {/* Buscable: la flota entera en un desplegable obligaba a recorrer cientos de placas.
+          Opcional: no todo incidente ocurre sobre un vehículo concreto (una queja general,
+          por ejemplo), y la API lo admite sin él. */}
       <SelectorBuscable
         id="vehiculo"
-        label="Vehículo estacionado *"
+        label="Vehículo estacionado"
         opciones={opcionesDeVehiculo(vehiculos)}
         valor={vehiculoId}
         onChange={onVehiculoChange}
@@ -96,7 +98,7 @@ export function IncidenteVehiculoAsignadoFields({
         textoVacio="Ningún vehículo coincide"
         textoSinSeleccion="Ninguno"
         error={vehiculoError}
-        ayuda="El parqueadero y la celda se toman automáticamente de su ubicación actual."
+        ayuda="Si lo eliges, el parqueadero y la celda se toman automáticamente de su ubicación actual."
       />
 
       {!puedeClasificar && (

@@ -73,7 +73,10 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
   const esNovedad = formData.clase === "novedad";
   const formErrors = {
     descripcion: formData.descripcion.trim() ? "" : "La descripción es obligatoria",
-    vehiculoId: esNovedad || formData.vehiculoId ? "" : "Selecciona el vehículo implicado",
+    // El backend admite vehiculo_id en null (novedades.models.js): no todo incidente ocurre
+    // sobre un vehículo concreto (una queja general, o uno reportado antes de que existiera
+    // este campo). Exigirlo aquí bloqueaba guardar —y por tanto subir evidencias— en esos
+    // casos, aunque la API los aceptara sin problema.
     tipoNovedad: esNovedad || formData.tipoNovedad ? "" : "Elige el tipo de incidente",
     tipoOtro: !esNovedad && formData.tipoNovedad === "otro" && !formData.tipoOtro.trim()
       ? "Indica de qué tipo de incidente se trata"
@@ -179,7 +182,7 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
   const handleSave = async () => {
     setFormTouched({ descripcion: true });
     if (formInvalido) {
-      toast.error("La descripción y el vehículo implicado son obligatorios");
+      toast.error("Revisa los campos obligatorios del formulario");
       return;
     }
 

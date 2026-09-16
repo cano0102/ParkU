@@ -50,7 +50,7 @@ interface IncidenteFormModalProps {
   formData: IncidenteFormData;
   setFormData: (updater: (f: IncidenteFormData) => IncidenteFormData) => void;
   formTouched: { descripcion?: boolean };
-  formErrors: { descripcion: string; vehiculoId: string };
+  formErrors: { descripcion: string };
   formInvalido: boolean;
   vehiculos: Vehiculo[];
   usuarios: Usuario[];
@@ -181,7 +181,6 @@ export function IncidenteFormModal({
 
           <IncidenteVehiculoAsignadoFields
             vehiculoId={formData.vehiculoId}
-            vehiculoError={formData.clase !== "novedad" && formTouched.descripcion ? formErrors.vehiculoId : undefined}
             usuarioAsignadoId={formData.usuarioAsignadoId}
             tipoNovedad={formData.tipoNovedad}
             tipoOtro={formData.tipoOtro}
