@@ -60,6 +60,10 @@ export function useRegisterForm() {
   set("nombre", nombreSinDigitos.slice(0, 30));
 };
 
+const setCorreo = (raw: string) => {
+  set("correo", raw.slice(0, 100));
+};
+
   const setTelefono = (raw: string) => {
     set("numero", filtrarTelefono(raw));
   };
@@ -204,6 +208,7 @@ export function useRegisterForm() {
     tiposUsuario,
     set,
     setNombre,
+    setCorreo,
     setTelefono,
     setIdentificacion,
     showPassword,
