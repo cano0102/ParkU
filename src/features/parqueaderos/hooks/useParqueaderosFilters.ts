@@ -1,3 +1,4 @@
+import { compararPorRecientes } from "@/utils/orden";
 import { useCallback, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Celda } from "@/services/api/celdas";
@@ -38,7 +39,11 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
   );
   const celdaTieneIncidenteAbierto = useCallback((celda: Celda) => celdasConIncidenteAbierto.has(celda.id), [celdasConIncidenteAbierto]);
 
-  const filteredPqs = useMemo(() => parqueaderos.filter((pq) => filterTipo === "Todos" || pq.tipo === filterTipo), [parqueaderos, filterTipo]);
+  // Más recientes primero: el parqueadero recién creado aparece arriba, no al final.
+  const filteredPqs = useMemo(
+    () => parqueaderos.filter((pq) => filterTipo === "Todos" || pq.tipo === filterTipo).sort(compararPorRecientes),
+    [parqueaderos, filterTipo],
+  );
   const filteredCeldas = useMemo(() => {
     if (!search.trim()) return celdas;
     const q = search.toLowerCase();

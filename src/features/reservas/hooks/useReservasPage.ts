@@ -1,3 +1,4 @@
+import { compararPorRecientes } from "@/utils/orden";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -107,12 +108,10 @@ export function useReservasPage() {
         const matchesEstado = filterEstado === "todos" || reserva.estado === filterEstado;
         return matchesSearch && matchesEstado;
       })
-      .sort((a, b) => {
-        // Más próximas primero (fecha + hora de inicio)
-        const da = `${a.fechaReserva} ${a.horaInicio}`;
-        const db = `${b.fechaReserva} ${b.horaInicio}`;
-        return da.localeCompare(db);
-      });
+      // Más recientes primero: la reserva recién creada aparece arriba, no ordenada por la
+      // fecha de la franja (eso lo sigue haciendo el panel de solicitudes pendientes, que sí
+      // se atiende por proximidad).
+      .sort(compararPorRecientes);
     // Igual que en useIncidentesData: getVehiculo/getCelda/getConductorReserva se recrean en
     // cada render, pero dependen de `vehiculos`/`celdas`/`conductores`, que solo cambian cuando
     // cambia la consulta; el memo se recalcula con `reservas`, que cambia a la vez.
