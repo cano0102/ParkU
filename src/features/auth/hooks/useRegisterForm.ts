@@ -57,7 +57,7 @@ export function useRegisterForm() {
 
  const setNombre = (raw: string) => {
   const nombreSinDigitos = quitarDigitos(raw);
-  set("nombre", nombreSinDigitos.slice(0, 50));
+  set("nombre", nombreSinDigitos.slice(0, 30));
 };
 
   const setTelefono = (raw: string) => {
