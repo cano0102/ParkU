@@ -86,7 +86,7 @@ export function RegisterForm({ identificacionRef, formState: f }: RegisterFormPr
           checkingNumero={f.checkingNumero}
           onNombreChange={f.setNombre}
           onNombreBlur={() => f.handleBlur("nombre")}
-          onCorreoChange={(v) => f.set("correo", v)}
+          onCorreoChange={f.setCorreo}
           onCorreoBlur={() => f.handleBlur("correo")}
           onNumeroChange={f.setTelefono}
           onNumeroBlur={() => f.handleBlur("numero")}
