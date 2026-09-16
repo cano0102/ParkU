@@ -1,5 +1,4 @@
-import { useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import { Modal, LoadingState } from "@/components/shared";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
@@ -47,22 +46,6 @@ export function Reservas() {
     p.reservasTodas,
     p.miConductorId,
   );
-
-  // Se llega aquí desde el plano de Parqueaderos con una celda ya elegida ("Solicitar esta
-  // celda"): se abre el formulario con ella puesta, para no obligar a buscarla otra vez.
-  const location = useLocation();
-  const celdaPedida = (
-    location.state as {
-      solicitarCelda?: { celdaId: string; parqueaderoId: string };
-    } | null
-  )?.solicitarCelda;
-  useEffect(() => {
-    if (!celdaPedida) return;
-    solicitud.abrirCon(celdaPedida);
-    // Se limpia el estado de navegación para que volver atrás no reabra el formulario.
-    window.history.replaceState({}, "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [celdaPedida?.celdaId, celdaPedida?.parqueaderoId]);
 
   return (
     <>

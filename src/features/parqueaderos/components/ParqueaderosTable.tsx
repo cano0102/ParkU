@@ -9,6 +9,7 @@ import {
 } from "@tabler/icons-react";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
+import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
 import {
   Ocupante,
@@ -38,6 +39,8 @@ export const ParqueaderosTable = memo(
     cellMatchesSearch,
     celdaTieneIncidenteAbierto,
     canManage,
+    soloLectura = false,
+    misVehiculosPorCelda = {},
   }: {
     parqueaderos: Parqueadero[];
     celdas: Celda[];
@@ -53,6 +56,12 @@ export const ParqueaderosTable = memo(
     celdaTieneIncidenteAbierto: (c: Celda) => boolean;
     /** true si el rol puede editar/activar/desactivar parqueaderos (permiso "celdas"). */
     canManage: boolean;
+    /** Mapa solo de consulta (rol Conductor): las celdas no se abren ni se eligen — la celda
+     *  la asigna el vigilante al registrar el ingreso. Solo se mira dónde quedó cada vehículo
+     *  propio (ver misVehiculosPorCelda). */
+    soloLectura?: boolean;
+    /** Vehículos del usuario logueado, por id de la celda donde están (ver useParqueaderosData). */
+    misVehiculosPorCelda?: Record<string, Vehiculo>;
   }) => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -560,34 +569,46 @@ export const ParqueaderosTable = memo(
                             );
                           const tieneIncidente =
                             celdaTieneIncidenteAbierto(celda);
+                          // El vehículo propio en esta celda (rol Conductor): es lo único que
+                          // ese rol sabe de los ocupantes, y lo que vino a buscar al mapa.
+                          const miVehiculo =
+                            misVehiculosPorCelda[celda.id] ?? null;
                           return (
                             <button
                               key={celda.id}
-                              onClick={() => onCellClick(celda)}
+                              onClick={
+                                soloLectura
+                                  ? undefined
+                                  : () => onCellClick(celda)
+                              }
                               title={
-                                fueraDeHorario
-                                  ? "Sigue ocupada fuera del horario permitido — considera generar un incidente"
-                                  : undefined
+                                miVehiculo
+                                  ? `Aquí está tu vehículo ${miVehiculo.placa}`
+                                  : fueraDeHorario
+                                    ? "Sigue ocupada fuera del horario permitido — considera generar un incidente"
+                                    : undefined
                               }
                               style={{
                                 position: "relative",
                                 padding: "8px 10px 8px 12px",
                                 borderRadius: 10,
-                                borderTop: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`,
-                                borderRight: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`,
-                                borderBottom: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : fueraDeHorario ? "#DC2626" : cfg.border}`,
+                                borderTop: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : miVehiculo ? C.primary : fueraDeHorario ? "#DC2626" : cfg.border}`,
+                                borderRight: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : miVehiculo ? C.primary : fueraDeHorario ? "#DC2626" : cfg.border}`,
+                                borderBottom: `2px ${celda.estado === "disponible" ? "dashed" : "solid"} ${matched ? "#F59E0B" : miVehiculo ? C.primary : fueraDeHorario ? "#DC2626" : cfg.border}`,
                                 borderLeft: `4px solid ${tipoCfg.accent}`,
                                 background: fueraDeHorario ? "#FEF2F2" : cfg.bg,
                                 color: cfg.text,
-                                cursor: "pointer",
+                                cursor: soloLectura ? "default" : "pointer",
                                 textAlign: "left",
                                 fontFamily: "inherit",
                                 outline: "none",
                                 boxShadow: matched
                                   ? "0 0 0 3px rgba(245,158,11,.25)"
-                                  : fueraDeHorario
-                                    ? "0 0 0 3px rgba(220,38,38,.2)"
-                                    : undefined,
+                                  : miVehiculo
+                                    ? "0 0 0 3px rgba(57,169,0,.35)"
+                                    : fueraDeHorario
+                                      ? "0 0 0 3px rgba(220,38,38,.2)"
+                                      : undefined,
                               }}
                             >
                               {tieneIncidente && (
@@ -665,6 +686,39 @@ export const ParqueaderosTable = memo(
                                   {ocupante.vehiculo.placa}
                                 </div>
                               )}
+                              {/* Placa propia: el Conductor no tiene `ocupante` (no lee el
+                                  registro de ingresos), así que la placa sale de su reserva
+                                  aceptada. Si además hay ocupante (Admin/Vigilante) ya se
+                                  mostró arriba y aquí solo va la etiqueta. */}
+                              {miVehiculo && (
+                                <>
+                                  {!(estaOcupada && ocupante) && (
+                                    <div
+                                      style={{
+                                        fontFamily: "monospace",
+                                        fontSize: 9,
+                                        fontWeight: 700,
+                                        background: "rgba(255,255,255,.15)",
+                                        padding: "1px 4px",
+                                        borderRadius: 4,
+                                        marginBottom: 2,
+                                      }}
+                                    >
+                                      {miVehiculo.placa}
+                                    </div>
+                                  )}
+                                  <div
+                                    style={{
+                                      fontSize: 8,
+                                      color: C.primaryDark,
+                                      fontWeight: 800,
+                                      marginBottom: 2,
+                                    }}
+                                  >
+                                    🚗 Tu vehículo
+                                  </div>
+                                </>
+                              )}
                               {fueraDeHorario && (
                                 <div
                                   style={{
@@ -690,8 +744,12 @@ export const ParqueaderosTable = memo(
                                   ⚠️ +16h
                                 </div>
                               )}
+                              {/* "Error" avisa a quien SÍ ve a los ocupantes de que algo quedó
+                                  inconsistente; en el mapa de consulta del Conductor no hay
+                                  ocupantes que ver, así que ahí no se muestra. */}
                               {celda.estado === "no_disponible" &&
-                                !ocupante && (
+                                !ocupante &&
+                                !soloLectura && (
                                   <div
                                     style={{
                                       fontSize: 8,

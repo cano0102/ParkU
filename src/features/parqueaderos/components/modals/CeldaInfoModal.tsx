@@ -56,11 +56,6 @@ interface CeldaInfoModalProps {
    *  ya precargado con esa placa y ese conductor (los únicos que el ingreso aceptará). */
   onEstacionarReservado: () => void;
   onReservarCelda: () => void;
-  /** Solicitar la celda sin poder gestionarla: es lo que hace un Conductor desde el plano.
-   *  Lleva al módulo de Reservas con esta celda ya elegida, y la solicitud queda pendiente
-   *  de que un administrador o vigilante la acepte. */
-  canSolicitarReserva?: boolean;
-  onSolicitarReserva?: () => void;
   /** Nombre de quien hizo la reserva que retiene esta celda. */
   conductorReserva?: string;
   /** La agenda de la celda: qué reservas tiene por delante, cuál rige ahora y cuál sigue.
@@ -117,8 +112,6 @@ export function CeldaInfoModal({
   onEstacionarVehiculo,
   onEstacionarReservado,
   onReservarCelda,
-  canSolicitarReserva = false,
-  onSolicitarReserva,
   conductorReserva,
   canManageCeldas,
   canRegistrarIngreso,
@@ -920,7 +913,7 @@ export function CeldaInfoModal({
                 >
                   {canRegistrarIngreso
                     ? "✅ Celda disponible para estacionar."
-                    : "✅ Celda disponible: puedes solicitarla."}
+                    : "✅ Celda disponible."}
                 </div>
               ) : (
                 /* La celda esta libre, pero la reserva que viene esta demasiado cerca: no da
@@ -1122,26 +1115,6 @@ export function CeldaInfoModal({
                     }}
                   >
                     ⚠️ {incidenteAbiertoExiste ? "Ya reportado" : "Reportar"}
-                  </button>
-                )}
-                {canSolicitarReserva && onSolicitarReserva && (
-                  <button
-                    onClick={onSolicitarReserva}
-                    style={{
-                      flex: 1,
-                      padding: "10px",
-                      borderRadius: 11,
-                      border: "none",
-                      background: C.primary,
-                      color: "#fff",
-                      fontSize: 12,
-                      fontWeight: 800,
-                      cursor: "pointer",
-                      fontFamily: "inherit",
-                      boxShadow: "0 4px 14px rgba(57,169,0,.25)",
-                    }}
-                  >
-                    📅 Solicitar esta celda
                   </button>
                 )}
               </div>

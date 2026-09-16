@@ -45,8 +45,10 @@ export default function Parqueaderos() {
   } = useParqueaderosPage();
   const { user } = useAuth();
 
-  // Comunidad SENA (Conductor) solo puede reservar para su propio vehículo: el buscador del
-  // modal de reserva no debe exponer la lista completa de vehículos/conductores del sistema.
+  // Comunidad SENA (Conductor) ve el mapa solo como información: no abre ni elige celdas (la
+  // celda se la asigna el vigilante al registrar el ingreso) — únicamente ve dónde quedaron
+  // sus vehículos. Además, si llegara a reservar, solo para su propio vehículo: el buscador
+  // del modal de reserva no debe exponer la lista completa de vehículos/conductores.
   const esConductor = user?.rol === ROLES.CONDUCTOR;
   const miConductor = esConductor
     ? data.conductores.find((c) => c.usuarioId === user!.id)
@@ -105,6 +107,24 @@ export default function Parqueaderos() {
               </p>
             )}
 
+            {esConductor && (
+              <p
+                style={{
+                  margin: 0,
+                  padding: "10px 14px",
+                  borderRadius: 11,
+                  background: C.primaryPale,
+                  border: `1px solid ${C.primaryLight}`,
+                  fontSize: 12,
+                  color: C.primaryDark,
+                  fontWeight: 600,
+                }}
+              >
+                ℹ️ Este mapa es solo informativo: la celda te la asigna el vigilante al
+                registrar tu ingreso. Cuando la tengas, tu vehículo aparece resaltado en verde.
+              </p>
+            )}
+
             {filters.activeTab === "table" && (
               <ParqueaderosTable
                 parqueaderos={filters.filteredPqsConCeldas}
@@ -128,6 +148,8 @@ export default function Parqueaderos() {
                 cellMatchesSearch={filters.cellMatchesSearch}
                 celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
                 canManage={hasPermission("celdas")}
+                soloLectura={esConductor}
+                misVehiculosPorCelda={data.misVehiculosPorCelda}
               />
             )}
 
@@ -329,9 +351,6 @@ export default function Parqueaderos() {
           if (modal.celdaActiva)
             reserva.openReservaFromCelda(modal.celdaActiva);
         }}
-        /* Quien ve el plano y puede reservar, pero no gestionar celdas (el caso del
-           Conductor), no crea la reserva aquí: pide esta celda y la solicitud queda
-           pendiente de aprobación en el módulo de Reservas. */
         conductorReserva={
           modal.reservaDestacada
             ? (data.conductores.find(
@@ -342,20 +361,6 @@ export default function Parqueaderos() {
               )?.nombre)
             : undefined
         }
-        canSolicitarReserva={
-          !hasPermission("celdas") && hasPermission("reservas")
-        }
-        onSolicitarReserva={() => {
-          if (!modal.celdaActiva) return;
-          navigate("/app/reservas", {
-            state: {
-              solicitarCelda: {
-                celdaId: modal.celdaActiva.id,
-                parqueaderoId: modal.celdaActiva.parqueaderoId,
-              },
-            },
-          });
-        }}
         canManageCeldas={hasPermission("celdas")}
         canRegistrarIngreso={hasPermission("entradaSalida")}
         canReportarIncidentes={hasPermission("incidentes")}

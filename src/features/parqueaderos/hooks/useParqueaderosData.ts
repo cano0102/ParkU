@@ -2,13 +2,13 @@ import { useParqueaderos, useCreateParqueadero, useUpdateParqueadero, useRemoveP
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { useCeldas, useCreateCelda, useUpdateCelda, useRemoveCelda, useCambiarDisponibilidadCelda, useGenerarLoteCeldas } from "./useCeldas";
 import type { Celda, MotivoDisponibilidad, GenerarLoteCantidades } from "@/services/api/celdas";
-import { useConductores, useCreateConductor } from "@/features/conductores";
+import { useConductores, useCreateConductor, vehiculosDeConductor } from "@/features/conductores";
 import type { Conductor } from "@/services/api/conductores";
 import { useVehiculos, useCreateVehiculo, useUpdateVehiculo } from "@/features/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { useControlSalida, useCreateControlSalida, useUpdateControlSalida } from "@/features/controlSalida";
 import type { ControlSalida } from "@/services/api/controlSalida";
-import { useReservas, useCreateReserva, useUpdateReserva } from "@/features/reservas";
+import { useReservas, useCreateReserva, useUpdateReserva, useReservasDeVehiculos } from "@/features/reservas";
 import type { Reserva } from "@/services/api/reservas";
 import { useIncidentes, useCreateIncidente } from "@/features/incidentes";
 import type { Incidente } from "@/services/api/incidentes";
@@ -31,6 +31,27 @@ export function useParqueaderosData() {
   // visita a esta pantalla (que sí es de acceso legítimo: es donde reserva su propia celda).
   const { data: controlesSalida = [] } = useControlSalida({ enabled: !esConductor });
   const { data: reservas = [] } = useReservas({ enabled: !esConductor });
+  /* Dónde están los vehículos del Conductor logueado, por id de celda. Como no puede leer
+     `/entradas-salidas`, se usa el mismo proxy que su Dashboard (useConductorDashboardData):
+     la reserva "activa" (ya aceptada por Admin/Vigilante) de cada vehículo suyo, que trae la
+     celda asignada. `/reservas/vehiculo/:id` sí es accesible para cualquier autenticado.
+     Para los demás roles queda vacío: ellos ven a todos los ocupantes vía controlesSalida. */
+  const miConductorId = esConductor ? conductores.find((c) => c.usuarioId === user!.id)?.id : undefined;
+  const misVehiculos = useMemo(
+    () => (esConductor ? vehiculosDeConductor(vehiculos, miConductorId) : []),
+    [esConductor, vehiculos, miConductorId],
+  );
+  const misVehiculosIds = useMemo(() => misVehiculos.map((v) => v.id), [misVehiculos]);
+  const { reservas: misReservas } = useReservasDeVehiculos(misVehiculosIds);
+  const misVehiculosPorCelda = useMemo(() => {
+    const porCelda: Record<string, Vehiculo> = {};
+    for (const r of misReservas) {
+      if (r.estado !== "activa" || porCelda[r.celdaId]) continue;
+      const vehiculo = misVehiculos.find((v) => v.id === r.vehiculoId);
+      if (vehiculo) porCelda[r.celdaId] = vehiculo;
+    }
+    return porCelda;
+  }, [misReservas, misVehiculos]);
   // `/novedades` (listado completo) también es solo Admin/Vigilante — mismo criterio que
   // controlesSalida/reservas de arriba; se usa aquí para saber si un parqueadero tiene
   // incidentes reportados antes de permitir eliminarlo (ver evaluarEliminacionParqueadero).
@@ -110,7 +131,7 @@ export function useParqueaderosData() {
 
   return {
     parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas, incidentes,
-    usuariosAsignables, usuariosReportantes,
+    usuariosAsignables, usuariosReportantes, misVehiculosPorCelda,
     addParqueadero, updateParqueadero, deleteParqueadero, addCelda, updateCelda, deleteCelda, cambiarDisponibilidadCelda, generarCeldasEnLote,
     addConductor, addVehiculo, updateVehiculo,
     addControlSalida, updateControlSalida, addReserva, updateReserva, addIncidente,
