@@ -81,21 +81,24 @@ export default function Parqueaderos() {
         className="pq-root"
         style={{ display: "flex", flexDirection: "column", gap: 16 }}
       >
-        <ParqueaderosHero stats={filters.stats} />
+        <ParqueaderosHero stats={filters.stats} soloLectura={esConductor} />
 
-        <ParqueaderosTopbar
-          search={filters.search}
-          onSearchChange={filters.setSearch}
-          filterTipo={filters.filterTipo}
-          onFilterTipoChange={filters.setFilterTipo}
-          activeTab={filters.activeTab}
-          onActiveTabChange={filters.setActiveTab}
-          activeFilters={filters.activeFilters}
-          onClearFilters={filters.clearFilters}
-          onOpenCreate={pqFormState.openCreate}
-          canCrearParqueadero={hasPermission("celdas")}
-          ocultarBusqueda={esConductor}
-        />
+        {/* El Conductor no busca ni filtra: no ve ocupantes (no lee el registro de ingresos)
+            y sus celdas ya salen resaltadas; sin buscador ni filtro la barra quedaba vacía. */}
+        {!esConductor && (
+          <ParqueaderosTopbar
+            search={filters.search}
+            onSearchChange={filters.setSearch}
+            filterTipo={filters.filterTipo}
+            onFilterTipoChange={filters.setFilterTipo}
+            activeTab={filters.activeTab}
+            onActiveTabChange={filters.setActiveTab}
+            activeFilters={filters.activeFilters}
+            onClearFilters={filters.clearFilters}
+            onOpenCreate={pqFormState.openCreate}
+            canCrearParqueadero={hasPermission("celdas")}
+          />
+        )}
 
         {data.isLoading ? (
           <LoadingState message="Cargando parqueaderos..." />

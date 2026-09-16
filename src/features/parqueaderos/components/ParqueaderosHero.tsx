@@ -3,10 +3,13 @@ import { CELDA_CONFIG } from "../lib/helpers";
 
 interface ParqueaderosHeroProps {
   stats: { libres: number; ocupadas: number; mantenimiento: number };
+  /** Vista de consulta (rol Conductor): los textos hablan de consultar, no de gestionar —
+   *  ese rol no administra nada aquí, solo mira el mapa y dónde quedó su vehículo. */
+  soloLectura?: boolean;
 }
 
 /** Banner superior de la página de Parqueaderos con las pastillas resumidas. */
-export function ParqueaderosHero({ stats }: ParqueaderosHeroProps) {
+export function ParqueaderosHero({ stats, soloLectura = false }: ParqueaderosHeroProps) {
   return (
     <div
       style={{
@@ -50,7 +53,7 @@ export function ParqueaderosHero({ stats }: ParqueaderosHeroProps) {
               marginBottom: 8,
             }}
           >
-            <Shield size={11} /> Gestión Institucional SENA
+            <Shield size={11} /> {soloLectura ? "Comunidad SENA" : "Gestión Institucional SENA"}
           </div>
           <h1
             style={{
@@ -60,7 +63,7 @@ export function ParqueaderosHero({ stats }: ParqueaderosHeroProps) {
               marginBottom: 4,
             }}
           >
-            Gestión de Parqueaderos
+            {soloLectura ? "Parqueaderos" : "Gestión de Parqueaderos"}
           </h1>
           <p
             style={{
@@ -69,8 +72,9 @@ export function ParqueaderosHero({ stats }: ParqueaderosHeroProps) {
               lineHeight: 1.5,
             }}
           >
-            Registro óptico automatizado, celdas de cortesía institucional y
-            reportes de ocupación en tiempo real.
+            {soloLectura
+              ? "Consulta la disponibilidad de los parqueaderos y ubica la celda donde quedó tu vehículo."
+              : "Registro óptico automatizado, celdas de cortesía institucional y reportes de ocupación en tiempo real."}
           </p>
         </div>
         <div className="pq-hero-stats">
