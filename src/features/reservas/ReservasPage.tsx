@@ -19,6 +19,7 @@ import { MotivoReservaModal } from "./components/MotivoReservaModal";
 import { ConfirmAceptarReservaModal } from "./components/ConfirmAceptarReservaModal";
 import { SolicitudesPendientesPanel } from "./components/SolicitudesPendientesPanel";
 import { SolicitarReservaModal } from "./components/SolicitarReservaModal";
+import { ConductorReservaCard } from "./components/ConductorReservaCard";
 
 const C = theme;
 
@@ -94,22 +95,85 @@ export function Reservas() {
               </p>
             )}
 
-            <ReservasTable
-              filteredReservas={p.filteredReservas}
-              totalReservas={p.reservas.length}
-              getVehiculo={p.getVehiculo}
-              getCelda={p.getCelda}
-              getConductorReserva={p.getConductorReserva}
-              getParqueadero={p.getParqueadero}
-              canDelete={puedeEliminarReserva}
-              onView={(reserva) => {
-                p.setViewingReserva(reserva);
-                p.setViewOpen(true);
-              }}
-              onDelete={p.handleDelete}
-              puedeCancelar={p.puedeCancelar}
-              onCancel={p.handleCancelar}
-            />
+            {/* Comunidad SENA ve sus reservas como tarjetas (mismo patrón que "Mis
+                incidentes"), no la tabla de gestión con columna de conductor y acciones
+                de Admin/Vigilante. */}
+            {esComunidadSena ? (
+              p.filteredReservas.length === 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    padding: "3rem 1rem",
+                    borderRadius: 16,
+                    border: `2px dashed ${C.border}`,
+                    background: "#fff",
+                    color: C.textLight,
+                    textAlign: "center",
+                  }}
+                >
+                  <p style={{ fontWeight: 600, fontSize: 13 }}>
+                    {p.activeFiltersCount > 0
+                      ? "Ninguna reserva coincide con los filtros"
+                      : "Aún no tienes reservas"}
+                  </p>
+                  <p style={{ fontSize: 11, marginTop: 4 }}>
+                    {p.activeFiltersCount > 0
+                      ? "Prueba con otros filtros."
+                      : 'Usa "Solicitar reserva" para pedir una celda; aquí verás su estado.'}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {p.filteredReservas.map((reserva) => {
+                    const celda = p.getCelda(reserva.celdaId);
+                    return (
+                      <ConductorReservaCard
+                        key={reserva.id}
+                        reserva={reserva}
+                        vehiculo={p.getVehiculo(reserva.vehiculoId)}
+                        celda={celda}
+                        parqueadero={
+                          celda
+                            ? p.getParqueadero(celda.parqueaderoId)
+                            : undefined
+                        }
+                        onView={() => {
+                          p.setViewingReserva(reserva);
+                          p.setViewOpen(true);
+                        }}
+                        canCancel={p.puedeCancelar(reserva)}
+                        onCancel={() => p.handleCancelar(reserva)}
+                      />
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <ReservasTable
+                filteredReservas={p.filteredReservas}
+                totalReservas={p.reservas.length}
+                getVehiculo={p.getVehiculo}
+                getCelda={p.getCelda}
+                getConductorReserva={p.getConductorReserva}
+                getParqueadero={p.getParqueadero}
+                canDelete={puedeEliminarReserva}
+                onView={(reserva) => {
+                  p.setViewingReserva(reserva);
+                  p.setViewOpen(true);
+                }}
+                onDelete={p.handleDelete}
+                puedeCancelar={p.puedeCancelar}
+                onCancel={p.handleCancelar}
+              />
+            )}
           </>
         )}
       </div>
