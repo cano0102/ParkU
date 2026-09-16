@@ -9,6 +9,7 @@ import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
 import { useCreateReserva } from "./useReservas";
 import { franjaSugerida, validarFranja, ajustarFranja } from "../lib/reglas";
+import { validarTextoLargo, MOTIVO_MIN, MOTIVO_MAX } from "@/utils/validation";
 
 interface SolicitarReservaForm {
   vehiculoId: string;
@@ -108,6 +109,8 @@ export function useSolicitarReserva(
     }
     // El motivo es lo que le permite a quien aprueba decidir con criterio.
     if (!f.motivo.trim()) return "Explica para qué necesitas la celda: el motivo es obligatorio";
+    const errorMotivo = validarTextoLargo(f.motivo, "El motivo", { min: MOTIVO_MIN, max: MOTIVO_MAX });
+    if (errorMotivo) return errorMotivo;
     if (!f.fechaReserva) return "La fecha es obligatoria";
     if (!f.horaInicio || !f.horaFin) return "El horario es obligatorio";
     // Las HORAS DE LA RESERVA tienen que caber en la ventana de operación (05:00-21:00). La

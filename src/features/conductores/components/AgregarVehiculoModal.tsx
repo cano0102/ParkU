@@ -16,7 +16,7 @@ interface AgregarVehiculoModalProps {
   modelo: string;
   color: string;
   descripcionVehiculo: string;
-  errors: { placa?: string; marca?: string; modelo?: string; color?: string };
+  errors: { placa?: string; marca?: string; linea?: string; modelo?: string; color?: string; descripcionVehiculo?: string };
   touched: boolean;
   onPlacaChange: (v: string) => void;
   onTipoVehiculoChange: (tipo: AgregarVehiculoModalProps["tipoVehiculo"]) => void;
@@ -87,6 +87,8 @@ export function AgregarVehiculoModal({
             tipoVehiculo={tipoVehiculo}
             marca={marca}
             marcaError={touched ? errors.marca : undefined}
+            lineaError={touched ? errors.linea : undefined}
+            descripcionError={touched ? errors.descripcionVehiculo : undefined}
             linea={linea}
             modelo={modelo}
             modeloError={touched ? errors.modelo : undefined}

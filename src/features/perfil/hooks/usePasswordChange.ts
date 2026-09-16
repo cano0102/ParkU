@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { PASSWORD_MIN, PASSWORD_MAX } from "@/utils/validation";
+import { PASSWORD_MIN, PASSWORD_MAX, validarPassword } from "@/utils/validation";
 
 /** Modal de cambio de contraseña, con el checklist de requisitos en vivo. */
 export function usePasswordChange() {
@@ -13,10 +13,13 @@ export function usePasswordChange() {
   const [passwordData, setPasswordData] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
 
   const passwordLengthOk = passwordData.newPassword.length >= PASSWORD_MIN && passwordData.newPassword.length <= PASSWORD_MAX;
+  // Mismos requisitos que exige la API (ver validarPassword): mayúscula, minúscula y número.
+  const passwordComplejaOk = /[A-Z]/.test(passwordData.newPassword) && /[a-z]/.test(passwordData.newPassword) && /[0-9]/.test(passwordData.newPassword);
+  const errorNuevaPassword = passwordData.newPassword ? validarPassword(passwordData.newPassword) : null;
   const passwordsMatch = !!passwordData.newPassword && passwordData.newPassword === passwordData.confirmPassword;
   const currentFilled = passwordData.currentPassword.length > 0;
   const passwordDifferent = !!passwordData.newPassword && passwordData.newPassword !== passwordData.currentPassword;
-  const canSubmitPassword = passwordLengthOk && passwordsMatch && currentFilled && passwordDifferent;
+  const canSubmitPassword = passwordLengthOk && passwordComplejaOk && passwordsMatch && currentFilled && passwordDifferent;
 
   const closePasswordDialog = () => {
     setDialogOpen(false);
@@ -26,7 +29,7 @@ export function usePasswordChange() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentFilled) return toast.error("Ingresa tu contraseña actual");
-    if (!passwordLengthOk) return toast.error(`La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`);
+    if (errorNuevaPassword) return toast.error(errorNuevaPassword);
     if (!passwordDifferent) return toast.error("La nueva contraseña debe ser diferente a la actual");
     if (!passwordsMatch) return toast.error("Las contraseñas no coinciden");
 
@@ -45,7 +48,7 @@ export function usePasswordChange() {
     dialogOpen, setDialogOpen, submitting,
     showCurrent, setShowCurrent, showNew, setShowNew,
     passwordData, setPasswordData,
-    passwordLengthOk, passwordsMatch, currentFilled, passwordDifferent, canSubmitPassword,
+    passwordLengthOk, passwordComplejaOk, passwordsMatch, currentFilled, passwordDifferent, canSubmitPassword,
     closePasswordDialog, handlePasswordChange,
   };
 }

@@ -15,6 +15,7 @@ import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
 import { horaAMinutos, HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../../lib/helpers";
+import { MOTIVO_MAX } from "@/utils/validation";
 
 const C = theme;
 
@@ -296,6 +297,7 @@ export function ReservaModal({
               </label>
               <textarea
                 id="motivoReserva"
+                maxLength={MOTIVO_MAX}
                 value={reservaForm.motivo}
                 onChange={(e) => setReservaForm(prev => ({ ...prev, motivo: e.target.value }))}
                 placeholder="Ej. Reserva para gira institucional, visita programada, movilidad reducida..."

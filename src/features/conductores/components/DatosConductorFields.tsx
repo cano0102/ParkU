@@ -1,4 +1,5 @@
 import { FormField } from "@/components/shared";
+import { NOMBRE_MAX } from "@/utils/validation";
 import { COLORS, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, TELEFONO_MAX, inputStyle, inputErrorStyle, quitarDigitos, filtrarTelefono, type FormState } from "../lib/helpers";
 
 interface DatosConductorFieldsProps {
@@ -36,6 +37,7 @@ export function DatosConductorFields({
           type="text"
           placeholder="ej. María García López"
           value={form.nombre}
+          maxLength={NOMBRE_MAX}
           readOnly={bloqueado(deLaCuenta)}
           aria-readonly={bloqueado(deLaCuenta)}
           onChange={(e) => onChange({ nombre: quitarDigitos(e.target.value) })}

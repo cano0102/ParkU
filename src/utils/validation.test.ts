@@ -144,3 +144,71 @@ describe('utils/validation — campos de usuario', () => {
   });
 
 });
+
+import {
+  limpiarTexto, validarCorreo, validarNombrePersona, validarModeloVehiculo, validarTextoCorto, validarTextoLargo,
+  CORREO_MAX, MARCA_MAX, MOTIVO_MIN, MOTIVO_MAX,
+} from './validation';
+
+describe('utils/validation — limpiarTexto', () => {
+  it('quita espacios sobrantes, caracteres de control e invisibles', () => {
+    expect(limpiarTexto('  Juan 	  Pérez​ ')).toBe('Juan Pérez');
+  });
+  it('recorta al máximo indicado', () => {
+    expect(limpiarTexto('abcdefgh', 3)).toBe('abc');
+  });
+});
+
+describe('utils/validation — validarCorreo', () => {
+  it('acepta un correo válido y rechaza uno sin formato', () => {
+    expect(validarCorreo('ana@sena.edu.co')).toBeNull();
+    expect(validarCorreo('ana@')).not.toBeNull();
+  });
+  it('rechaza uno más largo que la columna', () => {
+    expect(validarCorreo('a'.repeat(CORREO_MAX) + '@x.co')).toMatch(/superar/);
+  });
+  it('vacío solo es error cuando es obligatorio', () => {
+    expect(validarCorreo('')).not.toBeNull();
+    expect(validarCorreo('', false)).toBeNull();
+  });
+});
+
+describe('utils/validation — validarNombrePersona', () => {
+  it('acepta nombres con tildes, apóstrofos y guiones', () => {
+    expect(validarNombrePersona("María José O'Neil-Pérez")).toBeNull();
+  });
+  it('rechaza vacío, muy corto, dígitos y símbolos', () => {
+    expect(validarNombrePersona('')).toMatch(/obligatorio/);
+    expect(validarNombrePersona('Al')).toMatch(/al menos/);
+    expect(validarNombrePersona('Juan 123')).toMatch(/solo puede/);
+    expect(validarNombrePersona('Juan <b>')).toMatch(/solo puede/);
+  });
+});
+
+describe('utils/validation — vehículo', () => {
+  it('el modelo es un año de 4 dígitos dentro del rango', () => {
+    expect(validarModeloVehiculo('')).toBeNull();
+    expect(validarModeloVehiculo('2020')).toBeNull();
+    expect(validarModeloVehiculo('1900')).not.toBeNull();
+    expect(validarModeloVehiculo('20')).not.toBeNull();
+    expect(validarModeloVehiculo(String(new Date().getFullYear() + 2))).not.toBeNull();
+  });
+  it('texto corto: obligatoriedad, tope y caracteres', () => {
+    expect(validarTextoCorto('Mercedes-Benz', 'La marca', MARCA_MAX, true)).toBeNull();
+    expect(validarTextoCorto('', 'La marca', MARCA_MAX, true)).toBe('La marca es obligatoria');
+    expect(validarTextoCorto('', 'La línea', MARCA_MAX, false)).toBeNull();
+    expect(validarTextoCorto('x'.repeat(MARCA_MAX + 1), 'La marca', MARCA_MAX, true)).toMatch(/superar/);
+    expect(validarTextoCorto('Rojo<script>', 'El color', MARCA_MAX, true)).toMatch(/no permitidos/);
+  });
+});
+
+describe('utils/validation — validarTextoLargo', () => {
+  it('exige un mínimo útil y respeta el tope', () => {
+    const reglas = { min: MOTIVO_MIN, max: MOTIVO_MAX };
+    expect(validarTextoLargo('Clase de 8 a 10', 'El motivo', reglas)).toBeNull();
+    expect(validarTextoLargo('ok', 'El motivo', reglas)).toMatch(/al menos/);
+    expect(validarTextoLargo('x'.repeat(MOTIVO_MAX + 1), 'El motivo', reglas)).toMatch(/superar/);
+    expect(validarTextoLargo('', 'El motivo', reglas)).toMatch(/obligatorio/);
+    expect(validarTextoLargo('', 'El motivo', { ...reglas, obligatorio: false })).toBeNull();
+  });
+});

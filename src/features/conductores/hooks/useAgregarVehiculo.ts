@@ -2,9 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import {
-  validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
-} from "../lib/helpers";
+import { validarDatosVehiculo, type ErroresVehiculo } from "../lib/helpers";
 import type { ConductoresData } from "./useConductoresData";
 
 interface AgregarVehiculoForm {
@@ -67,40 +65,12 @@ export function useAgregarVehiculo(
     [data.vehiculos]
   );
 
-  interface AgregarVehiculoErrors {
-    placa?: string;
-    marca?: string;
-    modelo?: string;
-    color?: string;
-  }
+  type AgregarVehiculoErrors = ErroresVehiculo;
 
-  const validar = useCallback((f: AgregarVehiculoForm): AgregarVehiculoErrors => {
-    const errores: AgregarVehiculoErrors = {};
-    const placa = f.placa.trim().toUpperCase();
-    if (!placa) {
-      errores.placa = "La placa es obligatoria";
-    } else if (!validarPlacaColombiana(placa)) {
-      errores.placa = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
-    } else if ((f.tipoVehiculo === "carro" || f.tipoVehiculo === "moto") && !validarPlacaPorTipo(placa, f.tipoVehiculo)) {
-      const tipoDetectado = tipoVehiculoDesdePlaca(placa);
-      errores.placa = `Seleccionaste "${f.tipoVehiculo}", pero la placa tiene formato de ${tipoDetectado}.`;
-    } else if (placasOcupadas.has(placa)) {
-      errores.placa = "Esta placa ya está registrada en otro vehículo";
-    }
-
-    if (!f.marca.trim()) errores.marca = "La marca es obligatoria";
-    if (!f.color.trim()) errores.color = "El color es obligatorio";
-    const modelo = f.modelo.trim();
-    if (modelo) {
-      const anio = Number(modelo);
-      const anioMaximo = new Date().getFullYear() + 1;
-      if (!Number.isInteger(anio) || anio < 1950 || anio > anioMaximo) {
-        errores.modelo = `El modelo es el año del vehículo: entre 1950 y ${anioMaximo}`;
-      }
-    }
-
-    return errores;
-  }, [placasOcupadas]);
+  const validar = useCallback(
+    (f: AgregarVehiculoForm): AgregarVehiculoErrors => validarDatosVehiculo(f, placasOcupadas),
+    [placasOcupadas],
+  );
 
   // Validación en tiempo real, igual que el resto de formularios de la app:
   // se recalcula en cada cambio, pero solo se muestra tras el primer intento.

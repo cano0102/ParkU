@@ -5,6 +5,7 @@ import {
   IconShieldCheck as ShieldCheck,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
+import { PASSWORD_MIN, PASSWORD_MAX } from "@/utils/validation";
 import type { useResetPasswordForm } from "../hooks/useResetPasswordForm";
 import { ResetPasswordFields } from "./ResetPasswordFields";
 
@@ -60,7 +61,10 @@ export function ResetPasswordForm({ form: f }: ResetPasswordFormProps) {
 
           <div style={{ display: "grid", gap: 10, fontSize: 14 }}>
             <div style={{ color: f.passwordLengthOk ? COLORS.primary : COLORS.textLight, fontWeight: 600 }}>
-              • Mínimo 8 caracteres
+              • Entre {PASSWORD_MIN} y {PASSWORD_MAX} caracteres
+            </div>
+            <div style={{ color: f.passwordComplejaOk ? COLORS.primary : COLORS.textLight, fontWeight: 600 }}>
+              • Una mayúscula, una minúscula y un número
             </div>
             <div style={{ color: f.passwordsMatch ? COLORS.primary : COLORS.textLight, fontWeight: 600 }}>
               • Las contraseñas coinciden

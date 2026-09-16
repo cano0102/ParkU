@@ -6,6 +6,7 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
 import { rangoDeHoraInicio, rangoDeHoraFin } from "../lib/reglas";
+import { MOTIVO_MAX } from "@/utils/validation";
 
 const C = theme;
 
@@ -145,6 +146,7 @@ export function SolicitarReservaModal({
             <label style={fieldLabel}>Motivo / Justificación *</label>
             <textarea
               value={motivo}
+              maxLength={MOTIVO_MAX}
               onChange={(e) => onMotivoChange(e.target.value)}
               placeholder="Ej. Necesito parquear mientras asisto a clase..."
               rows={2}

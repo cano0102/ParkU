@@ -1,10 +1,11 @@
 import {
-  NOMBRE_MIN,
-  NOMBRE_MAX,
-  PASSWORD_MIN,
-  PASSWORD_MAX,
   validarTelefono,
-  EMAIL_REGEX,
+  validarPassword,
+  validarCorreo,
+  validarNombrePersona,
+  validarNumeroDocumento,
+  NUMERO_DOCUMENTO_MIN,
+  NUMERO_DOCUMENTO_MAX,
 } from "@/utils/validation";
 
 export interface FormState {
@@ -50,24 +51,16 @@ export interface ValidationErrors {
  */
 export function validate(f: FormState, exigirTipoUsuario = false): ValidationErrors {
   const nextErrors: ValidationErrors = {};
-  const nombre = f.nombre.trim();
-  const correo = f.correo.trim();
   const numero = f.numero.trim();
   const identificacion = f.identificacion.trim();
 
-  if (!nombre) {
-    nextErrors.nombre = "El nombre es obligatorio";
-  } else if (nombre.length < NOMBRE_MIN) {
-    nextErrors.nombre = `El nombre debe tener al menos ${NOMBRE_MIN} caracteres`;
-  } else if (nombre.length > NOMBRE_MAX) {
-    nextErrors.nombre = `El nombre no puede superar ${NOMBRE_MAX} caracteres`;
-  }
+  // Mismas reglas que Usuarios/Conductores/Perfil (utils/validation.ts): longitud, solo
+  // letras en el nombre, correo con formato y tope de la columna.
+  const errorNombre = validarNombrePersona(f.nombre);
+  if (errorNombre) nextErrors.nombre = errorNombre;
 
-  if (!correo) {
-    nextErrors.correo = "El correo electrónico es obligatorio";
-  } else if (!EMAIL_REGEX.test(correo)) {
-    nextErrors.correo = "Ingresa un correo electrónico válido";
-  }
+  const errorCorreo = validarCorreo(f.correo);
+  if (errorCorreo) nextErrors.correo = errorCorreo;
 
   // El teléfono es OPCIONAL (igual que en el backend y en el resto de formularios): mucha
   // gente no lo da, y bloquear el registro por eso no protege nada. Si se escribe, sí tiene
@@ -78,14 +71,17 @@ export function validate(f: FormState, exigirTipoUsuario = false): ValidationErr
 
   if (!identificacion) {
     nextErrors.identificacion = "El número de identificación es obligatorio";
-  } else if (identificacion.length < 6) {
-    nextErrors.identificacion = "El número de identificación debe tener al menos 6 dígitos";
+  } else if (!validarNumeroDocumento(identificacion)) {
+    nextErrors.identificacion = `El número de identificación debe tener entre ${NUMERO_DOCUMENTO_MIN} y ${NUMERO_DOCUMENTO_MAX} dígitos`;
   }
 
+  // Los requisitos REALES de la API (longitud + mayúscula + minúscula + número): antes solo
+  // se miraba la longitud y el backend rechazaba el registro al enviar.
   if (!f.password) {
     nextErrors.password = "La contraseña es obligatoria";
-  } else if (f.password.length < PASSWORD_MIN || f.password.length > PASSWORD_MAX) {
-    nextErrors.password = `La contraseña debe tener entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`;
+  } else {
+    const errorPassword = validarPassword(f.password);
+    if (errorPassword) nextErrors.password = errorPassword;
   }
 
   if (!f.confirmPassword) {

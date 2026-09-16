@@ -1,5 +1,6 @@
 import { theme } from "@/styles/theme";
 import type { FormState } from "../lib/helpers";
+import { ROL_NOMBRE_MAX } from "../hooks/useRolForm";
 
 const COLORS = theme;
 
@@ -49,6 +50,7 @@ export function RolBasicInfoFields({
             id="role-name"
             type="text"
             placeholder="ej. Operador de turno"
+            maxLength={ROL_NOMBRE_MAX}
             value={form.nombre}
             onChange={(e) => onNombreChange(e.target.value)}
             onBlur={onNombreBlur}

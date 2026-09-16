@@ -5,6 +5,8 @@ import { ESTADOS_ABIERTOS, type EstadoIncidente } from "../lib/constants";
 import { recomiendaEncargado, requiereMotivo } from "../lib/transiciones";
 import type { IncidentesData } from "./useIncidentesData";
 import { listar as listarEvidencias, subirVarias, type Evidencia } from "@/services/api/evidencias";
+import { validarTextoLargo, validarTextoCorto, DESCRIPCION_MIN, DESCRIPCION_MAX } from "@/utils/validation";
+import { TIPO_OTRO_MAX } from "@/features/parqueaderos";
 
 const emptyFormData = () => ({
   clase: "incidente" as ClaseNovedad,
@@ -72,11 +74,13 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
      rápido (useIncidenteReporte) y que el backend. */
   const esNovedad = formData.clase === "novedad";
   const formErrors = {
-    descripcion: formData.descripcion.trim() ? "" : "La descripción es obligatoria",
+    descripcion: validarTextoLargo(formData.descripcion, "La descripción", { min: DESCRIPCION_MIN, max: DESCRIPCION_MAX }) ?? "",
     vehiculoId: esNovedad || formData.vehiculoId ? "" : "Selecciona el vehículo implicado",
     tipoNovedad: esNovedad || formData.tipoNovedad ? "" : "Elige el tipo de incidente",
-    tipoOtro: !esNovedad && formData.tipoNovedad === "otro" && !formData.tipoOtro.trim()
-      ? "Indica de qué tipo de incidente se trata"
+    tipoOtro: !esNovedad && formData.tipoNovedad === "otro"
+      ? (formData.tipoOtro.trim()
+          ? (validarTextoCorto(formData.tipoOtro, "El tipo de incidente", TIPO_OTRO_MAX, true) ?? "")
+          : "Indica de qué tipo de incidente se trata")
       : "",
     prioridad: esNovedad || formData.prioridad ? "" : "Elige la prioridad",
   };

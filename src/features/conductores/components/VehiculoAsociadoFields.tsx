@@ -1,7 +1,7 @@
 import { IconCar as Car } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { COLORS, TIPOS_VEHICULO, getTipoVehiculoStyle, inputStyle } from "../lib/helpers";
+import { COLORS, TIPOS_VEHICULO, getTipoVehiculoStyle, inputStyle, LINEA_MAX, COLOR_MAX, DESCRIPCION_VEHICULO_MAX } from "../lib/helpers";
 import { MarcaField } from "./MarcaField";
 
 interface VehiculoAsociadoFieldsProps {
@@ -12,12 +12,14 @@ interface VehiculoAsociadoFieldsProps {
   marcaError?: string;
   /** Línea del vehículo ("Spark GT", "Boxer 150"). Columna real de `vehiculo`. */
   linea: string;
+  lineaError?: string;
   /** Año del modelo: en Colombia el "modelo" de un vehículo ES su año. */
   modelo: string;
   modeloError?: string;
   color: string;
   colorError?: string;
   descripcionVehiculo: string;
+  descripcionError?: string;
   onPlacaChange: (value: string) => void;
   onPlacaBlur: () => void;
   onTipoVehiculoChange: (tipo: Vehiculo["tipo"]) => void;
@@ -33,8 +35,8 @@ interface VehiculoAsociadoFieldsProps {
 
 /** Sección "Vehículo asociado": placa, tipo, marca, línea, modelo (año), color y descripción. */
 export function VehiculoAsociadoFields({
-  placa, placaError, tipoVehiculo, marca, marcaError, linea, modelo, modeloError, color, colorError, descripcionVehiculo,
-  onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onMarcaBlur,
+  placa, placaError, tipoVehiculo, marca, marcaError, linea, lineaError, modelo, modeloError, color, colorError,
+  descripcionVehiculo, descripcionError, onPlacaChange, onPlacaBlur, onTipoVehiculoChange, onMarcaChange, onMarcaBlur,
   onLineaChange, onModeloChange, onModeloBlur, onColorChange, onColorBlur, onDescripcionChange,
 }: VehiculoAsociadoFieldsProps) {
   return (
@@ -105,13 +107,14 @@ export function VehiculoAsociadoFields({
           onBlur={onMarcaBlur}
         />
 
-        <FormField label="Línea (opcional)">
+        <FormField label="Línea (opcional)" error={lineaError}>
           <input
             type="text"
             placeholder="ej. Spark GT"
             value={linea}
+            maxLength={LINEA_MAX}
             onChange={(e) => onLineaChange(e.target.value)}
-            style={inputStyle}
+            style={{ ...inputStyle, ...(lineaError ? { border: "1px solid #FCA5A5", background: "#FEF2F2" } : {}) }}
           />
         </FormField>
 
@@ -134,16 +137,17 @@ export function VehiculoAsociadoFields({
             type="text"
             placeholder="ej. Rojo"
             value={color}
+            maxLength={COLOR_MAX}
             onChange={(e) => onColorChange(e.target.value)}
             onBlur={onColorBlur}
-            style={inputStyle}
+            style={{ ...inputStyle, ...(colorError ? { border: "1px solid #FCA5A5", background: "#FEF2F2" } : {}) }}
           />
         </FormField>
 
-        <FormField label="Descripción adicional" hint={`${descripcionVehiculo.length}/200`} style={{ gridColumn: "1 / -1" }}>
+        <FormField label="Descripción adicional" hint={`${descripcionVehiculo.length}/${DESCRIPCION_VEHICULO_MAX}`} error={descripcionError} style={{ gridColumn: "1 / -1" }}>
           <textarea
             rows={1}
-            maxLength={200}
+            maxLength={DESCRIPCION_VEHICULO_MAX}
             placeholder="Observaciones sobre el vehículo…"
             value={descripcionVehiculo}
             onChange={(e) => onDescripcionChange(e.target.value)}

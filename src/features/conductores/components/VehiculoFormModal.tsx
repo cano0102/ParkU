@@ -16,7 +16,7 @@ export interface VehiculoFormState {
 
 interface VehiculoFormModalProps {
   form: VehiculoFormState;
-  errors: { placa?: string; marca?: string; modelo?: string; color?: string };
+  errors: { placa?: string; marca?: string; linea?: string; modelo?: string; color?: string; descripcionVehiculo?: string };
   touched: boolean;
   isValid: boolean;
   onChange: (patch: Partial<VehiculoFormState>) => void;
@@ -49,6 +49,8 @@ export function VehiculoFormModal({
         tipoVehiculo={form.tipoVehiculo}
         marca={form.marca}
         marcaError={touched ? errors.marca : undefined}
+        lineaError={touched ? errors.linea : undefined}
+        descripcionError={touched ? errors.descripcionVehiculo : undefined}
         linea={form.linea}
         modelo={form.modelo}
         modeloError={touched ? errors.modelo : undefined}

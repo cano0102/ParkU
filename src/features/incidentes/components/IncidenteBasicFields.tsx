@@ -3,6 +3,7 @@ import { theme } from "@/styles/theme";
 import { CELDA_ESTADO_CONFIG } from "../lib/constants";
 import { SelectorBuscable } from "@/components/shared";
 import { CeldaBadgeInline } from "./IncidenteBadges";
+import { DESCRIPCION_MAX } from "@/utils/validation";
 
 const C = theme;
 
@@ -36,6 +37,7 @@ export function IncidenteBasicFields({
         <textarea
           id="descripcion"
           rows={3}
+          maxLength={DESCRIPCION_MAX}
           placeholder="Describe el incidente o novedad..."
           value={descripcion}
           onChange={(e) => onDescripcionChange(e.target.value)}

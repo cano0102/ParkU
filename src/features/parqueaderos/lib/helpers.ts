@@ -302,6 +302,9 @@ export const superaEstadiaLimite = (fechaEntrada: string, esOficial: boolean): b
 export const NOMBRE_PQ_MAX = 60;
 export const UBICACION_PQ_MAX = 120;
 export const DESCRIPCION_PQ_MAX = 200;
+/** Techos razonables para una sede: por encima casi con certeza es un dedo de más. */
+export const CAPACIDAD_PQ_MAX = 500;
+export const CELDAS_POR_TIPO_MAX = 200;
 
 /** Valida el formulario de creación/edición de un parqueadero.
  *  `excludeId` es el id del parqueadero que se está editando (para no chocar consigo mismo),
@@ -316,6 +319,7 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
   if (!nombre) return "El nombre es obligatorio.";
   if (nombre.length < 3) return "El nombre debe tener al menos 3 caracteres.";
   if (!ubicacion) return "La ubicación es obligatoria.";
+  if (ubicacion.length < 3) return "La ubicación debe tener al menos 3 caracteres.";
   if (parqueaderos.some(p => p.id !== excludeId && p.nombre.trim().toLowerCase() === nombre.toLowerCase())) return `Ya existe un parqueadero llamado "${nombre}".`;
   if (ubicacion.length > UBICACION_PQ_MAX) return `La ubicación no puede superar ${UBICACION_PQ_MAX} caracteres.`;
 
@@ -323,6 +327,11 @@ export function validarFormParqueadero(form: FormParqueadero, parqueaderos: Parq
   // que se contrastan las celdas configuradas justo abajo.
   if (!Number.isInteger(form.capacidadMaxima)) return "La capacidad máxima debe ser un número entero.";
   if (form.capacidadMaxima <= 0) return "La capacidad máxima debe ser mayor a cero.";
+  if (form.capacidadMaxima > CAPACIDAD_PQ_MAX) return `La capacidad máxima no puede superar ${CAPACIDAD_PQ_MAX} celdas.`;
+  for (const [etiqueta, cantidad] of [["carro", form.celdasCarros], ["moto", form.celdasMotos], ["movilidad reducida", form.celdasMovilidadReducida]] as const) {
+    if (!Number.isInteger(cantidad) || cantidad < 0) return `La cantidad de celdas de ${etiqueta} debe ser un entero mayor o igual a cero.`;
+    if (cantidad > CELDAS_POR_TIPO_MAX) return `Las celdas de ${etiqueta} no pueden superar ${CELDAS_POR_TIPO_MAX}.`;
+  }
   if (form.descripcion.trim().length > DESCRIPCION_PQ_MAX) return `La descripción no puede superar ${DESCRIPCION_PQ_MAX} caracteres.`;
 
   // El total de celdas configuradas no puede exceder la capacidad máxima. Al editar esto cubre

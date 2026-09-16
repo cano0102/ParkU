@@ -1,5 +1,6 @@
 import { IconMail as Mail, IconPhone as Phone } from "@tabler/icons-react";
 import { FormField } from "@/components/shared";
+import { CORREO_MAX } from "@/utils/validation";
 import { COLORS, NOMBRE_MAX, TELEFONO_MAX, inputErrorStyle, inputIconStyle, inputStyle, quitarDigitos, filtrarTelefono } from "../lib/helpers";
 
 const iconColor = COLORS.textLight;
@@ -47,6 +48,7 @@ export function DatosPersonalesFields({
             <Mail size={14} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: iconColor }} />
             <input
               type="email"
+              maxLength={CORREO_MAX}
               placeholder="correo@sena.edu.co"
               value={correo}
               onChange={(e) => onCorreoChange(e.target.value)}

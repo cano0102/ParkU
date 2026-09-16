@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { FormField } from "@/components/shared";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { COLORS, inputStyle, inputErrorStyle } from "../lib/helpers";
+import { MARCA_MAX } from "@/utils/validation";
 import { sugerirMarcas } from "../lib/marcas";
 
 interface MarcaFieldProps {
@@ -38,6 +39,7 @@ export function MarcaField({ tipoVehiculo, value, error, onChange, onBlur }: Mar
     <FormField label="Marca *" error={error}>
       <div style={{ position: "relative" }}>
         <input
+          maxLength={MARCA_MAX}
           type="text"
           placeholder={tipoVehiculo === "moto" ? "ej. Bajaj" : "ej. Chevrolet"}
           value={value}

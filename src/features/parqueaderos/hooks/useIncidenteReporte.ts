@@ -11,6 +11,7 @@ import type { PrioridadNovedad } from "@/services/api/incidentes";
 import { subirVarias } from "@/services/api/evidencias";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
+import { validarTextoLargo, validarTextoCorto, DESCRIPCION_MIN, DESCRIPCION_MAX } from "@/utils/validation";
 
 /**
  * De dónde sale un reporte. La celda del plano es solo uno de los sitios: también se reporta
@@ -43,11 +44,19 @@ const emptyIncidenteForm = (usuarioReportaId = ""): IncidenteForm => ({
  * La prioridad solo se le exige a quien puede elegirla: Comunidad SENA no la define (la pone
  * el personal autorizado al aceptar el reporte, ver novedades.service.js).
  */
+/** Tope del campo "¿de qué tipo?" cuando el incidente es "otro" (VARCHAR(100) en la API). */
+export const TIPO_OTRO_MAX = 100;
+
 export const validarIncidenteForm = (form: IncidenteForm, puedeElegirPrioridad: boolean): string | null => {
-  if (!form.descripcion.trim()) return "La descripción es obligatoria.";
+  // Una descripción de una palabra no le sirve a quien la atiende; y la columna tiene tope.
+  const errorDescripcion = validarTextoLargo(form.descripcion, "La descripción", { min: DESCRIPCION_MIN, max: DESCRIPCION_MAX });
+  if (errorDescripcion) return `${errorDescripcion}.`;
   if (form.clase === "novedad") return null;
   if (!form.tipoNovedad) return "Elige el tipo de incidente.";
-  if (form.tipoNovedad === "otro" && !form.tipoOtro.trim()) return "Indica de qué tipo de incidente se trata.";
+  if (form.tipoNovedad === "otro") {
+    const errorTipoOtro = validarTextoCorto(form.tipoOtro, "El tipo de incidente", TIPO_OTRO_MAX, true);
+    if (errorTipoOtro) return form.tipoOtro.trim() ? `${errorTipoOtro}.` : "Indica de qué tipo de incidente se trata.";
+  }
   if (puedeElegirPrioridad && !form.prioridad) return "Elige la prioridad del incidente.";
   return null;
 };

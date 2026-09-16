@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { IconBan as Ban } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
+import { validarTextoLargo, MOTIVO_MIN, MOTIVO_MAX } from "@/utils/validation";
 
 const C = theme;
 
@@ -45,7 +46,10 @@ export function MotivoReservaModal({ accion, placa, fecha, onCancel, onConfirm }
   const t = TEXTOS[accion];
   const [motivo, setMotivo] = useState("");
   const [touched, setTouched] = useState(false);
-  const error = !motivo.trim() ? t.error : undefined;
+  // Vacío: el mensaje propio de la acción. Muy corto o muy largo: la regla común de motivos.
+  const error = !motivo.trim()
+    ? t.error
+    : (validarTextoLargo(motivo, "El motivo", { min: MOTIVO_MIN, max: MOTIVO_MAX }) ?? undefined);
 
   const handleConfirm = () => {
     setTouched(true);
@@ -70,6 +74,7 @@ export function MotivoReservaModal({ accion, placa, fecha, onCancel, onConfirm }
       <textarea
         id="motivo-reserva"
         rows={3}
+        maxLength={MOTIVO_MAX}
         value={motivo}
         onChange={(e) => setMotivo(e.target.value)}
         onBlur={() => setTouched(true)}

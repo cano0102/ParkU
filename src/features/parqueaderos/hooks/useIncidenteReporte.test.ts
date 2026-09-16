@@ -163,7 +163,7 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     const data = { addIncidente: vi.fn() };
     const { result } = setup(data);
 
-    act(() => result.current.setIncidenteForm((f) => ({ ...f, descripcion: 'Algo pasó' })));
+    act(() => result.current.setIncidenteForm((f) => ({ ...f, descripcion: 'Algo pasó en la celda' })));
     await act(async () => { await result.current.registrarIncidente(); });
 
     expect(data.addIncidente).not.toHaveBeenCalled();
@@ -175,7 +175,7 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     const { result } = setup(data);
 
     act(() => result.current.setIncidenteForm((f) => ({
-      ...f, descripcion: 'Algo raro', tipoNovedad: 'otro', prioridad: 'baja',
+      ...f, descripcion: 'Algo raro en la celda', tipoNovedad: 'otro', prioridad: 'baja',
     })));
     await act(async () => { await result.current.registrarIncidente(); });
 

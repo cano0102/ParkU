@@ -4,10 +4,10 @@ import type { Usuario } from "@/services/api/usuarios";
 import type { Conductor } from "@/services/api/conductores";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
-import { validarNumeroDocumento } from "@/utils/validation";
+import { validarNumeroDocumento, validarNombrePersona, validarCorreo } from "@/utils/validation";
 import { useTiposUsuario } from "@/features/conductores";
 import {
-  FormState, NOMBRE_MIN, NOMBRE_MAX, EMAIL_REGEX, SUPER_ADMIN_CORREO, validarTelefono, validarPassword,
+  FormState, SUPER_ADMIN_CORREO, validarTelefono, validarPassword,
 } from "../lib/helpers";
 
 interface UseUsuarioFormArgs {
@@ -80,20 +80,14 @@ export function useUsuarioForm({ initial, isEdit, roles, usuarios, conductores, 
     const nombre = f.nombre.trim();
     const correo = f.correo.trim();
 
-    // Nombre completo: longitud mínima y máxima
-    if (!nombre) {
-      nextErrors.nombre = "El nombre es obligatorio";
-    } else if (nombre.length < NOMBRE_MIN) {
-      nextErrors.nombre = `El nombre debe tener al menos ${NOMBRE_MIN} caracteres`;
-    } else if (nombre.length > NOMBRE_MAX) {
-      nextErrors.nombre = `El nombre no puede superar ${NOMBRE_MAX} caracteres`;
-    }
+    // Nombre completo: longitud y solo letras (misma regla que el resto de formularios).
+    const errorNombre = validarNombrePersona(nombre);
+    if (errorNombre) nextErrors.nombre = errorNombre;
 
-    // Correo: formato válido, y no repetido con otro usuario
-    if (!correo) {
-      nextErrors.correo = "El correo es obligatorio";
-    } else if (!EMAIL_REGEX.test(correo)) {
-      nextErrors.correo = "Ingresa un correo electrónico válido";
+    // Correo: formato válido, tope de la columna, y no repetido con otro usuario
+    const errorCorreo = validarCorreo(correo);
+    if (errorCorreo) {
+      nextErrors.correo = errorCorreo;
     } else if (usuarios.some((u) => u.id !== editingId && u.correo.trim().toLowerCase() === correo.toLowerCase())) {
       nextErrors.correo = "Ya existe un usuario registrado con este correo";
     }
