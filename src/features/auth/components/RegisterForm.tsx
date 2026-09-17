@@ -21,7 +21,7 @@ export function RegisterForm({ identificacionRef, formState: f }: RegisterFormPr
   const navigate = useNavigate();
 
   return (
-    <div style={{ width: "100%", maxWidth: 420 }}>
+    <div style={{ width: "100%", maxWidth: 560 }}>
       <button
         type="button"
         className="mobile-back"

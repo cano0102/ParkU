@@ -1,12 +1,9 @@
 import { useEffect, useRef } from "react";
-import { theme } from "@/styles/theme";
 import { useAnimated } from "./hooks/useAnimated";
 import { useRegisterForm } from "./hooks/useRegisterForm";
 import { registerStyles } from "./lib/styles";
 import { RegisterLeftPanel } from "./components/RegisterLeftPanel";
 import { RegisterForm } from "./components/RegisterForm";
-
-const COLORS = theme;
 
 export function Register() {
   const visible = useAnimated();
@@ -23,12 +20,9 @@ export function Register() {
 
       <div
         style={{
-          minHeight: "100vh",
+          minHeight: "100dvh",
           background: "linear-gradient(180deg, #ffffff 0%, #F3F8F1 100%)",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "1.2rem",
           position: "relative",
           overflowX: "hidden",
         }}
@@ -47,24 +41,23 @@ export function Register() {
         />
 
         <div
+          /* A pantalla completa, igual que el login: columna verde + formulario ocupan toda la
+             ventana. El formulario es largo, así que su columna hace scroll por sí sola cuando
+             no cabe, sin que la columna verde se vaya con él. */
           className={`fade ${visible ? "active" : ""} register-grid`}
           style={{
             width: "100%",
-            maxWidth: 900,
+            minHeight: "100dvh",
             display: "grid",
-            gridTemplateColumns: "0.85fr 1.15fr",
-            overflow: "hidden",
-            borderRadius: 24,
+            gridTemplateColumns: "minmax(0, 5fr) minmax(0, 7fr)",
             background: "#fff",
-            border: `1px solid ${COLORS.border}`,
-            boxShadow: "0 20px 55px rgba(15, 23, 42, 0.08)",
             position: "relative",
             zIndex: 1,
           }}
         >
           <RegisterLeftPanel />
 
-          <div style={{ padding: "2rem clamp(1.5rem, 3vw, 2.5rem)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ padding: "clamp(1.5rem, 4vh, 3rem) clamp(1.25rem, 6vw, 5rem)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <RegisterForm identificacionRef={primerCampoRef} formState={formState} />
           </div>
         </div>

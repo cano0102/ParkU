@@ -5,7 +5,7 @@ import {
   IconLock as Lock,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
-import { PASSWORD_MIN, PASSWORD_MAX } from "@/utils/validation";
+import { PASSWORD_MIN, PASSWORD_MAX, PASSWORD_AYUDA } from "@/utils/validation";
 
 const COLORS = theme;
 
@@ -75,7 +75,7 @@ export function PasswordFields({
           </p>
         ) : (
           <p style={{ marginTop: 6, fontSize: 11, color: COLORS.textLight }}>
-            Mínimo {PASSWORD_MIN} caracteres.
+            {PASSWORD_MIN}-{PASSWORD_MAX} caracteres. {PASSWORD_AYUDA}
           </p>
         )}
       </div>

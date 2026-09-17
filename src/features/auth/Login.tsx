@@ -1,11 +1,8 @@
-import { theme } from "@/styles/theme";
 import { useAnimated } from "./hooks/useAnimated";
 import { useLoginForm } from "./hooks/useLoginForm";
 import { loginStyles } from "./lib/styles";
 import { LoginLeftPanel } from "./components/LoginLeftPanel";
 import { LoginForm } from "./components/LoginForm";
-
-const COLORS = theme;
 
 export function Login() {
   const visible = useAnimated();
@@ -17,12 +14,9 @@ export function Login() {
 
       <div
         style={{
-          minHeight: "100vh",
+          minHeight: "100dvh",
           background: "linear-gradient(180deg, #ffffff 0%, #F3F8F1 100%)",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "1.2rem",
           position: "relative",
           overflowX: "hidden",
         }}
@@ -41,24 +35,23 @@ export function Login() {
         />
 
         <div
+          /* A pantalla completa: la columna verde y el formulario se reparten todo el ancho y el
+             alto de la ventana, sin la tarjeta centrada de antes (que dejaba media pantalla en
+             blanco en un monitor normal). En móvil la columna verde se oculta (ver styles.ts). */
           className={`fade ${visible ? "active" : ""} login-grid`}
           style={{
             width: "100%",
-            maxWidth: 820,
+            minHeight: "100dvh",
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            overflow: "hidden",
-            borderRadius: 24,
+            gridTemplateColumns: "minmax(0, 5fr) minmax(0, 7fr)",
             background: "#fff",
-            border: `1px solid ${COLORS.border}`,
-            boxShadow: "0 20px 55px rgba(15, 23, 42, 0.08)",
             position: "relative",
             zIndex: 1,
           }}
         >
           <LoginLeftPanel />
 
-          <div style={{ padding: "2rem clamp(1.5rem, 3vw, 2.5rem)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ padding: "clamp(1.5rem, 4vh, 3rem) clamp(1.25rem, 6vw, 5rem)", display: "flex", alignItems: "center", justifyContent: "center" }}>
             <LoginForm formState={formState} />
           </div>
         </div>

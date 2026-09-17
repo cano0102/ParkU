@@ -17,7 +17,7 @@ export function LoginForm({ formState: f }: LoginFormProps) {
   const navigate = useNavigate();
 
   return (
-    <div style={{ width: "100%", maxWidth: 360 }}>
+    <div style={{ width: "100%", maxWidth: 440 }}>
       <button
         type="button"
         className="mobile-back"
