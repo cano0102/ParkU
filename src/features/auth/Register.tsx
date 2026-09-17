@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useAnimated } from "./hooks/useAnimated";
 import { useRegisterForm } from "./hooks/useRegisterForm";
 import { registerStyles } from "./lib/styles";
@@ -8,11 +8,9 @@ import { RegisterForm } from "./components/RegisterForm";
 export function Register() {
   const visible = useAnimated();
   const formState = useRegisterForm();
+  // El foco al primer campo lo pone RegisterForm cuando el formulario aparece (tras confirmar
+  // que la persona tiene vehículo): al montar la página ese campo todavía no existe.
   const primerCampoRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    primerCampoRef.current?.focus();
-  }, []);
 
   return (
     <>

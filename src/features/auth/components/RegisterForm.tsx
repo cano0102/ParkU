@@ -1,4 +1,4 @@
-import type { Ref } from "react";
+import { useEffect, useState, type RefObject } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { IconArrowLeft as ArrowLeft, IconLoader2 as Loader2 } from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
@@ -8,17 +8,24 @@ import { IdentidadFields } from "./IdentidadFields";
 import { NombreCorreoTelefonoFields } from "./NombreCorreoTelefonoFields";
 import { PasswordFields } from "./PasswordFields";
 import { TerminosCheckbox } from "./TerminosCheckbox";
+import { RequisitoVehiculo } from "./RequisitoVehiculo";
 
 const COLORS = theme;
 
 interface RegisterFormProps {
-  identificacionRef: Ref<HTMLInputElement>;
+  identificacionRef: RefObject<HTMLInputElement>;
   formState: ReturnType<typeof useRegisterForm>;
 }
 
 /** Encabezado, campos y pie de la columna derecha del registro. */
 export function RegisterForm({ identificacionRef, formState: f }: RegisterFormProps) {
   const navigate = useNavigate();
+  // Filtro previo (ver RequisitoVehiculo): el formulario solo aparece cuando la persona confirma
+  // que tiene carro o moto; sin vehículo, la cuenta no le sirve para nada.
+  const [tieneVehiculo, setTieneVehiculo] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (tieneVehiculo) identificacionRef.current?.focus();
+  }, [tieneVehiculo, identificacionRef]);
 
   return (
     <div style={{ width: "100%", maxWidth: 560 }}>
@@ -55,10 +62,17 @@ export function RegisterForm({ identificacionRef, formState: f }: RegisterFormPr
         </h2>
 
         <p style={{ color: COLORS.textLight, lineHeight: 1.6, fontSize: 13 }}>
-          Completa tus datos para registrarte en el sistema ParkU.
+          {tieneVehiculo
+            ? "Completa tus datos para registrarte en el sistema ParkU."
+            : "La cuenta es para quienes tienen carro o moto que estacionar en el SENA."}
         </p>
       </div>
 
+      {!tieneVehiculo && (
+        <RequisitoVehiculo tieneVehiculo={tieneVehiculo} onResponder={setTieneVehiculo} />
+      )}
+
+      {tieneVehiculo && (
       <form onSubmit={f.handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
         <IdentidadFields
           tipoDocumento={f.form.tipoDocumento}
@@ -138,6 +152,7 @@ export function RegisterForm({ identificacionRef, formState: f }: RegisterFormPr
           {f.loading ? "Creando cuenta..." : "Crear cuenta"}
         </button>
       </form>
+      )}
 
       <div
         style={{
