@@ -13,10 +13,8 @@ export function RegisterLeftPanel() {
       className="register-left"
       style={{
         padding: "clamp(1.5rem, 4vh, 3rem) clamp(1.5rem, 4vw, 3.5rem)",
-        minHeight: "100dvh",
-        position: "sticky",
-        top: 0,
-        alignSelf: "start",
+        minHeight: 0,
+        position: "relative",
         background: "linear-gradient(135deg, #39A900, #2D7D00)",
         color: "#fff",
         overflow: "hidden",
