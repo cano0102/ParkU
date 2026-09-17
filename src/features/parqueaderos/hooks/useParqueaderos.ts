@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as parqueaderosService from '@/services/api/parqueaderos';
 import type { Parqueadero } from '@/services/api/parqueaderos';
-import { createQueryHooks } from '@/services/core/queryFactory';
+import { createQueryHooks, STALE_TIME } from '@/services/core/queryFactory';
 
 /* Estas 3 mutaciones están hechas a mano (no con `hooks.useCreate/useUpdate/useRemove`, que sí
  * traen su propio `onError`) porque necesitan invalidar más de una query — por eso cada una
@@ -15,7 +15,7 @@ function avisarError(error: unknown, fallback: string) {
 
 export type { Parqueadero };
 
-const hooks = createQueryHooks<Parqueadero>('parqueaderos', parqueaderosService);
+const hooks = createQueryHooks<Parqueadero>('parqueaderos', parqueaderosService, { staleTime: STALE_TIME.MAESTRO });
 
 export const useParqueaderos = hooks.useList;
 

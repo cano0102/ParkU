@@ -1,5 +1,4 @@
-import { forwardRef, type ElementType, type ReactNode } from "react";
-import { motion, type Variants } from "framer-motion";
+import { forwardRef, type CSSProperties, type ElementType, type ReactNode } from "react";
 import {
   IconBike as Bike,
   IconCar as Car,
@@ -11,21 +10,19 @@ import { occupancyOf, statusColor, type ParkingLot } from "../lib/helpers";
 
 const COLORS = theme;
 
-export const fadeUp: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
-};
+/* Las entradas del Dashboard son animaciones CSS (`.anim-*` en styles/sena-overrides.css), no
+   framer-motion: la librería pesaba 166 kB solo para estos fundidos y corría las barras y el
+   donut desde JavaScript cuadro a cuadro. En CSS las anima el compositor, y `delay` da el
+   escalonado que antes hacía `staggerChildren`. */
+export const retraso = (ms: number): CSSProperties | undefined => (ms > 0 ? { animationDelay: `${ms}ms` } : undefined);
 
-export const Card = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
-  <motion.div
-    variants={fadeUp}
-    initial="hidden"
-    whileInView="show"
-    viewport={{ once: true }}
-    className={`rounded-2xl bg-white p-6 sm:p-7 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] ${className}`}
+export const Card = ({ children, className = "", delay = 0 }: { children: ReactNode; className?: string; delay?: number }) => (
+  <div
+    className={`anim-fade-up rounded-2xl bg-white p-6 sm:p-7 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] ${className}`}
+    style={retraso(delay)}
   >
     {children}
-  </motion.div>
+  </div>
 );
 
 export const SectionTitle = ({ icon: Icon, title, subtitle, color, actionLabel, onAction }: { icon: ElementType; title: string; subtitle?: string; color: string; actionLabel?: string; onAction?: () => void }) => (
@@ -51,14 +48,10 @@ export const SectionTitle = ({ icon: Icon, title, subtitle, color, actionLabel, 
   </div>
 );
 
-export const Kpi = ({ label, value, detail, icon: Icon, color, onClick }: { label: string; value: string | number; detail: string; icon: ElementType; color: string; onClick?: () => void }) => (
-  <motion.div
-    variants={fadeUp}
-    initial="hidden"
-    whileInView="show"
-    viewport={{ once: true }}
-    whileHover={{ y: -2, transition: { duration: 0.2 } }}
-    className={onClick ? "cursor-pointer" : "cursor-default"}
+export const Kpi = ({ label, value, detail, icon: Icon, color, onClick, delay = 0 }: { label: string; value: string | number; detail: string; icon: ElementType; color: string; onClick?: () => void; delay?: number }) => (
+  <div
+    className={`anim-fade-up hover-lift ${onClick ? "cursor-pointer" : "cursor-default"}`}
+    style={retraso(delay)}
     onClick={onClick}
   >
     <div className="group rounded-2xl bg-white p-6 shadow-[0_4px_20px_rgba(0,0,0,0.04)] border border-[#E2E8F0] transition-shadow hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)]">
@@ -74,7 +67,7 @@ export const Kpi = ({ label, value, detail, icon: Icon, color, onClick }: { labe
         {onClick && <ChevronRight size={16} className="shrink-0 text-[#CBD5E1] transition-transform group-hover:translate-x-0.5 group-hover:text-[#94A3B8]" />}
       </div>
     </div>
-  </motion.div>
+  </div>
 );
 
 export const Donut = ({ value, size = 170 }: { value: number; size?: number }) => {
@@ -88,12 +81,12 @@ export const Donut = ({ value, size = 170 }: { value: number; size?: number }) =
     <div className="relative mx-auto flex items-center justify-center" style={{ width: size, height: size }}>
       <svg width={size} height={size} className="-rotate-90">
         <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E2E8F0" strokeWidth={stroke} />
-        <motion.circle
+        {/* Entra desde el anillo vacío (`--donut-circ`) y, cuando cambia el valor, transiciona al nuevo. */}
+        <circle
           cx={size / 2} cy={size / 2} r={radius} fill="none" stroke={color} strokeLinecap="round" strokeWidth={stroke}
           strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.4, ease: "easeOut" }}
+          className="anim-donut"
+          style={{ strokeDashoffset: offset, ["--donut-circ" as string]: circumference }}
         />
       </svg>
       <div className="absolute text-center">
@@ -135,13 +128,7 @@ export const LotRow = forwardRef<HTMLButtonElement, { lot: ParkingLot; selected:
         <p className="text-base font-bold shrink-0" style={{ color }}>{pct}%</p>
       </div>
       <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-[#E2E8F0]">
-        <motion.div
-          className="h-full rounded-full"
-          style={{ backgroundColor: color }}
-          initial={{ width: 0 }}
-          animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-        />
+        <div className="anim-grow-x h-full rounded-full" style={{ backgroundColor: color, width: `${pct}%` }} />
       </div>
     </button>
   );
@@ -163,9 +150,9 @@ export const HorizontalBars = ({ lots }: { lots: ParkingLot[] }) => (
             <span className="text-[#64748B] font-medium">{lot.occupied}/{lot.capacity}</span>
           </div>
           <div className="flex h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
-            <motion.div initial={{ width: 0 }} whileInView={{ width: `${occupiedPct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.05 }} style={{ backgroundColor: color }} />
-            <motion.div initial={{ width: 0 }} whileInView={{ width: `${reservedPct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.1 }} style={{ backgroundColor: COLORS.amber }} />
-            <motion.div initial={{ width: 0 }} whileInView={{ width: `${maintenancePct}%` }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.15 }} style={{ backgroundColor: COLORS.red }} />
+            <div className="anim-grow-x" style={{ backgroundColor: color, width: `${occupiedPct}%`, animationDelay: "50ms" }} />
+            <div className="anim-grow-x" style={{ backgroundColor: COLORS.amber, width: `${reservedPct}%`, animationDelay: "100ms" }} />
+            <div className="anim-grow-x" style={{ backgroundColor: COLORS.red, width: `${maintenancePct}%`, animationDelay: "150ms" }} />
           </div>
         </div>
       );

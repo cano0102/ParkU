@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import {
   IconCalendarMonth as CalendarDays,
   IconClockHour3 as Clock3,
@@ -6,7 +5,6 @@ import {
 } from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 import { formatClock, formatDate } from "../lib/helpers";
-import { fadeUp } from "./DashboardPrimitives";
 
 interface DashboardHeaderProps {
   now: Date;
@@ -15,11 +13,8 @@ interface DashboardHeaderProps {
 /** Banner superior del Dashboard: logo, título y reloj institucional. */
 export function DashboardHeader({ now }: DashboardHeaderProps) {
   return (
-    <motion.header
-      variants={fadeUp}
-      initial="hidden"
-      animate="show"
-      className="relative overflow-hidden rounded-[20px] p-6 sm:p-7 text-white shadow-[0_10px_28px_rgba(45,125,0,0.22)]"
+    <header
+      className="anim-fade-up relative overflow-hidden rounded-[20px] p-6 sm:p-7 text-white shadow-[0_10px_28px_rgba(45,125,0,0.22)]"
       style={{ background: "linear-gradient(135deg, #39A900 0%, #2D7D00 100%)" }}
     >
       <div aria-hidden className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/[0.07]" />
@@ -50,6 +45,6 @@ export function DashboardHeader({ now }: DashboardHeaderProps) {
           </div>
         </div>
       </div>
-    </motion.header>
+    </header>
   );
 }

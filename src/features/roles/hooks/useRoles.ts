@@ -2,11 +2,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as rolesService from '@/services/api/roles';
 import type { Rol } from '@/services/api/roles';
-import { createQueryHooks } from '@/services/core/queryFactory';
+import { createQueryHooks, STALE_TIME } from '@/services/core/queryFactory';
 
 export type { Rol };
 
-const hooks = createQueryHooks<Rol>('roles', rolesService);
+const hooks = createQueryHooks<Rol>('roles', rolesService, { staleTime: STALE_TIME.MAESTRO });
 
 export const useRoles = hooks.useList;
 export const useCreateRol = hooks.useCreate;
@@ -31,7 +31,7 @@ export function useRemoveRol() {
 /** Catálogo completo de permisos reales del backend (`/api/permisos`), agrupado por módulo
  *  — ver PermisosEditor.tsx. No cambia según el rol, así que se cachea aparte de `useRoles`. */
 export function usePermisosCatalogo() {
-  return useQuery({ queryKey: ['permisos-catalogo'], queryFn: rolesService.getPermisosCatalogo });
+  return useQuery({ queryKey: ['permisos-catalogo'], queryFn: rolesService.getPermisosCatalogo, staleTime: STALE_TIME.MAESTRO });
 }
 
 /**

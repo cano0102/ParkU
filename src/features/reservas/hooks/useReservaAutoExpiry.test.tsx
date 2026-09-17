@@ -127,4 +127,34 @@ describe('useReservaAutoExpiry', () => {
 
     localStorage.clear();
   });
+
+  /**
+   * La lista de reservas puede arrancar desde la caché guardada en localStorage (ver
+   * services/core/cacheQueries.ts), de horas atrás. Vencer con esa copia cambiaría de estado
+   * reservas que alguien ya aceptó o terminó mientras tanto, así que el barrido tiene que
+   * esperar a la primera respuesta real del backend en la sesión.
+   */
+  it('no vence nada a partir de una lista restaurada de la caché: espera a la respuesta del backend', async () => {
+    const client = createTestQueryClient();
+    client.setQueryData(['reservas'], [{
+      id: '99', tipoReserva: 'vehiculo_sena', vehiculoId: '1', celdaId: '1', conductorId: '1', motivo: 'Vieja',
+      fechaReserva: '2020-01-01', horaInicio: '08:00', horaFin: '10:00', estado: 'pendiente', motivoRechazo: '',
+    }]);
+    // Sin red: si el barrido corriera con la copia restaurada, intentaría PATCH /reservas/99/estado.
+    apiFetchMock.mockImplementation(() => new Promise(() => {}));
+    const llamadasPrevias = apiFetchMock.mock.calls.length;
+
+    renderHook(() => useReservaAutoExpiry(), {
+      wrapper: ({ children }) => (
+        <QueryClientProvider client={client}><AuthProvider>{children}</AuthProvider></QueryClientProvider>
+      ),
+    });
+    await act(async () => { await new Promise((r) => setTimeout(r, 60)); });
+
+    const llamadasNuevas = apiFetchMock.mock.calls.slice(llamadasPrevias).map(([path]) => path);
+    expect(llamadasNuevas).toContain('/reservas');
+    expect(llamadasNuevas.some((path) => String(path).includes('/reservas/99'))).toBe(false);
+
+    apiFetchMock.mockImplementation(backends.apiFetch);
+  });
 });

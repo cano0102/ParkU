@@ -2,8 +2,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { toast } from 'sonner';
 import { createFakeRestBackend } from '@/test/fakeApi';
+import { QueryClient } from '@tanstack/react-query';
 import { useRoles, useCreateRol, useUpdateRol, useRemoveRol } from '@/features/roles';
 import { createTestQueryClient, withQueryClient } from '@/test/queryWrapper';
+import { STALE_TIME } from './queryFactory';
 
 const apiFetchMock = vi.hoisted(() => vi.fn());
 vi.mock('@/services/core/http', () => ({ apiFetch: apiFetchMock }));
@@ -119,5 +121,31 @@ describe('services/core/queryFactory (vía useRoles)', () => {
     });
 
     expect(toast.error).toHaveBeenCalledWith('Ya existe un rol con ese nombre');
+  });
+
+  /**
+   * El backend limita las peticiones por IP (100 cada 15 min), así que cuánto tiempo se
+   * reutiliza una lista sin volver a pedirla importa. La fábrica acepta un `staleTime` por
+   * dominio y, si no se le da, tiene que respetar el del QueryClient: un
+   * `staleTime: undefined` explícito pisaría el valor por defecto (React Query mezcla las
+   * opciones con spread) y dejaría la lista caducada al instante — una petición por montaje.
+   */
+  it('useList respeta el staleTime del QueryClient cuando la fábrica no fija uno', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: 60_000 } } });
+    const wrapper = withQueryClient(client);
+
+    const { result } = renderHook(() => useRoles(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(client.getQueryCache().find({ queryKey: ['roles'] })?.observers[0]?.options.staleTime).toBe(STALE_TIME.MAESTRO);
+
+    const { createQueryHooks } = await import('./queryFactory');
+    const sinStale = createQueryHooks<{ id: string }>('sin-stale', {
+      getAll: async () => [], getById: async () => undefined, create: async (d) => ({ id: '1', ...d }), update: async () => ({ id: '1' }), remove: async () => {},
+    });
+    const lista = renderHook(() => sinStale.useList(), { wrapper });
+    await waitFor(() => expect(lista.result.current.isSuccess).toBe(true));
+    expect(client.getQueryCache().find({ queryKey: ['sin-stale'] })?.observers[0]?.options.staleTime).toBe(60_000);
+    expect(lista.result.current.isStale).toBe(false);
   });
 });

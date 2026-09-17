@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import {
   IconCalendarClock as CalendarClock,
   IconCircleCheck as CheckCircle2,
@@ -8,7 +7,7 @@ import {
 } from "@tabler/icons-react";
 import type { ElementType } from "react";
 import { theme } from "@/styles/theme";
-import { fadeUp } from "./DashboardPrimitives";
+import { retraso } from "./DashboardPrimitives";
 
 const C = theme;
 
@@ -83,7 +82,7 @@ export function AvisosPanel({ reservasPendientes, incidentesPendientes, novedade
 
   if (avisos.length === 0) {
     return (
-      <motion.div variants={fadeUp} className="grid gap-5 sm:grid-cols-2">
+      <div className="anim-fade-up grid gap-5 sm:grid-cols-2" style={retraso(250)}>
         <div className="flex items-center gap-3 rounded-2xl border border-[#B3E6A1] bg-[#EAF7E6] p-4">
           <CheckCircle2 size={20} color={C.primary} className="shrink-0" />
           <div>
@@ -91,12 +90,12 @@ export function AvisosPanel({ reservasPendientes, incidentesPendientes, novedade
             <p className="text-xs text-[#3F7D2E]">Sin solicitudes de reserva, incidentes ni novedades sin atender</p>
           </div>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <motion.div variants={fadeUp} className="grid gap-5 sm:grid-cols-2">
+    <div className="anim-fade-up grid gap-5 sm:grid-cols-2" style={retraso(250)}>
       {avisos.map((aviso) => (
         <button
           key={aviso.clave}
@@ -112,6 +111,6 @@ export function AvisosPanel({ reservasPendientes, incidentesPendientes, novedade
           <ChevronRight size={16} color={aviso.color} className="ml-auto shrink-0 opacity-70" />
         </button>
       ))}
-    </motion.div>
+    </div>
   );
 }

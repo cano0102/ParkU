@@ -1,13 +1,19 @@
 import { defineConfig } from 'vitest/config'
 import path from 'path'
 import react from '@vitejs/plugin-react'
+import { tablerIconsPorArchivo } from './vite.plugins'
 
 export default defineConfig({
-  plugins: [react()],
+  // El plugin de iconos también aquí: sin él, cada archivo de test que monte un componente con
+  // un icono carga el paquete completo de @tabler (4 MB) en su worker.
+  plugins: [react(), tablerIconsPorArchivo()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  define: {
+    __APP_BUILD_ID__: JSON.stringify('test'),
   },
   test: {
     environment: 'jsdom',

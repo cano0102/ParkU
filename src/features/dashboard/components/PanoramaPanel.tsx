@@ -1,8 +1,7 @@
-import { motion } from "framer-motion";
 import { IconAlertTriangle as AlertTriangle, IconGauge as Gauge } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { statusColor } from "../lib/helpers";
-import { Card, Donut, SectionTitle } from "./DashboardPrimitives";
+import { Card, Donut, SectionTitle, retraso } from "./DashboardPrimitives";
 
 const COLORS = theme;
 
@@ -40,17 +39,14 @@ export function PanoramaPanel({ pct, occupied, available, maintenance, alerts }:
           const color = alert.tone === "red" ? COLORS.red : alert.tone === "amber" ? COLORS.amber : COLORS.primary;
           const bg = alert.tone === "red" ? "#FEE2E2" : alert.tone === "amber" ? "#FEF3C7" : "#EAF7E6";
           return (
-            <motion.div
+            <div
               key={alert.label}
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex items-center gap-3 rounded-xl p-3 border"
-              style={{ backgroundColor: bg, borderColor: color + "40" }}
+              className="anim-fade-left flex items-center gap-3 rounded-xl p-3 border"
+              style={{ backgroundColor: bg, borderColor: color + "40", ...retraso(i * 100) }}
             >
               <AlertTriangle size={16} color={color} />
               <p className="text-sm font-medium text-[#1a1a2e]/80">{alert.label}</p>
-            </motion.div>
+            </div>
           );
         })}
       </div>

@@ -1,17 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#39A900" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <title>ParkU · SENA</title>
+    <!-- La API está en otro dominio: abrir la conexión (DNS + TCP + TLS) desde ya ahorra ese
+         tiempo a la primera petición. `crossorigin` porque las peticiones van con CORS. -->
+    <link rel="preconnect" href="%VITE_API_URL%" crossorigin />
+    <!-- Tipografía del mismo origen (ver src/styles/fonts.css): se pide en paralelo con el JS
+         en vez de esperar a que el CSS la descubra. -->
+    <link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
+  </head>
 
-  <!DOCTYPE html>
-  <html lang="es">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <link rel="icon" type="image/png" href="/favicon.png" />
-      <title>ParkU · SENA</title>
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
-    </head>
-
-    <body>
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-    </body>
-  </html>
-  
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

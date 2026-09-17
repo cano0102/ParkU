@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import {
   IconCar as Car,
@@ -72,19 +71,15 @@ export default function Dashboard() {
         ::-webkit-scrollbar-thumb:hover { background: #94A3B8; }
       `}</style>
 
-      <motion.div
-        initial="hidden"
-        animate="show"
-        variants={{ show: { transition: { staggerChildren: 0.05 } } }}
-        className="dashboard-root flex flex-col gap-7"
-      >
+      <div className="dashboard-root flex flex-col gap-7">
         <DashboardHeader now={now} />
 
+        {/* Escalonado de 50 ms entre tarjetas (antes `staggerChildren`), ver DashboardPrimitives. */}
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          <Kpi label="Celdas totales" value={d.totals.capacity} detail={`${d.totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} onClick={() => navigate("/app/parqueaderos")} />
-          <Kpi label="Celdas disponibles" value={d.totals.available} detail={`${d.totals.reserved} reservadas · ${d.totals.maintenance} en mant.`} icon={DoorOpen} color={COLORS.blue} onClick={() => navigate("/app/parqueaderos")} />
-          <Kpi label="Vehículos registrados" value={d.vehiculosActivos.length} detail={`${d.vehicleDistribution[0].value} carros · ${d.vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
-          <Kpi label="Conductores registrados" value={d.conductoresActivos.length} detail={`${d.conductorDistribution[0].value} aprendices · ${d.conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
+          <Kpi delay={50} label="Celdas totales" value={d.totals.capacity} detail={`${d.totals.activeLots} parqueaderos activos`} icon={ParkingCircle} color={COLORS.primary} onClick={() => navigate("/app/parqueaderos")} />
+          <Kpi delay={100} label="Celdas disponibles" value={d.totals.available} detail={`${d.totals.reserved} reservadas · ${d.totals.maintenance} en mant.`} icon={DoorOpen} color={COLORS.blue} onClick={() => navigate("/app/parqueaderos")} />
+          <Kpi delay={150} label="Vehículos registrados" value={d.vehiculosActivos.length} detail={`${d.vehicleDistribution[0].value} carros · ${d.vehicleDistribution[1].value} motos`} icon={Car} color={COLORS.amber} onClick={() => navigate("/app/conductores")} />
+          <Kpi delay={200} label="Conductores registrados" value={d.conductoresActivos.length} detail={`${d.conductorDistribution[0].value} aprendices · ${d.conductorDistribution[1].value} instructores`} icon={Users} color={COLORS.purple} onClick={() => navigate("/app/conductores")} />
         </div>
 
         {/* Lo que espera a alguien va arriba, antes que cualquier estadística: son las dos
@@ -128,7 +123,7 @@ export default function Dashboard() {
             onVerReservas={() => navigate("/app/reservas")}
           />
         </div>
-      </motion.div>
+      </div>
     </>
   );
 }

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { useReservaAutoExpiry } from "@/features/reservas";
+import { precargarRutas } from "@/routes/paginas";
 import { groups, HIDE_LAYOUT_ROUTES, menuItems, SIDEBAR_W } from "../lib/menu";
 import { usePendientes } from "./usePendientes";
 
@@ -25,7 +26,18 @@ export function useMainLayoutState() {
   const sidebarWidth = collapsed ? 68 : SIDEBAR_W;
 
   // Solo se muestran las secciones que el rol del usuario tiene permitidas
-  const visibleMenuItems = menuItems.filter((item) => hasPermission(item.permission));
+  // (memorizado: es la dependencia de la precarga de abajo, y `hasPermission` solo cambia
+  // cuando el AuthProvider vuelve a renderizar — login, logout o resincronización del rol.)
+  const visibleMenuItems = useMemo(() => menuItems.filter((item) => hasPermission(item.permission)), [hasPermission]);
+
+  // Con la sesión abierta, se descargan en segundo plano los chunks de todas las secciones
+  // del menú (más el perfil) en cuanto el navegador queda libre: son estáticos del CDN y
+  // pesan poco, y así cada clic del menú abre la pantalla al instante en vez de esperar la
+  // descarga. Las secciones a las que este rol no puede entrar no se piden.
+  useEffect(
+    () => precargarRutas([...visibleMenuItems.map((item) => item.path), "/app/perfil"]),
+    [visibleMenuItems],
+  );
 
   const grouped = Object.entries(groups)
     .map(([key, label]) => ({

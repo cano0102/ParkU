@@ -1,4 +1,3 @@
-import { AnimatePresence } from "framer-motion";
 import { IconLayoutDashboard as LayoutDashboard } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import type { ParkingLot } from "../lib/helpers";
@@ -45,11 +44,9 @@ export function ParqueaderosPanel({ filter, onFilterChange, visibleLots, selecte
 
       <div className="grid gap-6 lg:grid-cols-[17rem_1fr]">
         <div className="space-y-2 pr-1">
-          <AnimatePresence mode="popLayout">
-            {visibleLots.map((lot) => (
-              <LotRow key={lot.id} lot={lot} selected={selectedLot.id === lot.id} onClick={() => onSelectLot(lot.id)} />
-            ))}
-          </AnimatePresence>
+          {visibleLots.map((lot) => (
+            <LotRow key={lot.id} lot={lot} selected={selectedLot.id === lot.id} onClick={() => onSelectLot(lot.id)} />
+          ))}
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">

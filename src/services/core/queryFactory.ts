@@ -22,7 +22,33 @@ function avisarError(error: unknown) {
   toast.error(error instanceof Error ? error.message : 'No se pudo completar la operación.');
 }
 
-export function createQueryHooks<T extends { id: string }>(queryKey: string, service: CrudService<T>) {
+/**
+ * Cuánto tiempo se reutiliza una lista ya descargada antes de volver a pedirla al montar
+ * una pantalla. El backend limita a 100 solicitudes por IP cada 15 minutos (cabecera
+ * `ratelimit` de la API real), y cada pantalla pide entre 4 y 8 listas: sin distinguir, un
+ * uso normal de la app agotaba la cuota en pocos minutos de navegación.
+ *
+ * - `VIVO` (1 min, el valor por defecto de App.tsx): lo que cambia por la operación —
+ *   celdas, entradas/salidas, reservas, incidentes. Otro vigilante puede haberlas movido
+ *   desde otro equipo, así que no conviene retenerlas mucho.
+ * - `FRECUENTE` (2 min): conductores y vehículos. Se dan de alta en portería; una lista de
+ *   dos minutos basta para que un vehículo registrado en otra entrada aparezca en esta.
+ * - `MAESTRO` (5 min): roles, usuarios, parqueaderos y catálogos. Cambian pocas veces al
+ *   día y casi siempre desde este mismo navegador — y toda mutación propia invalida su lista
+ *   igual, así que el retraso solo aplica a cambios hechos por otra persona.
+ */
+export const STALE_TIME = {
+  VIVO: 60_000,
+  FRECUENTE: 2 * 60_000,
+  MAESTRO: 5 * 60_000,
+} as const;
+
+interface QueryHooksOptions {
+  /** Ver {@link STALE_TIME}. Si se omite, manda el valor por defecto del QueryClient. */
+  staleTime?: number;
+}
+
+export function createQueryHooks<T extends { id: string }>(queryKey: string, service: CrudService<T>, opciones: QueryHooksOptions = {}) {
   const key = [queryKey] as const;
 
   // Los errores de esta query los avisa `QueryCache.onError` en App.tsx, no un
@@ -42,6 +68,10 @@ export function createQueryHooks<T extends { id: string }>(queryKey: string, ser
       queryKey: key,
       queryFn: service.getAll,
       enabled: options?.enabled ?? true,
+      // Solo si se fijó: pasar `staleTime: undefined` pisa el valor por defecto del
+      // QueryClient (React Query mezcla las opciones con spread) y deja la lista siempre
+      // caducada — es decir, una petición nueva en cada montaje.
+      ...(opciones.staleTime !== undefined ? { staleTime: opciones.staleTime } : {}),
       meta: { silentError: options?.silentError ?? false },
     });
   }

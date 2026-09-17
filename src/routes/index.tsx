@@ -1,64 +1,31 @@
-import { lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
 import { ProtectedRoute } from './ProtectedRoute';
 import { NotFound } from './NotFound';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
+import { Precarga } from './Precarga';
+import {
+  Login, Register, ForgotPassword, ResetPassword,
+  Dashboard, Roles, Usuarios, Conductores, Parqueaderos, ControlSalidaPage, Reservas, Incidentes, Perfil,
+} from './paginas';
 import Landing from '@/features/landing';
-import { Login, Register, ForgotPassword, ResetPassword } from '@/features/auth';
 
-/**
- * Envuelve `import()` para que un chunk que falla al descargarse (típico tras
- * un deploy nuevo: el navegador sigue teniendo cargado el `index.html`/router
- * viejo, que apunta a un archivo hasheado que el deploy actual ya no sirve —
- * "Failed to fetch dynamically imported module") recargue la página UNA vez
- * en vez de quedar en un error. La recarga trae el `index.html` actual, con
- * las referencias correctas a los chunks del build vigente. Si tras recargar
- * sigue fallando (caída real de red, no un deploy), ya no reintenta — se
- * deja propagar a `RouteErrorBoundary`.
- */
-const CHUNK_RELOAD_KEY = 'parku-chunk-reload';
-
-function lazyConReintento<T extends { default: React.ComponentType<any> }>(factory: () => Promise<T>) {
-  return lazy(async () => {
-    try {
-      const modulo = await factory();
-      // Un chunk que sí cargó bien limpia el flag: un reintento pasado no debe
-      // impedir que una falla genuina *distinta*, más adelante, se recargue también.
-      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-      return modulo;
-    } catch (error) {
-      const yaReintento = sessionStorage.getItem(CHUNK_RELOAD_KEY) === '1';
-      if (!yaReintento) {
-        sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
-        window.location.reload();
-        return new Promise<T>(() => {}); // la página se recarga; nunca debe resolver.
-      }
-      throw error;
-    }
-  });
-}
-
-/* Páginas autenticadas: se cargan bajo demanda, no en el bundle inicial */
-const Dashboard = lazyConReintento(() => import('@/features/dashboard'));
-const Roles = lazyConReintento(() => import('@/features/roles').then(m => ({ default: m.Roles })));
-const Usuarios = lazyConReintento(() => import('@/features/usuarios'));
-const Conductores = lazyConReintento(() => import('@/features/conductores').then(m => ({ default: m.Conductores })));
-const Parqueaderos = lazyConReintento(() => import('@/features/parqueaderos'));
-const ControlSalidaPage = lazyConReintento(() => import('@/features/controlSalida').then(m => ({ default: m.ControlSalidaPage })));
-const Reservas = lazyConReintento(() => import('@/features/reservas').then(m => ({ default: m.Reservas })));
-const Incidentes = lazyConReintento(() => import('@/features/incidentes').then(m => ({ default: m.Incidentes })));
-const Perfil = lazyConReintento(() => import('@/features/perfil').then(m => ({ default: m.Perfil })));
+/* Qué se descarga por adelantado desde cada pantalla pública: lo que viene después. Desde la
+   landing, el login (y el registro, que se ofrece ahí mismo); desde el login, la primera
+   pantalla de la app, para que el "Ingresar" no se quede esperando ningún chunk. Se declaran
+   fuera del árbol para que sean la misma referencia en cada render (ver Precarga). */
+const TRAS_LANDING = ['/login', '/register'];
+const TRAS_LOGIN = ['/app/dashboard'];
 
 export const router = createBrowserRouter([
   {
     index: true,
-    element: <Landing />,
+    element: <Precarga rutas={TRAS_LANDING}><Landing /></Precarga>,
     errorElement: <RouteErrorBoundary />,
   },
   {
     path: '/login',
-    element: <Login />,
+    element: <Precarga rutas={TRAS_LOGIN}><Login /></Precarga>,
     errorElement: <RouteErrorBoundary />,
   },
   {

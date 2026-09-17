@@ -1,5 +1,4 @@
 import { useCallback, useRef } from "react";
-import { createWorker, PSM } from "tesseract.js";
 import { extraerDatosDocumento, validarPlacaColombiana } from "./helpers";
 import {
   binarizarYEscalar,
@@ -28,6 +27,12 @@ function preprocesarDocumento(video: HTMLVideoElement, roi?: RoiRect): string {
    fijo, Tesseract no encuentra ningún bloque de texto y devuelve "" siempre. Se intenta de
    más específico a más general y se usa el primer resultado que produzca una placa válida.
    SINGLE_BLOCK cubre el caso de moto (dos líneas tratadas como un solo bloque de texto). */
+/* tesseract.js se carga solo cuando alguien abre el escáner (`import()` en getWorker): es la
+   librería más pesada de la app y antes viajaba en el chunk de Parqueaderos para todo el que
+   entrara al plano, aunque nunca escaneara nada. Los modos de segmentación se copian aquí
+   (valores de tesseract.js/src/constants/PSM.js) para no tener que importar la librería solo
+   por cuatro constantes. */
+const PSM = { SINGLE_LINE: "7", SINGLE_BLOCK: "6", SPARSE_TEXT: "11", AUTO: "3" } as const;
 const PSM_INTENTOS = [PSM.SINGLE_LINE, PSM.SINGLE_BLOCK, PSM.SPARSE_TEXT, PSM.AUTO] as const;
 
 export function useOcrPlaca() {
@@ -35,7 +40,7 @@ export function useOcrPlaca() {
   const getWorker = useCallback(async () => {
     if (workerRef.current) return workerRef.current;
     if (!initRef.current) {
-      initRef.current = createWorker("spa").then(async (w: any) => {
+      initRef.current = import("tesseract.js").then(({ createWorker }) => createWorker("spa")).then(async (w: any) => {
         try {
           await w.setParameters({
             tessedit_char_whitelist: "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÑ0123456789 .:-/",

@@ -2,11 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as vehiculosService from '@/services/api/vehiculos';
 import type { Vehiculo } from '@/services/api/vehiculos';
-import { createQueryHooks } from '@/services/core/queryFactory';
+import { createQueryHooks, STALE_TIME } from '@/services/core/queryFactory';
 
 export type { Vehiculo };
 
-const hooks = createQueryHooks<Vehiculo>('vehiculos', vehiculosService);
+const hooks = createQueryHooks<Vehiculo>('vehiculos', vehiculosService, { staleTime: STALE_TIME.FRECUENTE });
 
 export const useVehiculos = hooks.useList;
 export const useCreateVehiculo = hooks.useCreate;
