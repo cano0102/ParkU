@@ -24,7 +24,18 @@ const emptyFormData = () => ({
 });
 
 /** Los tres modales de Incidentes: crear/editar (con su validación en vivo), ver detalle y confirmar eliminación. */
-export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPermitidas?: Set<string> }) {
+export function useIncidenteDialogs(
+  data: IncidentesData,
+  options?: {
+    celdaIdsPermitidas?: Set<string>;
+    /** false para quien solo reporta (Comunidad SENA): la prioridad no la elige quien reporta,
+     *  sino quien recibe el reporte al aceptarlo (ver IncidenteVehiculoAsignadoFields) — exigirla
+     *  aquí igual dejaba el formulario permanentemente inválido, con el campo que la pediría
+     *  oculto para ese rol. Por defecto true (Admin/Vigilante). */
+    puedeClasificar?: boolean;
+  }
+) {
+  const puedeClasificar = options?.puedeClasificar ?? true;
   const {
     celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda,
     cambiarEstado, usuariosReportantes,
@@ -85,7 +96,7 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
           ? (validarTextoCorto(formData.tipoOtro, "El tipo de incidente", TIPO_OTRO_MAX, true) ?? "")
           : "Indica de qué tipo de incidente se trata")
       : "",
-    prioridad: esNovedad || formData.prioridad ? "" : "Elige la prioridad",
+    prioridad: esNovedad || !puedeClasificar || formData.prioridad ? "" : "Elige la prioridad",
   };
   const formInvalido = Object.values(formErrors).some(Boolean);
   const markTouched = (campo: "descripcion") =>
@@ -220,7 +231,15 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
         const aviso = await subirFotos(selectedIncidente.id);
         toast.success("Incidente actualizado correctamente" + aviso);
       } else {
-        const creado = await addIncidente({ ...formData });
+        // Quien no puede clasificar (Comunidad SENA) nunca vio el selector de prioridad ni el
+        // de encargado — `formData` igual trae el valor por defecto (media, sin asignar) del
+        // formulario compartido con Admin/Vigilante. Se limpian antes de enviar para que el
+        // reporte quede de verdad sin definir, como promete el aviso del formulario ("quien lo
+        // reciba define la prioridad"), en vez de llegar ya con una prioridad que nadie eligió.
+        const payload = puedeClasificar
+          ? formData
+          : { ...formData, prioridad: "" as PrioridadNovedad, usuarioAsignadoId: "" };
+        const creado = await addIncidente({ ...payload });
         const aviso = creado?.id ? await subirFotos(creado.id) : "";
         toast.success("Incidente registrado correctamente" + aviso);
       }

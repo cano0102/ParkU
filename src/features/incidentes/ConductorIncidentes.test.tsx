@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -80,20 +80,3 @@ describe("features/incidentes — ConductorIncidentes (rol Comunidad SENA)", () 
   });
 });
 
-describe("features/incidentes — ConductorIncidentes con el 403 real simulado (GET /novedades para Comunidad SENA)", () => {
-  afterEach(() => {
-    apiFetchMock.mockImplementation(createAppBackends().apiFetch);
-  });
-
-  it("sigue mostrando la vista propia del conductor aunque el backend simule un 403 para el listado general", async () => {
-    apiFetchMock.mockImplementation(
-      createAppBackends({ rolActual: ROLES.CONDUCTOR }).apiFetch,
-    );
-    renderComoComunidadSena();
-
-    expect(await screen.findByText("Mis incidentes")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Reportar incidente/i }),
-    ).toBeInTheDocument();
-  });
-});

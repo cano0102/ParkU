@@ -345,7 +345,7 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     await user.click(within(infoDialog).getByRole('button', { name: 'Estacionar Vehículo' }));
 
     const ingresoDialog = await screen.findByRole('dialog');
-    expect(within(ingresoDialog).getByRole('heading', { name: 'Registrar Vehículo' })).toBeInTheDocument();
+    expect(within(ingresoDialog).getByRole('heading', { name: 'Estacionar Vehículo' })).toBeInTheDocument();
 
     // Paso 1: buscar conductor — el campo vacío no debe mostrar ningún resultado.
     expect(within(ingresoDialog).queryByText('Pedro Ruiz G.')).not.toBeInTheDocument();
@@ -355,7 +355,7 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     // Paso 2: su vehículo ya registrado (DEF456) aparece para elegir.
     await user.click(within(ingresoDialog).getByText('DEF456'));
 
-    await user.click(within(ingresoDialog).getByRole('button', { name: 'Registrar Vehículo' }));
+    await user.click(within(ingresoDialog).getByRole('button', { name: 'Estacionar Vehículo' }));
 
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });

@@ -49,8 +49,6 @@ export function TipoUsuarioField({ value, error, soloLectura = false, onChange, 
             {tiposUsuario.map((t) => (
               <option key={t.id} value={t.id}>{t.nombre}</option>
             ))}
-            {/*Mientras tanto*/}
-            <option value="otro">Otro</option>
           </select>
         </FormField>
         <p style={{ marginTop: 8, fontSize: 11, color: COLORS.textLight, lineHeight: 1.5 }}>
