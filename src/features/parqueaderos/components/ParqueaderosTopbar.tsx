@@ -1,5 +1,6 @@
 import {
   IconLayoutGrid as LayoutGrid,
+  IconMap as MapIcon,
   IconPlus as Plus,
   IconSearch as Search,
   IconX as X,
@@ -29,6 +30,7 @@ interface ParqueaderosTopbarProps {
 
 const TABS = [
   { id: "table" as const, label: "Lista", icon: <LayoutGrid size={14} /> },
+  { id: "map" as const, label: "Plano", icon: <MapIcon size={14} /> },
 ];
 
 /** Buscador + filtro de tipo + toggle lista/plano + accesos a asignación inteligente y crear parqueadero. */

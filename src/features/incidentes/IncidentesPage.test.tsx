@@ -84,7 +84,9 @@ describe('features/incidentes', () => {
 
     const descripcionUnica = `Incidente de prueba ${Date.now()}`;
     await user.type(screen.getByLabelText('Descripción *'), descripcionUnica);
-    await elegirEnBuscador(user, 'Parqueadero *', 'PQ-1 Torre A');
+    // El parqueadero ya no se elige aparte: se deriva de la celda elegida aquí. M-002 (única
+    // sin incidente abierto en la semilla) evita chocar con la validación de duplicados.
+    await elegirEnBuscador(user, 'Celda / vehículo estacionado', 'M-002');
     // Tipo y prioridad son obligatorios: un incidente hay que poder clasificarlo y ordenarlo.
     await user.selectOptions(screen.getByLabelText('Tipo *'), 'danio');
     await user.selectOptions(screen.getByLabelText('Prioridad'), 'alta');
@@ -101,8 +103,11 @@ describe('features/incidentes', () => {
       expect(screen.getAllByText('Vehículo mal estacionado bloqueando entrada').length).toBeGreaterThan(0)
     );
 
+    // El primer <p> de la tarjeta ahora es el título (clase del incidente), no la
+    // descripción: se busca dentro de `.incidente-card-datos`, donde la descripción es el
+    // único <p> (el resto de filas de esa sección son <div>/<span>).
     const descripciones = Array.from(container.querySelectorAll('.incidente-card')).map(
-      (card) => card.querySelector('p')?.textContent
+      (card) => card.querySelector('.incidente-card-datos p')?.textContent
     );
     // Posiciones relativas (no igualdad exacta): los tests anteriores de este archivo
     // dejan incidentes creados en la semilla compartida.

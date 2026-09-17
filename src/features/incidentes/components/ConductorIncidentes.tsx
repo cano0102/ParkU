@@ -33,7 +33,7 @@ export function ConductorIncidentes() {
     ),
     [data.celdas, data.misVehiculos, data.ocupanteDeCelda],
   );
-  const dialogs = useIncidenteDialogs(data, { celdaIdsPermitidas: celdasDelConductor });
+  const dialogs = useIncidenteDialogs(data, { celdaIdsPermitidas: celdasDelConductor, puedeClasificar: false });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
