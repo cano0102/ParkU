@@ -281,7 +281,7 @@ export function ReservaViewModal({
               marginTop: 12,
               padding: "12px 12px 8px",
               borderRadius: 12,
-              background: "#F8FAFC",
+              background: C.surfaceSubtle,
               border: `1px solid ${C.border}`,
             }}
           >
@@ -307,7 +307,7 @@ export function ReservaViewModal({
                   padding: "6px 0",
                   borderTop:
                     detail.label === "Tipo de usuario"
-                      ? "1px solid #E2E8F0"
+                      ? `1px solid ${C.border}`
                       : "none",
                   color: C.text,
                   fontSize: 12,

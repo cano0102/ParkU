@@ -52,6 +52,7 @@ interface IncidenteFormModalProps {
   formTouched: { descripcion?: boolean };
   formErrors: { descripcion: string };
   formInvalido: boolean;
+  markTouched: (campo: "descripcion") => void;
   vehiculos: Vehiculo[];
   usuarios: Usuario[];
   /** false para el flujo de Comunidad SENA (solo reporta): oculta prioridad y "Asignar a" —
