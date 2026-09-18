@@ -2,6 +2,7 @@ import { useState } from "react";
 import { IconBan as Ban } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { validarTextoLargo, MOTIVO_MIN, MOTIVO_MAX } from "@/utils/validation";
+import { useEnCurso } from "@/hooks/useEnCurso";
 
 const C = theme;
 
@@ -12,7 +13,8 @@ interface MotivoReservaModalProps {
   placa: string;
   fecha: string;
   onCancel: () => void;
-  onConfirm: (motivo: string) => void;
+  /** Si devuelve una promesa, los botones se bloquean hasta que termine (ver useEnCurso). */
+  onConfirm: (motivo: string) => void | Promise<unknown>;
 }
 
 const TEXTOS: Record<AccionConMotivo, { titulo: string; explicacion: string; etiqueta: string; ejemplo: string; boton: string; error: string }> = {
@@ -44,6 +46,7 @@ const TEXTOS: Record<AccionConMotivo, { titulo: string; explicacion: string; eti
  */
 export function MotivoReservaModal({ accion, placa, fecha, onCancel, onConfirm }: MotivoReservaModalProps) {
   const t = TEXTOS[accion];
+  const [confirmar, enCurso] = useEnCurso(onConfirm);
   const [motivo, setMotivo] = useState("");
   const [touched, setTouched] = useState(false);
   // Vacío: el mensaje propio de la acción. Muy corto o muy largo: la regla común de motivos.
@@ -54,7 +57,7 @@ export function MotivoReservaModal({ accion, placa, fecha, onCancel, onConfirm }
   const handleConfirm = () => {
     setTouched(true);
     if (error) return;
-    onConfirm(motivo.trim());
+    void confirmar(motivo.trim());
   };
 
   return (
@@ -95,20 +98,23 @@ export function MotivoReservaModal({ accion, placa, fecha, onCancel, onConfirm }
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 20 }}>
         <button
           onClick={onCancel}
-          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit", color: C.text }}
+          disabled={enCurso}
+          style={{ padding: "9px 16px", borderRadius: 10, border: `1px solid ${C.border}`, background: "#fff", fontSize: 13, fontWeight: 700, cursor: enCurso ? "not-allowed" : "pointer", fontFamily: "inherit", color: C.text }}
         >
           Volver
         </button>
         <button
           onClick={handleConfirm}
-          disabled={touched && !!error}
+          disabled={(touched && !!error) || enCurso}
+          aria-busy={enCurso}
           style={{
             padding: "9px 16px", borderRadius: 10, border: "none",
             background: touched && error ? "#FCA5A5" : C.danger, color: "#fff",
-            fontSize: 13, fontWeight: 700, cursor: touched && error ? "not-allowed" : "pointer", fontFamily: "inherit",
+            fontSize: 13, fontWeight: 700, cursor: touched && error ? "not-allowed" : enCurso ? "wait" : "pointer",
+            opacity: enCurso ? 0.7 : 1, fontFamily: "inherit",
           }}
         >
-          {t.boton}
+          {enCurso ? "Guardando…" : t.boton}
         </button>
       </div>
     </div>

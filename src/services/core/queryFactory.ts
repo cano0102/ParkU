@@ -8,7 +8,7 @@
  * hooks dentro de cada features/<dominio>/ — hoy viven junto a los servicios
  * porque routes.tsx todavía apunta a pages/, no a features/.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { CrudService } from './crud';
 
@@ -85,12 +85,41 @@ export function createQueryHooks<T extends { id: string }>(queryKey: string, ser
     });
   }
 
+  /*
+   * `useUpdate` y `useRemove` son optimistas: la lista en caché cambia en el mismo clic, antes
+   * de que el backend responda. Contra la API real, esperar a la respuesta y luego al refetch
+   * de la lista eran uno o dos segundos en los que la pantalla no reflejaba nada, y la gente
+   * volvía a pulsar (segunda petición sobre un registro ya cambiado o ya borrado). Si el
+   * backend rechaza el cambio, se restaura lo que había y se avisa con el toast de siempre;
+   * en cualquier caso la lista se refresca al terminar, para recoger lo que el backend haya
+   * calculado por su cuenta (campos derivados, estados que mueve un trigger).
+   *
+   * `useCreate` no lo es: la respuesta del POST suele venir sin los campos que la lista
+   * resuelve con joins (nombre del tipo de usuario, del conductor…), así que meterla en la
+   * lista tal cual mostraría la fila incompleta un instante. Ahí se espera al refetch.
+   */
+  async function congelarLista(queryClient: QueryClient): Promise<T[] | undefined> {
+    // Un refetch en vuelo que aterrizara después pisaría el cambio optimista con lo viejo.
+    await queryClient.cancelQueries({ queryKey: key });
+    return queryClient.getQueryData<T[]>(key);
+  }
+
+  function restaurarLista(queryClient: QueryClient, previa: T[] | undefined, error: unknown) {
+    if (previa) queryClient.setQueryData<T[]>(key, previa);
+    avisarError(error);
+  }
+
   function useUpdate() {
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: ({ id, data }: { id: string; data: Partial<Omit<T, 'id'>> }) => service.update(id, data),
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
-      onError: avisarError,
+      onMutate: async ({ id, data }) => {
+        const previa = await congelarLista(queryClient);
+        queryClient.setQueryData<T[]>(key, (lista) => lista?.map((item) => (item.id === id ? { ...item, ...data } : item)));
+        return { previa };
+      },
+      onError: (error, _variables, contexto) => restaurarLista(queryClient, contexto?.previa, error),
+      onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
     });
   }
 
@@ -98,8 +127,13 @@ export function createQueryHooks<T extends { id: string }>(queryKey: string, ser
     const queryClient = useQueryClient();
     return useMutation({
       mutationFn: (id: string) => service.remove(id),
-      onSuccess: () => queryClient.invalidateQueries({ queryKey: key }),
-      onError: avisarError,
+      onMutate: async (id) => {
+        const previa = await congelarLista(queryClient);
+        queryClient.setQueryData<T[]>(key, (lista) => lista?.filter((item) => item.id !== id));
+        return { previa };
+      },
+      onError: (error, _id, contexto) => restaurarLista(queryClient, contexto?.previa, error),
+      onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
     });
   }
 

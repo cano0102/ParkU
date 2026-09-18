@@ -137,7 +137,11 @@ export async function create(data: Omit<Reserva, 'id'>): Promise<Reserva> {
 export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Promise<Reserva> {
   // El estado se gestiona por su propio endpoint (PATCH /:id/estado); si viene junto a
   // otros campos en el mismo patch, primero se aplican los demás campos y luego el estado.
-  const { estado, ...resto } = data;
+  // `motivoRechazo` va con el estado (es el motivo de ESE cambio), no con los demás campos:
+  // dejarlo en `resto` convertía cada rechazo o cancelación en tres peticiones (GET + PUT
+  // vacío + PATCH), con sus preflights — dos o tres segundos de espera y tres de las 100
+  // peticiones por IP que permite el backend, para un cambio que el PATCH hace solo.
+  const { estado, motivoRechazo, ...resto } = data;
   let updated: ApiReserva | undefined;
   if (Object.keys(resto).length > 0) {
     const actual = await apiFetch<ApiReserva>(`/reservas/${id}`);
@@ -168,7 +172,7 @@ export async function update(id: string, data: Partial<Omit<Reserva, 'id'>>): Pr
         method: 'PATCH',
         // El motivo acompaña también a una cancelación: es lo que explica en el historial
         // por qué una reserva venció sola (ver useReservaAutoExpiry).
-        body: { estado: estadoApi, motivo_rechazo: data.motivoRechazo || undefined },
+        body: { estado: estadoApi, motivo_rechazo: motivoRechazo || undefined },
       });
     }
   }

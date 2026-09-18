@@ -328,6 +328,18 @@ tiene su porqué en un comentario junto al código, aquí solo el mapa.
   aún no vencieron, la recarga no gasta ninguna petición. Se invalida sola
   en cada deploy (`__APP_BUILD_ID__`) y se borra al cerrar o caducar la
   sesión (`AuthContext`).
+- **Las mutaciones son optimistas** (`useUpdate`/`useRemove` de la fábrica, y
+  `useUpdateReserva`/`useCancelarReserva`): la lista en caché cambia en el
+  mismo clic, con rollback y toast si el backend rechaza, y refetch al
+  terminar. Contra la API real, esperar respuesta + refetch eran uno o dos
+  segundos sin feedback, y la gente volvía a pulsar (segunda petición sobre
+  un registro ya cambiado: "ya no se puede editar: forma parte del
+  histórico"). `useCreate` no lo es: la respuesta del POST viene sin los
+  campos que la lista resuelve con joins.
+- **Los diálogos de confirmación no admiten doble clic** (`hooks/useEnCurso.ts`):
+  si `onConfirm` devuelve una promesa, el botón se bloquea y cambia de texto
+  hasta que termine. Un diálogo nuevo debe usarlo (o cerrarse antes de esperar
+  al backend, como hacen los de aceptar/rechazar/cancelar reserva).
 - **Lo que solo el backend puede arreglar** (pendiente en Api-ParkU): el
   límite por IP castiga a toda una sede detrás del mismo NAT; no envía
   `Access-Control-Max-Age`, así que cada petición autenticada va precedida

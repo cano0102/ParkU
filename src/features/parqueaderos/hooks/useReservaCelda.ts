@@ -184,11 +184,15 @@ export function useReservaCelda(
    */
   const confirmarCancelarReserva = useCallback(async (motivo: string) => {
     if (!reservaACancelar) { setOpenModal(null); return; }
+    // El diálogo se cierra antes de esperar al backend: la reserva ya figura cancelada en el
+    // plano (la mutación es optimista, ver useUpdateReserva en features/reservas) y, si el
+    // backend la rechaza, vuelve sola a como estaba con su aviso.
+    const reserva = reservaACancelar;
+    setReservaACancelar(null);
+    setOpenModal(null);
     try {
-      await data.updateReserva(reservaACancelar.id, { estado: "cancelada", motivoRechazo: motivo });
+      await data.updateReserva(reserva.id, { estado: "cancelada", motivoRechazo: motivo });
       toast.info("Reserva cancelada.");
-      setReservaACancelar(null);
-      setOpenModal(null);
     } catch (error) {
       // El aviso de error lo muestra el manejador central de mutaciones.
       console.error("Error cancelling reserva:", error);

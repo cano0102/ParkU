@@ -171,15 +171,15 @@ export function useReservasPage() {
   const buscarConflictoHorario = (reserva: Reserva): Reserva | null =>
     buscarConflictoHorarioEnLista(reserva, reservasTodas, { excludeId: reserva.id });
 
-  const aceptarSolicitud = async (reserva: Reserva) => {
+  /** Por qué NO se puede aceptar esta solicitud ahora mismo, o `null` si sí se puede. */
+  const impedimentoParaAceptar = (reserva: Reserva): string | null => {
     const conflicto = buscarConflictoHorario(reserva);
     if (conflicto) {
       const vehiculoConflicto = getVehiculo(conflicto.vehiculoId);
-      toast.error(
+      return (
         `No se puede aceptar: choca con la reserva de ${vehiculoConflicto?.placa ?? "otro vehículo"} ` +
         `del ${conflicto.fechaReserva} de ${conflicto.horaInicio} a ${conflicto.horaFin} en la misma celda.`
       );
-      return;
     }
 
     // El vehículo pudo haberse estacionado en otro lado mientras esta solicitud esperaba
@@ -188,7 +188,15 @@ export function useReservasPage() {
     // vez; la que no se acepte se resuelve más abajo o por conflicto de horario).
     const vehiculoSolicitud = getVehiculo(reserva.vehiculoId);
     if (vehiculoSolicitud && vehiculoEstaParqueado(vehiculoSolicitud.id, controlesSalida)) {
-      toast.error(`No se puede aceptar: el vehículo ${vehiculoSolicitud.placa} ya está estacionado en un parqueadero.`);
+      return `No se puede aceptar: el vehículo ${vehiculoSolicitud.placa} ya está estacionado en un parqueadero.`;
+    }
+    return null;
+  };
+
+  const aceptarSolicitud = async (reserva: Reserva) => {
+    const impedimento = impedimentoParaAceptar(reserva);
+    if (impedimento) {
+      toast.error(impedimento);
       return;
     }
 
@@ -252,10 +260,14 @@ export function useReservasPage() {
       setConfirmCancelar(null);
       return;
     }
+    // El diálogo se cierra antes de esperar al backend: la fila ya cambió de estado en la
+    // tabla (la mutación es optimista, ver useCancelarReserva) y, si el backend la rechaza,
+    // vuelve sola a como estaba con su aviso de error.
+    const reserva = confirmCancelar;
+    setConfirmCancelar(null);
     try {
-      await cancelarReservaMutation.mutateAsync({ id: confirmCancelar.id, motivo: motivo.trim() });
+      await cancelarReservaMutation.mutateAsync({ id: reserva.id, motivo: motivo.trim() });
       toast.success("Reserva cancelada.");
-      setConfirmCancelar(null);
     } catch (error) {
       // El aviso de error lo muestra la propia mutación (ver useCancelarReserva).
       console.error("Error cancelling reserva:", error);
@@ -276,10 +288,15 @@ export function useReservasPage() {
       toast.error("Debe ingresar un motivo para rechazar la reserva.");
       return;
     }
+    // Mismo criterio que al cancelar: el diálogo se cierra ya y la fila cambia al instante
+    // (mutación optimista, ver useUpdateReserva). Antes se quedaba abierto uno o dos segundos
+    // esperando al backend, la gente volvía a pulsar y la segunda petición llegaba a una
+    // reserva ya rechazada ("ya no se puede editar: forma parte del histórico").
+    const reserva = confirmRechazar;
+    setConfirmRechazar(null);
     try {
-      await updateReserva(confirmRechazar.id, { estado: "rechazada", motivoRechazo: motivo });
+      await updateReserva(reserva.id, { estado: "rechazada", motivoRechazo: motivo });
       toast.success("Solicitud rechazada.");
-      setConfirmRechazar(null);
     } catch (error) {
       // El toast de error ya lo muestra el manejador centralizado de mutaciones
       // (services/core/queryFactory.ts).
@@ -291,12 +308,17 @@ export function useReservasPage() {
 
   const confirmAceptarAction = async () => {
     if (!confirmAceptar) return;
-    try {
-      await aceptarSolicitud(confirmAceptar);
-      setConfirmAceptar(null);
-    } catch (error) {
-      console.error("Error confirming accept reserva:", error);
+    const reserva = confirmAceptar;
+    // Lo que impide aceptar se sabe sin ir al backend: se avisa con el diálogo aún abierto.
+    const impedimento = impedimentoParaAceptar(reserva);
+    if (impedimento) {
+      toast.error(impedimento);
+      return;
     }
+    // Y si se puede, el diálogo se cierra ya: la solicitud pasa a "activa" en la tabla al
+    // instante (mutación optimista, ver useUpdateReserva) mientras el backend confirma.
+    setConfirmAceptar(null);
+    await aceptarSolicitud(reserva);
   };
 
   return {

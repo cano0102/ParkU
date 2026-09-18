@@ -1,11 +1,13 @@
 import { Modal } from './Modal';
 import { theme } from '../../styles/theme';
+import { useEnCurso } from '../../hooks/useEnCurso';
 
 const C = theme;
 
 interface ConfirmDialogProps {
   open: boolean;
-  onConfirm: () => void;
+  /** Si devuelve una promesa, el diálogo bloquea sus botones hasta que termine (ver useEnCurso). */
+  onConfirm: () => void | Promise<unknown>;
   onCancel: () => void;
   title: string;
   message: string;
@@ -28,14 +30,16 @@ export function ConfirmDialog({
   confirmLabel = 'Eliminar',
   tone = 'danger',
 }: ConfirmDialogProps) {
+  const [confirmar, enCurso] = useEnCurso(onConfirm);
   return (
-    <Modal open={open} onClose={onCancel} maxWidth={420} title={title}>
+    <Modal open={open} onClose={enCurso ? () => {} : onCancel} maxWidth={420} title={title}>
       <div style={{ padding: '1.8rem' }}>
         <h3 style={{ fontSize: 18, fontWeight: 900, color: C.text, marginBottom: 8 }}>{title}</h3>
         <p style={{ fontSize: 13, color: C.textLight, lineHeight: 1.6, marginBottom: 20 }}>{message}</p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button
             onClick={onCancel}
+            disabled={enCurso}
             style={{
               padding: '10px 20px',
               borderRadius: 10,
@@ -44,14 +48,16 @@ export function ConfirmDialog({
               color: C.text,
               fontSize: 13,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: enCurso ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit',
             }}
           >
             Cancelar
           </button>
           <button
-            onClick={onConfirm}
+            onClick={confirmar}
+            disabled={enCurso}
+            aria-busy={enCurso}
             style={{
               padding: '10px 20px',
               borderRadius: 10,
@@ -60,11 +66,12 @@ export function ConfirmDialog({
               color: '#fff',
               fontSize: 13,
               fontWeight: 800,
-              cursor: 'pointer',
+              cursor: enCurso ? 'wait' : 'pointer',
+              opacity: enCurso ? 0.7 : 1,
               fontFamily: 'inherit',
             }}
           >
-            {confirmLabel}
+            {enCurso ? 'Procesando…' : confirmLabel}
           </button>
         </div>
       </div>

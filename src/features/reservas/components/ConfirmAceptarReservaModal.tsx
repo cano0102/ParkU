@@ -10,6 +10,7 @@ import {
   IconCalendar as Calendar,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
+import { useEnCurso } from "@/hooks/useEnCurso";
 import type { Reserva } from "@/services/api/reservas";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -25,7 +26,8 @@ interface ConfirmAceptarReservaModalProps {
   celda: Celda | undefined;
   parqueadero: Parqueadero | undefined;
   onCancel: () => void;
-  onConfirm: () => void;
+  /** Si devuelve una promesa, los botones se bloquean hasta que termine (ver useEnCurso). */
+  onConfirm: () => void | Promise<unknown>;
 }
 
 export function ConfirmAceptarReservaModal({
@@ -37,6 +39,7 @@ export function ConfirmAceptarReservaModal({
   onCancel,
   onConfirm,
 }: ConfirmAceptarReservaModalProps) {
+  const [confirmar, enCurso] = useEnCurso(onConfirm);
   return (
     <div style={{ padding: "1.6rem" }}>
       <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
@@ -169,6 +172,7 @@ export function ConfirmAceptarReservaModal({
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
         <button
           onClick={onCancel}
+          disabled={enCurso}
           style={{
             padding: "9px 16px",
             borderRadius: 10,
@@ -176,14 +180,16 @@ export function ConfirmAceptarReservaModal({
             background: "#fff",
             fontSize: 13,
             fontWeight: 700,
-            cursor: "pointer",
+            cursor: enCurso ? "not-allowed" : "pointer",
             color: C.text,
           }}
         >
           Volver
         </button>
         <button
-          onClick={onConfirm}
+          onClick={confirmar}
+          disabled={enCurso}
+          aria-busy={enCurso}
           style={{
             padding: "9px 16px",
             borderRadius: 10,
@@ -192,10 +198,11 @@ export function ConfirmAceptarReservaModal({
             color: "#fff",
             fontSize: 13,
             fontWeight: 800,
-            cursor: "pointer",
+            cursor: enCurso ? "wait" : "pointer",
+            opacity: enCurso ? 0.7 : 1,
           }}
         >
-          Aceptar solicitud
+          {enCurso ? "Aceptando…" : "Aceptar solicitud"}
         </button>
       </div>
     </div>
