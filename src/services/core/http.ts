@@ -16,7 +16,7 @@
 import { getToken, getRefreshToken, setToken, clearTokens } from './tokenStorage';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
-const TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
+const TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT) || 60000;
 
 export const AUTH_EXPIRED_EVENT = 'parku:auth-expired';
 

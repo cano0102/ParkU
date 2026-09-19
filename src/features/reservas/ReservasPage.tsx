@@ -245,10 +245,7 @@ export function Reservas() {
       >
         {p.confirmRechazar &&
           (() => {
-            const veh = p.getVehiculo(p.confirmRechazar!.vehiculoId);
-            const cel = p.getCelda(p.confirmRechazar!.celdaId);
             const usuario = p.getConductorReserva(p.confirmRechazar!);
-            const pq = cel ? p.getParqueadero(cel.parqueaderoId) : undefined;
             return (
               <>
                 {usuario ? (

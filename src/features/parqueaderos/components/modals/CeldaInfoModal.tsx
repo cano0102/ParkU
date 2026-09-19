@@ -17,7 +17,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import { theme } from "@/styles/theme";
 import { useEffect, useState } from "react";
 import { Modal } from "@/components/shared";
-import { EstadoBadge, TipoBadge } from "../map/CeldaBadges";
+import { TipoBadge } from "../map/CeldaBadges";
 import {
   type AgendaCelda,
   puedeEstacionarEn,

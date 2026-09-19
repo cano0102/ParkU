@@ -12,7 +12,7 @@
  */
 import { vi } from 'vitest';
 import { createFakeRestBackend } from './fakeApi';
-import { ROLES, type RolId } from '@/services/core/roles';
+import { ROLES } from '@/services/core/roles';
 
 export const rolesSeed = [
   { id: 1, nombre: 'Administrador', descripcion: 'Acceso total al sistema', estado: true },

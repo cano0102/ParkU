@@ -68,7 +68,7 @@ export function ParkingLot({
   const chipW = 32,
     chipGap = 5;
   const chipsW = celdasMR.length > 0 ? chipW + chipGap : 0;
-  let chipX = ancho - chipsW;
+  const chipX = ancho - chipsW;
 
   return (
     <g>

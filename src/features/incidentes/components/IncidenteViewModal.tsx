@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import {
   IconAlertTriangle as AlertTriangle,
   IconCar as Car,
-  IconCircleCheck as CheckCircle,
   IconClock as Clock,
   IconEdit as Edit,
   IconFile as FileIcon,
@@ -22,7 +21,6 @@ import {
   TIPO_NOVEDAD_LABEL,
 } from "../lib/constants";
 import type { Evidencia } from "@/services/api/evidencias";
-import { resolverUrlArchivo } from "@/services/core/archivos";
 import { EvidenciaImg } from "./EvidenciaImg";
 
 const C = theme;
