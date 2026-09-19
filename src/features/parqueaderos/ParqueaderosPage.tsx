@@ -17,6 +17,7 @@ import { ParqueaderosTopbar } from "./components/ParqueaderosTopbar";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ParkingMap } from "./components/map/ParkingMap";
 import { ParqueaderosTable } from "./components/ParqueaderosTable";
+import { CeldasDisponiblesConductor } from "./components/CeldasDisponiblesConductor";
 import { ParqueaderoFormModal } from "./components/modals/ParqueaderoFormModal";
 import { IngresoModal } from "./components/modals/IngresoModal";
 import { CeldaInfoModal } from "./components/modals/CeldaInfoModal";
@@ -130,7 +131,15 @@ export default function Parqueaderos() {
               </p>
             )}
 
-            {filters.activeTab === "table" && (
+            {filters.activeTab === "table" && esConductor && (
+              <CeldasDisponiblesConductor
+                celdas={filters.paginatedCeldasDisponibles}
+                parqueaderos={data.parqueaderos}
+                misVehiculosPorCelda={data.misVehiculosPorCelda}
+              />
+            )}
+
+            {filters.activeTab === "table" && !esConductor && (
               <ParqueaderosTable
                 parqueaderos={filters.paginatedPqsConCeldas}
                 celdas={
@@ -141,7 +150,7 @@ export default function Parqueaderos() {
                 onDelete={pqFormState.handleDeleteRequest}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
                 onReportar={
-                  hasPermission("incidentes") && user?.rol !== ROLES.CONDUCTOR
+                  hasPermission("incidentes")
                     ? (pq: Parqueadero) =>
                         incidente.abrirReporte({
                           parqueaderoId: pq.id,
@@ -153,23 +162,23 @@ export default function Parqueaderos() {
                 cellMatchesSearch={filters.cellMatchesSearch}
                 celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
                 canManage={hasPermission("celdas")}
-                soloLectura={esConductor}
                 misVehiculosPorCelda={data.misVehiculosPorCelda}
               />
             )}
 
-            {filters.activeTab === "table" && filters.filteredPqsConCeldas.length > 0 && (
-              <DataPagination
-                currentPage={filters.currentPage}
-                totalPages={filters.totalPages}
-                itemsPerPage={filters.itemsPerPage}
-                totalItems={filters.filteredPqsConCeldas.length}
-                itemsPerPageOptions={[10, 25, 50, 100]}
-                entityLabel="Parqueaderos"
-                onPageChange={filters.setCurrentPage}
-                onItemsPerPageChange={filters.setItemsPerPage}
-              />
-            )}
+            {filters.activeTab === "table" &&
+              (esConductor ? filters.celdasDisponiblesConductor.length : filters.filteredPqsConCeldas.length) > 0 && (
+                <DataPagination
+                  currentPage={filters.currentPage}
+                  totalPages={filters.totalPages}
+                  itemsPerPage={filters.itemsPerPage}
+                  totalItems={esConductor ? filters.celdasDisponiblesConductor.length : filters.filteredPqsConCeldas.length}
+                  itemsPerPageOptions={esConductor ? [12, 24, 48, 96] : [10, 25, 50, 100]}
+                  entityLabel={esConductor ? "Celdas" : "Parqueaderos"}
+                  onPageChange={filters.setCurrentPage}
+                  onItemsPerPageChange={filters.setItemsPerPage}
+                />
+              )}
 
             {filters.activeTab === "map" && (
               <ParkingMap

@@ -1,12 +1,16 @@
 import { compararPorRecientes } from "@/utils/orden";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import type { Celda } from "@/services/api/celdas";
 import type { ParqueaderosData } from "./useParqueaderosData";
 
 /** Pestaña activa, búsqueda/filtro de tipo, listas filtradas y estadísticas de ocupación. */
 export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (celdaId: string) => { vehiculo: { placa: string }; conductor?: { nombre: string } } | null) {
-  const { parqueaderos, celdas, incidentes } = data;
+  const { user } = useAuth();
+  const esConductor = user?.rol === ROLES.CONDUCTOR;
+  const { parqueaderos, celdas, incidentes, misVehiculosPorCelda } = data;
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<"map" | "table">("table");
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
@@ -65,11 +69,22 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
     setFilterTipo("Todos");
   };
 
+  // Comunidad SENA (Conductor) no ve el listado de parqueaderos en absoluto — solo las celdas
+  // disponibles (más la suya propia si tiene un vehículo estacionado), sin agrupar por
+  // parqueadero: no gestiona nada acá, solo necesita saber dónde puede parquear.
+  const celdasDisponiblesConductor = useMemo(
+    () => celdas.filter((c) => c.estado === "disponible" || misVehiculosPorCelda[c.id]),
+    [celdas, misVehiculosPorCelda]
+  );
+
   useEffect(() => {
     setCurrentPage(1);
   }, [search, filterTipo]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredPqsConCeldas.length / itemsPerPage));
+  const totalPages = Math.max(
+    1,
+    Math.ceil((esConductor ? celdasDisponiblesConductor.length : filteredPqsConCeldas.length) / itemsPerPage)
+  );
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(totalPages);
@@ -82,12 +97,18 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
     [filteredPqsConCeldas, currentPage, itemsPerPage]
   );
 
+  const paginatedCeldasDisponibles = useMemo(
+    () => celdasDisponiblesConductor.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [celdasDisponiblesConductor, currentPage, itemsPerPage]
+  );
+
   return {
     activeTab, setActiveTab,
     search, setSearch,
     filterTipo, setFilterTipo,
     stats, cellMatchesSearch, celdaTieneIncidenteAbierto,
     filteredCeldas, filteredPqsConCeldas, paginatedPqsConCeldas,
+    celdasDisponiblesConductor, paginatedCeldasDisponibles,
     currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, totalPages,
     activeFilters, clearFilters,
   };

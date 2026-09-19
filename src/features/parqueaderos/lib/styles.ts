@@ -21,14 +21,9 @@ export const parqueaderosStyles = `
   .pq-table-row{ display:grid; grid-template-columns:minmax(200px,1fr) 120px 100px 80px 80px 80px 100px 90px; padding:14px 16px; border-bottom:1px solid ${C.border}; align-items:center; font-size:12px; transition:background .15s; cursor:pointer; }
   .pq-cell-label{ display:none; }
 
-  /* Vista Conductor (solo lectura): sin columnas "En mantenimiento" ni "Acciones" — ese rol no
-     gestiona celdas, solo consulta disponibilidad. */
-  .pq-table-header.pq-table--solo, .pq-table-row.pq-table--solo{ grid-template-columns:minmax(200px,1fr) 120px 100px 100px; }
-
   @media (max-width: 860px){
     .pq-hero-stats{ grid-template-columns:repeat(2,1fr); min-width:0; width:100%; }
     .pq-table-header, .pq-table-row{ grid-template-columns:minmax(140px,1fr) 100px 90px 60px 60px 60px 90px 80px; gap:6px; }
-    .pq-table-header.pq-table--solo, .pq-table-row.pq-table--solo{ grid-template-columns:minmax(140px,1fr) 100px 90px 90px; }
   }
 
   @media (max-width: 720px){

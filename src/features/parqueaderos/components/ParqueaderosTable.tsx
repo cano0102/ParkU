@@ -39,7 +39,6 @@ export const ParqueaderosTable = memo(
     cellMatchesSearch,
     celdaTieneIncidenteAbierto,
     canManage,
-    soloLectura = false,
     misVehiculosPorCelda = {},
   }: {
     parqueaderos: Parqueadero[];
@@ -56,10 +55,6 @@ export const ParqueaderosTable = memo(
     celdaTieneIncidenteAbierto: (c: Celda) => boolean;
     /** true si el rol puede editar/activar/desactivar parqueaderos (permiso "celdas"). */
     canManage: boolean;
-    /** Mapa solo de consulta (rol Conductor): las celdas no se abren ni se eligen — la celda
-     *  la asigna el vigilante al registrar el ingreso. Solo se mira dónde quedó cada vehículo
-     *  propio (ver misVehiculosPorCelda). */
-    soloLectura?: boolean;
     /** Vehículos del usuario logueado, por id de la celda donde están (ver useParqueaderosData). */
     misVehiculosPorCelda?: Record<string, Vehiculo>;
   }) => {
@@ -75,13 +70,13 @@ export const ParqueaderosTable = memo(
           boxShadow: "0 2px 8px rgba(15,23,42,.05)",
         }}
       >
-        <div className={`pq-table-header${soloLectura ? " pq-table--solo" : ""}`}>
+        <div className="pq-table-header">
           <div>Parqueadero</div>
           <div>Disponibles</div>
           <div>Ocupadas</div>
-          {!soloLectura && <div>En mantenimiento</div>}
+          <div>En mantenimiento</div>
           <div>Estado</div>
-          {!soloLectura && <div style={{ textAlign: "right" }}>Acciones</div>}
+          <div style={{ textAlign: "right" }}>Acciones</div>
         </div>
         <div>
           {parqueaderos.length === 0 ? (
@@ -128,7 +123,7 @@ export const ParqueaderosTable = memo(
               return (
                 <React.Fragment key={pq.id}>
                   <div
-                    className={`pq-table-row${soloLectura ? " pq-table--solo" : ""}`}
+                    className="pq-table-row"
                     style={{ background: isExpanded ? "#F8FAF8" : "#fff" }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.background = "#F8FAF8")
@@ -222,14 +217,12 @@ export const ParqueaderosTable = memo(
                         {ocupados}
                       </span>
                     </div>
-                    {!soloLectura && (
-                      <div>
-                        <span className="pq-cell-label">En mantenimiento</span>
-                        <span style={{ fontWeight: 700, color: C.textLight }}>
-                          {mantenimiento}
-                        </span>
-                      </div>
-                    )}
+                    <div>
+                      <span className="pq-cell-label">En mantenimiento</span>
+                      <span style={{ fontWeight: 700, color: C.textLight }}>
+                        {mantenimiento}
+                      </span>
+                    </div>
                     <div>
                       <span className="pq-cell-label">Estado</span>
                       {canManage ? (
@@ -303,7 +296,6 @@ export const ParqueaderosTable = memo(
                         </span>
                       )}
                     </div>
-                    {!soloLectura && (
                     <div
                       style={{
                         display: "flex",
@@ -438,7 +430,6 @@ export const ParqueaderosTable = memo(
                         </button>
                       )}
                     </div>
-                    )}
                   </div>
                   {isExpanded && (
                     <div
@@ -550,17 +541,7 @@ export const ParqueaderosTable = memo(
                           gap: 8,
                         }}
                       >
-                        {/* Conductor: solo celdas disponibles, más la suya propia si está
-                            ocupada (para que siga viendo dónde quedó su vehículo) — no necesita
-                            ver celdas en mantenimiento ni las ocupadas por otros. */}
-                        {(soloLectura
-                          ? celdasPq.filter(
-                              (c) =>
-                                c.estado === "disponible" ||
-                                misVehiculosPorCelda[c.id],
-                            )
-                          : celdasPq
-                        ).map((celda) => {
+                        {celdasPq.map((celda) => {
                           const cfg = CELDA_CONFIG[celda.estado];
                           const tipoCfg = getCeldaVisualConfig(celda);
                           const TipoIcon = tipoCfg.icon;
@@ -590,11 +571,7 @@ export const ParqueaderosTable = memo(
                           return (
                             <button
                               key={celda.id}
-                              onClick={
-                                soloLectura
-                                  ? undefined
-                                  : () => onCellClick(celda)
-                              }
+                              onClick={() => onCellClick(celda)}
                               title={
                                 miVehiculo
                                   ? `Aquí está tu vehículo ${miVehiculo.placa}`
@@ -612,7 +589,7 @@ export const ParqueaderosTable = memo(
                                 borderLeft: `4px solid ${tipoCfg.accent}`,
                                 background: fueraDeHorario ? "#FEF2F2" : cfg.bg,
                                 color: cfg.text,
-                                cursor: soloLectura ? "default" : "pointer",
+                                cursor: "pointer",
                                 textAlign: "left",
                                 fontFamily: "inherit",
                                 outline: "none",
@@ -758,12 +735,11 @@ export const ParqueaderosTable = memo(
                                   ⚠️ +16h
                                 </div>
                               )}
-                              {/* "Error" avisa a quien SÍ ve a los ocupantes de que algo quedó
-                                  inconsistente; en el mapa de consulta del Conductor no hay
-                                  ocupantes que ver, así que ahí no se muestra. */}
+                              {/* "Error" avisa a quien gestiona el parqueadero de que algo
+                                  quedó inconsistente: una celda ocupada sin un registro de
+                                  ingreso que lo explique. */}
                               {celda.estado === "no_disponible" &&
-                                !ocupante &&
-                                !soloLectura && (
+                                !ocupante && (
                                   <div
                                     style={{
                                       fontSize: 8,
