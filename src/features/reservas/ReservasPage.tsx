@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Modal, LoadingState } from "@/components/shared";
+import { DataPagination } from "@/components/data";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -135,7 +136,7 @@ export function Reservas() {
                     gap: 12,
                   }}
                 >
-                  {p.filteredReservas.map((reserva) => {
+                  {p.paginatedReservas.map((reserva) => {
                     const celda = p.getCelda(reserva.celdaId);
                     return (
                       <ConductorReservaCard
@@ -161,8 +162,7 @@ export function Reservas() {
               )
             ) : (
               <ReservasTable
-                filteredReservas={p.filteredReservas}
-                totalReservas={p.reservas.length}
+                filteredReservas={p.paginatedReservas}
                 getVehiculo={p.getVehiculo}
                 getCelda={p.getCelda}
                 getConductorReserva={p.getConductorReserva}
@@ -175,6 +175,19 @@ export function Reservas() {
                 onDelete={p.handleDelete}
                 puedeCancelar={p.puedeCancelar}
                 onCancel={p.handleCancelar}
+              />
+            )}
+
+            {p.filteredReservas.length > 0 && (
+              <DataPagination
+                currentPage={p.currentPage}
+                totalPages={p.totalPages}
+                itemsPerPage={p.itemsPerPage}
+                totalItems={p.filteredReservas.length}
+                itemsPerPageOptions={esComunidadSena ? [6, 12, 24, 48] : [10, 25, 50, 100]}
+                entityLabel="Reservas"
+                onPageChange={p.setCurrentPage}
+                onItemsPerPageChange={p.setItemsPerPage}
               />
             )}
           </>

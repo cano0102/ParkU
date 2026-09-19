@@ -11,7 +11,6 @@ const C = theme;
 
 interface ReservasTableProps {
   filteredReservas: Reserva[];
-  totalReservas: number;
   getVehiculo: (id: string) => Vehiculo | undefined;
   getCelda: (id: string) => Celda | undefined;
   getConductorReserva: (reserva: Reserva) => Conductor | null | undefined;
@@ -24,7 +23,7 @@ interface ReservasTableProps {
 }
 
 /** Tabla del historial de reservas: encabezado, filas (o estado vacío) y el contador de resultados. */
-export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, getCelda, getConductorReserva, getParqueadero, canDelete, onView, onDelete, puedeCancelar, onCancel }: ReservasTableProps) {
+export function ReservasTable({ filteredReservas, getVehiculo, getCelda, getConductorReserva, getParqueadero, canDelete, onView, onDelete, puedeCancelar, onCancel }: ReservasTableProps) {
   return (
     <div style={{ borderRadius: 16, border: `1px solid ${C.border}`, background: "#fff", overflow: "hidden", boxShadow: "0 2px 8px rgba(15,23,42,.05)" }}>
       <div className="reserva-table-header" style={{
@@ -72,12 +71,6 @@ export function ReservasTable({ filteredReservas, totalReservas, getVehiculo, ge
           })
         )}
       </div>
-
-      {filteredReservas.length > 0 && (
-        <div style={{ padding: "10px 16px", borderTop: `1px solid ${C.border}`, background: "#F8FAF8", fontSize: 11, color: C.textLight }}>
-          Mostrando <strong>{filteredReservas.length}</strong> de <strong>{totalReservas}</strong> reservas
-        </div>
-      )}
     </div>
   );
 }

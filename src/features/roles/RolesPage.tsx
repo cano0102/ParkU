@@ -1,4 +1,5 @@
 import { Modal, LoadingState, ConfirmDialog } from "@/components/shared";
+import { DataPagination } from "@/components/data";
 import { useRolesPage } from "./hooks/useRolesPage";
 import { rolesStyles } from "./lib/styles";
 import { RolesHero } from "./components/RolesHero";
@@ -11,7 +12,7 @@ export function Roles() {
   const {
     roles, isLoading, dialogOpen, setDialogOpen, viewOpen, setViewOpen, editingRol, viewingRol,
     search, setSearch, filterEstado, setFilterEstado, viewMode, setViewMode,
-    formInitial, filteredRoles, stats,
+    formInitial, filteredRoles, paginatedRoles, currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, totalPages, stats,
     openCreate, openEdit, openView, handleToggleEstado, handleSave,
     rolAEliminar, setRolAEliminar, handleDeleteRequest, confirmDeleteRol,
   } = useRolesPage();
@@ -36,14 +37,29 @@ export function Roles() {
         {isLoading ? (
           <LoadingState message="Cargando roles..." />
         ) : (
-          <RolesResults
-            roles={filteredRoles}
-            viewMode={viewMode}
-            onView={openView}
-            onEdit={openEdit}
-            onToggleEstado={handleToggleEstado}
-            onDelete={handleDeleteRequest}
-          />
+          <>
+            <RolesResults
+              roles={paginatedRoles}
+              viewMode={viewMode}
+              onView={openView}
+              onEdit={openEdit}
+              onToggleEstado={handleToggleEstado}
+              onDelete={handleDeleteRequest}
+            />
+
+            {filteredRoles.length > 0 && (
+              <DataPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredRoles.length}
+                itemsPerPageOptions={viewMode === "list" ? [15, 25, 50, 100] : [9, 18, 36, 60]}
+                entityLabel="Roles"
+                onPageChange={setCurrentPage}
+                onItemsPerPageChange={setItemsPerPage}
+              />
+            )}
+          </>
         )}
       </div>
 

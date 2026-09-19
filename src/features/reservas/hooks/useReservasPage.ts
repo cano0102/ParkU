@@ -1,5 +1,5 @@
 import { compararPorRecientes } from "@/utils/orden";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
@@ -62,6 +62,8 @@ export function useReservasPage() {
   const [confirmRechazar, setConfirmRechazar] = useState<Reserva | null>(null);
   const [confirmAceptar, setConfirmAceptar] = useState<Reserva | null>(null);
   const [confirmCancelar, setConfirmCancelar] = useState<Reserva | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const getVehiculo = (id: string) => vehiculos.find((v) => v.id === id);
   const getCelda = (id: string) => celdas.find((c) => c.id === id);
@@ -117,6 +119,21 @@ export function useReservasPage() {
     // cambia la consulta; el memo se recalcula con `reservas`, que cambia a la vez.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reservas, search, filterEstado]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterEstado]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredReservas.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginatedReservas = useMemo(
+    () => filteredReservas.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredReservas, currentPage, itemsPerPage]
+  );
 
   const handleDelete = (reserva: Reserva) => setConfirmDelete(reserva);
 
@@ -327,7 +344,8 @@ export function useReservasPage() {
     confirmRechazar, setConfirmRechazar,
     confirmAceptar, setConfirmAceptar,
     getVehiculo, getCelda, getParqueadero, getConductorReserva,
-    counts, filteredReservas, handleDelete, confirmDeleteAction,
+    counts, filteredReservas, paginatedReservas, currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, totalPages,
+    handleDelete, confirmDeleteAction,
     puedeCancelar, handleCancelar, confirmCancelar, setConfirmCancelar, confirmCancelarAction,
     puedeGestionarSolicitudes, solicitudesPendientes, aceptarSolicitud, handleRechazar, confirmRechazarAction,
     handleAceptar, confirmAceptarAction,

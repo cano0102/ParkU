@@ -17,3 +17,6 @@ export { useAgregarVehiculo } from './hooks/useAgregarVehiculo';
 export type { ModoAgregarVehiculo } from './hooks/useAgregarVehiculo';
 export { ConductorFormModal } from './components/ConductorFormModal';
 export { AgregarVehiculoModal } from './components/AgregarVehiculoModal';
+export { VehiculoAsociadoFields } from './components/VehiculoAsociadoFields';
+export { validarDatosVehiculo } from './lib/helpers';
+export type { ErroresVehiculo } from './lib/helpers';

@@ -9,6 +9,7 @@ import {
   vehiculosOperables,
 } from "@/features/conductores";
 import { MotivoReservaModal } from "@/features/reservas";
+import { DataPagination } from "@/components/data";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
 import { ParqueaderosHero } from "./components/ParqueaderosHero";
@@ -131,7 +132,7 @@ export default function Parqueaderos() {
 
             {filters.activeTab === "table" && (
               <ParqueaderosTable
-                parqueaderos={filters.filteredPqsConCeldas}
+                parqueaderos={filters.paginatedPqsConCeldas}
                 celdas={
                   filters.search.trim() ? filters.filteredCeldas : data.celdas
                 }
@@ -154,6 +155,19 @@ export default function Parqueaderos() {
                 canManage={hasPermission("celdas")}
                 soloLectura={esConductor}
                 misVehiculosPorCelda={data.misVehiculosPorCelda}
+              />
+            )}
+
+            {filters.activeTab === "table" && filters.filteredPqsConCeldas.length > 0 && (
+              <DataPagination
+                currentPage={filters.currentPage}
+                totalPages={filters.totalPages}
+                itemsPerPage={filters.itemsPerPage}
+                totalItems={filters.filteredPqsConCeldas.length}
+                itemsPerPageOptions={[10, 25, 50, 100]}
+                entityLabel="Parqueaderos"
+                onPageChange={filters.setCurrentPage}
+                onItemsPerPageChange={filters.setItemsPerPage}
               />
             )}
 

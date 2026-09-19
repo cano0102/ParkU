@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
@@ -62,6 +62,8 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   /* Incidentes y novedades conviven en la misma lista pero se atienden distinto: sin poder
      separarlos, una observación de turno estorba a quien busca averías por resolver. */
   const [filterClase, setFilterClase] = useState<"todos" | ClaseNovedad>("todos");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9);
 
   const parqueaderoPorId = useMemo(() => new Map(parqueaderos.map((p) => [p.id, p])), [parqueaderos]);
   const celdaPorId = useMemo(() => new Map(celdas.map((c) => [c.id, c])), [celdas]);
@@ -215,6 +217,21 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     [incidentes, search, filterEstado, filterClase, parqueaderoPorId, celdaPorId, vehiculoPorId]
   );
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterEstado, filterClase]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredIncidentes.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginatedIncidentes = useMemo(
+    () => filteredIncidentes.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredIncidentes, currentPage, itemsPerPage]
+  );
+
   const activeFiltersCount = [
     search,
     filterEstado !== "todos" ? filterEstado : "",
@@ -259,6 +276,12 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     resueltos,
     cambiarEstado,
     filteredIncidentes,
+    paginatedIncidentes,
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    totalPages,
     activeFiltersCount,
     clearFilters,
     isLoading,

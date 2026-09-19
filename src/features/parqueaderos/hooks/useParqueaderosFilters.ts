@@ -1,5 +1,5 @@
 import { compararPorRecientes } from "@/utils/orden";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Celda } from "@/services/api/celdas";
 import type { ParqueaderosData } from "./useParqueaderosData";
@@ -11,6 +11,8 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
   const [activeTab, setActiveTab] = useState<"map" | "table">("table");
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [filterTipo, setFilterTipo] = useState("Todos");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const stats = useMemo(() => {
     const t = celdas.length;
@@ -63,12 +65,30 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
     setFilterTipo("Todos");
   };
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterTipo]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPqsConCeldas.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  // Solo la vista de tabla se pagina: el plano (mapa) necesita ver todos los parqueaderos a
+  // la vez, partirlo en páginas dejaría el layout espacial incompleto y confuso.
+  const paginatedPqsConCeldas = useMemo(
+    () => filteredPqsConCeldas.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredPqsConCeldas, currentPage, itemsPerPage]
+  );
+
   return {
     activeTab, setActiveTab,
     search, setSearch,
     filterTipo, setFilterTipo,
     stats, cellMatchesSearch, celdaTieneIncidenteAbierto,
-    filteredCeldas, filteredPqsConCeldas,
+    filteredCeldas, filteredPqsConCeldas, paginatedPqsConCeldas,
+    currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, totalPages,
     activeFilters, clearFilters,
   };
 }

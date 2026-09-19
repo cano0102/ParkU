@@ -5,11 +5,14 @@ import {
   IconCar as Car,
   IconMapPin as MapPin,
   IconCircleLetterP as ParkingCircle,
+  IconPlus as Plus,
 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
-import { LoadingState } from "@/components/shared";
+import { LoadingState, Modal } from "@/components/shared";
 import { useConductorDashboardData } from "../hooks/useConductorDashboardData";
+import { useRegistrarVehiculoConductor } from "../hooks/useRegistrarVehiculoConductor";
 import { Card, SectionTitle } from "./DashboardPrimitives";
+import { RegistrarVehiculoModal } from "./RegistrarVehiculoModal";
 
 const COLORS = theme;
 
@@ -31,6 +34,7 @@ const ESTADO_RESERVA_LABEL: Record<string, { label: string; color: string }> = {
 export default function ConductorDashboard() {
   const navigate = useNavigate();
   const d = useConductorDashboardData();
+  const registrar = useRegistrarVehiculoConductor(d.miConductor);
 
   if (d.isLoading) {
     return (
@@ -85,10 +89,26 @@ export default function ConductorDashboard() {
           title="Mis vehículos"
           subtitle={`${d.misVehiculos.length} vehículo(s) registrado(s)`}
           color={COLORS.blue}
+          actionLabel={d.miConductor ? "Registrar vehículo" : undefined}
+          onAction={d.miConductor ? registrar.abrir : undefined}
         />
         {d.misVehiculos.length === 0 ? (
           <div className="rounded-xl border border-dashed border-[#E2E8F0] p-5 text-center">
             <p className="text-sm text-[#64748B]">Todavía no tienes un vehículo registrado.</p>
+            {d.miConductor ? (
+              <button
+                onClick={registrar.abrir}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: COLORS.primary }}
+              >
+                <Plus size={14} />
+                Registrar mi vehículo
+              </button>
+            ) : (
+              <p className="text-xs text-[#94A3B8] mt-2">
+                Tu perfil de conductor aún no está completo. Contacta a un administrador para poder registrar un vehículo.
+              </p>
+            )}
           </div>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
@@ -162,6 +182,31 @@ export default function ConductorDashboard() {
           </div>
         )}
       </Card>
+
+      <Modal open={registrar.open} onClose={() => registrar.setOpen(false)} maxWidth={560} title="Registrar mi vehículo">
+        <RegistrarVehiculoModal
+          placa={registrar.form.placa}
+          tipoVehiculo={registrar.form.tipoVehiculo}
+          marca={registrar.form.marca}
+          linea={registrar.form.linea}
+          modelo={registrar.form.modelo}
+          color={registrar.form.color}
+          descripcionVehiculo={registrar.form.descripcionVehiculo}
+          errors={registrar.errors}
+          touched={registrar.touched}
+          guardando={registrar.guardando}
+          onPlacaChange={(v) => registrar.setForm((f) => ({ ...f, placa: v }))}
+          onTipoVehiculoChange={(tipo) => registrar.setForm((f) => ({ ...f, tipoVehiculo: tipo }))}
+          onMarcaChange={(v) => registrar.setForm((f) => ({ ...f, marca: v }))}
+          onLineaChange={(v) => registrar.setForm((f) => ({ ...f, linea: v }))}
+          onModeloChange={(v) => registrar.setForm((f) => ({ ...f, modelo: v }))}
+          onColorChange={(v) => registrar.setForm((f) => ({ ...f, color: v }))}
+          onDescripcionChange={(v) => registrar.setForm((f) => ({ ...f, descripcionVehiculo: v }))}
+          onMarkTouched={registrar.markTouched}
+          onSubmit={registrar.guardar}
+          onCancel={() => registrar.setOpen(false)}
+        />
+      </Modal>
     </div>
   );
 }

@@ -75,13 +75,13 @@ export const ParqueaderosTable = memo(
           boxShadow: "0 2px 8px rgba(15,23,42,.05)",
         }}
       >
-        <div className="pq-table-header">
+        <div className={`pq-table-header${soloLectura ? " pq-table--solo" : ""}`}>
           <div>Parqueadero</div>
           <div>Disponibles</div>
           <div>Ocupadas</div>
-          <div>En mantenimiento</div>
+          {!soloLectura && <div>En mantenimiento</div>}
           <div>Estado</div>
-          <div style={{ textAlign: "right" }}>Acciones</div>
+          {!soloLectura && <div style={{ textAlign: "right" }}>Acciones</div>}
         </div>
         <div>
           {parqueaderos.length === 0 ? (
@@ -128,7 +128,7 @@ export const ParqueaderosTable = memo(
               return (
                 <React.Fragment key={pq.id}>
                   <div
-                    className="pq-table-row"
+                    className={`pq-table-row${soloLectura ? " pq-table--solo" : ""}`}
                     style={{ background: isExpanded ? "#F8FAF8" : "#fff" }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.background = "#F8FAF8")
@@ -222,12 +222,14 @@ export const ParqueaderosTable = memo(
                         {ocupados}
                       </span>
                     </div>
-                    <div>
-                      <span className="pq-cell-label">En mantenimiento</span>
-                      <span style={{ fontWeight: 700, color: C.textLight }}>
-                        {mantenimiento}
-                      </span>
-                    </div>
+                    {!soloLectura && (
+                      <div>
+                        <span className="pq-cell-label">En mantenimiento</span>
+                        <span style={{ fontWeight: 700, color: C.textLight }}>
+                          {mantenimiento}
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <span className="pq-cell-label">Estado</span>
                       {canManage ? (
@@ -301,6 +303,7 @@ export const ParqueaderosTable = memo(
                         </span>
                       )}
                     </div>
+                    {!soloLectura && (
                     <div
                       style={{
                         display: "flex",
@@ -435,6 +438,7 @@ export const ParqueaderosTable = memo(
                         </button>
                       )}
                     </div>
+                    )}
                   </div>
                   {isExpanded && (
                     <div
@@ -546,7 +550,17 @@ export const ParqueaderosTable = memo(
                           gap: 8,
                         }}
                       >
-                        {celdasPq.map((celda) => {
+                        {/* Conductor: solo celdas disponibles, más la suya propia si está
+                            ocupada (para que siga viendo dónde quedó su vehículo) — no necesita
+                            ver celdas en mantenimiento ni las ocupadas por otros. */}
+                        {(soloLectura
+                          ? celdasPq.filter(
+                              (c) =>
+                                c.estado === "disponible" ||
+                                misVehiculosPorCelda[c.id],
+                            )
+                          : celdasPq
+                        ).map((celda) => {
                           const cfg = CELDA_CONFIG[celda.estado];
                           const tipoCfg = getCeldaVisualConfig(celda);
                           const TipoIcon = tipoCfg.icon;
