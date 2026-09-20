@@ -1,0 +1,11 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api-parku-e017.onrender.com/api}
+        VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-60000}
+    container_name: parku-web
+    restart: always
+    ports:
+      - "8080:80"
