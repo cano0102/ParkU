@@ -1,0 +1,70 @@
+# Levanta todo el stack (API + frontend) en un solo comando, sin clonar ningún repo
+# a mano: Docker usa las URLs de git de abajo como build context.
+#
+# Uso:
+#   1. Copiar .env.full.example a .env y completar los valores.
+#   2. docker compose -f docker-compose.full.yml up --build
+#   3. Frontend en http://localhost:8080, API en http://localhost:3000
+#
+# Requisitos:
+#   - Docker con BuildKit (por defecto en Docker 23+).
+#   - Si alguno de los dos repos es privado, la URL debe incluir credenciales:
+#     https://<usuario>:<token>@github.com/<owner>/<repo>.git#<branch>
+#     (usar un Personal Access Token con permiso de solo lectura al repo, nunca
+#     el token en texto plano en un archivo versionado).
+
+services:
+  api:
+    build:
+      context: https://github.com/BrandonAlexisDev22/Api-ParkU.git#main
+    container_name: parku-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - DB_SSL=${DB_SSL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      - REFRESH_TOKEN_EXPIRES_IN=${REFRESH_TOKEN_EXPIRES_IN:-30d}
+      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-10}
+      - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:8080}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-1500}
+    volumes:
+      - parku-logs:/app/logs
+      - parku-uploads:/app/uploads
+    networks:
+      - parku-network
+
+  web:
+    build:
+      context: https://github.com/cano0102/ParkU.git#main
+      args:
+        # El navegador (no el contenedor) es quien llama a la API, por eso apunta
+        # al puerto publicado en el host y no al nombre del servicio "api".
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-60000}
+    container_name: parku-web
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+    networks:
+      - parku-network
+
+networks:
+  parku-network:
+    driver: bridge
+
+volumes:
+  parku-logs:
+  parku-uploads:
