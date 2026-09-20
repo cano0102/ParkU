@@ -1,0 +1,21 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        # Por defecto asume que la API corre en localhost:3000 (p. ej. vía el
+        # docker-compose de Api-ParkU en la misma máquina). Para construir la imagen
+        # apuntando a otra API (la desplegada, un servidor remoto...), sobreescribe
+        # VITE_API_URL en tu .env antes de "docker compose build".
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        VITE_API_TIMEOUT: ${VITE_API_TIMEOUT:-60000}
+    container_name: parku-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
