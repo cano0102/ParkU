@@ -7,6 +7,7 @@ import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Reserva } from "@/services/api/reservas";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
+import { useEnCurso } from "@/hooks/useEnCurso";
 import { useCreateReserva } from "./useReservas";
 import { franjaSugerida, validarFranja, ajustarFranja } from "../lib/reglas";
 import { validarTextoLargo, MOTIVO_MIN, MOTIVO_MAX } from "@/utils/validation";
@@ -142,7 +143,11 @@ export function useSolicitarReserva(
   const markTouched = useCallback(() => setTouched(true), []);
   const conductorSolicitanteId = miConductorId ?? vehiculoSeleccionado?.conductorId ?? "";
 
-  const enviarSolicitud = useCallback(async () => {
+  // Envuelto en useEnCurso: sin esto, un clic repetido (o un doble clic normal) mientras la
+  // petición seguía en vuelo mandaba una solicitud de reserva por cada clic -- el formulario
+  // no se cerraba de inmediato y parecía que "no había pasado nada", así que la persona volvía
+  // a pulsar "Enviar solicitud" y terminaba con varias reservas pendientes idénticas.
+  const [enviarSolicitud, enviando] = useEnCurso(useCallback(async () => {
     setTouched(true);
     if (validar(form)) return;
 
@@ -166,7 +171,7 @@ export function useSolicitarReserva(
       // (services/core/queryFactory.ts).
       console.error("Error requesting reserva:", error);
     }
-  }, [form, validar, createReservaMutation, conductorSolicitanteId]);
+  }, [form, validar, createReservaMutation, conductorSolicitanteId]));
 
   /** Deja la franja dentro de lo que se puede elegir tras cambiar la fecha o la hora. */
   const ajustar = useCallback(
@@ -177,6 +182,6 @@ export function useSolicitarReserva(
 
   return {
     open, setOpen, form, setForm, error, touched, markTouched, ajustar,
-    celdasDisponibles, parqueaderosActivos, vehiculosOfrecidos, abrir, abrirCon, enviarSolicitud,
+    celdasDisponibles, parqueaderosActivos, vehiculosOfrecidos, abrir, abrirCon, enviarSolicitud, enviando,
   };
 }

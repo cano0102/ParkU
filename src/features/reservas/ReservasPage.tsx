@@ -402,6 +402,7 @@ export function Reservas() {
           horaFin={solicitud.form.horaFin}
           motivo={solicitud.form.motivo}
           error={solicitud.error}
+          enviando={solicitud.enviando}
           onVehiculoChange={(v) =>
             solicitud.setForm({ ...solicitud.form, vehiculoId: v })
           }
