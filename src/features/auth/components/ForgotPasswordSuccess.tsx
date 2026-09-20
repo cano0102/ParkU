@@ -74,7 +74,7 @@ export function ForgotPasswordSuccess({ email, resetLink }: ForgotPasswordSucces
           Recomendaciones
         </p>
         <div style={{ display: "grid", gap: 6, color: COLORS.primaryDark, fontSize: 13 }}>
-          <span>• El enlace es válido por 30 minutos</span>
+          <span>• El enlace es válido por 60 minutos</span>
           <span>• Solo puede usarse una vez</span>
           <span>• No lo compartas con nadie más</span>
         </div>

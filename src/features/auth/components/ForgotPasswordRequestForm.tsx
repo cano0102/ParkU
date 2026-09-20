@@ -76,7 +76,7 @@ export function ForgotPasswordRequestForm({ form }: ForgotPasswordRequestFormPro
         <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "12px 14px" }}>
           <p style={{ fontSize: 13, color: "#1E3A8A", lineHeight: 1.6, fontWeight: 500 }}>
             Se generará un enlace de recuperación de un solo uso,
-            válido por 30 minutos.
+            válido por 60 minutos.
           </p>
         </div>
 
