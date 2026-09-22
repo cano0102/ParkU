@@ -187,6 +187,17 @@ export function useControlSalidaPage() {
     [updateControlSalidaMutation, refrescarCeldas]
   );
 
+  /* Dar salida libera la celda y cierra el movimiento: no se deshace. Por eso el botón de la
+     fila solo pide la salida, y se registra al confirmarla en el diálogo. */
+  const [salidaAConfirmar, setSalidaAConfirmar] = useState<ControlSalida | null>(null);
+  const pedirSalida = useCallback((control: ControlSalida) => setSalidaAConfirmar(control), []);
+  const cancelarSalida = useCallback(() => setSalidaAConfirmar(null), []);
+  const confirmarSalida = useCallback(async () => {
+    if (!salidaAConfirmar) return;
+    await handleLiberar(salidaAConfirmar);
+    setSalidaAConfirmar(null);
+  }, [salidaAConfirmar, handleLiberar]);
+
   const clearFilters = useCallback(() => {
     setSearch("");
     setFilterEstado("todos");
@@ -205,6 +216,7 @@ export function useControlSalidaPage() {
     detalle, verDetalle, cerrarDetalle: () => setDetalle(null), usuariosReportantes,
     reporte, abrirReporteDe, reporteAbierto,
     clearFilters, hasActiveFilters, handleLiberar,
+    salidaAConfirmar, pedirSalida, cancelarSalida, confirmarSalida,
     isLoading,
   };
 }

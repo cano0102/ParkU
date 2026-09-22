@@ -1,4 +1,4 @@
-import { LoadingState, Modal } from "@/components/shared";
+import { LoadingState, Modal, ConfirmDialog } from "@/components/shared";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
 import { useControlSalidaPage } from "./hooks/useControlSalidaPage";
@@ -131,10 +131,28 @@ export function ControlSalidaPage() {
             getParqueadero={p.getParqueadero}
             onVerDetalle={p.verDetalle}
             onReportar={p.abrirReporteDe}
-            onLiberar={p.handleLiberar}
+            onLiberar={p.pedirSalida}
           />
         )}
       </div>
+
+      {/* Confirmación antes de dar salida: liberar la celda no se puede deshacer. */}
+      <ConfirmDialog
+        open={!!p.salidaAConfirmar}
+        onConfirm={p.confirmarSalida}
+        onCancel={p.cancelarSalida}
+        title="Confirmar salida"
+        message={(() => {
+          const control = p.salidaAConfirmar;
+          if (!control) return "";
+          const placa = p.getVehiculo(control.vehiculoId)?.placa;
+          const celda = p.getCelda(control.celdaId)?.numero;
+          const conductor = p.getUsuarioConductor(control.vehiculoId)?.nombre;
+          return `¿Registrar la salida del vehículo ${placa ?? "seleccionado"}${conductor ? ` de ${conductor}` : ""}${celda ? ` y liberar la celda ${celda}` : ""}? Esta acción no se puede deshacer.`;
+        })()}
+        confirmLabel="Registrar salida"
+        tone="success"
+      />
 
       {/* La ficha completa del movimiento: lo que no cabe en la fila. */}
       <Modal open={!!p.detalle} onClose={p.cerrarDetalle} maxWidth={460}>
