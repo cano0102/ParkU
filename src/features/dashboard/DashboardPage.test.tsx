@@ -88,16 +88,18 @@ describe('features/dashboard — avisos de pendientes', () => {
     expect(screen.getByText('2 incidentes reportados')).toBeInTheDocument();
   });
 
-  /* Un id de rol que no es ninguno de los 3 fijos (Administrador/Vigilante/Conductor) ya no
-     se queda "sin permisos" dentro del panel general: `toAuthUser` (services/api/auth.ts)
-     lo normaliza como Conductor por seguridad ante cualquier valor no reconocido, así que
-     termina viendo el panel personal reducido en vez del dashboard completo. */
-  it('un id de rol no reconocido cae de forma segura al panel de Conductor', async () => {
+  /* Un rol creado a medida (id fuera de los 3 fijos) YA NO se trata como Conductor: antes
+     `toAuthUser` lo convertía en Conductor, y un "Asesor" con solo el módulo de salidas veía
+     el panel "Mi ParkU", sus vehículos y sus reservas. Ahora conserva su id, así que nunca
+     cae en el panel personal del conductor; sin permisos de novedades/reservas tampoco ve
+     avisos de pendientes. (Sin `reportes.consultar` ni siquiera llega aquí: la ruta del
+     Dashboard lo manda a su primer módulo — ver ProtectedRoute.) */
+  it('un rol creado a medida no ve el panel personal de Conductor', async () => {
     iniciarSesion(99);
     renderDashboard();
 
-    await waitFor(() => expect(screen.getByText('Mi ParkU')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('PQ-1 Torre A').length).toBeGreaterThan(0));
+    expect(screen.queryByText('Mi ParkU')).not.toBeInTheDocument();
     expect(screen.queryByText(/incidentes reportados/)).not.toBeInTheDocument();
-    expect(screen.queryByText('Nada pendiente por revisar')).not.toBeInTheDocument();
   });
 });

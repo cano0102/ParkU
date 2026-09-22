@@ -11,7 +11,7 @@
  */
 import { apiFetch } from '../core/http';
 import { setTokens, clearTokens } from '../core/tokenStorage';
-import { ROLES, normalizarRolId, type RolId } from '../core/roles';
+import { ROLES, normalizarRolId } from '../core/roles';
 import type { Vehiculo } from './vehiculos';
 import { TIPO_A_API } from './vehiculos';
 
@@ -20,7 +20,9 @@ export interface AuthUser {
   correo: string;
   nombre: string;
   numero: string;
-  rol: RolId;
+  /** Id real del rol. Puede ser uno de los tres del sistema (ROLES) o uno creado a medida
+   *  desde la pantalla de Roles (4, 5…): por eso es `number` y no `RolId`. */
+  rol: number;
   foto?: string;
   /** Permisos efectivos del rol, tal como los nombra el backend ("reservas.gestionar"…).
    *  Los devuelven el login, /auth/verificar y /auth/perfil. Con ellos se decide qué
@@ -88,13 +90,18 @@ interface AuthEnvelope<T> {
 }
 
 function toAuthUser(u: ApiUsuario): AuthUser {
-  const rol = normalizarRolId(u.rol) ?? ROLES.CONDUCTOR;
+  // Un rol creado a medida (id 4, 5…) se conserva tal cual. Antes todo id fuera de los tres
+  // del sistema caía en Conductor, así que un "Asesor" veía el menú y el Dashboard de
+  // conductor en vez de solo los módulos de sus permisos.
+  const idNumerico = Number(u.rol);
+  const rol = normalizarRolId(u.rol)
+    ?? (Number.isInteger(idNumerico) && idNumerico > 0 ? idNumerico : ROLES.CONDUCTOR);
   return {
     id: String(u.id),
     correo: u.correo,
     nombre: u.nombre,
     numero: u.numero ?? '',
-    rol: rol as RolId,
+    rol,
     permisos: Array.isArray(u.permisos) ? u.permisos : [],
     rolNombre: u.rol_nombre ?? undefined,
     tipoDocumento: u.tipo_documento ?? undefined,

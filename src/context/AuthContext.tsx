@@ -12,14 +12,15 @@ import { getToken, clearTokens } from '../services/core/tokenStorage';
 import { leerFoto, guardarFoto } from '../services/core/fotosPerfil';
 import { AUTH_EXPIRED_EVENT } from '../services/core/http';
 import { limpiarCacheDeQueries } from '../services/core/cacheQueries';
-import { ROLES, permisosDeVistas, type RolId, type PermisosRol } from '../services/core/roles';
+import { ROLES, permisosDeVistas, type PermisosRol } from '../services/core/roles';
 
 interface User {
   id: string;
   correo: string;
   nombre: string;
   numero: string;
-  rol: RolId;
+  /** Id real del rol: uno de los tres del sistema o uno creado a medida (ver AuthUser). */
+  rol: number;
   foto?: string;
   /** Permisos del rol tal como los nombra la API ("reservas.gestionar"…). De ellos salen
    *  las pantallas visibles -- ver permisosDeVistas en services/core/roles.ts. */

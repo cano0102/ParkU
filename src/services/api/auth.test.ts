@@ -28,6 +28,21 @@ describe('services/auth', () => {
     expect(getRefreshToken()).toBe('ref-1');
   });
 
+  it('login conserva el id de un rol creado a medida en vez de convertirlo en Conductor', async () => {
+    apiFetchMock.mockResolvedValue({
+      success: true, message: 'ok',
+      data: {
+        user: { id: 7, correo: 'asesor@sena.edu.co', nombre: 'Marcela', rol: 4, rol_nombre: 'Asesor', estado: 'ACTIVO', permisos: ['salida.gestionar'] },
+        token: 't', refreshToken: 'r', expiresIn: '7d',
+      },
+    });
+
+    const user = await auth.login('asesor@sena.edu.co', 'Pass1234');
+    expect(user.rol).toBe(4);
+    expect(user.rolNombre).toBe('Asesor');
+    expect(user.permisos).toEqual(['salida.gestionar']);
+  });
+
   it('login propaga el mensaje de error de la API en credenciales inválidas', async () => {
     apiFetchMock.mockRejectedValue(new Error('Credenciales inválidas'));
     await expect(auth.login('no-existe@sena.edu.co', 'Pass1234')).rejects.toThrow('Credenciales inválidas');
