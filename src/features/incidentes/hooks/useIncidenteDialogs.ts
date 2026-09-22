@@ -33,6 +33,9 @@ export function useIncidenteDialogs(
      *  aquí igual dejaba el formulario permanentemente inválido, con el campo que la pediría
      *  oculto para ese rol. Por defecto true (Admin/Vigilante). */
     puedeClasificar?: boolean;
+    /** true para Comunidad SENA (ConductorIncidentes): el parqueadero va oculto y se deriva del
+     *  vehículo elegido, en vez de que la persona elija primero el parqueadero y luego la celda. */
+    modoConductor?: boolean;
   }
 ) {
   const puedeClasificar = options?.puedeClasificar ?? true;
@@ -77,7 +80,7 @@ export function useIncidenteDialogs(
   const [evidencias, setEvidencias] = useState<File[]>([]);
   /* Las que ya están guardadas (al editar): cuentan para el máximo de tres y se muestran. */
   const [evidenciasExistentes, setEvidenciasExistentes] = useState<Evidencia[]>([]);
-  const [formTouched, setFormTouched] = useState<{ descripcion?: boolean }>({});
+  const [formTouched, setFormTouched] = useState<{ descripcion?: boolean; parqueaderoId?: boolean }>({});
 
   /* Validación en tiempo real. Un incidente hay que poder clasificarlo y ordenarlo, así que
      exige tipo y prioridad —y el detalle cuando el tipo es "otro"—; una novedad es una
@@ -98,6 +101,9 @@ export function useIncidenteDialogs(
           : "Indica de qué tipo de incidente se trata")
       : "",
     prioridad: esNovedad || !puedeClasificar || formData.prioridad ? "" : "Elige la prioridad",
+    // Elegir una celda ya fija el parqueadero (ver handleCeldaChange/handleVehiculoChange):
+    // exigirlo aparte era redundante y bloqueaba casos válidos, así que no se valida.
+    parqueaderoId: "",
   };
   const formInvalido = Object.values(formErrors).some(Boolean);
   const markTouched = (campo: "descripcion" | "parqueaderoId") =>

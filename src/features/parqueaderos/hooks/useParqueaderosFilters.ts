@@ -13,7 +13,7 @@ interface ParqueaderosFiltersOptions {
 }
 
 /** Pestaña activa, búsqueda/filtro de tipo, listas filtradas y estadísticas de ocupación. */
-export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (celdaId: string) => { vehiculo: { placa: string }; conductor?: { nombre: string } } | null) {
+export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (celdaId: string) => { vehiculo: { placa: string }; conductor?: { nombre: string } } | null, options?: ParqueaderosFiltersOptions) {
   const { user } = useAuth();
   const esConductor = user?.rol === ROLES.CONDUCTOR;
   const { parqueaderos, celdas, incidentes, misVehiculosPorCelda } = data;

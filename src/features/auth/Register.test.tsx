@@ -56,6 +56,10 @@ async function fillValidForm(user: ReturnType<typeof userEvent.setup>, overrides
   await user.type(screen.getByLabelText(/Teléfono/), '3101234567');
   await user.type(screen.getByLabelText('Contraseña'), 'Pass1234');
   await user.type(screen.getByLabelText('Confirmar Contraseña'), 'Pass1234');
+  // Vehículo propio, obligatorio para registrarse (ver RequisitoVehiculo/registerForm.ts).
+  await user.type(screen.getByPlaceholderText('Ej: ABC123'), 'ABC123');
+  await user.type(screen.getByPlaceholderText('ej. Chevrolet'), 'Chevrolet');
+  await user.type(screen.getByPlaceholderText('ej. Rojo'), 'Rojo');
   await user.click(screen.getByLabelText(/Acepto los términos/));
 
   return { correo, identificacion };
@@ -107,6 +111,9 @@ describe('Register', () => {
     await user.type(screen.getByLabelText('Correo Electrónico'), `sin-tel-${identificacion}@sena.edu.co`);
     await user.type(screen.getByLabelText('Contraseña'), 'Pass1234');
     await user.type(screen.getByLabelText('Confirmar Contraseña'), 'Pass1234');
+    await user.type(screen.getByPlaceholderText('Ej: ABC123'), 'ABC123');
+    await user.type(screen.getByPlaceholderText('ej. Chevrolet'), 'Chevrolet');
+    await user.type(screen.getByPlaceholderText('ej. Rojo'), 'Rojo');
     await user.click(screen.getByLabelText(/Acepto los términos/));
 
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }));

@@ -67,6 +67,7 @@ export const ControlSalidaPage = lazyConReintento(() => import('@/features/contr
 export const Reservas = lazyConReintento(() => import('@/features/reservas').then(m => ({ default: m.Reservas })));
 export const Incidentes = lazyConReintento(() => import('@/features/incidentes').then(m => ({ default: m.Incidentes })));
 export const Perfil = lazyConReintento(() => import('@/features/perfil').then(m => ({ default: m.Perfil })));
+export const MisVehiculos = lazyConReintento(() => import('@/features/misVehiculos').then(m => ({ default: m.MisVehiculos })));
 
 /** Chunk de cada ruta, para precargarlo antes de que alguien haga clic. */
 const PAGINA_POR_RUTA: Record<string, PaginaLazy<unknown>> = {
