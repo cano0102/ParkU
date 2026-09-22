@@ -402,7 +402,7 @@ export default function Parqueaderos() {
             : undefined
         }
         canManageCeldas={hasPermission("celdas")}
-        canRegistrarIngreso={!esConductor && hasPermission("entradaSalida")}
+        canRegistrarIngreso={!esConductor && hasPermission("asignaciones")}
         canReportarIncidentes={!esConductor && hasPermission("incidentes")}
         incidenteAbiertoExiste={incidente.incidenteAbiertoExisteParaCeldaActiva}
         onSetEstadoManual={modal.handleSetEstadoCeldaManual}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ROLES, permisosDeVistas, VISTAS_POR_PERMISO, PERMISOS_POR_ROL } from './roles';
+import { ROLES, permisosDeVistas, rutaInicial, VISTAS_POR_PERMISO, PERMISOS_POR_ROL } from './roles';
 import { menuItems } from '@/layouts/lib/menu';
 
 /**
@@ -11,9 +11,10 @@ import { menuItems } from '@/layouts/lib/menu';
 describe('permisosDeVistas — de permisos del backend a pantallas', () => {
   const ROL_A_MEDIDA = 42;
 
-  it('un rol a medida sin permisos solo ve el Dashboard', () => {
+  it('un rol a medida sin permisos no ve ningún módulo, ni siquiera el Dashboard', () => {
     const vistas = permisosDeVistas(ROL_A_MEDIDA, []);
-    expect(vistas.dashboard).toBe(true);
+    expect(Object.values(vistas).some(Boolean)).toBe(false);
+    expect(vistas.dashboard).toBe(false);
     expect(vistas.usuarios).toBe(false);
     expect(vistas.reservas).toBe(false);
     expect(vistas.roles).toBe(false);
@@ -56,7 +57,7 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
 
   it('un permiso que la interfaz todavía no conoce no rompe nada', () => {
     const vistas = permisosDeVistas(ROL_A_MEDIDA, ['inventado.gestionar']);
-    expect(vistas.dashboard).toBe(true);
+    expect(vistas.dashboard).toBe(false);
     expect(vistas.usuarios).toBe(false);
   });
 
@@ -91,5 +92,29 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
     const habilitables = new Set(Object.values(VISTAS_POR_PERMISO).flat());
     const sinPermiso = menuItems.filter((item) => !habilitables.has(item.permission));
     expect(sinPermiso.map((i) => i.label)).toEqual([]);
+  });
+
+  it('un rol con solo "Registrar salidas" ve únicamente Entrada / Salida y entra directo ahí', () => {
+    const vistas = permisosDeVistas(ROL_A_MEDIDA, ['salida.gestionar']);
+    const abiertas = Object.entries(vistas).filter(([, v]) => v).map(([k]) => k);
+    expect(abiertas).toEqual(['entradaSalida']);
+    expect(rutaInicial(vistas)).toBe('/app/entrada-salida');
+  });
+
+  it('el Dashboard solo lo abre reportes.consultar', () => {
+    const vistas = permisosDeVistas(ROL_A_MEDIDA, ['reportes.consultar', 'reservas.consultar']);
+    expect(vistas.dashboard).toBe(true);
+    expect(rutaInicial(vistas)).toBe('/app/dashboard');
+  });
+
+  it('sin ningún módulo, la pantalla de inicio es el perfil', () => {
+    expect(rutaInicial(permisosDeVistas(ROL_A_MEDIDA, []))).toBe('/app/perfil');
+    expect(rutaInicial(null)).toBe('/app/perfil');
+  });
+
+  it('los roles del sistema siguen entrando por el Dashboard', () => {
+    expect(rutaInicial(permisosDeVistas(ROLES.ADMIN, []))).toBe('/app/dashboard');
+    expect(rutaInicial(permisosDeVistas(ROLES.VIGILANTE, []))).toBe('/app/dashboard');
+    expect(rutaInicial(permisosDeVistas(ROLES.CONDUCTOR, []))).toBe('/app/dashboard');
   });
 });
