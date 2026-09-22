@@ -12,6 +12,8 @@
 import { apiFetch } from '../core/http';
 import { setTokens, clearTokens } from '../core/tokenStorage';
 import { ROLES, normalizarRolId, type RolId } from '../core/roles';
+import type { Vehiculo } from './vehiculos';
+import { TIPO_A_API } from './vehiculos';
 
 export interface AuthUser {
   id: string;
@@ -48,6 +50,15 @@ export interface RegisterInput {
    *  Es un dato del CONDUCTOR que se crea con el registro. Opcional: si el catálogo no
    *  cargó, la cuenta se crea igual y el perfil queda por completar. */
   tipoUsuarioId?: string;
+  // Vehículo propio, OBLIGATORIO: el backend rechaza el registro completo (cuenta +
+  // conductor) si el vehículo no es válido o falta -- ver auth.controller.js::register.
+  vehiculoTipo: Vehiculo['tipo'];
+  vehiculoPlaca: string;
+  vehiculoMarca: string;
+  vehiculoLinea?: string;
+  vehiculoModelo?: number;
+  vehiculoColor: string;
+  vehiculoDescripcion?: string;
 }
 
 interface ApiUsuario {
@@ -132,6 +143,15 @@ export async function register(data: RegisterInput): Promise<AuthUser> {
           ...(data.tipoUsuarioId ? { tipo_usuario_id: Number(data.tipoUsuarioId) } : {}),
         }
         : {}),
+      // Vehículo propio, obligatorio: el backend crea cuenta + conductor + vehículo en una
+      // sola transacción y rechaza todo el registro si este bloque falta o es inválido.
+      tipo_vehiculo: TIPO_A_API[data.vehiculoTipo],
+      placa: data.vehiculoPlaca.trim().toUpperCase(),
+      marca: data.vehiculoMarca.trim(),
+      linea: data.vehiculoLinea?.trim() || undefined,
+      modelo: data.vehiculoModelo || undefined,
+      color: data.vehiculoColor.trim(),
+      descripcion: data.vehiculoDescripcion?.trim() || undefined,
     },
   });
   return login(data.correo, data.password);

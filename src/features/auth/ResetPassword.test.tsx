@@ -37,6 +37,10 @@ async function getValidResetToken() {
     numero: '3101234567',
     tipoDocumento: 'CC',
     identificacion: `${Date.now()}`,
+    vehiculoTipo: 'carro',
+    vehiculoPlaca: `TST${String(Date.now() % 1000).padStart(3, '0')}`,
+    vehiculoMarca: 'Chevrolet',
+    vehiculoColor: 'Blanco',
   });
   const token = await authService.requestPasswordReset(correo);
   return { correo, token: token as string };

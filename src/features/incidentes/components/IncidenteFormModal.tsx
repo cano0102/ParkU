@@ -1,5 +1,6 @@
 import { IconSparkles as Sparkles, IconX as X } from "@tabler/icons-react";
 import type { Vehiculo } from "@/services/api/vehiculos";
+import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Usuario } from "@/services/api/usuarios";
 import type { Celda } from "@/services/api/celdas";
 import type { TipoNovedad, PrioridadNovedad, Incidente, ClaseNovedad } from "@/services/api/incidentes";
@@ -65,6 +66,8 @@ interface IncidenteFormModalProps {
   ocupanteDeCelda: (celdaId?: string) => { vehiculo: { placa: string } } | null;
   onCeldaChange: (value: string) => void;
   onVehiculoChange: (value: string) => void;
+  onParqueaderoChange: (value: string) => void;
+  ocultarParqueadero?: boolean;
   onClose: () => void;
   onSave: () => void;
 }
@@ -74,8 +77,8 @@ export function IncidenteFormModal({
   isEditing, usuariosReportantes, puedeRegistrarNovedades,
   evidencias, onEvidenciasChange, evidenciasExistentes, showJustificacionCierre,
   formData, setFormData, formTouched, formErrors, formInvalido, markTouched,
-  vehiculos, usuarios, puedeClasificar = true, celdasDelParqueadero, permitirSinCelda = true, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
-  onCeldaChange, onVehiculoChange, onClose, onSave,
+  parqueaderos, vehiculos, usuarios, puedeClasificar = true, celdasDelParqueadero, permitirSinCelda = true, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
+  onCeldaChange, onVehiculoChange, onParqueaderoChange, ocultarParqueadero = false, onClose, onSave,
 }: IncidenteFormModalProps) {
   return (
     <div>
@@ -158,13 +161,19 @@ export function IncidenteFormModal({
 
           <IncidenteBasicFields
             descripcion={formData.descripcion}
+            parqueaderoId={formData.parqueaderoId}
             celdaId={formData.celdaId}
+            parqueaderos={parqueaderos}
             celdasDelParqueadero={celdasDelParqueadero}
             celdaSeleccionada={celdaSeleccionada}
             ocupanteSeleccionado={ocupanteSeleccionado}
             descripcionError={formTouched.descripcion ? formErrors.descripcion : undefined}
+            parqueaderoError={formTouched.parqueaderoId ? formErrors.parqueaderoId : undefined}
+            ocultarParqueadero={ocultarParqueadero}
             onDescripcionChange={(value) => setFormData((f) => ({ ...f, descripcion: value }))}
             onDescripcionBlur={() => markTouched("descripcion")}
+            onParqueaderoChange={onParqueaderoChange}
+            onParqueaderoBlur={() => markTouched("parqueaderoId")}
             onCeldaChange={onCeldaChange}
             ocupanteDeCelda={ocupanteDeCelda}
             permitirSinCelda={permitirSinCelda}

@@ -12,7 +12,9 @@ import { theme } from "@/styles/theme";
 
 import {
   MAX_EVIDENCIAS,
+  cargarEvidencia,
   motivoArchivoInvalido,
+  resolverUrlEvidencia,
   type Evidencia,
 } from "@/services/api/evidencias";
 import { EvidenciaImg } from "./EvidenciaImg";

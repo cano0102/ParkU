@@ -7,6 +7,7 @@ import {
   IconArrowsLeftRight as ArrowLeftRight,
   IconCalendar as Calendar,
   IconAlertTriangle as AlertTriangle,
+  IconCar as Car,
 } from "@tabler/icons-react";
 import type { PermisosRol } from "@/services/core/roles";
 
@@ -24,6 +25,7 @@ export const menuItems: MenuItem[] = [
   { path: "/app/usuarios", label: "Usuarios", icon: Users, group: "admin", permission: "usuarios" },
   { path: "/app/conductores", label: "Conductores", icon: UserCog, group: "admin", permission: "conductores" },
   { path: "/app/parqueaderos", label: "Parqueaderos", icon: ParkingCircle, group: "operacion", permission: "parqueaderos" },
+  { path: "/app/mis-vehiculos", label: "Mis Vehículos", icon: Car, group: "operacion", permission: "misVehiculos" },
   { path: "/app/entrada-salida", label: "Entrada / Salida", icon: ArrowLeftRight, group: "operacion", permission: "entradaSalida" },
   { path: "/app/reservas", label: "Reservas", icon: Calendar, group: "operacion", permission: "reservas" },
   { path: "/app/incidentes", label: "Incidentes", icon: AlertTriangle, group: "operacion", permission: "incidentes" },

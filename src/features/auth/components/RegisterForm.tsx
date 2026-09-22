@@ -4,6 +4,7 @@ import { IconArrowLeft as ArrowLeft, IconLoader2 as Loader2 } from "@tabler/icon
 import logoSena from "@/assets/images/logoSena.png";
 import { theme } from "@/styles/theme";
 import { useRegisterForm } from "../hooks/useRegisterForm";
+import { VehiculoAsociadoFields } from "@/features/conductores/components/VehiculoAsociadoFields";
 import { IdentidadFields } from "./IdentidadFields";
 import { NombreCorreoTelefonoFields } from "./NombreCorreoTelefonoFields";
 import { PasswordFields } from "./PasswordFields";
@@ -120,6 +121,42 @@ export function RegisterForm({ identificacionRef, formState: f }: RegisterFormPr
           onConfirmPasswordBlur={() => f.handleBlur("confirmPassword")}
           onToggleShowConfirmPassword={() => f.setShowConfirmPassword((v) => !v)}
         />
+
+        <div
+          style={{
+            marginTop: "0.4rem",
+            paddingTop: "0.85rem",
+            borderTop: `1px dashed ${COLORS.border}`,
+          }}
+        >
+          <p style={{ fontSize: 11, color: COLORS.textLight, marginBottom: "0.6rem", lineHeight: 1.5 }}>
+            Necesitas registrar un vehículo propio para crear tu cuenta.
+          </p>
+          <VehiculoAsociadoFields
+            placa={f.form.vehiculoPlaca}
+            placaError={f.err("vehiculoPlaca")}
+            tipoVehiculo={f.form.vehiculoTipo}
+            marca={f.form.vehiculoMarca}
+            marcaError={f.err("vehiculoMarca")}
+            linea={f.form.vehiculoLinea}
+            modelo={f.form.vehiculoModelo}
+            modeloError={f.err("vehiculoModelo")}
+            color={f.form.vehiculoColor}
+            colorError={f.err("vehiculoColor")}
+            descripcionVehiculo={f.form.vehiculoDescripcion}
+            onPlacaChange={(v) => f.set("vehiculoPlaca", v)}
+            onPlacaBlur={() => f.handleBlur("vehiculoPlaca")}
+            onTipoVehiculoChange={(tipo) => f.set("vehiculoTipo", tipo)}
+            onMarcaChange={(v) => f.set("vehiculoMarca", v)}
+            onMarcaBlur={() => f.handleBlur("vehiculoMarca")}
+            onLineaChange={(v) => f.set("vehiculoLinea", v)}
+            onModeloChange={(v) => f.set("vehiculoModelo", v)}
+            onModeloBlur={() => f.handleBlur("vehiculoModelo")}
+            onColorChange={(v) => f.set("vehiculoColor", v)}
+            onColorBlur={() => f.handleBlur("vehiculoColor")}
+            onDescripcionChange={(v) => f.set("vehiculoDescripcion", v)}
+          />
+        </div>
 
         <TerminosCheckbox
           checked={f.form.aceptaTerminos}

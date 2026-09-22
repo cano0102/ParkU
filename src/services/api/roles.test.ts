@@ -35,7 +35,7 @@ describe('services/roles', () => {
     const creado = await roles.create({
       nombre: 'Rol de prueba', descripcion: 'Creado en un test', estado: 'activo',
       permisos: {
-        dashboard: true, roles: true, usuarios: true, conductores: true, vehiculos: true,
+        dashboard: true, roles: true, usuarios: true, conductores: true, vehiculos: true, misVehiculos: true,
         parqueaderos: true, celdas: true, asignaciones: true, entradaSalida: true,
         reservas: true, incidentes: true, reconocimientoPlacas: true,
       },
@@ -90,7 +90,7 @@ describeCrudContract<Rol>(
     nombre: `Rol de prueba ${Math.random()}`,
     descripcion: 'Creado en un test',
     permisos: {
-      dashboard: true, roles: false, usuarios: false, conductores: false, vehiculos: false,
+      dashboard: true, roles: false, usuarios: false, conductores: false, vehiculos: false, misVehiculos: false,
       parqueaderos: false, celdas: false, asignaciones: false, entradaSalida: false,
       reservas: false, incidentes: false, reconocimientoPlacas: false,
     },

@@ -103,6 +103,14 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: 'mis-vehiculos',
+        element: (
+          <ProtectedRoute permission="misVehiculos">
+            <MisVehiculos />
+          </ProtectedRoute>
+        ),
+      },
+      {
         path: 'entrada-salida',
         element: (
           <ProtectedRoute permission="entradaSalida">

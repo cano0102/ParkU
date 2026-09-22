@@ -205,7 +205,15 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   const parsedBody = await parseJsonSafe(res);
 
   if (!res.ok) {
-    throw new Error(extraerMensajeError(parsedBody, res.status));
+    // Algunos errores de negocio (p. ej. placa duplicada en POST /vehiculos) traen un
+    // `data` con el detalle (id del recurso existente, su dueño) que la UI necesita para
+    // ofrecer una acción de seguimiento ("vincularme como copropietario") en vez de solo
+    // mostrar el mensaje. Propiedades extra en la instancia de Error: no rompe ningún
+    // `catch` existente que solo lea `.message`.
+    const err = new Error(extraerMensajeError(parsedBody, res.status)) as Error & { status?: number; data?: unknown };
+    err.status = res.status;
+    err.data = (parsedBody as { data?: unknown } | null)?.data;
+    throw err;
   }
 
   return parsedBody as T;

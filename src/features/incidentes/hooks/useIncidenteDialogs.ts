@@ -84,6 +84,7 @@ export function useIncidenteDialogs(
      observación de la operación y no tiene nada de eso que dar. Mismas reglas que el reporte
      rápido (useIncidenteReporte) y que el backend. */
   const esNovedad = formData.clase === "novedad";
+  const modoConductor = options?.modoConductor ?? false;
   const formErrors = {
     descripcion: validarTextoLargo(formData.descripcion, "La descripción", { min: DESCRIPCION_MIN, max: DESCRIPCION_MAX }) ?? "",
     // El backend admite vehiculo_id en null (novedades.models.js): no todo incidente ocurre
@@ -99,12 +100,14 @@ export function useIncidenteDialogs(
     prioridad: esNovedad || !puedeClasificar || formData.prioridad ? "" : "Elige la prioridad",
   };
   const formInvalido = Object.values(formErrors).some(Boolean);
-  const markTouched = (campo: "descripcion") =>
+  const markTouched = (campo: "descripcion" | "parqueaderoId") =>
     setFormTouched((t) => ({ ...t, [campo]: true }));
 
   const celdasDelParqueadero = useMemo(
-    () => celdas.filter((c) => !options?.celdaIdsPermitidas || options.celdaIdsPermitidas.has(c.id)),
-    [celdas, options?.celdaIdsPermitidas]
+    () => celdas.filter((c) => modoConductor
+      ? (!options?.celdaIdsPermitidas || options.celdaIdsPermitidas.has(c.id))
+      : c.parqueaderoId === formData.parqueaderoId),
+    [celdas, formData.parqueaderoId, modoConductor, options?.celdaIdsPermitidas]
   );
   const ocupanteSeleccionado = ocupanteDeCelda(formData.celdaId);
 
@@ -171,7 +174,15 @@ export function useIncidenteDialogs(
     });
   };
 
+  const handleParqueaderoChange = (parqueaderoId: string) => {
+    setFormData({ ...formData, parqueaderoId, celdaId: "" });
+  };
+
   const handleVehiculoChange = (vehiculoId: string) => {
+    if (!modoConductor) {
+      setFormData({ ...formData, vehiculoId });
+      return;
+    }
     const celda = celdas.find((item) => ocupanteDeCelda(item.id)?.vehiculo.id === vehiculoId);
     setFormData({
       ...formData,
@@ -195,7 +206,7 @@ export function useIncidenteDialogs(
     );
 
   const handleSave = async () => {
-    setFormTouched({ descripcion: true });
+    setFormTouched({ descripcion: true, parqueaderoId: true });
     if (formInvalido) {
       toast.error("Revisa los campos obligatorios del formulario");
       return;
@@ -215,6 +226,9 @@ export function useIncidenteDialogs(
     }
 
     try {
+      const datosParaGuardar = modoConductor
+        ? { ...formData, prioridad: "", usuarioAsignadoId: "" }
+        : formData;
       /* Las fotos se suben con el reporte ya existente, que es cuando hay un id al que
          colgarlas. Si alguna falla, lo demás ya quedó guardado: se avisa de lo que no subió
          en vez de dar todo por perdido. Una novedad no lleva fotos. */
@@ -227,7 +241,7 @@ export function useIncidenteDialogs(
       };
 
       if (isEditing && selectedIncidente) {
-        await updateIncidente(selectedIncidente.id, { ...formData });
+        await updateIncidente(selectedIncidente.id, { ...datosParaGuardar } as Partial<Incidente>);
         const aviso = await subirFotos(selectedIncidente.id);
         toast.success("Incidente actualizado correctamente" + aviso);
       } else {
@@ -284,6 +298,7 @@ export function useIncidenteDialogs(
     openEdit,
     openView,
     closeForm,
+    handleParqueaderoChange,
     handleVehiculoChange,
     handleCeldaChange,
     handleSave,

@@ -20,7 +20,7 @@ const backend = createFakeRestBackend('/roles', seed);
 apiFetchMock.mockImplementation(backend.apiFetch);
 
 const permisosVacios = {
-  dashboard: false, roles: false, usuarios: false, conductores: false, vehiculos: false,
+  dashboard: false, roles: false, usuarios: false, conductores: false, vehiculos: false, misVehiculos: false,
   parqueaderos: false, celdas: false, asignaciones: false, entradaSalida: false,
   reservas: false, incidentes: false, reconocimientoPlacas: false,
 };

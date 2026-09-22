@@ -5,12 +5,10 @@ import {
   IconCar as Car,
   IconClock as Clock,
   IconEdit as Edit,
-  IconFile as FileIcon,
   IconMapPin as MapPin,
   IconCircleLetterP as ParkingCircle,
   IconUser as User,
   IconUserPlus as UserPlus,
-  IconX as X,
 } from "@tabler/icons-react";
 import type { Incidente } from "@/services/api/incidentes";
 import type { Celda } from "@/services/api/celdas";

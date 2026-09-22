@@ -16,8 +16,9 @@ import { COLORS, getTipoVehiculoStyle } from "../lib/helpers";
 
 interface VehiculoViewProps {
   vehiculo: Vehiculo;
-  /** Abre la ficha del CONDUCTOR dueño. */
-  onEdit: () => void;
+  /** Abre la ficha del CONDUCTOR dueño. Ausente en la vista de autoservicio "Mis Vehículos"
+   *  (el conductor ya está viendo su propia ficha, no tiene sentido "ver conductor" ahí). */
+  onEdit?: () => void;
   /** Edita este vehículo. Es la vía para cambiar su placa, marca, línea o modelo: el
    *  formulario del conductor ya no los lleva. */
   onEditarVehiculo?: () => void;
@@ -283,18 +284,20 @@ export const VehiculoView = memo(({
           )}
         </div>
 
-        <button
-          onClick={onEdit}
-          style={{
-            marginTop: 8, width: "100%", padding: "10px 20px", borderRadius: 12,
-            border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.textLight,
-            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-          }}
-        >
-          <UserCog size={14} />
-          Ver conductor
-        </button>
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            style={{
+              marginTop: 8, width: "100%", padding: "10px 20px", borderRadius: 12,
+              border: `1px solid ${COLORS.border}`, background: "#fff", color: COLORS.textLight,
+              fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}
+          >
+            <UserCog size={14} />
+            Ver conductor
+          </button>
+        )}
       </div>
     </div>
   );

@@ -158,6 +158,10 @@ const setCorreo = (raw: string) => {
       password: true,
       confirmPassword: true,
       aceptaTerminos: true,
+      vehiculoPlaca: true,
+      vehiculoMarca: true,
+      vehiculoModelo: true,
+      vehiculoColor: true,
     });
 
     // Ya sabemos (por el chequeo en tiempo real) que el correo o el número
@@ -184,6 +188,15 @@ const setCorreo = (raw: string) => {
         identificacion: form.identificacion.trim(),
         // Con esto el backend crea el Conductor de esta persona junto con su cuenta.
         tipoUsuarioId: form.tipoUsuarioId || undefined,
+        // Vehículo propio, obligatorio: el backend crea la cuenta, el conductor y el
+        // vehículo en una sola transacción, y rechaza todo si alguno falla.
+        vehiculoTipo: form.vehiculoTipo,
+        vehiculoPlaca: form.vehiculoPlaca.trim().toUpperCase(),
+        vehiculoMarca: form.vehiculoMarca.trim(),
+        vehiculoLinea: form.vehiculoLinea.trim(),
+        vehiculoModelo: form.vehiculoModelo ? Number(form.vehiculoModelo) : undefined,
+        vehiculoColor: form.vehiculoColor.trim(),
+        vehiculoDescripcion: form.vehiculoDescripcion.trim(),
       });
 
       toast.success("¡Cuenta creada correctamente! Bienvenido a ParkU.");

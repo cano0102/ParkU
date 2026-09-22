@@ -84,16 +84,20 @@ export function ParqueaderosHero({ stats, soloLectura = false }: ParqueaderosHer
               value: stats.libres,
               dot: CELDA_CONFIG.disponible.dotColor,
             },
-            {
-              label: "Ocupadas",
-              value: stats.ocupadas,
-              dot: CELDA_CONFIG.no_disponible.dotColor,
-            },
-            {
-              label: "En mantenimiento",
-              value: stats.mantenimiento,
-              dot: CELDA_CONFIG.mantenimiento.dotColor,
-            },
+            ...(soloDisponibles
+              ? []
+              : [
+                  {
+                    label: "Ocupadas",
+                    value: stats.ocupadas,
+                    dot: CELDA_CONFIG.no_disponible.dotColor,
+                  },
+                  {
+                    label: "En mantenimiento",
+                    value: stats.mantenimiento,
+                    dot: CELDA_CONFIG.mantenimiento.dotColor,
+                  },
+                ]),
           ].map((s) => (
             <div
               key={s.label}

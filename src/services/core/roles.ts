@@ -39,6 +39,9 @@ export interface PermisosRol {
   usuarios: boolean;
   conductores: boolean;
   vehiculos: boolean;
+  /** Autoservicio: "Mis Vehículos" (ver/crear/editar SUS PROPIOS vehículos). Distinto de
+   *  `vehiculos`, que es la gestión administrativa de la flota de TODOS los conductores. */
+  misVehiculos: boolean;
   parqueaderos: boolean;
   celdas: boolean;
   asignaciones: boolean;
@@ -54,6 +57,7 @@ const TODO_PERMITIDO: PermisosRol = {
   usuarios: true,
   conductores: true,
   vehiculos: true,
+  misVehiculos: true,
   parqueaderos: true,
   celdas: true,
   asignaciones: true,
@@ -71,6 +75,7 @@ export const PERMISOS_POR_ROL: Record<RolId, PermisosRol> = {
     usuarios: false,
     conductores: true,
     vehiculos: true,
+    misVehiculos: false,
     parqueaderos: true,
     celdas: true,
     asignaciones: true,
@@ -112,6 +117,7 @@ export const PERMISOS_VACIOS: PermisosRol = {
   usuarios: false,
   conductores: false,
   vehiculos: false,
+  misVehiculos: false,
   parqueaderos: false,
   celdas: false,
   asignaciones: false,

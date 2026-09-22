@@ -7,6 +7,7 @@
  * que colgarlas) y varias fotos son varias llamadas.
  */
 import { apiFetch } from '../core/http';
+import { getToken } from '../core/tokenStorage';
 
 /** El backend rechaza la cuarta (ver evidenciaNovedad.service.js). */
 export const MAX_EVIDENCIAS = 3;
@@ -24,6 +25,33 @@ export interface Evidencia {
   url: string;
   tipo: string;
   descripcion: string;
+}
+
+const API_BASE = import.meta.env.VITE_API_URL ?? '';
+const API_ROOT = API_BASE.replace(/\/api\/?$/, '');
+
+/** Convierte la ruta que devuelve la API en la URL pública real del archivo. */
+export function resolverUrlEvidencia(url: string): string {
+  const valor = url.trim();
+  if (!valor) return '';
+  if (/^(https?:|data:|blob:)/i.test(valor)) return valor;
+  if (valor.startsWith('/api/')) return `${API_ROOT}${valor}`;
+  if (valor.startsWith('/')) return `${API_ROOT}${valor}`;
+  return `${API_ROOT}/${valor}`;
+}
+
+/** Descarga una evidencia con el token de sesión y devuelve una URL temporal para el navegador. */
+export async function cargarEvidencia(url: string): Promise<string> {
+  const src = resolverUrlEvidencia(url);
+  if (!src || /^(data:|blob:)/i.test(src)) return src;
+
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const respuesta = await fetch(src, { headers });
+  if (!respuesta.ok) throw new Error(`No se pudo cargar la evidencia (${respuesta.status}).`);
+  return URL.createObjectURL(await respuesta.blob());
 }
 
 interface ApiEvidencia {

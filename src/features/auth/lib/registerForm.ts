@@ -7,6 +7,10 @@ import {
   NUMERO_DOCUMENTO_MIN,
   NUMERO_DOCUMENTO_MAX,
 } from "@/utils/validation";
+import {
+  validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
+} from "@/features/conductores/lib/helpers";
+import type { Vehiculo } from "@/services/api/vehiculos";
 
 export interface FormState {
   nombre: string;
@@ -19,6 +23,15 @@ export interface FormState {
   password: string;
   confirmPassword: string;
   aceptaTerminos: boolean;
+  // Vehículo propio: obligatorio para poder registrarse (ver auth.controller.js::register en
+  // el backend, que rechaza el registro completo sin él).
+  vehiculoTipo: Vehiculo["tipo"];
+  vehiculoPlaca: string;
+  vehiculoMarca: string;
+  vehiculoLinea: string;
+  vehiculoModelo: string;
+  vehiculoColor: string;
+  vehiculoDescripcion: string;
 }
 
 export const emptyForm = (): FormState => ({
@@ -31,6 +44,13 @@ export const emptyForm = (): FormState => ({
   password: "",
   confirmPassword: "",
   aceptaTerminos: false,
+  vehiculoTipo: "carro",
+  vehiculoPlaca: "",
+  vehiculoMarca: "",
+  vehiculoLinea: "",
+  vehiculoModelo: "",
+  vehiculoColor: "",
+  vehiculoDescripcion: "",
 });
 
 export interface ValidationErrors {
@@ -42,6 +62,10 @@ export interface ValidationErrors {
   password?: string;
   confirmPassword?: string;
   aceptaTerminos?: string;
+  vehiculoPlaca?: string;
+  vehiculoMarca?: string;
+  vehiculoModelo?: string;
+  vehiculoColor?: string;
 }
 
 /**
@@ -96,6 +120,33 @@ export function validate(f: FormState, exigirTipoUsuario = false): ValidationErr
 
   if (!f.aceptaTerminos) {
     nextErrors.aceptaTerminos = "Debes aceptar los términos para continuar";
+  }
+
+  // Vehículo propio, obligatorio: sin él no se puede crear la cuenta (regla de negocio,
+  // reflejada también en el backend -- ver auth.controller.js::register).
+  const vehiculoPlaca = f.vehiculoPlaca.trim().toUpperCase();
+  if (!vehiculoPlaca) {
+    nextErrors.vehiculoPlaca = "La placa del vehículo es obligatoria";
+  } else if (!validarPlacaColombiana(vehiculoPlaca)) {
+    nextErrors.vehiculoPlaca = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
+  } else if (
+    (f.vehiculoTipo === "carro" || f.vehiculoTipo === "moto") &&
+    !validarPlacaPorTipo(vehiculoPlaca, f.vehiculoTipo)
+  ) {
+    const tipoDetectado = tipoVehiculoDesdePlaca(vehiculoPlaca);
+    nextErrors.vehiculoPlaca = `Seleccionaste "${f.vehiculoTipo}", pero la placa tiene formato de ${tipoDetectado}.`;
+  }
+
+  if (!f.vehiculoMarca.trim()) nextErrors.vehiculoMarca = "La marca del vehículo es obligatoria";
+  if (!f.vehiculoColor.trim()) nextErrors.vehiculoColor = "El color del vehículo es obligatorio";
+
+  const vehiculoModelo = f.vehiculoModelo.trim();
+  if (vehiculoModelo) {
+    const anio = Number(vehiculoModelo);
+    const anioMaximo = new Date().getFullYear() + 1;
+    if (!Number.isInteger(anio) || anio < 1950 || anio > anioMaximo) {
+      nextErrors.vehiculoModelo = `El modelo es el año del vehículo: entre 1950 y ${anioMaximo}`;
+    }
   }
 
   return nextErrors;

@@ -45,7 +45,7 @@ export interface Vehiculo {
   copropietarios?: VehiculoPropietario[];
 }
 
-const TIPO_A_API: Record<Vehiculo['tipo'], string> = {
+export const TIPO_A_API: Record<Vehiculo['tipo'], string> = {
   carro: 'CARRO', moto: 'MOTO', bicicleta: 'BICICLETA', camion: 'CAMION', bus: 'BUS',
 };
 const TIPO_DESDE_API: Record<string, Vehiculo['tipo']> = {

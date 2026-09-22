@@ -40,15 +40,7 @@ interface AuthContextType {
     password: string
   ) => Promise<boolean>;
 
-  register: (data: {
-    correo: string;
-    password: string;
-    nombre: string;
-    numero: string;
-    tipoDocumento: string;
-    identificacion: string;
-    tipoUsuarioId?: string;
-  }) => Promise<boolean>;
+  register: (data: authService.RegisterInput) => Promise<boolean>;
 
   googleLogin: (userData: any) => void;
 
@@ -226,15 +218,7 @@ export function AuthProvider({
   };
 
   // REGISTRO — la API pública siempre crea rol Conductor y deja al usuario logueado.
-  const register = async (data: {
-    correo: string;
-    password: string;
-    nombre: string;
-    numero: string;
-    tipoDocumento: string;
-    identificacion: string;
-    tipoUsuarioId?: string;
-  }): Promise<boolean> => {
+  const register = async (data: authService.RegisterInput): Promise<boolean> => {
     const loggedUser = await authService.register(data);
     persistUser(loggedUser);
     return true;

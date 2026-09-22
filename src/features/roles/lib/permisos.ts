@@ -42,6 +42,12 @@ export interface PermisosState {
   usuarios: boolean;
   conductores: boolean;
   vehiculos: boolean;
+  /** No es un permiso configurable en el catálogo (por eso no aparece en `PERMISOS` ni se le
+   *  asigna un checkbox): "Mis Vehículos" es autoservicio exclusivo del rol Conductor
+   *  hardcodeado (ver services/core/roles.ts), nunca algo que un rol a medida pueda recibir.
+   *  Solo está aquí para que `PermisosState` siga siendo estructuralmente compatible con
+   *  `PermisosRol`. */
+  misVehiculos: boolean;
   parqueaderos: boolean;
   celdas: boolean;
   asignaciones: boolean;
@@ -57,6 +63,7 @@ export const initialPermisos: PermisosState = {
   usuarios: false,
   conductores: false,
   vehiculos: false,
+  misVehiculos: false,
   parqueaderos: false,
   celdas: false,
   asignaciones: false,

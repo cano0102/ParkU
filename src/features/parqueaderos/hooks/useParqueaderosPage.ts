@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -20,7 +20,19 @@ export function useParqueaderosPage() {
   const { hasPermission } = useAuth();
   const data = useParqueaderosData();
   const modal = useModalController(data);
-  const filters = useParqueaderosFilters(data, modal.getOcupante);
+  // Un Conductor solo puede reservar celdas disponibles: mostrarle las demás (ocupada,
+  // reservada, mantenimiento, inactiva) solo lo confundía, porque al hacer clic en ellas no
+  // se le ofrecía ninguna acción de reserva. `hasPermission("celdas")` ya distingue a quien
+  // gestiona celdas (Admin/Vigilante, ve todo) de quien no (Conductor, solo ve disponibles).
+  const celdasVisibles = useMemo(
+    () => (hasPermission("celdas") ? data.celdas : data.celdas.filter((c) => c.estado === "disponible")),
+    [data.celdas, hasPermission]
+  );
+  const filters = useParqueaderosFilters(
+    { ...data, celdas: celdasVisibles },
+    modal.getOcupante,
+    { soloConCeldas: !hasPermission("celdas") }
+  );
   const pqFormState = useParqueaderoForm(data, modal.openModal, modal.setOpenModal);
   const ingreso = useIngresoVehiculo(data, modal.celdaActiva, modal.parqueaderoActivo, modal.setOpenModal);
   const scanner = useOcrScanner(modal.celdaActiva, ingreso.setVehiculoForm, modal.openModal, modal.setOpenModal);
@@ -102,7 +114,7 @@ export function useParqueaderosPage() {
   }, [modal, ingreso, hasPermission]);
 
   return {
-    navigate, hasPermission, data, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick,
+    navigate, hasPermission, data, celdasVisibles, modal, filters, pqFormState, ingreso, scanner, reserva, incidente, handleCellClick,
     conductorForm, agregarVehiculo, abrirCrearConductor, abrirCrearVehiculo,
   };
 }

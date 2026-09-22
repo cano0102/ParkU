@@ -123,6 +123,7 @@ export function ConductorIncidentes() {
           formErrors={dialogs.formErrors}
           formInvalido={dialogs.formInvalido}
           markTouched={dialogs.markTouched}
+          parqueaderos={data.parqueaderos}
           vehiculos={data.misVehiculos}
           usuarios={[]}
           puedeClasificar={false}
@@ -133,6 +134,8 @@ export function ConductorIncidentes() {
           ocupanteDeCelda={data.ocupanteDeCelda}
           onCeldaChange={dialogs.handleCeldaChange}
           onVehiculoChange={dialogs.handleVehiculoChange}
+          onParqueaderoChange={dialogs.handleParqueaderoChange}
+          ocultarParqueadero
           onClose={dialogs.closeForm}
           onSave={dialogs.handleSave}
         />
