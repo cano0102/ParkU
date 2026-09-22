@@ -17,7 +17,6 @@ import { ParqueaderosTopbar } from "./components/ParqueaderosTopbar";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ParkingMap } from "./components/map/ParkingMap";
 import { ParqueaderosTable } from "./components/ParqueaderosTable";
-import { CeldasDisponiblesConductor } from "./components/CeldasDisponiblesConductor";
 import { ParqueaderoFormModal } from "./components/modals/ParqueaderoFormModal";
 import { IngresoModal } from "./components/modals/IngresoModal";
 import { CeldaInfoModal } from "./components/modals/CeldaInfoModal";
@@ -127,20 +126,12 @@ export default function Parqueaderos() {
                   fontWeight: 600,
                 }}
               >
-                ℹ️ Este mapa es solo informativo: la celda te la asigna el vigilante al
+                ℹ️ Esta vista es solo informativa: la celda te la asigna el vigilante al
                 registrar tu ingreso. Cuando la tengas, tu vehículo aparece resaltado en verde.
               </p>
             )}
 
-            {filters.activeTab === "table" && esConductor && (
-              <CeldasDisponiblesConductor
-                celdas={filters.paginatedCeldasDisponibles}
-                parqueaderos={data.parqueaderos}
-                misVehiculosPorCelda={data.misVehiculosPorCelda}
-              />
-            )}
-
-            {filters.activeTab === "table" && !esConductor && (
+            {filters.activeTab === "table" && (
               <ParqueaderosTable
                 parqueaderos={filters.paginatedPqsConCeldas}
                 celdas={
@@ -151,7 +142,7 @@ export default function Parqueaderos() {
                 onDelete={pqFormState.handleDeleteRequest}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
                 onReportar={
-                  hasPermission("incidentes")
+                  !esConductor && hasPermission("incidentes")
                     ? (pq: Parqueadero) =>
                         incidente.abrirReporte({
                           parqueaderoId: pq.id,
@@ -167,19 +158,18 @@ export default function Parqueaderos() {
               />
             )}
 
-            {filters.activeTab === "table" &&
-              (esConductor ? filters.celdasDisponiblesConductor.length : filters.filteredPqsConCeldas.length) > 0 && (
-                <DataPagination
-                  currentPage={filters.currentPage}
-                  totalPages={filters.totalPages}
-                  itemsPerPage={filters.itemsPerPage}
-                  totalItems={esConductor ? filters.celdasDisponiblesConductor.length : filters.filteredPqsConCeldas.length}
-                  itemsPerPageOptions={esConductor ? [12, 24, 48, 96] : [10, 25, 50, 100]}
-                  entityLabel={esConductor ? "Celdas" : "Parqueaderos"}
-                  onPageChange={filters.setCurrentPage}
-                  onItemsPerPageChange={filters.setItemsPerPage}
-                />
-              )}
+            {filters.activeTab === "table" && filters.filteredPqsConCeldas.length > 0 && (
+              <DataPagination
+                currentPage={filters.currentPage}
+                totalPages={filters.totalPages}
+                itemsPerPage={filters.itemsPerPage}
+                totalItems={filters.filteredPqsConCeldas.length}
+                itemsPerPageOptions={[10, 25, 50, 100]}
+                entityLabel="Parqueaderos"
+                onPageChange={filters.setCurrentPage}
+                onItemsPerPageChange={filters.setItemsPerPage}
+              />
+            )}
 
             {filters.activeTab === "map" && (
               <ParkingMap
