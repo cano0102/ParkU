@@ -67,9 +67,10 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
     expect(permisosDeVistas('administrador', [])).toEqual(permisosDeVistas(ROLES.ADMIN, []));
   });
 
-  it('el Administrador lo ve todo sin mirar la tabla', () => {
-    const vistas = permisosDeVistas(ROLES.ADMIN, []);
-    expect(Object.values(vistas).every(Boolean)).toBe(true);
+  it('el Administrador lo ve todo sin mirar la tabla, salvo el autoservicio "Mis Vehículos"', () => {
+    const { misVehiculos, ...resto } = permisosDeVistas(ROLES.ADMIN, []);
+    expect(Object.values(resto).every(Boolean)).toBe(true);
+    expect(misVehiculos).toBe(false);
   });
 
   it('los otros roles del sistema conservan su matriz y los permisos solo SUMAN', () => {
@@ -89,8 +90,12 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
   it('toda pantalla del menú se puede abrir con algún permiso', () => {
     // Si se añade una entrada al menú sin un permiso que la habilite, ningún rol a medida
     // podrá verla nunca: es justo lo que pasaba con Conductores.
+    // Excepción deliberada: "Mis Vehículos" es el autoservicio del rol Conductor y solo lo
+    // abre ese rol, nunca un permiso.
     const habilitables = new Set(Object.values(VISTAS_POR_PERMISO).flat());
-    const sinPermiso = menuItems.filter((item) => !habilitables.has(item.permission));
+    const sinPermiso = menuItems.filter(
+      (item) => item.permission !== 'misVehiculos' && !habilitables.has(item.permission),
+    );
     expect(sinPermiso.map((i) => i.label)).toEqual([]);
   });
 
@@ -116,5 +121,12 @@ describe('permisosDeVistas — de permisos del backend a pantallas', () => {
     expect(rutaInicial(permisosDeVistas(ROLES.ADMIN, []))).toBe('/app/dashboard');
     expect(rutaInicial(permisosDeVistas(ROLES.VIGILANTE, []))).toBe('/app/dashboard');
     expect(rutaInicial(permisosDeVistas(ROLES.CONDUCTOR, []))).toBe('/app/dashboard');
+  });
+
+  it('"Mis Vehículos" solo lo ve el Conductor, no el Administrador ni quien gestiona conductores', () => {
+    expect(permisosDeVistas(ROLES.ADMIN, []).misVehiculos).toBe(false);
+    expect(permisosDeVistas(ROLES.VIGILANTE, ['conductores.gestionar']).misVehiculos).toBe(false);
+    expect(permisosDeVistas(ROL_A_MEDIDA, ['conductores.gestionar']).misVehiculos).toBe(false);
+    expect(permisosDeVistas(ROLES.CONDUCTOR, []).misVehiculos).toBe(true);
   });
 });

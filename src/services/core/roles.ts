@@ -57,7 +57,9 @@ const TODO_PERMITIDO: PermisosRol = {
   usuarios: true,
   conductores: true,
   vehiculos: true,
-  misVehiculos: true,
+  // "Mis Vehículos" es el autoservicio del Conductor (sus propios vehículos). El
+  // Administrador gestiona la flota completa desde Conductores; esta pestaña no le sirve.
+  misVehiculos: false,
   parqueaderos: true,
   celdas: true,
   asignaciones: true,
@@ -200,8 +202,10 @@ export const VISTAS_POR_PERMISO: Record<string, (keyof PermisosRol)[]> = {
   'configuracion.gestionar': ['roles'],
   'usuarios.consultar': ['usuarios'],
   'usuarios.gestionar': ['usuarios'],
-  'conductores.consultar': ['conductores', 'vehiculos', 'misVehiculos'],
-  'conductores.gestionar': ['conductores', 'vehiculos', 'misVehiculos'],
+  // Sin 'misVehiculos': esa pestaña es el autoservicio del rol Conductor, no algo que
+  // abra gestionar conductores (un Vigilante o un rol a medida no tiene vehículos propios).
+  'conductores.consultar': ['conductores', 'vehiculos'],
+  'conductores.gestionar': ['conductores', 'vehiculos'],
   'parqueaderos.consultar': ['parqueaderos'],
   'parqueaderos.gestionar': ['parqueaderos', 'celdas', 'asignaciones'],
   // Ojo con estos dos: la pantalla de entradas/salidas no es un listado, es donde se
