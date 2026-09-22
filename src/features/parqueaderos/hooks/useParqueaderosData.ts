@@ -131,7 +131,7 @@ export function useParqueaderosData() {
 
   return {
     parqueaderos, celdas, conductores, vehiculos, controlesSalida, reservas, incidentes,
-    usuariosAsignables, usuariosReportantes, misVehiculosPorCelda,
+    usuariosAsignables, usuariosReportantes, misVehiculosPorCelda, misVehiculos, misReservas,
     addParqueadero, updateParqueadero, deleteParqueadero, addCelda, updateCelda, deleteCelda, cambiarDisponibilidadCelda, generarCeldasEnLote,
     addConductor, addVehiculo, updateVehiculo,
     addControlSalida, updateControlSalida, addReserva, updateReserva, addIncidente,

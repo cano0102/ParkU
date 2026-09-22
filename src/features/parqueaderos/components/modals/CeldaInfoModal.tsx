@@ -71,6 +71,10 @@ interface CeldaInfoModalProps {
    *  (Conductor) reserva por un camino aparte, "Solicitar reserva" (useSolicitarReserva.ts),
    *  que sí queda pendiente hasta que alguien la acepte — no por este modal. */
   canManageCeldas?: boolean;
+  /** true para Comunidad SENA (Conductor): muestra el botón "Reservar" aunque no tenga el
+   *  permiso "celdas" — a diferencia de `canManageCeldas`, `onReservarCelda` en este caso abre
+   *  la solicitud pendiente de aprobación, no la reserva directa de Admin/Vigilante. */
+  mostrarReservar?: boolean;
   /** true si el rol tiene el permiso "entradaSalida" — controla si se muestran
    *  las acciones de estacionar/liberar/cancelar reserva (portería). Comunidad
    *  SENA (Conductor) no lo tiene. */
@@ -114,6 +118,7 @@ export function CeldaInfoModal({
   onReservarCelda,
   conductorReserva,
   canManageCeldas,
+  mostrarReservar = false,
   canRegistrarIngreso,
   canReportarIncidentes,
   incidenteAbiertoExiste,
@@ -1065,7 +1070,7 @@ export function CeldaInfoModal({
                  * exclusivo de Admin/Vigilante que ya usa `onEstacionarVehiculo` de al lado.
                  * Antes este botón no verificaba ningún permiso: cualquier rol que llegara a
                  * abrir este modal podía saltarse el flujo de aprobación de Comunidad SENA. */}
-                {canManageCeldas && (
+                {(canManageCeldas || mostrarReservar) && (
                   <button
                     onClick={onReservarCelda}
                     style={{

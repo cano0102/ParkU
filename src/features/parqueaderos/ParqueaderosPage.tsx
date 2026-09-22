@@ -8,7 +8,7 @@ import {
   vehiculosDeConductor,
   vehiculosOperables,
 } from "@/features/conductores";
-import { MotivoReservaModal } from "@/features/reservas";
+import { MotivoReservaModal, useSolicitarReserva, SolicitarReservaModal } from "@/features/reservas";
 import { DataPagination } from "@/components/data";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
@@ -74,6 +74,19 @@ export default function Parqueaderos() {
       ? data.conductores.filter((c) => c.id === miConductor?.id)
       : data.conductores
   ).filter((c) => c.estado === "activo");
+
+  // Comunidad SENA (Conductor) no reserva de inmediato desde el plano como Admin/Vigilante
+  // (ver comentario de `canManageCeldas` en CeldaInfoModal.tsx): pide una celda con este
+  // formulario aparte, que la deja en estado "pendiente" hasta que alguien la acepte.
+  const solicitud = useSolicitarReserva(
+    vehiculosDelRol,
+    data.celdas,
+    data.parqueaderos,
+    data.vehiculos,
+    data.controlesSalida,
+    esConductor ? data.misReservas : data.reservas,
+    miConductor?.id,
+  );
 
   return (
     <>
@@ -367,9 +380,17 @@ export default function Parqueaderos() {
           ingreso.abrirIngresoReservado(vehiculo, conductor);
         }}
         onReservarCelda={() => {
-          if (modal.celdaActiva)
+          if (!modal.celdaActiva) return;
+          if (esConductor) {
+            solicitud.abrirCon({
+              celdaId: modal.celdaActiva.id,
+              parqueaderoId: modal.celdaActiva.parqueaderoId,
+            });
+          } else {
             reserva.openReservaFromCelda(modal.celdaActiva);
+          }
         }}
+        mostrarReservar={esConductor}
         conductorReserva={
           modal.reservaDestacada
             ? (data.conductores.find(
@@ -381,8 +402,8 @@ export default function Parqueaderos() {
             : undefined
         }
         canManageCeldas={hasPermission("celdas")}
-        canRegistrarIngreso={hasPermission("entradaSalida")}
-        canReportarIncidentes={hasPermission("incidentes")}
+        canRegistrarIngreso={!esConductor && hasPermission("entradaSalida")}
+        canReportarIncidentes={!esConductor && hasPermission("incidentes")}
         incidenteAbiertoExiste={incidente.incidenteAbiertoExisteParaCeldaActiva}
         onSetEstadoManual={modal.handleSetEstadoCeldaManual}
       />
@@ -456,6 +477,55 @@ export default function Parqueaderos() {
         onFileOCR={scanner.handleFileOCR}
         onSimOCR={scanner.handleSimOCR}
       />
+
+      {/* Solicitud de reserva de Comunidad SENA (Conductor): mismo formulario que "Solicitar
+          reserva" en Reservas, pero se abre con la celda ya elegida desde el plano. */}
+      <Modal
+        open={solicitud.open}
+        onClose={() => solicitud.setOpen(false)}
+        maxWidth={620}
+      >
+        <SolicitarReservaModal
+          misVehiculos={solicitud.vehiculosOfrecidos}
+          parqueaderosActivos={solicitud.parqueaderosActivos}
+          celdasDisponibles={solicitud.celdasDisponibles}
+          vehiculoId={solicitud.form.vehiculoId}
+          parqueaderoId={solicitud.form.parqueaderoId}
+          celdaId={solicitud.form.celdaId}
+          fechaReserva={solicitud.form.fechaReserva}
+          horaInicio={solicitud.form.horaInicio}
+          horaFin={solicitud.form.horaFin}
+          motivo={solicitud.form.motivo}
+          error={solicitud.error}
+          enviando={solicitud.enviando}
+          onVehiculoChange={(v) => solicitud.setForm({ ...solicitud.form, vehiculoId: v })}
+          onParqueaderoChange={(v) =>
+            solicitud.setForm({ ...solicitud.form, parqueaderoId: v, celdaId: "" })
+          }
+          onCeldaChange={(v) => solicitud.setForm({ ...solicitud.form, celdaId: v })}
+          onFechaChange={(v) =>
+            solicitud.setForm({
+              ...solicitud.form,
+              ...solicitud.ajustar({ ...solicitud.form, fechaReserva: v }),
+            })
+          }
+          onHoraInicioChange={(v) =>
+            solicitud.setForm({
+              ...solicitud.form,
+              ...solicitud.ajustar({ ...solicitud.form, horaInicio: v }),
+            })
+          }
+          onHoraFinChange={(v) =>
+            solicitud.setForm({
+              ...solicitud.form,
+              ...solicitud.ajustar({ ...solicitud.form, horaFin: v }),
+            })
+          }
+          onMotivoChange={(v) => solicitud.setForm({ ...solicitud.form, motivo: v })}
+          onSubmit={solicitud.enviarSolicitud}
+          onCancel={() => solicitud.setOpen(false)}
+        />
+      </Modal>
     </>
   );
 }

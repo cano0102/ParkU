@@ -4,7 +4,9 @@ export {
   useReservasPorVehiculo, useReservasDeVehiculos,
 } from './hooks/useReservas';
 export { useReservaAutoExpiry } from './hooks/useReservaAutoExpiry';
+export { useSolicitarReserva } from './hooks/useSolicitarReserva';
 export { MotivoReservaModal } from './components/MotivoReservaModal';
+export { SolicitarReservaModal } from './components/SolicitarReservaModal';
 export { seSolapan, buscarConflictoHorario } from './lib/helpers';
 export {
   ANTICIPACION_MINIMA_MINUTOS, DURACION_MINIMA_MINUTOS, MARGEN_CANCELACION_MINUTOS,
