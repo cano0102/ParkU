@@ -21,9 +21,14 @@ export const parqueaderosStyles = `
   .pq-table-row{ display:grid; grid-template-columns:minmax(200px,1fr) 120px 100px 80px 80px 80px 100px 90px; padding:14px 16px; border-bottom:1px solid ${C.border}; align-items:center; font-size:12px; transition:background .15s; cursor:pointer; }
   .pq-cell-label{ display:none; }
 
+  /* Conductor: solo ve "Parqueadero", "Disponibles" y "Acciones" — no gestiona ocupación,
+     mantenimiento ni el estado del parqueadero, así que esas columnas no le aportan nada. */
+  .pq-table-header.pq-table--simple, .pq-table-row.pq-table--simple{ grid-template-columns:minmax(200px,1fr) 120px 90px !important; }
+
   @media (max-width: 860px){
     .pq-hero-stats{ grid-template-columns:repeat(2,1fr); min-width:0; width:100%; }
     .pq-table-header, .pq-table-row{ grid-template-columns:minmax(140px,1fr) 100px 90px 60px 60px 60px 90px 80px; gap:6px; }
+    .pq-table-header.pq-table--simple, .pq-table-row.pq-table--simple{ grid-template-columns:minmax(140px,1fr) 100px 80px !important; }
   }
 
   @media (max-width: 720px){

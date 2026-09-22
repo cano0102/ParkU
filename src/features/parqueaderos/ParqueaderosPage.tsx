@@ -155,6 +155,7 @@ export default function Parqueaderos() {
                 celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
                 canManage={hasPermission("celdas")}
                 misVehiculosPorCelda={data.misVehiculosPorCelda}
+                vistaSimplificada={esConductor}
               />
             )}
 

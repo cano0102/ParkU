@@ -40,6 +40,7 @@ export const ParqueaderosTable = memo(
     celdaTieneIncidenteAbierto,
     canManage,
     misVehiculosPorCelda = {},
+    vistaSimplificada = false,
   }: {
     parqueaderos: Parqueadero[];
     celdas: Celda[];
@@ -57,6 +58,10 @@ export const ParqueaderosTable = memo(
     canManage: boolean;
     /** Vehículos del usuario logueado, por id de la celda donde están (ver useParqueaderosData). */
     misVehiculosPorCelda?: Record<string, Vehiculo>;
+    /** true para Comunidad SENA (Conductor): solo ve celdas disponibles (ver celdasVisibles en
+     *  useParqueaderosPage.ts), así que "Ocupadas"/"En mantenimiento"/"Estado" no aplican —
+     *  esas columnas describen datos que ese rol nunca ve. */
+    vistaSimplificada?: boolean;
   }) => {
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -70,12 +75,16 @@ export const ParqueaderosTable = memo(
           boxShadow: "0 2px 8px rgba(15,23,42,.05)",
         }}
       >
-        <div className="pq-table-header">
+        <div className={`pq-table-header${vistaSimplificada ? " pq-table--simple" : ""}`}>
           <div>Parqueadero</div>
           <div>Disponibles</div>
-          <div>Ocupadas</div>
-          <div>En mantenimiento</div>
-          <div>Estado</div>
+          {!vistaSimplificada && (
+            <>
+              <div>Ocupadas</div>
+              <div>En mantenimiento</div>
+              <div>Estado</div>
+            </>
+          )}
           <div style={{ textAlign: "right" }}>Acciones</div>
         </div>
         <div>
@@ -123,7 +132,7 @@ export const ParqueaderosTable = memo(
               return (
                 <React.Fragment key={pq.id}>
                   <div
-                    className="pq-table-row"
+                    className={`pq-table-row${vistaSimplificada ? " pq-table--simple" : ""}`}
                     style={{ background: isExpanded ? "#F8FAF8" : "#fff" }}
                     onMouseEnter={(e) =>
                       (e.currentTarget.style.background = "#F8FAF8")
@@ -211,91 +220,95 @@ export const ParqueaderosTable = memo(
                         {libres}
                       </span>
                     </div>
-                    <div>
-                      <span className="pq-cell-label">Ocupadas</span>
-                      <span style={{ fontWeight: 700, color: C.danger }}>
-                        {ocupados}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="pq-cell-label">En mantenimiento</span>
-                      <span style={{ fontWeight: 700, color: C.textLight }}>
-                        {mantenimiento}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="pq-cell-label">Estado</span>
-                      {canManage ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onToggleEstado(pq);
-                          }}
-                          title={activo ? "Desactivar" : "Activar"}
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "4px 9px",
-                            borderRadius: 999,
-                            border: "none",
-                            cursor: "pointer",
-                            fontSize: 10,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.3,
-                            background: activo
-                              ? "rgba(57,169,0,.1)"
-                              : "rgba(239,68,68,.08)",
-                            color: activo ? "#166534" : "#B91C1C",
-                            fontFamily: "inherit",
-                          }}
-                          aria-label={
-                            activo
-                              ? "Desactivar parqueadero"
-                              : "Activar parqueadero"
-                          }
-                        >
-                          <span
-                            style={{
-                              width: 5,
-                              height: 5,
-                              borderRadius: "50%",
-                              background: activo ? C.primary : "#EF4444",
-                            }}
-                          />
-                          {pq.estado}
-                        </button>
-                      ) : (
-                        <span
-                          style={{
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 5,
-                            padding: "4px 9px",
-                            borderRadius: 999,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            textTransform: "uppercase",
-                            letterSpacing: 0.3,
-                            background: activo
-                              ? "rgba(57,169,0,.1)"
-                              : "rgba(239,68,68,.08)",
-                            color: activo ? "#166534" : "#B91C1C",
-                          }}
-                        >
-                          <span
-                            style={{
-                              width: 5,
-                              height: 5,
-                              borderRadius: "50%",
-                              background: activo ? C.primary : "#EF4444",
-                            }}
-                          />
-                          {pq.estado}
-                        </span>
-                      )}
-                    </div>
+                    {!vistaSimplificada && (
+                      <>
+                        <div>
+                          <span className="pq-cell-label">Ocupadas</span>
+                          <span style={{ fontWeight: 700, color: C.danger }}>
+                            {ocupados}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="pq-cell-label">En mantenimiento</span>
+                          <span style={{ fontWeight: 700, color: C.textLight }}>
+                            {mantenimiento}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="pq-cell-label">Estado</span>
+                          {canManage ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleEstado(pq);
+                              }}
+                              title={activo ? "Desactivar" : "Activar"}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                                padding: "4px 9px",
+                                borderRadius: 999,
+                                border: "none",
+                                cursor: "pointer",
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: 0.3,
+                                background: activo
+                                  ? "rgba(57,169,0,.1)"
+                                  : "rgba(239,68,68,.08)",
+                                color: activo ? "#166534" : "#B91C1C",
+                                fontFamily: "inherit",
+                              }}
+                              aria-label={
+                                activo
+                                  ? "Desactivar parqueadero"
+                                  : "Activar parqueadero"
+                              }
+                            >
+                              <span
+                                style={{
+                                  width: 5,
+                                  height: 5,
+                                  borderRadius: "50%",
+                                  background: activo ? C.primary : "#EF4444",
+                                }}
+                              />
+                              {pq.estado}
+                            </button>
+                          ) : (
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 5,
+                                padding: "4px 9px",
+                                borderRadius: 999,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: "uppercase",
+                                letterSpacing: 0.3,
+                                background: activo
+                                  ? "rgba(57,169,0,.1)"
+                                  : "rgba(239,68,68,.08)",
+                                color: activo ? "#166534" : "#B91C1C",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: 5,
+                                  height: 5,
+                                  borderRadius: "50%",
+                                  background: activo ? C.primary : "#EF4444",
+                                }}
+                              />
+                              {pq.estado}
+                            </span>
+                          )}
+                        </div>
+                      </>
+                    )}
                     <div
                       style={{
                         display: "flex",
