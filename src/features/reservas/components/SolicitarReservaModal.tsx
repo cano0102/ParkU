@@ -6,6 +6,7 @@ import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
 import { rangoDeHoraInicio, rangoDeHoraFin } from "../lib/reglas";
+import { MOTIVO_MAX } from "@/utils/validation";
 
 const C = theme;
 
@@ -21,6 +22,7 @@ interface SolicitarReservaModalProps {
   horaFin: string;
   motivo: string;
   error: string | null;
+  enviando: boolean;
   onVehiculoChange: (v: string) => void;
   onParqueaderoChange: (v: string) => void;
   onCeldaChange: (v: string) => void;
@@ -44,7 +46,7 @@ const fieldHint: React.CSSProperties = { fontSize: 11, color: C.textLight, margi
  * administrador o vigilante la acepte — no ocupa la celda de inmediato. */
 export function SolicitarReservaModal({
   misVehiculos, parqueaderosActivos, celdasDisponibles,
-  vehiculoId, parqueaderoId, celdaId, fechaReserva, horaInicio, horaFin, motivo, error,
+  vehiculoId, parqueaderoId, celdaId, fechaReserva, horaInicio, horaFin, motivo, error, enviando,
   onVehiculoChange, onParqueaderoChange, onCeldaChange, onFechaChange, onHoraInicioChange, onHoraFinChange, onMotivoChange,
   onSubmit, onCancel,
 }: SolicitarReservaModalProps) {
@@ -145,6 +147,7 @@ export function SolicitarReservaModal({
             <label style={fieldLabel}>Motivo / Justificación *</label>
             <textarea
               value={motivo}
+              maxLength={MOTIVO_MAX}
               onChange={(e) => onMotivoChange(e.target.value)}
               placeholder="Ej. Necesito parquear mientras asisto a clase..."
               rows={2}
@@ -157,19 +160,26 @@ export function SolicitarReservaModal({
       <div style={{ padding: "1rem 1.8rem", borderTop: `1px solid ${C.border}`, display: "flex", gap: 10, justifyContent: "flex-end" }}>
         <button
           onClick={onCancel}
-          style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
+          disabled={enviando}
+          style={{
+            padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text,
+            fontSize: 13, fontWeight: 700, cursor: enviando ? "not-allowed" : "pointer", fontFamily: "inherit",
+            opacity: enviando ? 0.7 : 1,
+          }}
         >
           Cancelar
         </button>
         <button
           onClick={onSubmit}
+          disabled={enviando}
+          aria-busy={enviando}
           style={{
             display: "flex", alignItems: "center", gap: 8, padding: "10px 22px", borderRadius: 12, border: "none",
-            background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: "pointer", fontFamily: "inherit",
-            boxShadow: "0 6px 18px rgba(57,169,0,.22)",
+            background: C.primary, color: "#fff", fontSize: 13, fontWeight: 800, cursor: enviando ? "wait" : "pointer", fontFamily: "inherit",
+            boxShadow: "0 6px 18px rgba(57,169,0,.22)", opacity: enviando ? 0.7 : 1,
           }}
         >
-          <Send size={14} /> Enviar solicitud
+          <Send size={14} /> {enviando ? "Enviando…" : "Enviar solicitud"}
         </button>
       </div>
     </div>

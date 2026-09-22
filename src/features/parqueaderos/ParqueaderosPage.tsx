@@ -9,6 +9,7 @@ import {
   vehiculosOperables,
 } from "@/features/conductores";
 import { MotivoReservaModal } from "@/features/reservas";
+import { DataPagination } from "@/components/data";
 import { parqueaderosStyles } from "./lib/styles";
 import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
 import { ParqueaderosHero } from "./components/ParqueaderosHero";
@@ -16,6 +17,7 @@ import { ParqueaderosTopbar } from "./components/ParqueaderosTopbar";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ParkingMap } from "./components/map/ParkingMap";
 import { ParqueaderosTable } from "./components/ParqueaderosTable";
+import { CeldasDisponiblesConductor } from "./components/CeldasDisponiblesConductor";
 import { ParqueaderoFormModal } from "./components/modals/ParqueaderoFormModal";
 import { IngresoModal } from "./components/modals/IngresoModal";
 import { CeldaInfoModal } from "./components/modals/CeldaInfoModal";
@@ -46,8 +48,10 @@ export default function Parqueaderos() {
   } = useParqueaderosPage();
   const { user } = useAuth();
 
-  // Comunidad SENA (Conductor) solo puede reservar para su propio vehículo: el buscador del
-  // modal de reserva no debe exponer la lista completa de vehículos/conductores del sistema.
+  // Comunidad SENA (Conductor) ve el mapa solo como información: no abre ni elige celdas (la
+  // celda se la asigna el vigilante al registrar el ingreso) — únicamente ve dónde quedaron
+  // sus vehículos. Además, si llegara a reservar, solo para su propio vehículo: el buscador
+  // del modal de reserva no debe exponer la lista completa de vehículos/conductores.
   const esConductor = user?.rol === ROLES.CONDUCTOR;
   const miConductor = esConductor
     ? data.conductores.find((c) => c.usuarioId === user!.id)
@@ -80,20 +84,24 @@ export default function Parqueaderos() {
         className="pq-root"
         style={{ display: "flex", flexDirection: "column", gap: 16 }}
       >
-        <ParqueaderosHero stats={filters.stats} soloDisponibles={!hasPermission("celdas")} />
+        <ParqueaderosHero stats={filters.stats} soloLectura={esConductor} />
 
-        <ParqueaderosTopbar
-          search={filters.search}
-          onSearchChange={filters.setSearch}
-          filterTipo={filters.filterTipo}
-          onFilterTipoChange={filters.setFilterTipo}
-          activeTab={filters.activeTab}
-          onActiveTabChange={filters.setActiveTab}
-          activeFilters={filters.activeFilters}
-          onClearFilters={filters.clearFilters}
-          onOpenCreate={pqFormState.openCreate}
-          canCrearParqueadero={hasPermission("celdas")}
-        />
+        {/* El Conductor no busca ni filtra: no ve ocupantes (no lee el registro de ingresos)
+            y sus celdas ya salen resaltadas; sin buscador ni filtro la barra quedaba vacía. */}
+        {!esConductor && (
+          <ParqueaderosTopbar
+            search={filters.search}
+            onSearchChange={filters.setSearch}
+            filterTipo={filters.filterTipo}
+            onFilterTipoChange={filters.setFilterTipo}
+            activeTab={filters.activeTab}
+            onActiveTabChange={filters.setActiveTab}
+            activeFilters={filters.activeFilters}
+            onClearFilters={filters.clearFilters}
+            onOpenCreate={pqFormState.openCreate}
+            canCrearParqueadero={hasPermission("celdas")}
+          />
+        )}
 
         {data.isLoading ? (
           <LoadingState message="Cargando parqueaderos..." />
@@ -106,9 +114,35 @@ export default function Parqueaderos() {
               </p>
             )}
 
-            {filters.activeTab === "table" && (
+            {esConductor && (
+              <p
+                style={{
+                  margin: 0,
+                  padding: "10px 14px",
+                  borderRadius: 11,
+                  background: C.primaryPale,
+                  border: `1px solid ${C.primaryLight}`,
+                  fontSize: 12,
+                  color: C.primaryDark,
+                  fontWeight: 600,
+                }}
+              >
+                ℹ️ Este mapa es solo informativo: la celda te la asigna el vigilante al
+                registrar tu ingreso. Cuando la tengas, tu vehículo aparece resaltado en verde.
+              </p>
+            )}
+
+            {filters.activeTab === "table" && esConductor && (
+              <CeldasDisponiblesConductor
+                celdas={filters.paginatedCeldasDisponibles}
+                parqueaderos={data.parqueaderos}
+                misVehiculosPorCelda={data.misVehiculosPorCelda}
+              />
+            )}
+
+            {filters.activeTab === "table" && !esConductor && (
               <ParqueaderosTable
-                parqueaderos={filters.filteredPqsConCeldas}
+                parqueaderos={filters.paginatedPqsConCeldas}
                 celdas={
                   filters.search.trim() ? filters.filteredCeldas : celdasVisibles
                 }
@@ -117,7 +151,7 @@ export default function Parqueaderos() {
                 onDelete={pqFormState.handleDeleteRequest}
                 onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
                 onReportar={
-                  hasPermission("incidentes") && user?.rol !== ROLES.CONDUCTOR
+                  hasPermission("incidentes")
                     ? (pq: Parqueadero) =>
                         incidente.abrirReporte({
                           parqueaderoId: pq.id,
@@ -129,8 +163,23 @@ export default function Parqueaderos() {
                 cellMatchesSearch={filters.cellMatchesSearch}
                 celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
                 canManage={hasPermission("celdas")}
+                misVehiculosPorCelda={data.misVehiculosPorCelda}
               />
             )}
+
+            {filters.activeTab === "table" &&
+              (esConductor ? filters.celdasDisponiblesConductor.length : filters.filteredPqsConCeldas.length) > 0 && (
+                <DataPagination
+                  currentPage={filters.currentPage}
+                  totalPages={filters.totalPages}
+                  itemsPerPage={filters.itemsPerPage}
+                  totalItems={esConductor ? filters.celdasDisponiblesConductor.length : filters.filteredPqsConCeldas.length}
+                  itemsPerPageOptions={esConductor ? [12, 24, 48, 96] : [10, 25, 50, 100]}
+                  entityLabel={esConductor ? "Celdas" : "Parqueaderos"}
+                  onPageChange={filters.setCurrentPage}
+                  onItemsPerPageChange={filters.setItemsPerPage}
+                />
+              )}
 
             {filters.activeTab === "map" && (
               <ParkingMap
@@ -330,9 +379,6 @@ export default function Parqueaderos() {
           if (modal.celdaActiva)
             reserva.openReservaFromCelda(modal.celdaActiva);
         }}
-        /* Quien ve el plano y puede reservar, pero no gestionar celdas (el caso del
-           Conductor), no crea la reserva aquí: pide esta celda y la solicitud queda
-           pendiente de aprobación en el módulo de Reservas. */
         conductorReserva={
           modal.reservaDestacada
             ? (data.conductores.find(
@@ -343,20 +389,6 @@ export default function Parqueaderos() {
               )?.nombre)
             : undefined
         }
-        canSolicitarReserva={
-          !hasPermission("celdas") && hasPermission("reservas")
-        }
-        onSolicitarReserva={() => {
-          if (!modal.celdaActiva) return;
-          navigate("/app/reservas", {
-            state: {
-              solicitarCelda: {
-                celdaId: modal.celdaActiva.id,
-                parqueaderoId: modal.celdaActiva.parqueaderoId,
-              },
-            },
-          });
-        }}
         canManageCeldas={hasPermission("celdas")}
         canRegistrarIngreso={hasPermission("entradaSalida")}
         canReportarIncidentes={hasPermission("incidentes")}

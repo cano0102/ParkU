@@ -16,6 +16,8 @@ import { theme } from "@/styles/theme";
 import {
   validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO,
   validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, TELEFONO_MAX, validarTelefono, filtrarTelefono, EMAIL_REGEX,
+  validarTextoCorto, validarModeloVehiculo, limpiarTexto,
+  MARCA_MAX, LINEA_MAX, COLOR_MAX, DESCRIPCION_VEHICULO_MAX,
 } from "@/utils/validation";
 import { getAvatarGradient, getInitials } from "@/utils/format";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -23,6 +25,59 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 export { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, quitarDigitos, TIPOS_DOCUMENTO };
 export { validarNumeroDocumento, NUMERO_DOCUMENTO_MAX, TELEFONO_MAX, validarTelefono, filtrarTelefono, EMAIL_REGEX };
 export { getAvatarGradient, getInitials };
+export { MARCA_MAX, LINEA_MAX, COLOR_MAX, DESCRIPCION_VEHICULO_MAX };
+
+/** Lo que se pide de un vehículo en cualquiera de los tres formularios que lo crean o editan
+ *  (ficha de conductor, "Agregar vehículo" y "Editar vehículo"). */
+export interface DatosVehiculoForm {
+  placa: string;
+  tipoVehiculo: Vehiculo["tipo"];
+  marca: string;
+  linea: string;
+  modelo: string;
+  color: string;
+  descripcionVehiculo: string;
+}
+
+export interface ErroresVehiculo {
+  placa?: string;
+  marca?: string;
+  linea?: string;
+  modelo?: string;
+  color?: string;
+  descripcionVehiculo?: string;
+}
+
+/**
+ * Validación única del vehículo, la misma para los tres formularios (antes estaba copiada en
+ * cada uno y ninguna acotaba marca, línea, color ni descripción). `placasOcupadas` trae las
+ * placas ya registradas EN OTROS vehículos (quien edita excluye el suyo antes de llamar).
+ */
+export function validarDatosVehiculo(form: DatosVehiculoForm, placasOcupadas: ReadonlySet<string>): ErroresVehiculo {
+  const errores: ErroresVehiculo = {};
+  const placa = form.placa.trim().toUpperCase();
+  if (!placa) {
+    errores.placa = "La placa es obligatoria";
+  } else if (!validarPlacaColombiana(placa)) {
+    errores.placa = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
+  } else if ((form.tipoVehiculo === "carro" || form.tipoVehiculo === "moto") && !validarPlacaPorTipo(placa, form.tipoVehiculo)) {
+    errores.placa = `Seleccionaste "${form.tipoVehiculo}", pero la placa tiene formato de ${tipoVehiculoDesdePlaca(placa)}.`;
+  } else if (placasOcupadas.has(placa)) {
+    errores.placa = "Esta placa ya está registrada en otro vehículo";
+  }
+  const marca = validarTextoCorto(form.marca, "La marca", MARCA_MAX, true);
+  if (marca) errores.marca = marca;
+  const linea = validarTextoCorto(form.linea, "La línea", LINEA_MAX, false);
+  if (linea) errores.linea = linea;
+  const modelo = validarModeloVehiculo(form.modelo);
+  if (modelo) errores.modelo = modelo;
+  const color = validarTextoCorto(form.color, "El color", COLOR_MAX, true);
+  if (color) errores.color = color;
+  if (limpiarTexto(form.descripcionVehiculo).length > DESCRIPCION_VEHICULO_MAX) {
+    errores.descripcionVehiculo = `La descripción no puede superar ${DESCRIPCION_VEHICULO_MAX} caracteres`;
+  }
+  return errores;
+}
 
 export const COLORS = theme;
 
@@ -149,8 +204,10 @@ export interface FormErrors {
   confirmPassword?: string;
   placa?: string;
   marca?: string;
+  linea?: string;
   modelo?: string;
   color?: string;
+  descripcionVehiculo?: string;
 }
 
 /** Nombre del tipo de usuario que puede ir sin cuenta de acceso. Se compara por nombre, no

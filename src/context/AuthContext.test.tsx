@@ -3,6 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AuthProvider, useAuth } from './AuthContext';
 import { createAppBackends } from '@/test/appFakeApi';
+import { withQueryClient } from '@/test/queryWrapper';
 
 /**
  * La foto de perfil no la persiste el backend real (el modelo de Usuario no tiene columna
@@ -32,10 +33,12 @@ function Consumer() {
 }
 
 function renderConsumer() {
+  // AuthProvider vacía la caché de React Query al cerrar sesión, así que necesita el cliente.
   return render(
     <AuthProvider>
       <Consumer />
-    </AuthProvider>
+    </AuthProvider>,
+    { wrapper: withQueryClient() }
   );
 }
 

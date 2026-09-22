@@ -1,16 +1,18 @@
 import { IconTrash as Trash2 } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
+import { useEnCurso } from "@/hooks/useEnCurso";
 
 const C = theme;
 
 interface ConfirmDeleteIncidenteModalProps {
   descripcion: string;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<unknown>;
 }
 
 /** Confirmación de eliminación de un incidente. */
 export function ConfirmDeleteIncidenteModal({ descripcion, onCancel, onConfirm }: ConfirmDeleteIncidenteModalProps) {
+  const [confirmar, enCurso] = useEnCurso(onConfirm);
   return (
     <div style={{ padding: "1.8rem" }}>
       <div style={{
@@ -28,24 +30,27 @@ export function ConfirmDeleteIncidenteModal({ descripcion, onCancel, onConfirm }
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
         <button
           onClick={onCancel}
+          disabled={enCurso}
           style={{
             padding: "9px 16px", borderRadius: 10,
             border: `1px solid ${C.border}`, background: "#fff",
-            fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            fontSize: 13, fontWeight: 700, cursor: enCurso ? "not-allowed" : "pointer", fontFamily: "inherit",
             color: C.text,
           }}
         >
           Cancelar
         </button>
         <button
-          onClick={onConfirm}
+          onClick={confirmar}
+          disabled={enCurso}
+          aria-busy={enCurso}
           style={{
             padding: "9px 16px", borderRadius: 10,
             border: "none", background: C.danger, color: "#fff",
-            fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            fontSize: 13, fontWeight: 700, cursor: enCurso ? "wait" : "pointer", opacity: enCurso ? 0.7 : 1, fontFamily: "inherit",
           }}
         >
-          Eliminar
+          {enCurso ? "Eliminando…" : "Eliminar"}
         </button>
       </div>
     </div>

@@ -163,7 +163,7 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     const data = { addIncidente: vi.fn() };
     const { result } = setup(data);
 
-    act(() => result.current.setIncidenteForm((f) => ({ ...f, descripcion: 'Algo pasó' })));
+    act(() => result.current.setIncidenteForm((f) => ({ ...f, descripcion: 'Algo pasó en la celda' })));
     await act(async () => { await result.current.registrarIncidente(); });
 
     expect(data.addIncidente).not.toHaveBeenCalled();
@@ -175,7 +175,7 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     const { result } = setup(data);
 
     act(() => result.current.setIncidenteForm((f) => ({
-      ...f, descripcion: 'Algo raro', tipoNovedad: 'otro', prioridad: 'baja',
+      ...f, descripcion: 'Algo raro en la celda', tipoNovedad: 'otro', prioridad: 'baja',
     })));
     await act(async () => { await result.current.registrarIncidente(); });
 
@@ -220,10 +220,12 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     expect(result.current.puedeRegistrarNovedades).toBe(false);
   });
 
-  /* Comunidad SENA sí reporta incidentes, pero la API le rechaza el reporte si manda
-     prioridad o encargado: los define el personal autorizado al aceptarlo. Van vacíos para
-     que `toApiPayload` ni siquiera los envíe. */
-  it('un conductor reporta sin mandar prioridad ni encargado', async () => {
+  /* El conductor ya no reporta incidentes del parqueadero desde este flujo (el de la celda del
+     plano): su reporte ahora vive en "Mis incidentes" (ver ConductorIncidentes.tsx +
+     useIncidenteDialogs, con `puedeClasificar: false` — ahí es donde se prueba que la prioridad
+     y el encargado quedan vacíos, sin exigirlos, porque los define quien recibe el reporte). Este
+     hook bloquea de plano cualquier intento de enviarlo desde aquí, por seguridad. */
+  it('bloquea a un conductor que intente enviar un reporte desde este flujo', async () => {
     useAuthMock.mockReturnValue({ user: { id: '5', rol: ROLES.CONDUCTOR } });
     const data = { addIncidente: vi.fn().mockResolvedValue(undefined) };
     const { result } = setup(data);
@@ -233,8 +235,7 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     })));
     await act(async () => { await result.current.registrarIncidente(); });
 
-    expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({
-      prioridad: '', usuarioAsignadoId: '',
-    }));
+    expect(data.addIncidente).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('No puedes reportar incidentes del parqueadero desde este rol.');
   });
 });

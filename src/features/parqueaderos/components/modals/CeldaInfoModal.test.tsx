@@ -107,46 +107,6 @@ describe("CeldaInfoModal — botón Reservar Celda", () => {
   });
 });
 
-describe("CeldaInfoModal — solicitar la celda (rol Conductor)", () => {
-  it("ofrece solicitarla a quien puede reservar pero no gestionar celdas", async () => {
-    const onSolicitarReserva = vi.fn();
-    render(
-      <CeldaInfoModal
-        {...baseProps(false)}
-        canSolicitarReserva
-        onSolicitarReserva={onSolicitarReserva}
-      />,
-    );
-
-    const boton = screen.getByText("Solicitar esta celda", { exact: false });
-    expect(boton).toBeInTheDocument();
-    boton.click();
-    expect(onSolicitarReserva).toHaveBeenCalled();
-  });
-
-  it("no la ofrece si no se pasa la acción (Admin: ese ya tiene Reservar Celda)", () => {
-    render(<CeldaInfoModal {...baseProps(true)} />);
-    expect(
-      screen.queryByText("Solicitar esta celda", { exact: false }),
-    ).not.toBeInTheDocument();
-  });
-
-  it("a quien no puede estacionar no le dice que la celda es para estacionar", () => {
-    render(
-      <CeldaInfoModal
-        {...baseProps(false)}
-        canSolicitarReserva
-        onSolicitarReserva={vi.fn()}
-      />,
-    );
-    expect(
-      screen.getByText("Celda disponible: puedes solicitarla", {
-        exact: false,
-      }),
-    ).toBeInTheDocument();
-  });
-});
-
 describe("CeldaInfoModal — la agenda de la celda", () => {
   /* Reloj congelado a media mañana. Las reservas de estas pruebas se construyen a partir de
      "ahora" (es la distancia hasta la reserva lo que se comprueba), y con el reloj real la

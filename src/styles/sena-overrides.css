@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap');
+/* La tipografía (Montserrat) se declara en fonts.css, servida desde este dominio. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -201,7 +201,10 @@
   button {
     font-family: 'Montserrat', sans-serif;
     font-weight: 700;
-    transition: all 0.25s ease;
+    /* Solo lo que de verdad cambia al pasar el ratón. `all` obligaba al navegador a
+       vigilar cada propiedad de cada botón (ancho, padding, layout incluidos), y cualquier
+       re-render que tocara una de ellas disparaba una transición y un recálculo extra. */
+    transition: transform .25s ease, background-color .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease, opacity .25s ease;
   }
 
   button:hover {
@@ -279,4 +282,42 @@
   max-width: 1200px;
   margin: auto;
   padding: 0 2rem;
+}
+/* ===== ANIMACIONES DE ENTRADA (Dashboard) =====
+   Sustituyen a framer-motion: mismos fundidos, pero en CSS los mueve el compositor y no un
+   bucle de JavaScript. Todas usan `backwards` (no `both`) a propósito: al terminar, la
+   propiedad vuelve a su valor normal, así que un cambio posterior (nuevo dato del backend)
+   transiciona con `transition` en vez de quedar congelado en el último fotograma. */
+
+@keyframes parku-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+}
+
+@keyframes parku-fade-up-sm {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes parku-fade-left {
+  from { opacity: 0; transform: translateX(-8px); }
+}
+
+@keyframes parku-grow-x {
+  from { width: 0; }
+}
+
+@keyframes parku-donut {
+  from { stroke-dashoffset: var(--donut-circ); }
+}
+
+.anim-fade-up { animation: parku-fade-up .4s cubic-bezier(.22, 1, .36, 1) backwards; }
+.anim-fade-up-sm { animation: parku-fade-up-sm .3s ease-out backwards; }
+.anim-fade-left { animation: parku-fade-left .3s ease-out backwards; }
+.anim-grow-x { animation: parku-grow-x .8s ease-out backwards; transition: width .8s ease-out; }
+.anim-donut { animation: parku-donut 1.4s ease-out backwards; transition: stroke-dashoffset 1.4s ease-out, stroke .3s ease; }
+
+.hover-lift { transition: transform .2s ease; }
+.hover-lift:hover { transform: translateY(-2px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up, .anim-fade-up-sm, .anim-fade-left, .anim-grow-x, .anim-donut { animation: none; }
 }

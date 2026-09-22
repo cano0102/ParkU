@@ -1,4 +1,5 @@
 import { Modal, LoadingState } from "@/components/shared";
+import { DataPagination } from "@/components/data";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/services/core/roles";
@@ -65,7 +66,7 @@ export function Incidentes() {
             )}
 
             <IncidentesGrid
-              incidentes={p.filteredIncidentes}
+              incidentes={p.paginatedIncidentes}
               celdaDe={p.celdaDe}
               vehiculoDe={p.vehiculoDe}
               nombreUsuarioAsignado={p.nombreUsuarioAsignado}
@@ -77,6 +78,19 @@ export function Incidentes() {
               onDelete={p.handleDelete}
               onCambiarEstado={p.solicitarCambioEstado}
             />
+
+            {p.filteredIncidentes.length > 0 && (
+              <DataPagination
+                currentPage={p.currentPage}
+                totalPages={p.totalPages}
+                itemsPerPage={p.itemsPerPage}
+                totalItems={p.filteredIncidentes.length}
+                itemsPerPageOptions={[9, 18, 36, 60]}
+                entityLabel="Incidentes"
+                onPageChange={p.setCurrentPage}
+                onItemsPerPageChange={p.setItemsPerPage}
+              />
+            )}
           </>
         )}
       </div>

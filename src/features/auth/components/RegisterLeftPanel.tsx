@@ -12,10 +12,11 @@ export function RegisterLeftPanel() {
     <div
       className="register-left"
       style={{
-        padding: "2rem 2.2rem",
+        padding: "clamp(1.5rem, 4vh, 3rem) clamp(1.5rem, 4vw, 3.5rem)",
+        minHeight: 0,
+        position: "relative",
         background: "linear-gradient(135deg, #39A900, #2D7D00)",
         color: "#fff",
-        position: "relative",
         overflow: "hidden",
         display: "flex",
         flexDirection: "column",
@@ -33,7 +34,7 @@ export function RegisterLeftPanel() {
         }}
       />
 
-      <div style={{ position: "relative", zIndex: 2, height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ position: "relative", zIndex: 2, flex: 1, display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.5rem" }}>
           <button
             type="button"

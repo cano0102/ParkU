@@ -190,6 +190,59 @@ describe('useReservasPage — solicitudes pendientes', () => {
     expect(result.current.getCelda(solicitud.celdaId)?.estado).toBe(celdaAntes);
   });
 
+  /**
+   * Lo que se veía en producción: confirmar un rechazo no cambiaba nada durante uno o dos
+   * segundos (la petición, más el refetch de la lista) y la gente volvía a pulsar; la segunda
+   * petición llegaba a una reserva ya rechazada y el backend respondía "ya no se puede
+   * editar: forma parte del histórico". Ahora la fila cambia en el mismo clic y el diálogo se
+   * cierra al instante, sin esperar al backend.
+   */
+  it('rechazar cambia la fila y cierra el diálogo en el mismo clic, antes de que el backend responda', async () => {
+    vi.mocked(toast.success).mockClear();
+    // Un backend que nunca contesta: lo que se vea es lo que puso el propio clic.
+    const backend = createAppBackends();
+    apiFetchMock.mockImplementation((path: string, opciones?: { method?: string }) =>
+      opciones?.method === 'PATCH' ? new Promise(() => {}) : backend.apiFetch(path, opciones),
+    );
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const solicitud = result.current.solicitudesPendientes.find((r) => r.id === '11')!;
+    act(() => result.current.handleRechazar(solicitud));
+    act(() => { void result.current.confirmRechazarAction('No hay disponibilidad en ese horario.'); });
+
+    await waitFor(() => {
+      expect(result.current.reservas.find((r) => r.id === '11')?.estado).toBe('rechazada');
+    });
+    expect(result.current.confirmRechazar).toBeNull();
+    expect(result.current.solicitudesPendientes.some((r) => r.id === '11')).toBe(false);
+    // Y no se ha confirmado nada todavía: el aviso de éxito llega cuando responda el backend.
+    expect(toast.success).not.toHaveBeenCalledWith('Solicitud rechazada.');
+  });
+
+  it('si el backend rechaza el cambio, la fila vuelve a como estaba y se avisa', async () => {
+    vi.mocked(toast.success).mockClear();
+    vi.mocked(toast.error).mockClear();
+    const backend = createAppBackends();
+    apiFetchMock.mockImplementation((path: string, opciones?: { method?: string }) =>
+      opciones?.method === 'PATCH'
+        ? Promise.reject(new Error('Una reserva rechazada ya no se puede editar: forma parte del histórico'))
+        : backend.apiFetch(path, opciones),
+    );
+    const { result } = renderHook(() => useReservasPage(), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const solicitud = result.current.solicitudesPendientes.find((r) => r.id === '12')!;
+    act(() => result.current.handleAceptar(solicitud));
+    await act(async () => result.current.confirmAceptarAction());
+
+    await waitFor(() => {
+      expect(result.current.reservas.find((r) => r.id === '12')?.estado).toBe('pendiente');
+    });
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('forma parte del histórico'));
+    expect(toast.success).not.toHaveBeenCalledWith(expect.stringContaining('Solicitud aceptada'));
+  });
+
   it('exige un motivo (el hook no envía nada si el motivo llega vacío)', async () => {
     const { result } = renderHook(() => useReservasPage(), { wrapper });
     await waitFor(() => expect(result.current.isLoading).toBe(false));

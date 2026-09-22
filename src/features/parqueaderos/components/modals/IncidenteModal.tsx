@@ -9,6 +9,7 @@ import { theme } from "@/styles/theme";
 import { Modal, ModalHeader, SelectorBuscable } from "@/components/shared";
 import { EvidenciasField } from "@/features/incidentes";
 import { IncidenteForm, Ocupante, formatearFechaHora, formatearDuracion } from "../../lib/helpers";
+import { DESCRIPCION_MAX } from "@/utils/validation";
 
 const C = theme;
 const selectStyle = { width: "100%", padding: "11px 14px", borderRadius: 11, border: `1px solid ${C.border}`, fontSize: 13, outline: "none", fontFamily: "inherit", background: "#F8FAFC" } as const;
@@ -104,6 +105,7 @@ export function IncidenteModal({
           <textarea
             id="incidente-descripcion"
             rows={3}
+            maxLength={DESCRIPCION_MAX}
             value={incidenteForm.descripcion}
             onChange={(e) => setIncidenteForm(prev => ({ ...prev, descripcion: e.target.value }))}
             placeholder="Describe el incidente o novedad en la celda..."

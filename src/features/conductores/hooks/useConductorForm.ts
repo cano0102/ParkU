@@ -3,9 +3,9 @@ import { toast } from "sonner";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { comprobarDisponibilidad } from "@/services/api/usuarios";
-import { validarPassword } from "@/utils/validation";
+import { validarPassword, validarNombrePersona } from "@/utils/validation";
 import {
-  emptyForm, validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca, validarNumeroDocumento, validarTelefono, EMAIL_REGEX,
+  emptyForm, validarNumeroDocumento, validarTelefono, EMAIL_REGEX, validarDatosVehiculo,
   TIPO_VISITANTE, type FormState, type FormErrors,
 } from "../lib/helpers";
 import { useTiposUsuario } from "./useTiposUsuario";
@@ -135,9 +135,8 @@ export function useConductorForm(
   // Validación en vivo del formulario
   const validate = useCallback((form: FormState): FormErrors => {
     const errors: FormErrors = {};
-    if (!form.nombre.trim()) {
-      errors.nombre = "El nombre es obligatorio";
-    }
+    const errorNombre = validarNombrePersona(form.nombre);
+    if (errorNombre) errors.nombre = errorNombre;
     const numeroDocumento = form.numeroDocumento.trim();
     if (!numeroDocumento) {
       errors.numeroDocumento = "El número de documento es obligatorio";
@@ -192,32 +191,7 @@ export function useConductorForm(
     // El vehículo solo se pide al crear; al editar se gestiona desde su propia tarjeta.
     if (editingConductor) return errors;
 
-    const placa = form.placa.trim().toUpperCase();
-    if (!placa) {
-      errors.placa = "La placa es obligatoria";
-    } else if (!validarPlacaColombiana(placa)) {
-      errors.placa = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
-    } else if ((form.tipoVehiculo === "carro" || form.tipoVehiculo === "moto") && !validarPlacaPorTipo(placa, form.tipoVehiculo)) {
-      const tipoDetectado = tipoVehiculoDesdePlaca(placa);
-      errors.placa = `Seleccionaste "${form.tipoVehiculo}", pero la placa tiene formato de ${tipoDetectado}.`;
-    } else if (placasOcupadas.has(placa)) {
-      errors.placa = "Esta placa ya está registrada en otro vehículo";
-    }
-    if (!form.marca.trim()) {
-      errors.marca = "La marca es obligatoria";
-    }
-    if (!form.color.trim()) {
-      errors.color = "El color es obligatorio";
-    }
-    const modelo = form.modelo.trim();
-    if (modelo) {
-      const anio = Number(modelo);
-      const anioMaximo = new Date().getFullYear() + 1;
-      if (!Number.isInteger(anio) || anio < 1950 || anio > anioMaximo) {
-        errors.modelo = `El modelo es el año del vehículo: entre 1950 y ${anioMaximo}`;
-      }
-    }
-    return errors;
+    return { ...errors, ...validarDatosVehiculo(form, placasOcupadas) };
   }, [placasOcupadas, documentosOcupados, tiposUsuario, editingConductor]);
 
   useEffect(() => {

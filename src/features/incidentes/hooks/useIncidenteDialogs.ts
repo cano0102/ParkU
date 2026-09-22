@@ -5,6 +5,8 @@ import { ESTADOS_ABIERTOS, type EstadoIncidente } from "../lib/constants";
 import { recomiendaEncargado, requiereMotivo } from "../lib/transiciones";
 import type { IncidentesData } from "./useIncidentesData";
 import { listar as listarEvidencias, subirVarias, type Evidencia } from "@/services/api/evidencias";
+import { validarTextoLargo, validarTextoCorto, DESCRIPCION_MIN, DESCRIPCION_MAX } from "@/utils/validation";
+import { TIPO_OTRO_MAX } from "@/features/parqueaderos";
 
 const emptyFormData = () => ({
   clase: "incidente" as ClaseNovedad,
@@ -22,7 +24,18 @@ const emptyFormData = () => ({
 });
 
 /** Los tres modales de Incidentes: crear/editar (con su validación en vivo), ver detalle y confirmar eliminación. */
-export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPermitidas?: Set<string>; modoConductor?: boolean }) {
+export function useIncidenteDialogs(
+  data: IncidentesData,
+  options?: {
+    celdaIdsPermitidas?: Set<string>;
+    /** false para quien solo reporta (Comunidad SENA): la prioridad no la elige quien reporta,
+     *  sino quien recibe el reporte al aceptarlo (ver IncidenteVehiculoAsignadoFields) — exigirla
+     *  aquí igual dejaba el formulario permanentemente inválido, con el campo que la pediría
+     *  oculto para ese rol. Por defecto true (Admin/Vigilante). */
+    puedeClasificar?: boolean;
+  }
+) {
+  const puedeClasificar = options?.puedeClasificar ?? true;
   const {
     celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda,
     cambiarEstado, usuariosReportantes,
@@ -73,14 +86,18 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
   const esNovedad = formData.clase === "novedad";
   const modoConductor = options?.modoConductor ?? false;
   const formErrors = {
-    descripcion: formData.descripcion.trim() ? "" : "La descripción es obligatoria",
-    parqueaderoId: modoConductor || formData.parqueaderoId ? "" : "Selecciona un parqueadero",
-    vehiculoId: !modoConductor || esNovedad || formData.vehiculoId ? "" : "Selecciona el vehículo implicado",
+    descripcion: validarTextoLargo(formData.descripcion, "La descripción", { min: DESCRIPCION_MIN, max: DESCRIPCION_MAX }) ?? "",
+    // El backend admite vehiculo_id en null (novedades.models.js): no todo incidente ocurre
+    // sobre un vehículo concreto (una queja general, o uno reportado antes de que existiera
+    // este campo). Exigirlo aquí bloqueaba guardar —y por tanto subir evidencias— en esos
+    // casos, aunque la API los aceptara sin problema.
     tipoNovedad: esNovedad || formData.tipoNovedad ? "" : "Elige el tipo de incidente",
-    tipoOtro: !esNovedad && formData.tipoNovedad === "otro" && !formData.tipoOtro.trim()
-      ? "Indica de qué tipo de incidente se trata"
+    tipoOtro: !esNovedad && formData.tipoNovedad === "otro"
+      ? (formData.tipoOtro.trim()
+          ? (validarTextoCorto(formData.tipoOtro, "El tipo de incidente", TIPO_OTRO_MAX, true) ?? "")
+          : "Indica de qué tipo de incidente se trata")
       : "",
-    prioridad: esNovedad || formData.prioridad ? "" : "Elige la prioridad",
+    prioridad: esNovedad || !puedeClasificar || formData.prioridad ? "" : "Elige la prioridad",
   };
   const formInvalido = Object.values(formErrors).some(Boolean);
   const markTouched = (campo: "descripcion" | "parqueaderoId") =>
@@ -191,7 +208,7 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
   const handleSave = async () => {
     setFormTouched({ descripcion: true, parqueaderoId: true });
     if (formInvalido) {
-      toast.error(modoConductor ? "La descripción y el vehículo implicado son obligatorios" : "Descripción y Parqueadero son obligatorios");
+      toast.error("Revisa los campos obligatorios del formulario");
       return;
     }
 
@@ -228,7 +245,15 @@ export function useIncidenteDialogs(data: IncidentesData, options?: { celdaIdsPe
         const aviso = await subirFotos(selectedIncidente.id);
         toast.success("Incidente actualizado correctamente" + aviso);
       } else {
-        const creado = await addIncidente({ ...datosParaGuardar } as Omit<Incidente, "id" | "fecha">);
+        // Quien no puede clasificar (Comunidad SENA) nunca vio el selector de prioridad ni el
+        // de encargado — `formData` igual trae el valor por defecto (media, sin asignar) del
+        // formulario compartido con Admin/Vigilante. Se limpian antes de enviar para que el
+        // reporte quede de verdad sin definir, como promete el aviso del formulario ("quien lo
+        // reciba define la prioridad"), en vez de llegar ya con una prioridad que nadie eligió.
+        const payload = puedeClasificar
+          ? formData
+          : { ...formData, prioridad: "" as PrioridadNovedad, usuarioAsignadoId: "" };
+        const creado = await addIncidente({ ...payload });
         const aviso = creado?.id ? await subirFotos(creado.id) : "";
         toast.success("Incidente registrado correctamente" + aviso);
       }

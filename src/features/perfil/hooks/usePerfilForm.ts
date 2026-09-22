@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { actualizarPerfil, comprobarDisponibilidad } from "@/services/api/usuarios";
-import { EMAIL_REGEX, validarTelefono, validarNumeroDocumento } from "@/utils/validation";
+import { validarTelefono, validarNumeroDocumento, validarNombrePersona, validarCorreo } from "@/utils/validation";
 
 /** Pausa sin teclear antes de preguntarle al backend. La misma que usa Conductores. */
 const ESPERA_VALIDACION_MS = 500;
@@ -63,12 +63,10 @@ export function usePerfilForm(user: UsuarioDelPerfil) {
   const consultaId = useRef(0);
 
   const formatoErrors: Record<CampoPerfil, string> = {
-    nombre: profileForm.nombre.trim() ? "" : "El nombre no puede estar vacío",
-    correo: !profileForm.correo.trim()
-      ? "El correo no puede estar vacío"
-      : EMAIL_REGEX.test(profileForm.correo.trim())
-        ? ""
-        : "Ingresa un correo electrónico válido",
+    // Mismas reglas que Usuarios/Conductores (utils/validation.ts): longitud y solo letras en
+    // el nombre; formato y tope de la columna en el correo.
+    nombre: validarNombrePersona(profileForm.nombre) ?? "",
+    correo: validarCorreo(profileForm.correo) ?? "",
     numero: profileForm.numero.trim() && !validarTelefono(profileForm.numero.trim())
       ? "Ingresa un número de teléfono colombiano válido (10 dígitos)"
       : "",
@@ -116,7 +114,7 @@ export function usePerfilForm(user: UsuarioDelPerfil) {
     const telefono = profileForm.numero.trim();
     const documento = profileForm.numeroDocumento.trim();
     // Solo se pregunta por lo que ya tiene forma válida: preguntar por "juan@" no aporta nada.
-    const mirarCorreo = !!correo && EMAIL_REGEX.test(correo);
+    const mirarCorreo = !!correo && validarCorreo(correo) === null;
     const mirarTelefono = !!telefono && validarTelefono(telefono);
     const mirarDocumento = validarNumeroDocumento(documento);
     if (!mirarCorreo && !mirarTelefono && !mirarDocumento) {

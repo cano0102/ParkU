@@ -50,10 +50,10 @@ interface IncidenteFormModalProps {
   showJustificacionCierre: boolean;
   formData: IncidenteFormData;
   setFormData: (updater: (f: IncidenteFormData) => IncidenteFormData) => void;
-  formTouched: { descripcion?: boolean; parqueaderoId?: boolean };
-  formErrors: { descripcion: string; parqueaderoId: string; vehiculoId: string };
+  formTouched: { descripcion?: boolean };
+  formErrors: { descripcion: string };
   formInvalido: boolean;
-  parqueaderos: Parqueadero[];
+  markTouched: (campo: "descripcion") => void;
   vehiculos: Vehiculo[];
   usuarios: Usuario[];
   /** false para el flujo de Comunidad SENA (solo reporta): oculta prioridad y "Asignar a" —
@@ -191,7 +191,6 @@ export function IncidenteFormModal({
 
           <IncidenteVehiculoAsignadoFields
             vehiculoId={formData.vehiculoId}
-            vehiculoError={ocultarParqueadero && formData.clase !== "novedad" && formTouched.descripcion ? formErrors.vehiculoId : undefined}
             usuarioAsignadoId={formData.usuarioAsignadoId}
             tipoNovedad={formData.tipoNovedad}
             tipoOtro={formData.tipoOtro}

@@ -34,6 +34,7 @@ export function CambiarPasswordModal({ pw }: CambiarPasswordModalProps) {
   const requisitos = [
     { label: "Contraseña actual ingresada", check: pw.currentFilled },
     { label: `Entre ${PASSWORD_MIN} y ${PASSWORD_MAX} caracteres`, check: pw.passwordLengthOk },
+    { label: "Una mayúscula, una minúscula y un número", check: pw.passwordComplejaOk },
     { label: "Diferente a la contraseña actual", check: pw.passwordDifferent },
     { label: "Las contraseñas coinciden", check: pw.passwordsMatch },
   ];

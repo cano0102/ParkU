@@ -111,3 +111,98 @@ export const NUMERO_DOCUMENTO_MIN = 6;
 export const NUMERO_DOCUMENTO_MAX = 10;
 export const NUMERO_DOCUMENTO_REGEX = /^[0-9]{6,10}$/;
 export const validarNumeroDocumento = (valor: string): boolean => NUMERO_DOCUMENTO_REGEX.test(valor.trim());
+
+/* ============================================================
+   TEXTO LIBRE: LIMPIEZA Y LÍMITES
+============================================================ */
+
+/**
+ * Deja un texto listo para validar y guardar: sin espacios sobrantes, sin caracteres de
+ * control ni invisibles (que llegan al pegar desde otros programas y rompen búsquedas y
+ * comparaciones) y, si se indica, recortado a `max`. NO escapa HTML: React ya escapa al
+ * pintar, y el backend es quien decide cómo almacena.
+ */
+export const limpiarTexto = (valor: string, max?: number): string => {
+  // eslint-disable-next-line no-control-regex -- justamente se quieren quitar los de control.
+  const limpio = valor.replace(/[\x00-\x1F\x7F\u200B-\u200D\uFEFF]/g, "").replace(/\s+/g, " ").trim();
+  return max ? limpio.slice(0, max) : limpio;
+};
+
+/** Correo: el tope es el de la columna en la API (VARCHAR(100)). */
+export const CORREO_MAX = 100;
+export const validarCorreo = (valor: string, obligatorio = true): string | null => {
+  const correo = valor.trim();
+  if (!correo) return obligatorio ? "El correo es obligatorio" : null;
+  if (correo.length > CORREO_MAX) return `El correo no puede superar ${CORREO_MAX} caracteres`;
+  if (!EMAIL_REGEX.test(correo)) return "Ingresa un correo electrónico válido";
+  return null;
+};
+
+/** Nombre de persona: letras (con tildes/ñ/ü), espacios, apóstrofo, guion y punto. Nada de
+ *  dígitos ni símbolos: un "Juan<script>" o un "1234" no es un nombre de nadie. */
+export const NOMBRE_PERSONA_REGEX = /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ][A-Za-zÁÉÍÓÚÜÑáéíóúüñ'.\- ]*$/;
+export const validarNombrePersona = (valor: string): string | null => {
+  const nombre = limpiarTexto(valor);
+  if (!nombre) return "El nombre es obligatorio";
+  if (nombre.length < NOMBRE_MIN) return `El nombre debe tener al menos ${NOMBRE_MIN} caracteres`;
+  if (nombre.length > NOMBRE_MAX) return `El nombre no puede superar ${NOMBRE_MAX} caracteres`;
+  if (!NOMBRE_PERSONA_REGEX.test(nombre)) return "El nombre solo puede tener letras, espacios, apóstrofos o guiones";
+  return null;
+};
+
+/* ============================================================
+   VEHÍCULO
+============================================================ */
+export const MARCA_MAX = 40;
+export const LINEA_MAX = 40;
+export const COLOR_MAX = 30;
+export const DESCRIPCION_VEHICULO_MAX = 200;
+/** En Colombia el "modelo" de un vehículo ES su año; antes de 1950 no circula nada con placa
+ *  vigente y el año que viene es lo más lejos que se matricula. */
+export const MODELO_ANIO_MIN = 1950;
+export const modeloAnioMax = () => new Date().getFullYear() + 1;
+export const validarModeloVehiculo = (valor: string): string | null => {
+  const modelo = valor.trim();
+  if (!modelo) return null;
+  const anio = Number(modelo);
+  if (!/^\d{4}$/.test(modelo) || anio < MODELO_ANIO_MIN || anio > modeloAnioMax()) {
+    return `El modelo es el año del vehículo: entre ${MODELO_ANIO_MIN} y ${modeloAnioMax()}`;
+  }
+  return null;
+};
+
+/** "La marca es obligatoria" / "El color es obligatorio": la concordancia la decide el artículo
+ *  con el que llega la etiqueta. */
+const obligatorioSegun = (etiqueta: string) => (/^la /i.test(etiqueta) ? "obligatoria" : "obligatorio");
+
+/** Marca, línea y color son texto corto: letras, dígitos y algún separador ("Mercedes-Benz",
+ *  "Boxer 150", "Gris plata"). Sin símbolos raros ni saltos de línea. */
+export const TEXTO_CORTO_REGEX = /^[A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ][A-Za-z0-9ÁÉÍÓÚÜÑáéíóúüñ.\-/&() ]*$/;
+export const validarTextoCorto = (valor: string, etiqueta: string, max: number, obligatorio: boolean): string | null => {
+  const texto = limpiarTexto(valor);
+  if (!texto) return obligatorio ? `${etiqueta} es ${obligatorioSegun(etiqueta)}` : null;
+  if (texto.length > max) return `${etiqueta} no puede superar ${max} caracteres`;
+  if (!TEXTO_CORTO_REGEX.test(texto)) return `${etiqueta} tiene caracteres no permitidos`;
+  return null;
+};
+
+/* ============================================================
+   TEXTO LARGO: MOTIVOS Y DESCRIPCIONES
+============================================================ */
+/** Un motivo o descripción de una sola palabra no le sirve a quien lo lee para decidir. */
+export const MOTIVO_MIN = 5;
+export const MOTIVO_MAX = 250;
+export const DESCRIPCION_MIN = 10;
+export const DESCRIPCION_MAX = 500;
+
+export const validarTextoLargo = (
+  valor: string,
+  etiqueta: string,
+  { min, max, obligatorio = true }: { min: number; max: number; obligatorio?: boolean },
+): string | null => {
+  const texto = limpiarTexto(valor);
+  if (!texto) return obligatorio ? `${etiqueta} es ${obligatorioSegun(etiqueta)}` : null;
+  if (texto.length < min) return `${etiqueta} debe tener al menos ${min} caracteres`;
+  if (texto.length > max) return `${etiqueta} no puede superar ${max} caracteres`;
+  return null;
+};

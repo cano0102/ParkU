@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { compararPorRecientes } from "@/utils/orden";
 import { useSearchParams } from "react-router-dom";
 import type { ConductoresData } from "./useConductoresData";
 
@@ -44,7 +45,9 @@ export function useConductoresFilters(data: Pick<ConductoresData, "conductores" 
         const matchesTipo = filterTipo === "todos" ? true : conductor.tipoUsuarioNombre.toLowerCase() === filterTipo;
         const matchesEstado = filterEstado === "todos" ? true : conductor.estado === filterEstado;
         return matchesSearch && matchesTipo && matchesEstado && matchVehiculoTipo;
-      }),
+      })
+      // Más recientes primero: el conductor recién creado aparece arriba, no al final.
+      .sort(compararPorRecientes),
     [conductores, getVehiculosConductor, search, filterTipo, filterEstado, filterVehiculoTipo]
   );
 

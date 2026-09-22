@@ -2,11 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as conductoresService from '@/services/api/conductores';
 import type { Conductor } from '@/services/api/conductores';
-import { createQueryHooks } from '@/services/core/queryFactory';
+import { createQueryHooks, STALE_TIME } from '@/services/core/queryFactory';
 
 export type { Conductor };
 
-const hooks = createQueryHooks<Conductor>('conductores', conductoresService);
+const hooks = createQueryHooks<Conductor>('conductores', conductoresService, { staleTime: STALE_TIME.FRECUENTE });
 
 export const useConductores = hooks.useList;
 export const useCreateConductor = hooks.useCreate;

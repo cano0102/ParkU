@@ -269,3 +269,80 @@ explícitamente. Cerrar esa brecha (sobre todo `services/api/ocr.ts` al
 47% y buena parte de `features/conductores/` — sin cobertura propia por
 la suite deshabilitada de esa feature) es trabajo pendiente, no de esta
 fase.
+
+## Rendimiento
+
+Decisiones que sostienen los tiempos de carga y de respuesta; cada una
+tiene su porqué en un comentario junto al código, aquí solo el mapa.
+
+### Carga inicial y navegación
+
+- **Cada página autenticada es un chunk propio** (`routes/paginas.ts`,
+  `lazy()` con reintento tras un deploy). Las pantallas públicas también,
+  salvo la landing, que es la entrada.
+- **`treeshake.moduleSideEffects` en `vite.config.ts` trata a `src/` como
+  libre de efectos al importarse.** Es lo que hace real la separación
+  anterior: los barriles `index.ts` reexportan la página junto a los hooks,
+  y sin esta regla el layout (que importa `@/features/reservas` por
+  `useReservas`) arrastraba media aplicación al chunk inicial (600 kB →
+  86 kB). Consecuencia práctica: **ningún módulo de `src/` puede depender
+  de ejecutarse solo por ser importado** (`import './x'` sin usar nada de
+  él). La única importación por efecto es el CSS de `main.tsx`, excluida
+  explícitamente.
+- **Vendors en chunks fijos** (`vendor-react`, `vendor-router`,
+  `vendor-query`, `vendor-ui`) para que sobrevivan en caché entre deploys;
+  `vercel.json` los marca `immutable`.
+- **Precarga**: el layout descarga en idle los chunks de las secciones del
+  menú (`precargarRutas`), y `routes/Precarga.tsx` hace lo mismo desde la
+  landing (login) y el login (dashboard), además de despertar el backend
+  (`despertarBackend` en `services/core/http.ts`: la API vive en Render y
+  tarda 30-60 s en arrancar si lleva 15 min sin uso). Se precarga **código,
+  nunca datos**: los datos gastan cuota del backend (ver abajo).
+- **Iconos archivo por archivo** (`vite.plugins.ts`): reescribe los imports
+  de `@tabler/icons-react` al módulo de cada icono. Sin esto, el dev server
+  pre-empaqueta 5 000 iconos (4 MB) y cada test que monta un componente los
+  carga enteros. El build pasó de 7 067 módulos a ~600.
+- **Animaciones en CSS**, no en librería: los fundidos del Dashboard son
+  clases `.anim-*` de `styles/sena-overrides.css` (framer-motion pesaba
+  166 kB solo para eso y animaba desde JavaScript). Nueva animación de
+  entrada → nueva clase ahí, con `prefers-reduced-motion` cubierto.
+- **Tipografía del mismo origen** (`public/fonts/`, `styles/fonts.css`,
+  precargada en `index.html`), en vez del `@import` a Google Fonts que
+  encadenaba tres descargas en serie antes del primer texto.
+
+### Datos y cuota del backend
+
+- **La API limita a 100 peticiones por IP cada 15 minutos** (cabecera
+  `ratelimit`). Cada pantalla pide entre 4 y 8 listas, así que la política
+  de caché de React Query es la que decide si la app se bloquea con 429 a
+  los pocos minutos o no.
+- **`staleTime` por dominio** (`STALE_TIME` en `services/core/queryFactory.ts`):
+  `VIVO` (1 min: celdas, entradas/salidas, reservas, incidentes),
+  `FRECUENTE` (2 min: conductores, vehículos), `MAESTRO` (5 min: roles,
+  usuarios, parqueaderos, catálogos). Las mutaciones propias invalidan su
+  lista igual; el retraso solo aplica a cambios hechos desde otro equipo.
+  Un hook nuevo elige su nivel en `createQueryHooks(..., { staleTime })`.
+- **Caché persistida en localStorage** (`services/core/cacheQueries.ts`,
+  `PersistQueryClientProvider` en `App.tsx`): al abrir o recargar, cada
+  pantalla pinta lo último que se vio y refresca por detrás; si los datos
+  aún no vencieron, la recarga no gasta ninguna petición. Se invalida sola
+  en cada deploy (`__APP_BUILD_ID__`) y se borra al cerrar o caducar la
+  sesión (`AuthContext`).
+- **Las mutaciones son optimistas** (`useUpdate`/`useRemove` de la fábrica, y
+  `useUpdateReserva`/`useCancelarReserva`): la lista en caché cambia en el
+  mismo clic, con rollback y toast si el backend rechaza, y refetch al
+  terminar. Contra la API real, esperar respuesta + refetch eran uno o dos
+  segundos sin feedback, y la gente volvía a pulsar (segunda petición sobre
+  un registro ya cambiado: "ya no se puede editar: forma parte del
+  histórico"). `useCreate` no lo es: la respuesta del POST viene sin los
+  campos que la lista resuelve con joins.
+- **Los diálogos de confirmación no admiten doble clic** (`hooks/useEnCurso.ts`):
+  si `onConfirm` devuelve una promesa, el botón se bloquea y cambia de texto
+  hasta que termine. Un diálogo nuevo debe usarlo (o cerrarse antes de esperar
+  al backend, como hacen los de aceptar/rechazar/cancelar reserva).
+- **Lo que solo el backend puede arreglar** (pendiente en Api-ParkU): el
+  límite por IP castiga a toda una sede detrás del mismo NAT; no envía
+  `Access-Control-Max-Age`, así que cada petición autenticada va precedida
+  de un preflight `OPTIONS` (dos viajes por petición); y un endpoint
+  agregado para el Dashboard evitaría pedir siete listas para calcular
+  cuatro totales.

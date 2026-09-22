@@ -8,6 +8,7 @@ import type { ModalKind } from "./useModalController";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 import { buscarConflictoHorario, validarFranja, franjaSugerida } from "@/features/reservas";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN, motivoCeldaPreferencialNoApta } from "../lib/helpers";
+import { validarTextoLargo, MOTIVO_MIN, MOTIVO_MAX } from "@/utils/validation";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
@@ -48,6 +49,8 @@ export function useReservaCelda(
     if (!reservaForm.fechaReserva) return setReservaError("La fecha es requerida");
     if (!reservaForm.horaInicio || !reservaForm.horaFin) return setReservaError("El horario es requerido");
     if (!reservaForm.motivo.trim()) return setReservaError("El motivo de la reserva es obligatorio");
+    const errorMotivo = validarTextoLargo(reservaForm.motivo, "El motivo", { min: MOTIVO_MIN, max: MOTIVO_MAX });
+    if (errorMotivo) return setReservaError(errorMotivo);
 
 
     // A diferencia de la solicitud de un Conductor (useSolicitarReserva.ts, que ya filtra el
@@ -181,11 +184,15 @@ export function useReservaCelda(
    */
   const confirmarCancelarReserva = useCallback(async (motivo: string) => {
     if (!reservaACancelar) { setOpenModal(null); return; }
+    // El diálogo se cierra antes de esperar al backend: la reserva ya figura cancelada en el
+    // plano (la mutación es optimista, ver useUpdateReserva en features/reservas) y, si el
+    // backend la rechaza, vuelve sola a como estaba con su aviso.
+    const reserva = reservaACancelar;
+    setReservaACancelar(null);
+    setOpenModal(null);
     try {
-      await data.updateReserva(reservaACancelar.id, { estado: "cancelada", motivoRechazo: motivo });
+      await data.updateReserva(reserva.id, { estado: "cancelada", motivoRechazo: motivo });
       toast.info("Reserva cancelada.");
-      setReservaACancelar(null);
-      setOpenModal(null);
     } catch (error) {
       // El aviso de error lo muestra el manejador central de mutaciones.
       console.error("Error cancelling reserva:", error);

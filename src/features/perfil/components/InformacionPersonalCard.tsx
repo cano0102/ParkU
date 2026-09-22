@@ -13,7 +13,7 @@ import {
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import { nombreDeRol } from "@/services/core/roles";
-import { quitarDigitos, filtrarTelefono, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX } from "@/utils/validation";
+import { quitarDigitos, filtrarTelefono, TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, NOMBRE_MAX, CORREO_MAX } from "@/utils/validation";
 import type { usePerfilForm, CampoPerfil } from "../hooks/usePerfilForm";
 
 const C = theme;
@@ -65,7 +65,8 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
 
   /** Lo que se teclea, ya filtrado: sin dígitos en el nombre, solo dígitos en el documento. */
   const limpiar = (modo: ModoCampo, valor: string) => {
-    if (modo === "texto") return quitarDigitos(valor);
+    if (modo === "texto") return quitarDigitos(valor).slice(0, NOMBRE_MAX);
+    if (modo === "correo") return valor.slice(0, CORREO_MAX);
     if (modo === "telefono") return filtrarTelefono(valor);
     if (modo === "documento") return valor.replace(/\D/g, "").slice(0, NUMERO_DOCUMENTO_MAX);
     return valor;
@@ -149,6 +150,7 @@ export function InformacionPersonalCard({ user, form }: InformacionPersonalCardP
                         value={form.profileForm[item.key]}
                         type={item.modo === "correo" ? "email" : "text"}
                         inputMode={item.modo === "documento" ? "numeric" : undefined}
+                        maxLength={item.modo === "texto" ? NOMBRE_MAX : item.modo === "correo" ? CORREO_MAX : undefined}
                         aria-label={accesible(item.label)}
                         onChange={(e) => form.setCampo(item.key, limpiar(item.modo, e.target.value))}
                         onBlur={() => form.markProfileTouched(item.key)}

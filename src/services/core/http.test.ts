@@ -78,3 +78,64 @@ describe('apiFetch — normalización de errores HTTP', () => {
     await expect(apiFetch('/parqueaderos')).rejects.toThrow('El servidor tardó demasiado en responder. Intenta de nuevo.');
   });
 });
+
+/**
+ * `despertarBackend` es un adelanto (levantar el servidor dormido de Render antes del primer
+ * login) que nunca debe convertirse en un problema: ni repetir la petición, ni fallar hacia
+ * afuera cuando no hay red o no hay almacenamiento.
+ */
+describe('despertarBackend — ping de arranque del backend', () => {
+  const originalFetch = globalThis.fetch;
+
+  beforeEach(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('manda un solo GET a /health por pestaña, sin cabeceras propias (evita el preflight) y sin leer la respuesta', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+    const { despertarBackend } = await import('./http');
+
+    despertarBackend();
+    despertarBackend();
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(String(url)).toMatch(/\/health$/);
+    expect(init).toEqual({ mode: 'no-cors' });
+  });
+
+  it('no lanza si la petición falla (servidor caído o sin red)', async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'));
+    const { despertarBackend } = await import('./http');
+    expect(() => despertarBackend()).not.toThrow();
+    await Promise.resolve();
+  });
+
+  it('no lanza si fetch está bloqueado de forma síncrona', async () => {
+    globalThis.fetch = vi.fn(() => { throw new Error('fetch bloqueado'); }) as unknown as typeof fetch;
+    const { despertarBackend } = await import('./http');
+    expect(() => despertarBackend()).not.toThrow();
+  });
+
+  it('sin sessionStorage disponible manda el ping igual', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true } as Response);
+    const descriptor = Object.getOwnPropertyDescriptor(window, 'sessionStorage')!;
+    Object.defineProperty(window, 'sessionStorage', {
+      configurable: true,
+      get() { throw new Error('bloqueado'); },
+    });
+    try {
+      const { despertarBackend } = await import('./http');
+      expect(() => despertarBackend()).not.toThrow();
+      expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    } finally {
+      Object.defineProperty(window, 'sessionStorage', descriptor);
+    }
+  });
+});

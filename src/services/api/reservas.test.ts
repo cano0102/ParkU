@@ -75,6 +75,10 @@ describe('services/reservas', () => {
     expect(actualizada.motivoRechazo).toBe('La celda ya fue asignada a otro vehículo.');
     const call = apiFetchMock.mock.calls.find(([path, opts]) => path === `/reservas/${creada.id}/estado` && (opts as any)?.method === 'PATCH');
     expect((call?.[1] as any).body.motivo_rechazo).toBe('La celda ya fue asignada a otro vehículo.');
+    // Y es la ÚNICA petición del rechazo: el motivo pertenece al cambio de estado, no dispara
+    // el GET + PUT de "otros campos" (tres peticiones y dos segundos de más por cada rechazo).
+    const desdeCreacion = apiFetchMock.mock.calls.filter(([path]) => String(path).startsWith(`/reservas/${creada.id}`));
+    expect(desdeCreacion.map(([path, opts]) => `${(opts as any)?.method ?? 'GET'} ${path}`)).toEqual([`PATCH /reservas/${creada.id}/estado`]);
   });
 });
 

@@ -4,7 +4,12 @@ declare module 'react-dom/client'
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
   readonly VITE_API_TIMEOUT: string;
+  /** 'development' | 'production' | 'test' (Vitest). */
+  readonly MODE: string;
 }
+
+/** Identificador del build, inyectado por `define` en vite.config.ts / vitest.config.ts. */
+declare const __APP_BUILD_ID__: string;
 
 interface ImportMeta {
   readonly env: ImportMetaEnv;

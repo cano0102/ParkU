@@ -1,11 +1,8 @@
-import { theme } from "@/styles/theme";
 import { useAnimated } from "./hooks/useAnimated";
 import { useLoginForm } from "./hooks/useLoginForm";
 import { loginStyles } from "./lib/styles";
 import { LoginLeftPanel } from "./components/LoginLeftPanel";
 import { LoginForm } from "./components/LoginForm";
-
-const COLORS = theme;
 
 export function Login() {
   const visible = useAnimated();
@@ -23,9 +20,6 @@ export function Login() {
           height: "100dvh",
           background: "linear-gradient(180deg, #ffffff 0%, #F3F8F1 100%)",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "1.2rem",
           position: "relative",
           overflow: "hidden",
         }}
@@ -44,44 +38,30 @@ export function Login() {
         />
 
         <div
+          /* A pantalla completa: la columna verde y el formulario se reparten todo el ancho y el
+             alto de la ventana, sin la tarjeta centrada de antes (que dejaba media pantalla en
+             blanco en un monitor normal). En móvil la columna verde se oculta (ver styles.ts). */
           className={`fade ${visible ? "active" : ""} login-grid`}
           style={{
             width: "100%",
-            maxWidth: 820,
-            // Alto FIJO (no máximo) al espacio disponible: le da a la fila del grid un alto
-            // definido, para que la columna del formulario pueda resolver su `height: 100%` y
-            // scrollear internamente cuando su contenido no quepa -- con `maxHeight` a secas el
-            // navegador no tiene un alto de fila concreto contra el cual calcular ese 100%.
-            height: "calc(100dvh - 2.4rem)",
+            height: "100vh",
             display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            overflow: "hidden",
-            borderRadius: 24,
+            gridTemplateColumns: "minmax(0, 5fr) minmax(0, 7fr)",
             background: "#fff",
-            border: `1px solid ${COLORS.border}`,
-            boxShadow: "0 20px 55px rgba(15, 23, 42, 0.08)",
             position: "relative",
             zIndex: 1,
           }}
         >
           <LoginLeftPanel />
 
-          <div
-            style={{
-              height: "100%",
-              // Único elemento con scroll de las pantallas de auth: la vista (el contenedor de
-              // arriba) nunca se mueve, solo esta columna cuando el formulario no cabe entero.
-              overflowY: "auto",
-              padding: "2rem clamp(1.5rem, 3vw, 2.5rem)",
-              display: "flex",
-              // "safe center": centra si cabe, pero si el formulario es más alto que la
-              // columna, se alinea arriba en vez del bug clásico de flexbox donde el inicio
-              // del contenido queda inalcanzable al hacer scroll con `center` a secas.
-              alignItems: "safe center",
-              justifyContent: "center",
-            }}
-          >
-            <LoginForm formState={formState} />
+          {/* La columna del formulario es la que hace scroll (altura fija = ventana). El
+              formulario se centra con `margin: auto` y no con align-items: center, porque con
+              center, cuando el contenido es más alto que la columna, se recorta por arriba y por
+              abajo y el botón final queda fuera de alcance. */}
+          <div style={{ minHeight: 0, overflowY: "auto", display: "flex", padding: "clamp(1.5rem, 4vh, 3rem) clamp(1.25rem, 6vw, 5rem)" }}>
+            <div style={{ margin: "auto", width: "100%", display: "flex", justifyContent: "center" }}>
+              <LoginForm formState={formState} />
+            </div>
           </div>
         </div>
       </div>

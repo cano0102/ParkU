@@ -12,7 +12,7 @@
  */
 import { vi } from 'vitest';
 import { createFakeRestBackend } from './fakeApi';
-import { ROLES, type RolId } from '@/services/core/roles';
+import { ROLES } from '@/services/core/roles';
 
 export const rolesSeed = [
   { id: 1, nombre: 'Administrador', descripcion: 'Acceso total al sistema', estado: true },
@@ -293,26 +293,17 @@ function createAuthBackend() {
  * El mock mantiene el comportamiento permisivo para ese rol para que la UI y los tests
  * reflejen la configuración real que se quiere en la aplicación.
  */
-function createIncidentesBackend(rolActual?: RolId) {
-  const base = createFakeRestBackend('/novedades', incidentesSeed);
-  if (rolActual !== ROLES.CONDUCTOR) return base;
-
+function createIncidentesBackend() {
   // El rol Conductor ya tiene permisos de lectura y reporte sobre incidentes; no se impone
-  // ninguna restricción artificial aquí.
-  return base;
-
-  // No se usa spread (`{ ...base, apiFetch }`): `items` es un getter en `base`, y el spread lo
-  // evaluaría una sola vez al construir este objeto en vez de conservarlo vivo.
-  return { apiFetch, get items() { return base.items; } };
+  // ninguna restricción artificial aquí, independientemente del rol.
+  return createFakeRestBackend('/novedades', incidentesSeed);
 }
 
 /**
  * Crea un set fresco de backends por dominio (uno por test, para no filtrar estado entre
- * tests). `opciones.rolActual`: opt-in, no cambia el comportamiento por defecto (permisivo)
- * para nadie que no lo pase explícitamente — solo hoy afecta a `/novedades` cuando vale
- * `ROLES.CONDUCTOR` (ver `createIncidentesBackend`).
+ * tests).
  */
-export function createAppBackends(opciones?: { rolActual?: RolId }) {
+export function createAppBackends() {
   const rolesPermisos = createFakeRestBackend('/roles-permisos', rolesPermisosSeed, {
     actions: [{
       method: 'GET', pattern: /^\/rol\/(\d+)$/,
@@ -586,7 +577,7 @@ export function createAppBackends(opciones?: { rolActual?: RolId }) {
       },
     }],
   });
-  const incidentes = createIncidentesBackend(opciones?.rolActual);
+  const incidentes = createIncidentesBackend();
   const catalogos = createFakeRestBackend('/catalogos/tipos-usuario', catalogosSeed);
   const auth = createAuthBackend();
 

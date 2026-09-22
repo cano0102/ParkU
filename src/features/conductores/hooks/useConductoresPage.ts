@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
-import { validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca } from "../lib/helpers";
+import { validarDatosVehiculo, type ErroresVehiculo } from "../lib/helpers";
 import type { VehiculoFormState } from "../components/VehiculoFormModal";
 import { useConductoresData } from "./useConductoresData";
 import { useConductoresFilters } from "./useConductoresFilters";
@@ -123,33 +123,12 @@ export function useConductoresPage() {
     });
   }, []);
 
-  const erroresVehiculo = useMemo(() => {
-    const errores: { placa?: string; marca?: string; modelo?: string; color?: string } = {};
-    if (!vehiculoForm) return errores;
-    const placa = vehiculoForm.placa.trim().toUpperCase();
-    if (!placa) {
-      errores.placa = "La placa es obligatoria";
-    } else if (!validarPlacaColombiana(placa)) {
-      errores.placa = "Formato de placa inválido. Usa ABC123 (carro) o ABC12D / ABC12 (moto).";
-    } else if (
-      (vehiculoForm.tipoVehiculo === "carro" || vehiculoForm.tipoVehiculo === "moto") &&
-      !validarPlacaPorTipo(placa, vehiculoForm.tipoVehiculo)
-    ) {
-      errores.placa = `Seleccionaste "${vehiculoForm.tipoVehiculo}", pero la placa tiene formato de ${tipoVehiculoDesdePlaca(placa)}.`;
-    } else if (data.vehiculos.some((v) => v.id !== vehiculoEditando?.id && v.placa.toUpperCase().trim() === placa)) {
-      errores.placa = "Esta placa ya está registrada en otro vehículo";
-    }
-    if (!vehiculoForm.marca.trim()) errores.marca = "La marca es obligatoria";
-    if (!vehiculoForm.color.trim()) errores.color = "El color es obligatorio";
-    const modelo = vehiculoForm.modelo.trim();
-    if (modelo) {
-      const anio = Number(modelo);
-      const anioMaximo = new Date().getFullYear() + 1;
-      if (!Number.isInteger(anio) || anio < 1950 || anio > anioMaximo) {
-        errores.modelo = `El modelo es el año del vehículo: entre 1950 y ${anioMaximo}`;
-      }
-    }
-    return errores;
+  const erroresVehiculo = useMemo((): ErroresVehiculo => {
+    if (!vehiculoForm) return {};
+    const placasOcupadas = new Set(
+      data.vehiculos.filter((v) => v.id !== vehiculoEditando?.id).map((v) => v.placa.toUpperCase().trim()),
+    );
+    return validarDatosVehiculo(vehiculoForm, placasOcupadas);
   }, [vehiculoForm, vehiculoEditando, data.vehiculos]);
 
   const guardarVehiculo = useCallback(async () => {

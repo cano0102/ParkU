@@ -1,5 +1,8 @@
+import { Suspense } from "react";
 import { Outlet } from "react-router-dom";
+import { useIsRestoring } from "@tanstack/react-query";
 import { theme } from "@/styles/theme";
+import { LoadingState } from "@/components/shared";
 import { nombreDeRol } from "@/services/core/roles";
 import { useMainLayoutState } from "./hooks/useMainLayoutState";
 import { mainLayoutStyles } from "./lib/styles";
@@ -14,6 +17,10 @@ const C = theme;
 
 export function MainLayout() {
   const s = useMainLayoutState();
+  // Mientras React Query restaura la caché guardada (un instante al abrir la app), las
+  // consultas están en pausa y no reportan "cargando": sin esto, cada pantalla pintaba un
+  // fotograma de "sin resultados" antes de que aparecieran los datos.
+  const restaurandoCache = useIsRestoring();
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex" }}>
@@ -105,7 +112,13 @@ export function MainLayout() {
           paddingInline: s.hideLayout ? 0 : undefined,
         }}
       >
-        <Outlet />
+        {/* Límite de suspensión propio: al entrar por primera vez a una página que aún no se
+            descargó, el menú y la cabecera se quedan en su sitio y solo el contenido muestra
+            el spinner — antes suspendía el árbol entero (el Suspense de App.tsx) y toda la
+            pantalla se iba a blanco con un spinner a pantalla completa. */}
+        <Suspense fallback={<LoadingState message="Cargando sección..." />}>
+          {restaurandoCache ? <LoadingState message="Cargando sección..." /> : <Outlet />}
+        </Suspense>
       </main>
 
       {/* ── Mobile bottom nav ──────────────────── */}

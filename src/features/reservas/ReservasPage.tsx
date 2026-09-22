@@ -1,6 +1,6 @@
-import { useEffect, useMemo } from "react";
-import { useLocation } from "react-router-dom";
+import { useMemo } from "react";
 import { Modal, LoadingState } from "@/components/shared";
+import { DataPagination } from "@/components/data";
 import { theme } from "@/styles/theme";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -20,6 +20,7 @@ import { MotivoReservaModal } from "./components/MotivoReservaModal";
 import { ConfirmAceptarReservaModal } from "./components/ConfirmAceptarReservaModal";
 import { SolicitudesPendientesPanel } from "./components/SolicitudesPendientesPanel";
 import { SolicitarReservaModal } from "./components/SolicitarReservaModal";
+import { ConductorReservaCard } from "./components/ConductorReservaCard";
 
 const C = theme;
 
@@ -48,22 +49,6 @@ export function Reservas() {
     p.miConductorId,
   );
 
-  // Se llega aquí desde el plano de Parqueaderos con una celda ya elegida ("Solicitar esta
-  // celda"): se abre el formulario con ella puesta, para no obligar a buscarla otra vez.
-  const location = useLocation();
-  const celdaPedida = (
-    location.state as {
-      solicitarCelda?: { celdaId: string; parqueaderoId: string };
-    } | null
-  )?.solicitarCelda;
-  useEffect(() => {
-    if (!celdaPedida) return;
-    solicitud.abrirCon(celdaPedida);
-    // Se limpia el estado de navegación para que volver atrás no reabra el formulario.
-    window.history.replaceState({}, "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [celdaPedida?.celdaId, celdaPedida?.parqueaderoId]);
-
   return (
     <>
       <style>{reservasStyles}</style>
@@ -91,14 +76,17 @@ export function Reservas() {
           />
         )}
 
-        <ReservasToolbar
-          search={p.search}
-          onSearchChange={p.setSearch}
-          filterEstado={p.filterEstado}
-          onFilterEstadoChange={p.setFilterEstado}
-          activeFiltersCount={p.activeFiltersCount}
-          onClearFilters={p.clearFilters}
-        />
+        {/* Comunidad SENA no busca ni filtra: solo ve sus propias reservas, pocas y suyas. */}
+        {!esComunidadSena && (
+          <ReservasToolbar
+            search={p.search}
+            onSearchChange={p.setSearch}
+            filterEstado={p.filterEstado}
+            onFilterEstadoChange={p.setFilterEstado}
+            activeFiltersCount={p.activeFiltersCount}
+            onClearFilters={p.clearFilters}
+          />
+        )}
 
         {p.isLoading ? (
           <LoadingState message="Cargando reservas..." />
@@ -111,22 +99,97 @@ export function Reservas() {
               </p>
             )}
 
-            <ReservasTable
-              filteredReservas={p.filteredReservas}
-              totalReservas={p.reservas.length}
-              getVehiculo={p.getVehiculo}
-              getCelda={p.getCelda}
-              getConductorReserva={p.getConductorReserva}
-              getParqueadero={p.getParqueadero}
-              canDelete={puedeEliminarReserva}
-              onView={(reserva) => {
-                p.setViewingReserva(reserva);
-                p.setViewOpen(true);
-              }}
-              onDelete={p.handleDelete}
-              puedeCancelar={p.puedeCancelar}
-              onCancel={p.handleCancelar}
-            />
+            {/* Comunidad SENA ve sus reservas como tarjetas (mismo patrón que "Mis
+                incidentes"), no la tabla de gestión con columna de conductor y acciones
+                de Admin/Vigilante. */}
+            {esComunidadSena ? (
+              p.filteredReservas.length === 0 ? (
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    padding: "3rem 1rem",
+                    borderRadius: 16,
+                    border: `2px dashed ${C.border}`,
+                    background: "#fff",
+                    color: C.textLight,
+                    textAlign: "center",
+                  }}
+                >
+                  <p style={{ fontWeight: 600, fontSize: 13 }}>
+                    {p.activeFiltersCount > 0
+                      ? "Ninguna reserva coincide con los filtros"
+                      : "Aún no tienes reservas"}
+                  </p>
+                  <p style={{ fontSize: 11, marginTop: 4 }}>
+                    {p.activeFiltersCount > 0
+                      ? "Prueba con otros filtros."
+                      : 'Usa "Solicitar reserva" para pedir una celda; aquí verás su estado.'}
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
+                    gap: 12,
+                  }}
+                >
+                  {p.paginatedReservas.map((reserva) => {
+                    const celda = p.getCelda(reserva.celdaId);
+                    return (
+                      <ConductorReservaCard
+                        key={reserva.id}
+                        reserva={reserva}
+                        vehiculo={p.getVehiculo(reserva.vehiculoId)}
+                        celda={celda}
+                        parqueadero={
+                          celda
+                            ? p.getParqueadero(celda.parqueaderoId)
+                            : undefined
+                        }
+                        onView={() => {
+                          p.setViewingReserva(reserva);
+                          p.setViewOpen(true);
+                        }}
+                        canCancel={p.puedeCancelar(reserva)}
+                        onCancel={() => p.handleCancelar(reserva)}
+                      />
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <ReservasTable
+                filteredReservas={p.paginatedReservas}
+                getVehiculo={p.getVehiculo}
+                getCelda={p.getCelda}
+                getConductorReserva={p.getConductorReserva}
+                getParqueadero={p.getParqueadero}
+                canDelete={puedeEliminarReserva}
+                onView={(reserva) => {
+                  p.setViewingReserva(reserva);
+                  p.setViewOpen(true);
+                }}
+                onDelete={p.handleDelete}
+                puedeCancelar={p.puedeCancelar}
+                onCancel={p.handleCancelar}
+              />
+            )}
+
+            {p.filteredReservas.length > 0 && (
+              <DataPagination
+                currentPage={p.currentPage}
+                totalPages={p.totalPages}
+                itemsPerPage={p.itemsPerPage}
+                totalItems={p.filteredReservas.length}
+                itemsPerPageOptions={esComunidadSena ? [6, 12, 24, 48] : [10, 25, 50, 100]}
+                entityLabel="Reservas"
+                onPageChange={p.setCurrentPage}
+                onItemsPerPageChange={p.setItemsPerPage}
+              />
+            )}
           </>
         )}
       </div>
@@ -195,10 +258,7 @@ export function Reservas() {
       >
         {p.confirmRechazar &&
           (() => {
-            const veh = p.getVehiculo(p.confirmRechazar!.vehiculoId);
-            const cel = p.getCelda(p.confirmRechazar!.celdaId);
             const usuario = p.getConductorReserva(p.confirmRechazar!);
-            const pq = cel ? p.getParqueadero(cel.parqueaderoId) : undefined;
             return (
               <>
                 {usuario ? (
@@ -342,6 +402,7 @@ export function Reservas() {
           horaFin={solicitud.form.horaFin}
           motivo={solicitud.form.motivo}
           error={solicitud.error}
+          enviando={solicitud.enviando}
           onVehiculoChange={(v) =>
             solicitud.setForm({ ...solicitud.form, vehiculoId: v })
           }

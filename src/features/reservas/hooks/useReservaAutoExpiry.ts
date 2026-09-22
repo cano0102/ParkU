@@ -38,10 +38,16 @@ const MINUTO_MS = 60 * 1000;
 export function useReservaAutoExpiry() {
   const { user } = useAuth();
   const esConductor = user?.rol === ROLES.CONDUCTOR;
-  const { data: reservas = [] } = useReservas({ enabled: !esConductor });
+  // `isFetchedAfterMount`: la lista puede venir de la caché guardada en localStorage (ver
+  // services/core/cacheQueries.ts), es decir, de horas atrás. Vencer con esa copia sería
+  // cambiar de estado reservas que otra persona ya aceptó, rechazó o terminó mientras tanto,
+  // así que el barrido espera a la primera respuesta real del backend en esta sesión.
+  const { data: reservas = [], isFetchedAfterMount } = useReservas({ enabled: !esConductor });
   const updateReservaMutation = useUpdateReserva();
 
   useEffect(() => {
+    if (!isFetchedAfterMount) return;
+
     const vencerReservasPasadas = () => {
       const ahora = Date.now();
       for (const reserva of reservas) {
@@ -75,5 +81,5 @@ export function useReservaAutoExpiry() {
     const interval = setInterval(vencerReservasPasadas, CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reservas]);
+  }, [reservas, isFetchedAfterMount]);
 }

@@ -16,7 +16,7 @@
 import { getToken, getRefreshToken, setToken, clearTokens } from './tokenStorage';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
-const TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT) || 15000;
+const TIMEOUT_MS = Number(import.meta.env.VITE_API_TIMEOUT) || 60000;
 
 export const AUTH_EXPIRED_EVENT = 'parku:auth-expired';
 
@@ -75,6 +75,37 @@ function extraerMensajeError(body: unknown, status: number): string {
   }
   if (b && typeof b.message === 'string' && b.message) return b.message;
   return MENSAJE_POR_STATUS[status] ?? `Error ${status}`;
+}
+
+const BACKEND_DESPIERTO_KEY = 'parku-api-despierta';
+
+/**
+ * Manda un ping (`GET /health`, sin cabeceras, sin preflight) para que el backend arranque
+ * antes de que alguien lo necesite. La API vive en el plan gratuito de Render, que apaga el
+ * servidor tras 15 minutos sin uso y tarda entre 30 y 60 segundos en levantarlo: sin esto,
+ * ese arranque lo pagaba el primer "Ingresar" del día. Lanzándolo al abrir la landing o el
+ * login, para cuando la persona termina de escribir su contraseña el servidor ya está en
+ * pie. Es una sola petición por pestaña (cuenta para el límite de 100 por IP cada 15
+ * minutos, así que no se repite) y nunca falla hacia afuera: es solo un adelanto.
+ */
+export function despertarBackend(): void {
+  try {
+    if (sessionStorage.getItem(BACKEND_DESPIERTO_KEY)) return;
+    sessionStorage.setItem(BACKEND_DESPIERTO_KEY, '1');
+  } catch {
+    // Sin sessionStorage (modo privado en algún navegador): se manda igual, como mucho se
+    // repite el ping en la siguiente pantalla.
+  }
+  try {
+    // Sin límite de tiempo a propósito: si el servidor está apagado, la petición tarda lo
+    // que tarde en despertarlo, y la respuesta en sí no se usa para nada. `no-cors` porque
+    // tampoco hace falta leerla: así el navegador no registra un error de CORS si el origen
+    // no está en la lista del backend (p. ej. un puerto local distinto) — el servidor recibe
+    // la petición igual, que es lo único que importa.
+    void fetch(`${BASE_URL}/health`, { mode: 'no-cors' }).catch(() => undefined);
+  } catch {
+    // `fetch` no disponible o bloqueado: no hay nada que despertar desde aquí.
+  }
 }
 
 let refreshPromise: Promise<string | null> | null = null;

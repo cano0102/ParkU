@@ -89,10 +89,12 @@ export const PERMISOS_POR_ROL: Record<RolId, PermisosRol> = {
     roles: false,
     usuarios: false,
     conductores: false,
-    vehiculos: false,
-    // Autoservicio de sus propios vehículos (crear, ver, editar si es principal) — no
-    // confundir con `vehiculos`, que es la gestión admin de la flota completa.
-    misVehiculos: true,
+    // Habilita "Registrar mi vehículo" desde el Dashboard del conductor (ver
+    // ConductorDashboard.tsx / useRegistrarVehiculoConductor). Requiere que el backend real
+    // agregue Conductor a los roles permitidos de `POST /vehiculos` (antes rechazaba con 403
+    // confirmado en vivo) — hasta entonces esta bandera no coincide con el `verificarRol([...])`
+    // real del servidor.
+    vehiculos: true,
     // Solo lectura del mapa/disponibilidad de celdas + reservar una: ve la sección de
     // Parqueaderos, pero sin `celdas`/`asignaciones` no puede crear/editar parqueaderos ni
     // usar asignación inteligente. Sí puede abrir la pantalla de Entrada/Salida porque ese

@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { PermisoCatalogo, Rol } from "@/services/api/roles";
 import { type FormState } from "../lib/helpers";
+import { validarTextoCorto } from "@/utils/validation";
+
+/** Tope del nombre de un rol: es una etiqueta corta, no una descripción. */
+export const ROL_NOMBRE_MAX = 50;
 
 /**
  * El backend identifica "dashboard" con el permiso `reportes.consultar`
@@ -101,9 +105,8 @@ export function useRolForm({
       setNombreError(
         !trimmed
           ? "El nombre es obligatorio"
-          : duplicado
-            ? "Ya existe un rol con este nombre"
-            : ""
+          : (validarTextoCorto(value, "El nombre", ROL_NOMBRE_MAX, true)
+            ?? (duplicado ? "Ya existe un rol con este nombre" : ""))
       );
     },
     [existingRoles, editingRolId]
@@ -130,6 +133,11 @@ export function useRolForm({
       const rawName = form.nombre.trim();
       if (!rawName) {
         toast.error("El nombre es obligatorio");
+        return;
+      }
+      const errorNombre = validarTextoCorto(rawName, "El nombre", ROL_NOMBRE_MAX, true);
+      if (errorNombre) {
+        toast.error(errorNombre);
         return;
       }
       const duplicado = existingRoles.some(

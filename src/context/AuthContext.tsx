@@ -1,13 +1,17 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import * as authService from '../services/api/auth';
 import { getToken, clearTokens } from '../services/core/tokenStorage';
 import { leerFoto, guardarFoto } from '../services/core/fotosPerfil';
 import { AUTH_EXPIRED_EVENT } from '../services/core/http';
+import { limpiarCacheDeQueries } from '../services/core/cacheQueries';
 import { ROLES, permisosDeVistas, type RolId, type PermisosRol } from '../services/core/roles';
 
 interface User {
@@ -122,7 +126,11 @@ export function AuthProvider({
     }
   });
 
-  const persistUser = (next: User | null) => {
+  const queryClient = useQueryClient();
+
+  // useCallback (con el cliente de queries, que es estable) para que los efectos de abajo
+  // puedan declararla como dependencia sin volver a ejecutarse en cada render.
+  const persistUser = useCallback((next: User | null) => {
     setUser(next);
     try {
       if (next) localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(next));
@@ -130,7 +138,15 @@ export function AuthProvider({
     } catch {
       // localStorage no disponible — la sesión sigue funcionando en memoria para esta pestaña.
     }
-  };
+    // Al terminar la sesión se vacían las listas descargadas, en memoria y en la copia
+    // persistida (ver services/core/cacheQueries.ts): en un equipo compartido, quien entre
+    // después no debe ver ni por un instante los datos de quien salió, y una cuenta con
+    // otro rol no debe arrancar con listas que la suya no puede leer.
+    if (!next) {
+      queryClient.clear();
+      limpiarCacheDeQueries();
+    }
+  }, [queryClient]);
 
   // Confirma contra la API que el token guardado sigue siendo válido. Si
   // expiró (o el usuario fue desactivado) desde la última visita, cierra la
@@ -182,14 +198,14 @@ export function AuthProvider({
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [persistUser]);
 
   // Si `http.ts` no logró renovar el token en un 401, cierra la sesión local.
   useEffect(() => {
     const onAuthExpired = () => persistUser(null);
     window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
     return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
-  }, []);
+  }, [persistUser]);
 
   // LOGIN NORMAL — valida contra la API real (correo/contraseña/estado) vía services/api/auth.ts.
   const login = async (
@@ -252,10 +268,12 @@ export function AuthProvider({
     return authService.resetPasswordWithToken(token, newPassword);
   };
 
-  // PERMISOS — rol + permisos reales de la API (ver permisosDeVistas).
-  const permisos = user ? permisosDeVistas(user.rol, user.permisos ?? []) : null;
+  // PERMISOS — rol + permisos reales de la API (ver permisosDeVistas). Memorizados: el layout
+  // deriva de `hasPermission` el menú visible y la precarga de sus chunks, y solo debe
+  // rehacerlos cuando cambie de verdad el rol o sus permisos.
+  const permisos = useMemo(() => (user ? permisosDeVistas(user.rol, user.permisos ?? []) : null), [user]);
 
-  const hasPermission = (key: keyof PermisosRol): boolean => !!permisos?.[key];
+  const hasPermission = useCallback((key: keyof PermisosRol): boolean => !!permisos?.[key], [permisos]);
 
   /**
    * Relee rol y permisos de la sesión desde la API. Se usa justo después de guardar los

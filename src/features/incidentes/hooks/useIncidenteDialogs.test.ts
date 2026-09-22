@@ -18,7 +18,7 @@ function incidenteBase(overrides: Partial<Incidente>): Incidente {
   };
 }
 
-function buildData(overrides: Partial<{ incidentes: Incidente[]; addIncidente: ReturnType<typeof vi.fn>; updateIncidente: ReturnType<typeof vi.fn> }> = {}) {
+function buildData(overrides: Partial<{ celdas: { id: string; parqueaderoId: string }[]; incidentes: Incidente[]; addIncidente: ReturnType<typeof vi.fn>; updateIncidente: ReturnType<typeof vi.fn> }> = {}) {
   return {
     celdas: [],
     incidentes: [],
@@ -130,5 +130,52 @@ describe('useIncidenteDialogs — celdas permitidas para el conductor', () => {
 
     expect(data.addIncidente).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('Solo puedes reportar'));
+  });
+});
+
+describe('useIncidenteDialogs — puedeClasificar: false (ConductorIncidentes)', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /* Bug real: con `puedeClasificar: false` el formulario de ConductorIncidentes oculta el
+     selector de prioridad (la define quien recibe el reporte, no quien lo hace) — pero antes
+     de este fix `formErrors.prioridad` seguía exigiéndola siempre que la clase no fuera
+     "novedad", así que el botón "Registrar Incidente" quedaba deshabilitado para siempre y un
+     conductor jamás podía enviar un reporte desde esa pantalla. */
+  it('permite guardar sin prioridad ni encargado cuando quien reporta no puede clasificar', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useIncidenteDialogs(data, { puedeClasificar: false }));
+
+    act(() => result.current.openCreate());
+    act(() => {
+      result.current.setFormData((f) => ({
+        ...f, descripcion: 'Me rayaron el carro', tipoNovedad: 'danio',
+        // Ni prioridad ni encargado: son justo los campos que este rol no ve en el formulario.
+      }));
+    });
+
+    expect(result.current.formInvalido).toBe(false);
+
+    await act(async () => { await result.current.handleSave(); });
+
+    expect(data.addIncidente).toHaveBeenCalledTimes(1);
+    expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({
+      prioridad: '', usuarioAsignadoId: '',
+    }));
+  });
+
+  it('sigue exigiendo detallar "otro" aunque no pueda clasificar (ese campo no se oculta)', async () => {
+    const data = buildData();
+    const { result } = renderHook(() => useIncidenteDialogs(data, { puedeClasificar: false }));
+
+    // El formulario parte con tipoNovedad "otro" por defecto (mismo formulario que Admin/
+    // Vigilante): sin decir de qué se trata, el reporte no queda clasificado.
+    act(() => result.current.openCreate());
+    act(() => {
+      result.current.setFormData((f) => ({ ...f, descripcion: 'Me rayaron el carro' }));
+    });
+
+    expect(result.current.formInvalido).toBe(true);
+    expect(result.current.formErrors.prioridad).toBe('');
+    expect(result.current.formErrors.tipoOtro).not.toBe('');
   });
 });

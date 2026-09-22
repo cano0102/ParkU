@@ -119,6 +119,8 @@ describe('Roles', () => {
 
     const nombreUnico = `Rol Test ${Date.now()}`;
     await user.type(nombreInput, nombreUnico);
+    // Un rol necesita al menos un permiso distinto de Dashboard para poder crearse.
+    await user.click(screen.getByLabelText('Consultar parqueaderos y celdas'));
 
     await user.click(screen.getByRole('button', { name: 'Crear Rol' }));
 

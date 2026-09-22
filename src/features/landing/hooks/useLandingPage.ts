@@ -16,7 +16,8 @@ export function useLandingPage() {
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     onScroll();
-    window.addEventListener("scroll", onScroll);
+    // `passive`: el navegador no espera a este handler para desplazar la página.
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 

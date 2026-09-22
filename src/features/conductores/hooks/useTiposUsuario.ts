@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { STALE_TIME } from '@/services/core/queryFactory';
 import * as catalogosService from '@/services/api/catalogos';
 import type { TipoUsuario } from '@/services/api/catalogos';
 
@@ -20,6 +21,6 @@ const SIN_TIPOS: TipoUsuario[] = [];
  * y Usuarios. `data` nunca es `undefined`: mientras carga es la lista vacía compartida.
  */
 export function useTiposUsuario() {
-  const consulta = useQuery({ queryKey: ['tipos-usuario'], queryFn: catalogosService.getTiposUsuario });
+  const consulta = useQuery({ queryKey: ['tipos-usuario'], queryFn: catalogosService.getTiposUsuario, staleTime: STALE_TIME.MAESTRO });
   return { ...consulta, data: consulta.data ?? SIN_TIPOS };
 }

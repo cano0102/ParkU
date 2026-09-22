@@ -6,12 +6,17 @@ import { controlSalidaStyles } from "./lib/styles";
 import { ControlSalidaHero } from "./components/ControlSalidaHero";
 import { ControlSalidaToolbar } from "./components/ControlSalidaToolbar";
 import { ControlSalidaTable } from "./components/ControlSalidaTable";
+import { ConductorControlCard } from "./components/ConductorControlCard";
+import { ControlSalidaPagination } from "./components/ControlSalidaPagination";
 import { ControlSalidaDetalleModal } from "./components/ControlSalidaDetalleModal";
 import { IncidenteModal } from "@/features/parqueaderos";
 
 export function ControlSalidaPage() {
   const p = useControlSalidaPage();
   const { user } = useAuth();
+  // Comunidad SENA ve solo sus movimientos, como tarjetas (mismo patrón que "Mis incidentes")
+  // en vez de la tabla de gestión de portería, que no tiene nada que él pueda accionar.
+  const esConductor = user?.rol === ROLES.CONDUCTOR;
 
   return (
     <>
@@ -28,21 +33,91 @@ export function ControlSalidaPage() {
           total={p.controlesSalida.length}
         />
 
-        <ControlSalidaToolbar
-          search={p.search}
-          onSearchChange={p.setSearch}
-          filterEstado={p.filterEstado}
-          onFilterEstadoChange={p.setFilterEstado}
-          filterParqueadero={p.filterParqueadero}
-          onFilterParqueaderoChange={p.setFilterParqueadero}
-          parqueaderos={p.parqueaderos}
-          filteredCount={p.filteredControles.length}
-          hasActiveFilters={p.hasActiveFilters}
-          onClearFilters={p.clearFilters}
-        />
+        {/* Comunidad SENA no busca ni filtra: solo ve los movimientos de sus vehículos. */}
+        {!esConductor && (
+          <ControlSalidaToolbar
+            search={p.search}
+            onSearchChange={p.setSearch}
+            filterEstado={p.filterEstado}
+            onFilterEstadoChange={p.setFilterEstado}
+            filterParqueadero={p.filterParqueadero}
+            onFilterParqueaderoChange={p.setFilterParqueadero}
+            parqueaderos={p.parqueaderos}
+            filteredCount={p.filteredControles.length}
+            hasActiveFilters={p.hasActiveFilters}
+            onClearFilters={p.clearFilters}
+          />
+        )}
 
         {p.isLoading ? (
           <LoadingState message="Cargando registros..." />
+        ) : esConductor ? (
+          p.filteredControles.length === 0 ? (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                padding: "3rem 1rem",
+                borderRadius: 16,
+                border: "2px dashed #E2E8F0",
+                background: "#fff",
+                color: "#64748B",
+                textAlign: "center",
+              }}
+            >
+              <p style={{ fontWeight: 600, fontSize: 13 }}>
+                {p.hasActiveFilters
+                  ? "Ningún movimiento coincide con los filtros"
+                  : "Aún no tienes entradas ni salidas registradas"}
+              </p>
+              <p style={{ fontSize: 11, marginTop: 4 }}>
+                {p.hasActiveFilters
+                  ? "Prueba con otros filtros."
+                  : "Cuando el vigilante registre el ingreso de tu vehículo, aparecerá aquí."}
+              </p>
+            </div>
+          ) : (
+            <div
+              style={{
+                borderRadius: 16,
+                border: "1px solid #E2E8F0",
+                background: "#F8FAF8",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fill,minmax(280px,1fr))",
+                  gap: 12,
+                  padding: 12,
+                }}
+              >
+                {p.paginatedControles.map((control) => {
+                  const celda = p.getCelda(control.celdaId);
+                  return (
+                    <ConductorControlCard
+                      key={control.id}
+                      control={control}
+                      vehiculo={p.getVehiculo(control.vehiculoId)}
+                      celda={celda}
+                      parqueadero={
+                        celda ? p.getParqueadero(celda.parqueaderoId) : null
+                      }
+                      onVerDetalle={() => p.verDetalle(control)}
+                    />
+                  );
+                })}
+              </div>
+              <ControlSalidaPagination
+                currentPage={p.currentPage}
+                totalPages={p.totalPages}
+                totalItems={p.filteredControles.length}
+                onPageChange={p.setPage}
+              />
+            </div>
+          )
         ) : (
           <ControlSalidaTable
             paginatedControles={p.paginatedControles}
@@ -54,14 +129,9 @@ export function ControlSalidaPage() {
             getCelda={p.getCelda}
             getUsuarioConductor={p.getUsuarioConductor}
             getParqueadero={p.getParqueadero}
-            esConductor={user?.rol === ROLES.CONDUCTOR}
             onVerDetalle={p.verDetalle}
-            onReportar={
-              user?.rol !== ROLES.CONDUCTOR ? p.abrirReporteDe : undefined
-            }
-            onLiberar={
-              user?.rol === ROLES.CONDUCTOR ? undefined : p.handleLiberar
-            }
+            onReportar={p.abrirReporteDe}
+            onLiberar={p.handleLiberar}
           />
         )}
       </div>

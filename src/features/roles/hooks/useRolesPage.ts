@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
 import { useRoles, useCreateRol, useUpdateRol, useRemoveRol, useGuardarPermisosDeRol } from "./useRoles";
@@ -34,6 +34,8 @@ export function useRolesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [formInitial, setFormInitial] = useState<FormState>(emptyForm());
   const [rolAEliminar, setRolAEliminar] = useState<Rol | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(9);
 
   const filteredRoles = useMemo(
     () =>
@@ -44,6 +46,27 @@ export function useRolesPage() {
       }),
     [roles, search, filterEstado]
   );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterEstado]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredRoles.length / itemsPerPage));
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const paginatedRoles = useMemo(
+    () => filteredRoles.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredRoles, currentPage, itemsPerPage]
+  );
+
+  const handleViewModeChange = useCallback((mode: "grid" | "list") => {
+    setViewMode(mode);
+    setItemsPerPage(mode === "list" ? 15 : 9);
+    setCurrentPage(1);
+  }, []);
 
   const stats = useMemo(
     () => ({
@@ -174,9 +197,15 @@ export function useRolesPage() {
     filterEstado,
     setFilterEstado,
     viewMode,
-    setViewMode,
+    setViewMode: handleViewModeChange,
     formInitial,
     filteredRoles,
+    paginatedRoles,
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    totalPages,
     stats,
     openCreate,
     openEdit,

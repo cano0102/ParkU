@@ -44,6 +44,7 @@ export function NombreCorreoTelefonoFields({
           <input
             id="register-nombre"
             type="text"
+            maxLength={30}
             autoComplete="name"
             value={nombre}
             onChange={(e) => onNombreChange(e.target.value)}
@@ -74,6 +75,7 @@ export function NombreCorreoTelefonoFields({
           <Mail size={16} color={COLORS.textLight} style={{ position: "absolute", top: "50%", left: 16, transform: "translateY(-50%)", pointerEvents: "none" }} />
           <input
             id="register-email"
+            maxLength={50}
             type="email"
             inputMode="email"
             autoComplete="email"
