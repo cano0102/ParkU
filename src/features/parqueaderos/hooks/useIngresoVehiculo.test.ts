@@ -205,9 +205,47 @@ describe('useIngresoVehiculo — asistente de búsqueda estructurada de conducto
     expect(result.current.conductorIdentificado?.id).toBe('c1');
     expect(result.current.ingresoConductorOk).toBe(true);
     expect(result.current.vehiculosConductor).toEqual([vehiculoDeMaria]);
-    // Al elegir el conductor se limpia cualquier placa que hubiera quedado de una selección
-    // anterior — todavía no hay un vehículo elegido.
+    // Al elegir el conductor, la placa se completa sola con su vehículo.
+    expect(result.current.vehiculoForm.placa).toBe('XYZ12D');
+    expect(result.current.ingresoValid).toBe(true);
+  });
+
+  it('seleccionarConductor sin vehículos compatibles deja la placa vacía', () => {
+    const data = buildData({ conductores: [conductorMaria], vehiculos: [] });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    act(() => result.current.seleccionarConductor(conductorMaria));
+
     expect(result.current.vehiculoForm.placa).toBe('');
+  });
+
+  it('seleccionarConductor con varios vehículos prefiere uno que no esté ya estacionado', () => {
+    const motoEstacionada: Vehiculo = { ...vehiculoDeMaria, id: 'v1', placa: 'XYZ12D' };
+    const motoLibre: Vehiculo = { ...vehiculoDeMaria, id: 'v9', placa: 'QWE34F' };
+    const data = buildData({
+      conductores: [conductorMaria],
+      vehiculos: [motoEstacionada, motoLibre],
+      controlesSalida: [{ id: 'cs1', vehiculoId: 'v1', celdaId: 'otra', estado: 'en_parqueadero' } as never],
+    });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    act(() => result.current.seleccionarConductor(conductorMaria));
+
+    expect(result.current.vehiculoForm.placa).toBe('QWE34F');
+  });
+
+  it('seleccionarConductor no autocompleta un vehículo del que solo es copropietario (no le cambia el conductor)', () => {
+    const compartido: Vehiculo = {
+      ...vehiculoDeMaria, id: 'v2', placa: 'XYZ12D',
+      copropietarios: [{ id: 'c3', nombre: conductorPedro.nombre, esPrincipal: false }],
+    };
+    const data = buildData({ conductores: [conductorMaria, conductorPedro], vehiculos: [compartido] });
+    const { result } = renderHook(() => useIngresoVehiculo(data, celdaMoto, parqueadero, vi.fn()));
+
+    act(() => result.current.seleccionarConductor(conductorPedro));
+
+    expect(result.current.vehiculoForm.placa).toBe('');
+    expect(result.current.conductorIdentificado?.id).toBe('c3');
   });
 
   it('seleccionarVehiculo completa la placa y deja el formulario listo para enviar', () => {

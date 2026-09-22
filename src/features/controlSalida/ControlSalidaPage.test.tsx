@@ -148,6 +148,11 @@ describe("features/controlSalida", () => {
       screen.getByLabelText("Registrar salida y liberar la celda"),
     );
 
+    // Pide confirmación antes de dar la salida: todavía no se registró nada.
+    expect(await screen.findByText(/¿Registrar la salida del vehículo ABC123/)).toBeInTheDocument();
+    expect(screen.getByText("Activo")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Registrar salida" }));
+
     await waitFor(() =>
       expect(screen.getByText("Completado")).toBeInTheDocument(),
     );
@@ -155,6 +160,28 @@ describe("features/controlSalida", () => {
     expect(
       screen.queryByLabelText("Registrar salida y liberar la celda"),
     ).not.toBeInTheDocument();
+  });
+
+  it("cancelar la confirmación no registra la salida", async () => {
+    // Backend falso nuevo: el test anterior ya dio salida a ABC123 en el compartido.
+    apiFetchMock.mockImplementation(createAppBackends().apiFetch);
+    const user = userEvent.setup();
+    renderControlSalida();
+    await waitFor(() =>
+      expect(screen.getAllByText("ABC123").length).toBeGreaterThan(0),
+    );
+
+    await user.click(
+      screen.getByLabelText("Registrar salida y liberar la celda"),
+    );
+    await screen.findByText(/¿Registrar la salida del vehículo ABC123/);
+    await user.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText(/¿Registrar la salida del vehículo/)).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText("Activo")).toBeInTheDocument();
+    expect(screen.queryByText("Completado")).not.toBeInTheDocument();
   });
 
   /* Reportar desde aquí ahorra volver a buscar lo que la pantalla ya tiene delante: la celda,
