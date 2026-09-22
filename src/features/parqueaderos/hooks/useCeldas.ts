@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import * as celdasService from '@/services/api/celdas';
@@ -12,6 +13,15 @@ export const useCeldas = hooks.useList;
 export const useCreateCelda = hooks.useCreate;
 export const useUpdateCelda = hooks.useUpdate;
 export const useRemoveCelda = hooks.useRemove;
+
+/** Vuelve a pedir las celdas sin escribir nada. Para refrescar tras algo que el backend ya
+ *  resolvió solo (el trigger libera la celda al registrar una salida): así no hace falta
+ *  un `PUT /celdas/:id`, que exige gestionar parqueaderos y le fallaba a un rol que solo
+ *  registra salidas. */
+export function useRefrescarCeldas() {
+  const queryClient = useQueryClient();
+  return useCallback(() => queryClient.invalidateQueries({ queryKey: hooks.queryKey }), [queryClient]);
+}
 
 /** Único hook que de verdad cambia `estado` en el backend real — ver el porqué en
  *  `cambiarDisponibilidad` (services/api/celdas.ts). Solo para el ajuste manual de un

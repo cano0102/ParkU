@@ -210,7 +210,9 @@ export const VISTAS_POR_PERMISO: Record<string, (keyof PermisosRol)[]> = {
   // que es justo lo que no debe poder hacer: él solicita una reserva y el vigilante lo
   // ingresa. Por eso solo la abren los permisos de gestión.
   'ingreso.consultar': [],
-  'ingreso.gestionar': ['entradaSalida', 'asignaciones'],
+  // El ingreso se registra desde el mapa de Parqueaderos (botón de estacionar sobre una
+  // celda), así que este permiso también tiene que abrir esa pantalla.
+  'ingreso.gestionar': ['entradaSalida', 'asignaciones', 'parqueaderos'],
   'salida.consultar': [],
   'salida.gestionar': ['entradaSalida'],
   'reservas.consultar': ['reservas'],
@@ -230,8 +232,9 @@ export const VISTAS_POR_PERMISO: Record<string, (keyof PermisosRol)[]> = {
  *   permisos solo pueden SUMAR.
  * - Cualquier rol creado a medida: parte de cero y ve exactamente lo que sus permisos digan.
  *
- * El Dashboard queda siempre abierto: es la pantalla a la que se entra al iniciar sesión, y
- * sin ella un rol recién creado aterrizaba en una redirección sin salida.
+ * Un rol a medida NO recibe el Dashboard de regalo: solo lo ve si tiene `reportes.consultar`.
+ * Así, un rol con solo "Registrar salidas" ve únicamente Entrada / Salida. A dónde se entra
+ * tras iniciar sesión lo decide `rutaInicial`, que ya no asume que el Dashboard existe.
  *
  * @param rolId - Rol del usuario.
  * @param permisosBackend - Nombres de permiso tal como los devuelve la API (login,
@@ -246,10 +249,36 @@ export function permisosDeVistas(
 
   const vistas: PermisosRol = rol !== null
     ? { ...PERMISOS_POR_ROL[rol] }
-    : { ...PERMISOS_VACIOS, dashboard: true };
+    : { ...PERMISOS_VACIOS };
 
   for (const permiso of permisosBackend) {
     for (const vista of VISTAS_POR_PERMISO[permiso] ?? []) vistas[vista] = true;
   }
   return vistas;
+}
+
+/**
+ * Orden en que se busca la pantalla de inicio: el mismo del menú lateral. Vive aquí (y no se
+ * importa de layouts/lib/menu.ts) para que core no dependa de la capa de presentación.
+ */
+const RUTAS_POR_VISTA: [keyof PermisosRol, string][] = [
+  ['dashboard', '/app/dashboard'],
+  ['roles', '/app/roles'],
+  ['usuarios', '/app/usuarios'],
+  ['conductores', '/app/conductores'],
+  ['parqueaderos', '/app/parqueaderos'],
+  ['misVehiculos', '/app/mis-vehiculos'],
+  ['entradaSalida', '/app/entrada-salida'],
+  ['reservas', '/app/reservas'],
+  ['incidentes', '/app/incidentes'],
+];
+
+/**
+ * Primera pantalla que el usuario puede abrir: el Dashboard si lo tiene y, si no, el primer
+ * módulo que sus permisos le den (un rol con solo "Registrar salidas" entra directo a
+ * Entrada / Salida). Sin ningún módulo, su perfil — la única página que no exige permiso.
+ */
+export function rutaInicial(permisos: PermisosRol | null | undefined): string {
+  const encontrada = RUTAS_POR_VISTA.find(([vista]) => permisos?.[vista]);
+  return encontrada ? encontrada[1] : '/app/perfil';
 }

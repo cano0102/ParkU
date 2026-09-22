@@ -20,6 +20,7 @@ function renderProtected(permission?: 'roles' | 'usuarios' | 'dashboard', initia
         <AuthProvider>
           <Routes>
             <Route path="/login" element={<p>Pantalla de login</p>} />
+            <Route path="/app/entrada-salida" element={<p>Pantalla de salidas</p>} />
             <Route
               path="/app/protegido"
               element={
@@ -73,7 +74,18 @@ describe('routes/ProtectedRoute', () => {
     }));
     renderProtected('roles');
     expect(await screen.findByText('Acceso denegado')).toBeInTheDocument();
-    expect(screen.getByText('Volver al Dashboard')).toBeInTheDocument();
+    expect(screen.getByText('Ir al inicio')).toBeInTheDocument();
     expect(screen.queryByText('Contenido protegido')).not.toBeInTheDocument();
+  });
+
+  it('un rol a medida sin Dashboard entra directo a su único módulo en vez de "Acceso denegado"', async () => {
+    localStorage.setItem('parkuToken', 'fake-token-99');
+    localStorage.setItem('parkUUser', JSON.stringify({
+      id: '99', correo: 'asesor@sena.edu.co', nombre: 'Asesor', numero: '3100000000', rol: 42,
+      permisos: ['salida.gestionar'],
+    }));
+    renderProtected('dashboard');
+    expect(await screen.findByText('Pantalla de salidas')).toBeInTheDocument();
+    expect(screen.queryByText('Acceso denegado')).not.toBeInTheDocument();
   });
 });

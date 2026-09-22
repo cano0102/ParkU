@@ -1,12 +1,13 @@
 import { Link, Navigate } from 'react-router-dom';
 import { IconShieldExclamation as ShieldAlert } from "@tabler/icons-react";
 import { useAuth } from '../context/AuthContext';
-import type { PermisosRol } from '../services/core/roles';
+import { rutaInicial, type PermisosRol } from '../services/core/roles';
 import { theme } from '../styles/theme';
 
 const C = theme;
 
 function AccessDenied() {
+  const { permisos } = useAuth();
   return (
     <div
       style={{
@@ -42,7 +43,7 @@ function AccessDenied() {
         contacta a un administrador.
       </p>
       <Link
-        to="/app/dashboard"
+        to={rutaInicial(permisos)}
         style={{
           marginTop: 8,
           padding: '10px 18px',
@@ -54,7 +55,7 @@ function AccessDenied() {
           textDecoration: 'none',
         }}
       >
-        Volver al Dashboard
+        Ir al inicio
       </Link>
     </div>
   );
@@ -68,15 +69,25 @@ export function ProtectedRoute({
   /** Clave de `Rol.permisos` requerida para ver esta ruta. Si se omite, solo se exige sesión iniciada. */
   permission?: keyof PermisosRol;
 }) {
-  const { isAuthenticated, hasPermission } = useAuth();
+  const { isAuthenticated, hasPermission, permisos } = useAuth();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   if (permission && !hasPermission(permission)) {
+    // El Dashboard es a donde se llega tras iniciar sesión. Un rol a medida sin él (p. ej.
+    // solo "Registrar salidas") no debe estrellarse contra "Acceso denegado" nada más
+    // entrar: se le lleva directo a su primer módulo.
+    if (permission === 'dashboard') return <Navigate to={rutaInicial(permisos)} replace />;
     return <AccessDenied />;
   }
 
   return <>{children}</>;
+}
+
+/** Ruta índice de `/app`: manda a la primera pantalla que el usuario puede abrir. */
+export function InicioRedirect() {
+  const { permisos } = useAuth();
+  return <Navigate to={rutaInicial(permisos)} replace />;
 }

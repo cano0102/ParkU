@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { useControlSalida, useUpdateControlSalida } from "./useControlSalida";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import { useVehiculos, useConductores, vehiculosDeConductor } from "@/features/conductores";
-import { useCeldas, useParqueaderos, useUpdateCelda, useIncidenteReporte } from "@/features/parqueaderos";
+import { useCeldas, useParqueaderos, useRefrescarCeldas, useIncidenteReporte } from "@/features/parqueaderos";
 import { useCreateIncidente } from "@/features/incidentes";
 import type { Incidente } from "@/services/api/incidentes";
 import { useUsuarios } from "@/features/usuarios";
@@ -22,7 +22,7 @@ export function useControlSalidaPage() {
   const { data: conductores = [] } = useConductores();
   const { data: parqueaderos = [] } = useParqueaderos();
   const updateControlSalidaMutation = useUpdateControlSalida();
-  const updateCeldaMutation = useUpdateCelda();
+  const refrescarCeldas = useRefrescarCeldas();
 
   const miConductorId = useMemo(
     () => (esConductor ? conductores.find((c) => c.usuarioId === user!.id)?.id ?? null : null),
@@ -176,13 +176,15 @@ export function useControlSalidaPage() {
           id: control.id,
           data: { estado: "finalizado", fechaSalida: new Date().toISOString() },
         });
-        await updateCeldaMutation.mutateAsync({ id: control.celdaId, data: { estado: "disponible" } });
+        // La celda ya la liberó el trigger del backend con el POST de salida; solo se
+        // refresca (sin PUT /celdas, que un rol con solo "Registrar salidas" no puede hacer).
+        await refrescarCeldas();
         toast.success("Salida registrada. Celda liberada.");
       } catch (error) {
         console.error("Error registering salida from ControlSalidaPage:", error);
       }
     },
-    [updateControlSalidaMutation, updateCeldaMutation]
+    [updateControlSalidaMutation, refrescarCeldas]
   );
 
   const clearFilters = useCallback(() => {

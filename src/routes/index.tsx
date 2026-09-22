@@ -1,6 +1,6 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter } from 'react-router-dom';
 import { MainLayout } from '../layouts/MainLayout';
-import { ProtectedRoute } from './ProtectedRoute';
+import { ProtectedRoute, InicioRedirect } from './ProtectedRoute';
 import { NotFound } from './NotFound';
 import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Precarga } from './Precarga';
@@ -56,7 +56,7 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Navigate to="/app/dashboard" replace />,
+        element: <InicioRedirect />,
       },
       {
         path: 'dashboard',
