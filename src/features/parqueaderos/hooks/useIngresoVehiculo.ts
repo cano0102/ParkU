@@ -270,14 +270,29 @@ export function useIngresoVehiculo(
   const abrirIngresoOficial = () => { setVehiculoForm(emptyVehiculoForm(true)); resetWizardConductor(); setOpenModal("ingreso"); };
   const abrirIngresoVisitante = () => { setVehiculoForm(emptyVehiculoForm(false)); resetWizardConductor(); setOpenModal("ingreso"); };
 
+  /** Vehículo cuya placa se pone sola al elegir un conductor: uno activo, compatible con el
+   *  tipo de la celda, del que el conductor es el DUEÑO principal (un vehículo solo
+   *  copropietado haría que el asistente cambiara el conductor elegido por su dueño real) y,
+   *  si hay varios, preferiblemente uno que no esté ya estacionado. Sin candidato, null. */
+  const vehiculoPorDefecto = (c: Conductor): Vehiculo | null => {
+    const propios = vehiculosOperables(vehiculos).filter(
+      (v) => String(v.conductorId) === String(c.id) && (!celdaActiva || v.tipo === celdaActiva.tipo)
+    );
+    const estacionado = (v: Vehiculo) => controlesSalida.some((cs) => cs.estado === "en_parqueadero" && cs.vehiculoId === v.id);
+    return propios.find((v) => !estacionado(v)) ?? propios[0] ?? null;
+  };
+
   /** Selección estructurada del conductor (buscador por documento/nombre/correo, o recién
    *  creado inline) — a diferencia de escribir un nombre libre, deja el id sin ambigüedad y
-   *  limpia cualquier vehículo/placa que hubiera quedado de una selección anterior. */
+   *  limpia cualquier vehículo que hubiera quedado de una selección anterior. La placa se
+   *  completa sola con su vehículo (ver `vehiculoPorDefecto`); si tiene varios, el vigilante
+   *  puede cambiarlo desde la lista de sus otros vehículos. */
   const seleccionarConductor = (c: Conductor) => {
     setConductorSeleccionadoId(c.id);
     setConductorQuery("");
     setPlacaError(null);
-    setVehiculoForm((prev) => ({ ...prev, conductor: c.nombre, placa: "", marca: "", modelo: "", color: "" }));
+    const placa = vehiculoPorDefecto(c)?.placa ?? "";
+    setVehiculoForm((prev) => ({ ...prev, conductor: c.nombre, placa, marca: "", modelo: "", color: "" }));
   };
 
   /** Vuelve al paso de búsqueda de conductor (botón "Cambiar"), sin cerrar el asistente. */
