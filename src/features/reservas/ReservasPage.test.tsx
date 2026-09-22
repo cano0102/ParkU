@@ -353,7 +353,7 @@ describe("features/reservas", () => {
     ).toBeInTheDocument();
   });
 
-  it("muestra el motivo del rechazo en la fila de la reserva", () => {
+  it("no muestra el motivo del rechazo en la fila de la reserva (solo en el detalle)", () => {
     render(
       <ReservaRow
         reserva={
@@ -395,11 +395,10 @@ describe("features/reservas", () => {
       />,
     );
 
+    expect(screen.queryByText(/Motivo del rechazo/)).not.toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Motivo del rechazo: No hay disponibilidad en ese horario.",
-      ),
-    ).toBeInTheDocument();
+      screen.queryByText(/No hay disponibilidad en ese horario/),
+    ).not.toBeInTheDocument();
   });
 
   it("muestra la información del solicitante al aprobar una reserva pendiente sin abrir un desplegable", async () => {
