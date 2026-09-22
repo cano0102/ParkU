@@ -84,7 +84,7 @@ export function ParqueaderosHero({ stats, soloLectura = false }: ParqueaderosHer
               value: stats.libres,
               dot: CELDA_CONFIG.disponible.dotColor,
             },
-            ...(soloDisponibles
+            ...(soloLectura
               ? []
               : [
                   {

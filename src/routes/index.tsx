@@ -6,7 +6,7 @@ import { RouteErrorBoundary } from './RouteErrorBoundary';
 import { Precarga } from './Precarga';
 import {
   Login, Register, ForgotPassword, ResetPassword,
-  Dashboard, Roles, Usuarios, Conductores, Parqueaderos, ControlSalidaPage, Reservas, Incidentes, Perfil,
+  Dashboard, Roles, Usuarios, Conductores, Parqueaderos, ControlSalidaPage, Reservas, Incidentes, Perfil, MisVehiculos,
 } from './paginas';
 import Landing from '@/features/landing';
 

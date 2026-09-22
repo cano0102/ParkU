@@ -90,11 +90,13 @@ export const PERMISOS_POR_ROL: Record<RolId, PermisosRol> = {
     usuarios: false,
     conductores: false,
     // Habilita "Registrar mi vehículo" desde el Dashboard del conductor (ver
-    // ConductorDashboard.tsx / useRegistrarVehiculoConductor). Requiere que el backend real
-    // agregue Conductor a los roles permitidos de `POST /vehiculos` (antes rechazaba con 403
-    // confirmado en vivo) — hasta entonces esta bandera no coincide con el `verificarRol([...])`
-    // real del servidor.
+    // ConductorDashboard.tsx / useRegistrarVehiculoConductor). El backend real ya acepta
+    // Conductor (rol 3) en `POST /vehiculos`, `PUT /vehiculos/:id` y
+    // `POST /vehiculos/:id/conductores` (ver vehiculo.routes.js::verificarAcceso), forzando
+    // el conductor_id al propio usuario.
     vehiculos: true,
+    // Habilita "Mis Vehículos": el registro/gestión propia de vehículos del conductor.
+    misVehiculos: true,
     // Solo lectura del mapa/disponibilidad de celdas + reservar una: ve la sección de
     // Parqueaderos, pero sin `celdas`/`asignaciones` no puede crear/editar parqueaderos ni
     // usar asignación inteligente. Sí puede abrir la pantalla de Entrada/Salida porque ese
@@ -198,8 +200,8 @@ export const VISTAS_POR_PERMISO: Record<string, (keyof PermisosRol)[]> = {
   'configuracion.gestionar': ['roles'],
   'usuarios.consultar': ['usuarios'],
   'usuarios.gestionar': ['usuarios'],
-  'conductores.consultar': ['conductores', 'vehiculos'],
-  'conductores.gestionar': ['conductores', 'vehiculos'],
+  'conductores.consultar': ['conductores', 'vehiculos', 'misVehiculos'],
+  'conductores.gestionar': ['conductores', 'vehiculos', 'misVehiculos'],
   'parqueaderos.consultar': ['parqueaderos'],
   'parqueaderos.gestionar': ['parqueaderos', 'celdas', 'asignaciones'],
   // Ojo con estos dos: la pantalla de entradas/salidas no es un listado, es donde se
