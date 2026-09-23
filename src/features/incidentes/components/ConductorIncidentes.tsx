@@ -78,15 +78,16 @@ export function ConductorIncidentes() {
         }}>
           <AlertTriangle size={36} color={C.border} style={{ marginBottom: 10 }} />
           {data.isError ? (
-            // La consulta de "mis incidentes" falló (típicamente un 403: la API real hoy solo
-            // le da a este rol "reportar" y el historial, no el listado — ver
-            // useConductorIncidentesData.ts). Sin este mensaje, esta pantalla vacía es
-            // indistinguible de "no he reportado nada" y el conductor podría creer, erróneamente,
-            // que su reporte se perdió.
+            // La consulta de "mis incidentes" falló. El rol Conductor sí tiene permiso
+            // `novedades.consultar` (el backend acota el resultado a lo suyo vía
+            // resolverAlcance), así que un error aquí normalmente es transitorio (red, 500),
+            // no una limitación permanente del rol. Sin este mensaje, esta pantalla vacía es
+            // indistinguible de "no he reportado nada" y el conductor podría creer,
+            // erróneamente, que su reporte se perdió.
             <>
               <p style={{ fontWeight: 700, fontSize: 13 }}>No pudimos cargar tu historial de incidentes</p>
               <p style={{ fontSize: 11, marginTop: 4, textAlign: "center", maxWidth: 320 }}>
-                Si ya reportaste uno, se guardó correctamente: esta consulta todavía no está disponible para tu rol. Intenta de nuevo más tarde.
+                Si ya reportaste uno, se guardó correctamente: hubo un problema al cargar la lista. Intenta de nuevo más tarde.
               </p>
             </>
           ) : (

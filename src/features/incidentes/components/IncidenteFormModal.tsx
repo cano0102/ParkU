@@ -5,6 +5,7 @@ import type { Usuario } from "@/services/api/usuarios";
 import type { Celda } from "@/services/api/celdas";
 import type { TipoNovedad, PrioridadNovedad, Incidente, ClaseNovedad } from "@/services/api/incidentes";
 import { theme } from "@/styles/theme";
+import { useEnCurso } from "@/hooks/useEnCurso";
 import { SelectorBuscable } from "@/components/shared";
 import type { Evidencia } from "@/services/api/evidencias";
 import { EvidenciasField } from "./EvidenciasField";
@@ -70,7 +71,7 @@ interface IncidenteFormModalProps {
   onParqueaderoChange: (value: string) => void;
   ocultarParqueadero?: boolean;
   onClose: () => void;
-  onSave: () => void;
+  onSave: () => void | Promise<unknown>;
 }
 
 /** Modal de crear/editar incidente: header, campos y acciones. */
@@ -81,6 +82,7 @@ export function IncidenteFormModal({
   parqueaderos, vehiculos, usuarios, puedeClasificar = true, celdasDelParqueadero, permitirSinCelda = true, celdaSeleccionada, ocupanteSeleccionado, ocupanteDeCelda,
   onCeldaChange, onVehiculoChange, onParqueaderoChange, ocultarParqueadero = false, onClose, onSave,
 }: IncidenteFormModalProps) {
+  const [guardar, guardando] = useEnCurso(onSave);
   return (
     <div>
       <div
@@ -230,16 +232,19 @@ export function IncidenteFormModal({
           Cancelar
         </button>
         <button
-          onClick={onSave}
-          disabled={formInvalido}
+          onClick={guardar}
+          disabled={formInvalido || guardando}
+          aria-busy={guardando}
           style={{
             padding: "10px 24px", borderRadius: 12,
-            border: "none", background: formInvalido ? "#E2E8F0" : C.primary, color: formInvalido ? C.textLight : "#fff",
-            fontSize: 13, fontWeight: 800, cursor: formInvalido ? "not-allowed" : "pointer", fontFamily: "inherit",
-            boxShadow: formInvalido ? undefined : "0 6px 18px rgba(57,169,0,.22)",
+            border: "none", background: formInvalido || guardando ? "#E2E8F0" : C.primary, color: formInvalido || guardando ? C.textLight : "#fff",
+            fontSize: 13, fontWeight: 800, cursor: formInvalido || guardando ? "not-allowed" : "pointer", fontFamily: "inherit",
+            boxShadow: formInvalido || guardando ? undefined : "0 6px 18px rgba(57,169,0,.22)",
           }}
         >
-          {isEditing ? "Actualizar Incidente" : "Registrar Incidente"}
+          {guardando
+            ? (isEditing ? "Actualizando…" : "Registrando…")
+            : (isEditing ? "Actualizar Incidente" : "Registrar Incidente")}
         </button>
       </div>
     </div>
