@@ -81,7 +81,6 @@ export const ParqueaderosTable = memo(
           {!vistaSimplificada && (
             <>
               <div>Ocupadas</div>
-              <div>En mantenimiento</div>
               <div>Estado</div>
             </>
           )}
@@ -111,9 +110,6 @@ export const ParqueaderosTable = memo(
               ).length;
               const ocupados = celdasPq.filter(
                 (c) => c.estado === "no_disponible",
-              ).length;
-              const mantenimiento = celdasPq.filter(
-                (c) => c.estado === "mantenimiento",
               ).length;
               const isExpanded = expandedId === pq.id;
               const activo = pq.estado === "activo";
@@ -229,12 +225,6 @@ export const ParqueaderosTable = memo(
                           </span>
                         </div>
                         <div>
-                          <span className="pq-cell-label">En mantenimiento</span>
-                          <span style={{ fontWeight: 700, color: C.textLight }}>
-                            {mantenimiento}
-                          </span>
-                        </div>
-                        <div>
                           <span className="pq-cell-label">Estado</span>
                           {canManage ? (
                             <button
@@ -244,22 +234,15 @@ export const ParqueaderosTable = memo(
                               }}
                               title={activo ? "Desactivar" : "Activar"}
                               style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: 5,
-                                padding: "4px 9px",
+                                width: 36,
+                                height: 20,
+                                padding: 0,
                                 borderRadius: 999,
                                 border: "none",
                                 cursor: "pointer",
-                                fontSize: 10,
-                                fontWeight: 700,
-                                textTransform: "uppercase",
-                                letterSpacing: 0.3,
-                                background: activo
-                                  ? "rgba(57,169,0,.1)"
-                                  : "rgba(239,68,68,.08)",
-                                color: activo ? "#166534" : "#B91C1C",
-                                fontFamily: "inherit",
+                                position: "relative",
+                                background: activo ? C.primary : "#CBD5E1",
+                                transition: "background .2s",
                               }}
                               aria-label={
                                 activo
@@ -269,13 +252,17 @@ export const ParqueaderosTable = memo(
                             >
                               <span
                                 style={{
-                                  width: 5,
-                                  height: 5,
+                                  position: "absolute",
+                                  top: 3,
+                                  left: activo ? 18 : 3,
+                                  width: 14,
+                                  height: 14,
                                   borderRadius: "50%",
-                                  background: activo ? C.primary : "#EF4444",
+                                  background: "#fff",
+                                  transition: "left .2s",
+                                  boxShadow: "0 1px 3px rgba(0,0,0,.2)",
                                 }}
                               />
-                              {pq.estado}
                             </button>
                           ) : (
                             <span
