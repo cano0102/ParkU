@@ -106,7 +106,7 @@ function toFrontend(n: ApiNovedad): Incidente {
   };
 }
 
-function toApiPayload(data: Partial<Omit<Incidente, 'id'>>): Record<string, unknown> {
+function toApiPayload(data: Partial<Omit<Incidente, 'id'>>, options?: { isUpdate?: boolean }): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
   if (data.activo !== undefined) payload.activo = data.activo;
   if (data.clase !== undefined) payload.clase = data.clase.toUpperCase();
@@ -121,7 +121,11 @@ function toApiPayload(data: Partial<Omit<Incidente, 'id'>>): Record<string, unkn
   if (data.parqueaderoId !== undefined) payload.parqueadero_id = data.parqueaderoId ? Number(data.parqueaderoId) : null;
   if (data.celdaId !== undefined) payload.celda_id = data.celdaId ? Number(data.celdaId) : null;
   if (data.vehiculoId !== undefined) payload.vehiculo_id = data.vehiculoId ? Number(data.vehiculoId) : null;
+  /* Al editar (Admin/Vigilante) sí hay que poder quitar un encargado ya asignado: si el campo
+     llegó vacío se manda `null` explícito. Al crear nunca se manda vacío (Comunidad SENA no
+     asigna encargado, y mandar null ahí cuenta como mandarlo — mismo caso que prioridad). */
   if (data.usuarioAsignadoId) payload.usuario_asignado_id = Number(data.usuarioAsignadoId);
+  else if (options?.isUpdate && data.usuarioAsignadoId !== undefined) payload.usuario_asignado_id = null;
   if (data.fecha !== undefined) payload.fecha_hora = data.fecha;
   if (data.estado !== undefined) payload.estado = ESTADO_A_API[data.estado];
   if (data.justificacionCierre !== undefined) payload.justificacion_cierre = data.justificacionCierre || null;
@@ -150,7 +154,7 @@ export async function create(data: Omit<Incidente, 'id'>): Promise<Incidente> {
 }
 
 export async function update(id: string, data: Partial<Omit<Incidente, 'id'>>): Promise<Incidente> {
-  const updated = await apiFetch<ApiNovedad>(`/novedades/${id}`, { method: 'PUT', body: toApiPayload(data) });
+  const updated = await apiFetch<ApiNovedad>(`/novedades/${id}`, { method: 'PUT', body: toApiPayload(data, { isUpdate: true }) });
   return toFrontend(updated);
 }
 

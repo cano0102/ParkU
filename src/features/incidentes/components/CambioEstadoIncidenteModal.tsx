@@ -5,6 +5,7 @@ import {
 } from "@tabler/icons-react";
 import type { Usuario } from "@/services/api/usuarios";
 import { theme } from "@/styles/theme";
+import { useEnCurso } from "@/hooks/useEnCurso";
 import { SelectorBuscable } from "@/components/shared";
 import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
 import { recomiendaEncargado } from "../lib/transiciones";
@@ -19,7 +20,7 @@ export interface CambioEstadoIncidenteModalProps {
   /** Candidatos a encargado: Administradores y Vigilantes. */
   usuariosAsignables: Usuario[];
   onCancel: () => void;
-  onConfirm: (datos: { usuarioAsignadoId?: string; justificacionCierre?: string }) => void;
+  onConfirm: (datos: { usuarioAsignadoId?: string; justificacionCierre?: string }) => void | Promise<unknown>;
 }
 
 /**
@@ -48,12 +49,12 @@ export function CambioEstadoIncidenteModal({
      lo deja sin respuesta para quien lo levantó, y eso sí bloquea. */
   const invalido = pideEncargado ? false : !motivo.trim();
 
-  const confirmar = (conEncargado = true) => {
+  const [confirmar, enCurso] = useEnCurso((conEncargado = true) => {
     if (invalido) return;
-    onConfirm(pideEncargado
+    return onConfirm(pideEncargado
       ? (conEncargado && usuarioAsignadoId ? { usuarioAsignadoId } : {})
       : { justificacionCierre: motivo.trim() });
-  };
+  });
 
   return (
     <div style={{ padding: "1.6rem 1.8rem" }}>
@@ -110,9 +111,10 @@ export function CambioEstadoIncidenteModal({
       <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
         <button
           onClick={onCancel}
+          disabled={enCurso}
           style={{
             flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`,
-            background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+            background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: enCurso ? "not-allowed" : "pointer", fontFamily: "inherit",
           }}
         >
           Cancelar
@@ -121,9 +123,10 @@ export function CambioEstadoIncidenteModal({
         {pideEncargado && (
           <button
             onClick={() => confirmar(false)}
+            disabled={enCurso}
             style={{
               flex: 1, padding: "10px", borderRadius: 11, border: `1px solid ${C.border}`,
-              background: "#fff", color: C.textLight, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+              background: "#fff", color: C.textLight, fontSize: 13, fontWeight: 700, cursor: enCurso ? "not-allowed" : "pointer", fontFamily: "inherit",
             }}
           >
             Continuar sin encargado
@@ -131,16 +134,17 @@ export function CambioEstadoIncidenteModal({
         )}
         <button
           onClick={() => confirmar(true)}
-          disabled={invalido || (pideEncargado && !usuarioAsignadoId)}
+          disabled={invalido || enCurso || (pideEncargado && !usuarioAsignadoId)}
+          aria-busy={enCurso}
           style={{
             flex: 1, padding: "10px", borderRadius: 11, border: "none",
-            background: invalido || (pideEncargado && !usuarioAsignadoId) ? C.border : C.primary, color: "#fff",
+            background: invalido || enCurso || (pideEncargado && !usuarioAsignadoId) ? C.border : C.primary, color: "#fff",
             fontSize: 13, fontWeight: 800,
-            cursor: invalido || (pideEncargado && !usuarioAsignadoId) ? "not-allowed" : "pointer",
+            cursor: invalido || enCurso || (pideEncargado && !usuarioAsignadoId) ? "not-allowed" : "pointer",
             fontFamily: "inherit",
           }}
         >
-          {pideEncargado ? "Asignar y continuar" : "Guardar motivo"}
+          {enCurso ? "Guardando…" : (pideEncargado ? "Asignar y continuar" : "Guardar motivo")}
         </button>
       </div>
     </div>

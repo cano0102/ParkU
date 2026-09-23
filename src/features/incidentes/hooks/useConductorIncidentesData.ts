@@ -14,13 +14,16 @@ import { compararIncidentes } from "../lib/orden";
  * del sistema, que además la API real le niega.
  *
  * Historias 07.1.11 (reportar) a 07.1.14 (cancelar). El backend real hoy es
- * mixto: `POST /novedades` (reportar) y `GET /:id/historial` son de
- * cualquier usuario autenticado, pero `GET /novedades` (listar) y
- * `PUT /novedades/:id` (actualizar) están restringidos a Admin/Vigilante
- * (ver el encabezado de `services/api/incidentes.ts`). Este hook ya deja el
- * flujo completo listo del lado del frontend; contra la API real, "Mis
- * incidentes" y "Editar"/"Cancelar" van a fallar con 403 hasta que esas
- * rutas se abran para que un Conductor gestione sus propios recursos.
+ * mixto: `GET /novedades` (listar) acepta al Conductor porque tiene el
+ * permiso `novedades.consultar` (ver `config/seed.js`), y el resultado
+ * queda acotado a lo suyo (`resolverAlcance`/`alcance.util.js`: lo que
+ * reportó o lo que involucra alguno de sus vehículos) — nunca ve la lista
+ * completa. Pero `PUT /novedades/:id` (usado por "Editar" y "Cancelar")
+ * exige el permiso `novedades.gestionar` o rol Admin/Vigilante, que el
+ * Conductor no tiene: `cancelarIncidente` sigue dando 403 en la API real,
+ * por eso `ConductorIncidenteCard` mantiene esas acciones visibles pero
+ * deshabilitadas (`ACCIONES_BACKEND_DISPONIBLES`) hasta que se abra esa
+ * ruta para que el Conductor gestione sus propios recursos.
  */
 export function useConductorIncidentesData() {
   const { user } = useAuth();
@@ -42,10 +45,14 @@ export function useConductorIncidentesData() {
 
   const misIncidentes = useMemo(() => {
     const misVehiculosIds = new Set(misVehiculos.map((v) => v.id));
+    // "Propio" es lo que el conductor reportó, o lo que involucra alguno de sus vehículos
+    // (mismo criterio que el backend en resolverAlcance/alcance.util.js): filtrar solo por
+    // vehículo actual perdía sus propios reportes en cuanto dejaba de tener ese vehículo, o
+    // cuando el reporte no llevaba vehículo asociado (una queja general).
     return base.incidentes
-      .filter((i) => misVehiculosIds.has(i.vehiculoId))
+      .filter((i) => i.usuarioReportaId === user?.id || misVehiculosIds.has(i.vehiculoId))
       .sort(compararIncidentes);
-  }, [base.incidentes, misVehiculos]);
+  }, [base.incidentes, misVehiculos, user?.id]);
 
   // "Cancelar" no es un DELETE (esa ruta es solo Admin, y de todas formas borrar el
   // registro le quitaría al conductor su propio historial) — es un cambio de estado,
