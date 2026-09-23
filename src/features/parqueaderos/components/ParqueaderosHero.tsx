@@ -77,7 +77,7 @@ export function ParqueaderosHero({ stats, soloLectura = false }: ParqueaderosHer
               : "Registro óptico automatizado, celdas de cortesía institucional y reportes de ocupación en tiempo real."}
           </p>
         </div>
-        <div className="pq-hero-stats">
+        {!soloLectura && <div className="pq-hero-stats">
           {[
             {
               label: "Disponibles",
@@ -133,7 +133,7 @@ export function ParqueaderosHero({ stats, soloLectura = false }: ParqueaderosHer
               </div>
             </div>
           ))}
-        </div>
+        </div>}
       </div>
     </div>
   );

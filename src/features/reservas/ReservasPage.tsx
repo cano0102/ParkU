@@ -62,6 +62,7 @@ export function Reservas() {
           filterEstado={p.filterEstado}
           onFilterEstadoChange={p.setFilterEstado}
           onSolicitarReserva={esComunidadSena ? solicitud.abrir : undefined}
+          soloLectura={esComunidadSena}
         />
 
         {p.puedeGestionarSolicitudes && (

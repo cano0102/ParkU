@@ -11,10 +11,11 @@ interface ControlSalidaHeroProps {
   salidas: number;
   celdasLibres: number;
   total: number;
+  soloLectura?: boolean;
 }
 
 /** Banner superior de Entrada y Salida con las pastillas de estadísticas. */
-export function ControlSalidaHero({ enParqueadero, salidas, celdasLibres, total }: ControlSalidaHeroProps) {
+export function ControlSalidaHero({ enParqueadero, salidas, celdasLibres, total, soloLectura = false }: ControlSalidaHeroProps) {
   return (
     <div
       style={{
@@ -43,7 +44,7 @@ export function ControlSalidaHero({ enParqueadero, salidas, celdasLibres, total 
           </p>
         </div>
 
-        <div className="hero-stats">
+        {!soloLectura && <div className="hero-stats">
           {[
             { label: "En parqueadero", value: enParqueadero, icon: LogIn },
             { label: "Salidas", value: salidas, icon: LogOutIcon },
@@ -60,7 +61,7 @@ export function ControlSalidaHero({ enParqueadero, salidas, celdasLibres, total 
               </div>
             </div>
           ))}
-        </div>
+        </div>}
       </div>
     </div>
   );

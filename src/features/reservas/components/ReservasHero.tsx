@@ -14,10 +14,11 @@ interface ReservasHeroProps {
   onFilterEstadoChange: (estado: "todos" | EstadoReserva) => void;
   /** Solo se pasa para el rol Comunidad SENA: Admin/Vigilante siguen creando desde Parqueaderos. */
   onSolicitarReserva?: () => void;
+  soloLectura?: boolean;
 }
 
 /** Banner superior de Reservas: las pastillas de estado también filtran al hacer clic. */
-export function ReservasHero({ counts, filterEstado, onFilterEstadoChange, onSolicitarReserva }: ReservasHeroProps) {
+export function ReservasHero({ counts, filterEstado, onFilterEstadoChange, onSolicitarReserva, soloLectura = false }: ReservasHeroProps) {
   const stats = [
     { label: "Pendientes", value: counts.pendiente, estado: "pendiente" as const, icon: Clock3 },
     { label: "Activas", value: counts.activa, estado: "activa" as const, icon: CheckCircle2 },
@@ -66,7 +67,7 @@ export function ReservasHero({ counts, filterEstado, onFilterEstadoChange, onSol
           )}
         </div>
 
-        <div className="reservas-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280, maxWidth: 420 }}>
+        {!soloLectura && <div className="reservas-hero-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8, minWidth: 280, maxWidth: 420 }}>
           {stats.map((s) => {
             const isActive = filterEstado === s.estado;
             return (
@@ -93,7 +94,7 @@ export function ReservasHero({ counts, filterEstado, onFilterEstadoChange, onSol
               </div>
             );
           })}
-        </div>
+        </div>}
       </div>
     </div>
   );

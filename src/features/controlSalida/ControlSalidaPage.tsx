@@ -31,6 +31,7 @@ export function ControlSalidaPage() {
           salidas={p.vehiculosSalidos.length}
           celdasLibres={p.celdasDisponibles.length}
           total={p.controlesSalida.length}
+          soloLectura={esConductor}
         />
 
         {/* Comunidad SENA no busca ni filtra: solo ve los movimientos de sus vehículos. */}
