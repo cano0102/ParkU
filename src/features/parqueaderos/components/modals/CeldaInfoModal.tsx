@@ -30,6 +30,7 @@ import {
   Ocupante,
   formatearFechaHora,
   formatearDuracion,
+  APLICAR_RESTRICCION_HORARIO,
   estaFueraDeHorarioOperacion,
   HORA_OPERACION_FIN,
 } from "../../lib/helpers";
@@ -693,7 +694,7 @@ export function CeldaInfoModal({
           </>
         ) : celdaActiva?.estado === "no_disponible" && ocupanteActivo ? (
           <>
-            {estaFueraDeHorarioOperacion() && (
+            {APLICAR_RESTRICCION_HORARIO && estaFueraDeHorarioOperacion() && (
               <div
                 style={{
                   padding: "12px 14px",

@@ -6,7 +6,7 @@ import type { Vehiculo } from "@/services/api/vehiculos";
 import type { ControlSalida } from "@/services/api/controlSalida";
 import type { Reserva } from "@/services/api/reservas";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
-import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
+import { APLICAR_RESTRICCION_HORARIO, HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "@/features/parqueaderos";
 import { useEnCurso } from "@/hooks/useEnCurso";
 import { useCreateReserva } from "./useReservas";
 import { franjaSugerida, validarFranja, ajustarFranja } from "../lib/reglas";
@@ -117,7 +117,7 @@ export function useSolicitarReserva(
     // Las HORAS DE LA RESERVA tienen que caber en la ventana de operación (05:00-21:00). La
     // hora a la que se pide da igual: se puede solicitar de madrugada para el día siguiente.
     // Comparar como string funciona porque <input type="time"> siempre entrega "HH:MM".
-    if (f.horaInicio < HORA_OPERACION_INICIO || f.horaFin > HORA_OPERACION_FIN) {
+    if (APLICAR_RESTRICCION_HORARIO && (f.horaInicio < HORA_OPERACION_INICIO || f.horaFin > HORA_OPERACION_FIN)) {
       return `El horario debe estar entre ${HORA_OPERACION_INICIO} y ${HORA_OPERACION_FIN} (horario de operación).`;
     }
     // Anticipación mínima, duración mínima y nada en el pasado: las mismas reglas que el

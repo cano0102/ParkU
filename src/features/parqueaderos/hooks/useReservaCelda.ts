@@ -7,7 +7,7 @@ import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/conductores";
 import { buscarConflictoHorario, validarFranja, franjaSugerida } from "@/features/reservas";
-import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN, motivoCeldaPreferencialNoApta } from "../lib/helpers";
+import { APLICAR_RESTRICCION_HORARIO, HORA_OPERACION_INICIO, HORA_OPERACION_FIN, motivoCeldaPreferencialNoApta } from "../lib/helpers";
 import { validarTextoLargo, MOTIVO_MIN, MOTIVO_MAX } from "@/utils/validation";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
@@ -67,7 +67,7 @@ export function useReservaCelda(
     // horario solo se entera de que es inválida hasta que el backend la rechaza con un error
     // genérico. Comparación como string funciona porque el input <input type="time"> siempre
     // entrega "HH:MM" con cero a la izquierda.
-    if (reservaForm.horaInicio < HORA_OPERACION_INICIO || reservaForm.horaFin > HORA_OPERACION_FIN) {
+    if (APLICAR_RESTRICCION_HORARIO && (reservaForm.horaInicio < HORA_OPERACION_INICIO || reservaForm.horaFin > HORA_OPERACION_FIN)) {
       return setReservaError(`El horario debe estar entre ${HORA_OPERACION_INICIO} y ${HORA_OPERACION_FIN} (horario de operación).`);
     }
 

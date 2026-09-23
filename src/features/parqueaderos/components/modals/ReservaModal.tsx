@@ -14,7 +14,7 @@ import { rangoDeHoraInicio, rangoDeHoraFin, ajustarFranja } from "@/features/res
 import { theme } from "@/styles/theme";
 import { Modal } from "@/components/shared";
 import { Banner } from "@/components/shared";
-import { horaAMinutos, HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../../lib/helpers";
+import { APLICAR_RESTRICCION_HORARIO, horaAMinutos, HORA_OPERACION_INICIO, HORA_OPERACION_FIN } from "../../lib/helpers";
 import { MOTIVO_MAX } from "@/utils/validation";
 
 const C = theme;
@@ -97,11 +97,12 @@ export function ReservaModal({
   // que el hook (y en última instancia el backend) va a rechazar de todos modos.
   const fueraDeHorarioOperacion = !!(
     reservaForm.horaInicio && reservaForm.horaFin &&
+    APLICAR_RESTRICCION_HORARIO &&
     (reservaForm.horaInicio < HORA_OPERACION_INICIO || reservaForm.horaFin > HORA_OPERACION_FIN)
   );
   const formValido = !!(
     reservaForm.vehiculoId && reservaForm.fechaReserva && reservaForm.horaInicio && reservaForm.horaFin &&
-    !horarioInvalido && !fueraDeHorarioOperacion
+    !horarioInvalido && (!APLICAR_RESTRICCION_HORARIO || !fueraDeHorarioOperacion)
   );
 
   return (
@@ -276,7 +277,7 @@ export function ReservaModal({
                 onChange={(e) => setReservaForm(prev => ({ ...prev, ...ajustarFranja({ ...prev, horaFin: e.target.value }, VENTANA_OPERACION) }))}
                 style={{
                   width: "100%", padding: "11px 14px", borderRadius: 11,
-                  border: `1px solid ${horarioInvalido || fueraDeHorarioOperacion ? C.danger : C.border}`, fontSize: 13, outline: "none",
+                  border: `1px solid ${horarioInvalido || (APLICAR_RESTRICCION_HORARIO && fueraDeHorarioOperacion) ? C.danger : C.border}`, fontSize: 13, outline: "none",
                   fontFamily: "inherit", background: "#F8FAFC",
                 }}
               />
@@ -284,7 +285,7 @@ export function ReservaModal({
               {horarioInvalido && (
                 <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>La hora de fin debe ser posterior a la de inicio.</p>
               )}
-              {!horarioInvalido && fueraDeHorarioOperacion && (
+              {!horarioInvalido && APLICAR_RESTRICCION_HORARIO && fueraDeHorarioOperacion && (
                 <p style={{ fontSize: 11, color: C.danger, marginTop: 6, fontWeight: 700 }}>
                   El horario debe estar entre {HORA_OPERACION_INICIO} y {HORA_OPERACION_FIN} (horario de operación).
                 </p>

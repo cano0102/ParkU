@@ -444,6 +444,8 @@ export function extraerDatosDocumento(texto: string) {
    enviar una reserva, ver useReservaCelda.ts/useSolicitarReserva.ts). */
 export const HORA_OPERACION_INICIO = "05:00";
 export const HORA_OPERACION_FIN = "21:00";
+/** Temporalmente desactivado para permitir pruebas de estacionamiento fuera de horario. */
+export const APLICAR_RESTRICCION_HORARIO = false;
 
 export const estaFueraDeHorarioOperacion = (fecha: Date = new Date()): boolean => {
   const hhmm = `${String(fecha.getHours()).padStart(2, "0")}:${String(fecha.getMinutes()).padStart(2, "0")}`;
