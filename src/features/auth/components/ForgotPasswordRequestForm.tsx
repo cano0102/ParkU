@@ -14,7 +14,7 @@ interface ForgotPasswordRequestFormProps {
   form: ReturnType<typeof useForgotPasswordForm>;
 }
 
-/** Estado inicial: encabezado, campo de correo y envío para generar el enlace de recuperación. */
+/** Estado inicial: encabezado, campo de correo y envío del enlace de recuperación a ese correo. */
 export function ForgotPasswordRequestForm({ form }: ForgotPasswordRequestFormProps) {
   return (
     <>
@@ -34,8 +34,8 @@ export function ForgotPasswordRequestForm({ form }: ForgotPasswordRequestFormPro
         </h2>
 
         <p style={{ color: COLORS.textLight, lineHeight: 1.6, fontSize: 13 }}>
-          Ingresa tu correo institucional y genera un enlace
-          para recuperar tu acceso.
+          Ingresa el correo de tu cuenta y te enviaremos un enlace
+          para crear una contraseña nueva.
         </p>
       </div>
 
@@ -75,7 +75,7 @@ export function ForgotPasswordRequestForm({ form }: ForgotPasswordRequestFormPro
 
         <div style={{ background: "#EFF6FF", border: "1px solid #BFDBFE", borderRadius: 12, padding: "12px 14px" }}>
           <p style={{ fontSize: 13, color: "#1E3A8A", lineHeight: 1.6, fontWeight: 500 }}>
-            Se generará un enlace de recuperación de un solo uso,
+            Te enviaremos por correo un enlace de un solo uso,
             válido por 60 minutos.
           </p>
         </div>
@@ -90,7 +90,7 @@ export function ForgotPasswordRequestForm({ form }: ForgotPasswordRequestFormPro
             boxShadow: "0 8px 22px rgba(57,169,0,.2)",
           }}
         >
-          {form.loading ? "Generando..." : "Generar Enlace"}
+          {form.loading ? "Enviando..." : "Enviar enlace"}
         </button>
 
         <Link to="/login" style={{ textDecoration: "none" }}>

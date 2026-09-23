@@ -71,7 +71,7 @@ export function ForgotPassword() {
               {!form.emailSent ? (
                 <ForgotPasswordRequestForm form={form} />
               ) : (
-                <ForgotPasswordSuccess email={form.email} resetLink={form.resetLink} />
+                <ForgotPasswordSuccess email={form.email} onVolverAEnviar={form.volverAEnviar} />
               )}
 
               <div style={{ marginTop: "1.2rem", paddingTop: "1.2rem", borderTop: `1px solid ${COLORS.border}` }}>
