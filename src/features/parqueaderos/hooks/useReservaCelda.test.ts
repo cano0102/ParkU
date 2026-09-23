@@ -122,18 +122,18 @@ describe('useReservaCelda — choque de horario real (no "cualquier pendiente/ac
 });
 
 describe('useReservaCelda — horario de operación (05:00–21:00)', () => {
-  it('acepta crear una reserva fuera de la ventana mientras la restricción está desactivada', async () => {
+  it('rechaza crear una reserva fuera de la ventana de operación', async () => {
     const data = buildDataConReservas({ reservas: [] });
     const { result } = setupCrearReserva(data);
 
     act(() => result.current.setReservaForm((f) => ({
-      ...f, motivo: 'Reserva de prueba', vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '04:00', horaFin: '05:00',
+      ...f, motivo: 'Reserva de prueba', vehiculoId: 'v-nuevo', parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', horaInicio: '22:00', horaFin: '23:00',
     })));
 
     await act(async () => { await result.current.handleCrearReserva(); });
 
-    expect(result.current.reservaError).toBeNull();
-    expect(data.addReserva).toHaveBeenCalled();
+    expect(result.current.reservaError).toContain('horario de operación');
+    expect(data.addReserva).not.toHaveBeenCalled();
   });
 
   it('acepta un horario dentro de la ventana de operación', async () => {

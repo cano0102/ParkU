@@ -80,7 +80,10 @@ describe('useSolicitarReserva', () => {
     expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
-  it('envía la solicitud con un horario fuera de la ventana mientras la restricción está desactivada', async () => {
+  it('rechaza enviar la solicitud con un horario fuera de la ventana de operación (05:00–21:00)', async () => {
+    // Antes no había ninguna validación de horario en el frontend para esta solicitud — una
+    // fuera de la ventana de operación (HORA_OPERACION_INICIO/FIN en parqueaderos/lib/helpers)
+    // solo se enteraba de ser inválida hasta que el backend la rechazaba con un error genérico.
     const { result } = renderHook(
       () => useSolicitarReserva([miCarro], [celdaDisponibleCarro], [parqueadero], [miCarro], [], []),
       { wrapper: withQueryClient() }
@@ -88,13 +91,13 @@ describe('useSolicitarReserva', () => {
 
     act(() => result.current.abrir());
     act(() => result.current.setForm({
-      ...result.current.form, parqueaderoId: '1', celdaId: '1', fechaReserva: '2027-03-01', motivo: 'Clase',
-      horaInicio: '04:00', horaFin: '05:00',
+      ...result.current.form, parqueaderoId: '1', celdaId: '1', motivo: 'Clase',
+      horaInicio: '21:30', horaFin: '22:30',
     }));
     await act(async () => result.current.enviarSolicitud());
 
-    expect(result.current.error).toBeNull();
-    expect(apiFetchMock).toHaveBeenCalled();
+    expect(result.current.error).toContain('horario de operación');
+    expect(apiFetchMock).not.toHaveBeenCalled();
   });
 
   it('registra el conductor solicitante cuando el vehículo es compartido', async () => {
