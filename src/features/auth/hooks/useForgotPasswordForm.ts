@@ -7,20 +7,20 @@ import { useAuth } from "@/context/AuthContext";
 // sin forma de recuperar su contraseña. Se usa el mismo formato general que Login.
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Formulario de recuperación: solo valida el FORMATO del correo (nunca si existe una cuenta
- * con ese valor) y genera un enlace de un solo uso (sin servidor de correo propio, se muestra
- * directamente en pantalla). Antes esto llamaba a `GET /usuarios` — el listado completo de
- * cuentas — desde esta pantalla pública sin sesión, solo para decirle a cualquier visitante si
- * un correo existía o no en el sistema (enumeración de cuentas, y de paso una fuga de PII si esa
- * ruta no exige auth estricta en el backend). `requestPasswordReset` ya está diseñado para no
- * revelar esto — devuelve un token solo fuera de producción y `null` en cualquier otro caso sin
- * distinguir "no existe" de "existe pero no se muestra" (ver services/api/auth.ts) — así que la
- * validación de existencia se elimina del todo en vez de duplicarla de forma insegura acá. */
+/** Formulario de recuperación: valida solo el FORMATO del correo (nunca si existe una cuenta)
+ * y le pide al backend que envíe el enlace de un solo uso POR CORREO
+ * (`POST /auth/recuperar-password`). El backend responde igual exista o no la cuenta, para no
+ * permitir enumerar correos, así que la pantalla de éxito tampoco lo distingue: dice "si el
+ * correo tiene una cuenta, te enviamos el enlace".
+ *
+ * Antes la pantalla de éxito decía que el enlace "se muestra aquí" porque no había servidor de
+ * correo, pero el backend nunca devuelve el token: la persona se quedaba sin enlace y sin la
+ * indicación de revisar su correo. Y si la petición fallaba (sin conexión, demasiados intentos
+ * seguidos), el botón se quedaba en "Generando..." para siempre. */
 export function useForgotPasswordForm() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const [resetLink, setResetLink] = useState<string | null>(null);
   const [touched, setTouched] = useState(false);
   const { requestPasswordReset } = useAuth();
 
@@ -53,23 +53,20 @@ export function useForgotPasswordForm() {
     }
 
     setLoading(true);
-
-    // Sin servidor de correo propio, el "envío" se simula: se genera un
-    // enlace de recuperación real (token de un solo uso, 30 min de validez)
-    // y se muestra directamente en pantalla en vez de despacharlo a un correo.
-    setTimeout(async () => {
-      // `null` no es un error: es el comportamiento normal en producción (el backend no
-      // confirma si el correo existe, para no permitir enumerar cuentas) — tratarlo como un
-      // fallo real revelaría por otra vía la misma información que se intenta ocultar
-      // (un correo que "sí funciona" tendría link, uno que "falla" no existiría). Se avanza
-      // igual a la pantalla de éxito en ambos casos; `ForgotPasswordSuccess` ya sabe ocultar
-      // la caja del enlace cuando `resetLink` es `null`.
-      const token = await requestPasswordReset(email);
-      setLoading(false);
-      setResetLink(token ? `${window.location.origin}/reset-password?token=${token}` : null);
+    try {
+      await requestPasswordReset(email);
       setEmailSent(true);
-    }, 700);
+    } catch (error) {
+      // Un fallo real (red caída, 429 por demasiadas solicitudes seguidas, 500). No revela si
+      // la cuenta existe: para un correo sin cuenta el backend responde 200 igual.
+      toast.error(error instanceof Error && error.message ? error.message : "No se pudo enviar el enlace. Intenta de nuevo.");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  /** Vuelve al formulario con el mismo correo, para pedir otro enlace. */
+  const volverAEnviar = () => setEmailSent(false);
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
@@ -81,5 +78,5 @@ export function useForgotPasswordForm() {
 
   const visibleErrors = touched ? errors : {};
 
-  return { email, loading, emailSent, resetLink, errors: visibleErrors, handleSubmit, handleEmailChange, handleBlur };
+  return { email, loading, emailSent, errors: visibleErrors, handleSubmit, handleEmailChange, handleBlur, volverAEnviar };
 }

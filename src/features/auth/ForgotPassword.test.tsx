@@ -45,35 +45,63 @@ describe('ForgotPassword', () => {
     await renderForgotPassword();
 
     expect(screen.getByPlaceholderText('correo@sena.edu.co')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Generar Enlace' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Enviar enlace' })).toBeInTheDocument();
   });
 
-  it('genera un enlace de recuperación para un correo semilla existente', async () => {
+  it('pide el enlace al backend y le indica a la persona que revise su correo', async () => {
     const user = userEvent.setup();
     await renderForgotPassword();
 
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), 'admin@sena.edu.co');
-    await user.click(screen.getByRole('button', { name: 'Generar Enlace' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar enlace' }));
 
-    await waitFor(
-      () => expect(screen.getByText('Abrir Enlace de Recuperación')).toBeInTheDocument(),
-      { timeout: 2000 }
+    expect(await screen.findByText(/Revisa tu/)).toBeInTheDocument();
+    expect(screen.getByText('admin@sena.edu.co')).toBeInTheDocument();
+    expect(apiFetchMock).toHaveBeenCalledWith(
+      '/auth/recuperar-password',
+      expect.objectContaining({ method: 'POST', body: { correo: 'admin@sena.edu.co' } }),
     );
+    // El enlace llega por correo: la pantalla nunca lo muestra (antes decía que sí).
+    expect(screen.queryByText(/reset-password\?token=/)).not.toBeInTheDocument();
   });
 
-  it('para un correo con formato válido que no pertenece a ninguna cuenta, igual avanza a la pantalla de éxito sin revelar que no existe (evita enumeración de cuentas)', async () => {
+  it('para un correo con formato válido que no pertenece a ninguna cuenta, muestra la misma pantalla (evita enumeración de cuentas)', async () => {
     const user = userEvent.setup();
     await renderForgotPassword();
 
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), 'no-existe@sena.edu.co');
-    await user.click(screen.getByRole('button', { name: 'Generar Enlace' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar enlace' }));
 
-    // Llega a la pantalla de éxito igual que con un correo real ("Recomendaciones" solo se
-    // renderiza ahí) — la única diferencia observable es que no hay enlace para abrir/copiar,
-    // nunca un mensaje que confirme o niegue si la cuenta existe.
-    expect(await screen.findByText('Recomendaciones')).toBeInTheDocument();
-    expect(screen.queryByText('Abrir Enlace de Recuperación')).not.toBeInTheDocument();
+    expect(await screen.findByText(/Revisa tu/)).toBeInTheDocument();
     expect(screen.queryByText(/no existe una cuenta/i)).not.toBeInTheDocument();
+  });
+
+  it('"Enviar otro enlace" vuelve al formulario con el mismo correo', async () => {
+    const user = userEvent.setup();
+    await renderForgotPassword();
+
+    await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), 'admin@sena.edu.co');
+    await user.click(screen.getByRole('button', { name: 'Enviar enlace' }));
+    await user.click(await screen.findByRole('button', { name: /Enviar otro enlace/ }));
+
+    expect(screen.getByPlaceholderText('correo@sena.edu.co')).toHaveValue('admin@sena.edu.co');
+    expect(screen.getByRole('button', { name: 'Enviar enlace' })).toBeInTheDocument();
+  });
+
+  it('si la petición falla, muestra el error y no se queda cargando', async () => {
+    apiFetchMock.mockRejectedValueOnce(new Error('Demasiadas solicitudes. Intenta más tarde.'));
+    const user = userEvent.setup();
+    await renderForgotPassword();
+
+    await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), 'admin@sena.edu.co');
+    await user.click(screen.getByRole('button', { name: 'Enviar enlace' }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Demasiadas solicitudes. Intenta más tarde.'),
+    );
+    // Sigue en el formulario, con el botón disponible para reintentar.
+    expect(screen.getByRole('button', { name: 'Enviar enlace' })).toBeEnabled();
+    expect(screen.queryByText(/Revisa tu/)).not.toBeInTheDocument();
   });
 
   it('valida el formato del correo sin consultar si la cuenta existe', async () => {
@@ -81,7 +109,7 @@ describe('ForgotPassword', () => {
     await renderForgotPassword();
 
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), 'no-es-un-correo');
-    await user.click(screen.getByRole('button', { name: 'Generar Enlace' }));
+    await user.click(screen.getByRole('button', { name: 'Enviar enlace' }));
 
     expect(await screen.findByText('Ingresa un correo electrónico válido')).toBeInTheDocument();
     expect(toast.error).toHaveBeenCalledWith('Por favor, corrige los errores del formulario');

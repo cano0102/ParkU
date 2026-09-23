@@ -1,10 +1,8 @@
 import { Link } from "react-router-dom";
-import { toast } from "sonner";
 import {
   IconArrowLeft as ArrowLeft,
-  IconCopy as Copy,
-  IconLink as Link2,
   IconMail as Mail,
+  IconRefresh as Refresh,
 } from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 import { theme } from "@/styles/theme";
@@ -13,11 +11,13 @@ const COLORS = theme;
 
 interface ForgotPasswordSuccessProps {
   email: string;
-  resetLink: string | null;
+  /** Vuelve al formulario para pedir otro enlace (no llegó, expiró, se escribió mal el correo). */
+  onVolverAEnviar: () => void;
 }
 
-/** Estado tras generar el enlace: muestra el enlace de recuperación (con copiar), recomendaciones y accesos. */
-export function ForgotPasswordSuccess({ email, resetLink }: ForgotPasswordSuccessProps) {
+/** Estado tras pedir el enlace: "revisa tu correo", qué hacer si no llega, y accesos.
+ *  No dice si la cuenta existe: el backend responde igual en los dos casos. */
+export function ForgotPasswordSuccess({ email, onVolverAEnviar }: ForgotPasswordSuccessProps) {
   return (
     <div style={{ textAlign: "center" }}>
       <div style={{ marginBottom: "0.8rem" }}>
@@ -29,45 +29,15 @@ export function ForgotPasswordSuccess({ email, resetLink }: ForgotPasswordSucces
       </div>
 
       <h2 style={{ fontSize: "clamp(1.8rem,4vw,2.4rem)", fontWeight: 900, color: COLORS.text, marginBottom: 10, lineHeight: 1 }}>
-        Enlace
+        Revisa tu
         <br />
-        generado
+        correo
       </h2>
 
       <p style={{ color: COLORS.textLight, lineHeight: 1.6, fontSize: 13, marginBottom: "1rem" }}>
-        {resetLink ? (
-          <>
-            Cuenta: <strong style={{ color: COLORS.text }}>{email}</strong>. Como
-            ParkU no tiene un servidor de correo propio, el enlace de recuperación
-            se genera y se muestra aquí directamente.
-          </>
-        ) : (
-          <>
-            Si <strong style={{ color: COLORS.text }}>{email}</strong> tiene una
-            cuenta registrada, en breve podrás usar el enlace de recuperación que
-            genere el sistema.
-          </>
-        )}
+        Si <strong style={{ color: COLORS.text }}>{email.trim()}</strong> tiene una cuenta en
+        ParkU, te enviamos un enlace para crear una contraseña nueva.
       </p>
-
-      {resetLink && (
-        <div style={{ background: "#F8FAFC", border: `1px solid ${COLORS.border}`, padding: "12px 14px", borderRadius: 12, marginBottom: "1rem", display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ flex: 1, fontSize: 11, fontFamily: "monospace", color: COLORS.text, wordBreak: "break-all", textAlign: "left" }}>
-            {resetLink}
-          </span>
-          <button
-            type="button"
-            onClick={() => {
-              navigator.clipboard.writeText(resetLink);
-              toast.success("Enlace copiado");
-            }}
-            title="Copiar enlace"
-            style={{ flexShrink: 0, border: `1px solid ${COLORS.border}`, background: "#fff", borderRadius: 8, padding: 8, cursor: "pointer", display: "flex" }}
-          >
-            <Copy size={14} color={COLORS.textLight} />
-          </button>
-        </div>
-      )}
 
       <div style={{ background: "#ECFDF3", padding: "14px 16px", borderRadius: 12, textAlign: "left", marginBottom: "1.2rem" }}>
         <p style={{ fontWeight: 700, color: COLORS.primaryDark, marginBottom: 8, fontSize: 13 }}>
@@ -75,26 +45,25 @@ export function ForgotPasswordSuccess({ email, resetLink }: ForgotPasswordSucces
         </p>
         <div style={{ display: "grid", gap: 6, color: COLORS.primaryDark, fontSize: 13 }}>
           <span>• El enlace es válido por 60 minutos</span>
-          <span>• Solo puede usarse una vez</span>
+          <span>• Solo puede usarse una vez; si pides otro, el anterior deja de servir</span>
+          <span>• Si no llega en unos minutos, revisa la carpeta de spam</span>
           <span>• No lo compartas con nadie más</span>
         </div>
       </div>
 
-      {resetLink && (
-        <Link to={resetLink.replace(window.location.origin, "")} style={{ textDecoration: "none" }}>
-          <button
-            style={{
-              width: "100%", border: "none", background: COLORS.primary, color: "#fff",
-              padding: "14px 20px", borderRadius: 14, fontWeight: 800, cursor: "pointer", fontSize: 14,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              boxShadow: "0 8px 22px rgba(57,169,0,.2)", marginBottom: 10,
-            }}
-          >
-            <Link2 size={15} />
-            Abrir Enlace de Recuperación
-          </button>
-        </Link>
-      )}
+      <button
+        type="button"
+        onClick={onVolverAEnviar}
+        style={{
+          width: "100%", border: "none", background: COLORS.primary, color: "#fff",
+          padding: "14px 20px", borderRadius: 14, fontWeight: 800, cursor: "pointer", fontSize: 14,
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+          boxShadow: "0 8px 22px rgba(57,169,0,.2)", marginBottom: 10,
+        }}
+      >
+        <Refresh size={15} />
+        Enviar otro enlace
+      </button>
 
       <Link to="/login" style={{ textDecoration: "none" }}>
         <button
