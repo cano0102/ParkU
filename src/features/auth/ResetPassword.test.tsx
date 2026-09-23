@@ -30,20 +30,24 @@ import { toast } from 'sonner';
 // mutar la contraseña de las cuentas semilla que otros tests puedan asumir.
 async function getValidResetToken() {
   const correo = `reset-ui-${Date.now()}@sena.edu.co`;
+  const identificacion = `${Date.now()}`;
+  const nombre = 'Usuario Reset';
   await authService.register({
     correo,
     password: 'Pass1234',
-    nombre: 'Usuario Reset',
+    nombre,
     numero: '3101234567',
     tipoDocumento: 'CC',
-    identificacion: `${Date.now()}`,
+    identificacion,
     vehiculoTipo: 'carro',
     vehiculoPlaca: `TST${String(Date.now() % 1000).padStart(3, '0')}`,
     vehiculoMarca: 'Chevrolet',
     vehiculoColor: 'Blanco',
   });
-  const token = await authService.requestPasswordReset(correo);
-  return { correo, token: token as string };
+  const token = await authService.verificarIdentidad({
+    correo, tipoDocumento: 'CC', numeroDocumento: identificacion, nombre,
+  });
+  return { correo, token };
 }
 
 function renderResetPassword(token: string | null) {

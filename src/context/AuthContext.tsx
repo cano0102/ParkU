@@ -55,11 +55,10 @@ interface AuthContextType {
 
   changePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
 
-  // Genera un enlace de recuperación de contraseña para el correo dado.
-  // Devuelve el token generado si la API lo incluyó en la respuesta (solo
-  // fuera de producción), o null en caso contrario — null no implica que el
-  // correo no exista, la API no lo revela por seguridad.
-  requestPasswordReset: (correo: string) => Promise<string | null>;
+  // Verifica correo + documento + nombre contra una cuenta existente y, si coinciden,
+  // devuelve el token de recuperación (de un solo uso) para usar con resetPasswordWithToken.
+  // Lanza si los datos no coinciden con ninguna cuenta.
+  verificarIdentidad: (data: authService.VerificarIdentidadInput) => Promise<string>;
 
   // Valida el token de un enlace de recuperación y, si es válido, actualiza
   // la contraseña del usuario asociado. El token es de un solo uso.
@@ -261,8 +260,8 @@ export function AuthProvider({
   };
 
   // RECUPERAR CONTRASEÑA (usado por ForgotPassword / ResetPassword)
-  const requestPasswordReset = (correo: string): Promise<string | null> => {
-    return authService.requestPasswordReset(correo);
+  const verificarIdentidad = (data: authService.VerificarIdentidadInput): Promise<string> => {
+    return authService.verificarIdentidad(data);
   };
 
   const resetPasswordWithToken = (token: string, newPassword: string): Promise<{ ok: boolean; message?: string }> => {
@@ -314,7 +313,7 @@ export function AuthProvider({
         logout,
         updateUser,
         changePassword,
-        requestPasswordReset,
+        verificarIdentidad,
         resetPasswordWithToken,
         isAuthenticated: !!user,
         permisos,

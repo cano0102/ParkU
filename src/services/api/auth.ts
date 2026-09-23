@@ -229,20 +229,31 @@ export async function changePassword(userId: string, currentPassword: string, ne
   }
 }
 
+export interface VerificarIdentidadInput {
+  correo: string;
+  tipoDocumento: string;
+  numeroDocumento: string;
+  nombre: string;
+}
+
 /**
- * Genera un enlace de recuperación de un solo uso. En producción la API no
- * confirma si el correo existe (evita enumeración de cuentas): devuelve
- * éxito siempre, y solo incluye `token` en la respuesta fuera de producción.
- * Por eso `null` aquí no significa "el correo no existe" — el caller debe
- * tratarlo como "no hay enlace para mostrar en pantalla", no como error.
+ * Verifica correo + documento + nombre contra una cuenta existente y, si coinciden,
+ * devuelve un token de recuperación de un solo uso. No hay correo ni SMS de por medio: el
+ * token viaja en la misma respuesta, listo para usarse con `resetPasswordWithToken`.
+ * Lanza si los datos no coinciden con ninguna cuenta.
  */
-export async function requestPasswordReset(correo: string): Promise<string | null> {
-  const res = await apiFetch<{ success: boolean; message: string; token?: string }>('/auth/recuperar-password', {
+export async function verificarIdentidad(data: VerificarIdentidadInput): Promise<string> {
+  const res = await apiFetch<{ success: boolean; message: string; data: { token: string } }>('/auth/verificar-identidad', {
     method: 'POST',
     auth: false,
-    body: { correo: correo.trim().toLowerCase() },
+    body: {
+      correo: data.correo.trim().toLowerCase(),
+      tipoDocumento: data.tipoDocumento,
+      numeroDocumento: data.numeroDocumento.trim(),
+      nombre: data.nombre.trim(),
+    },
   });
-  return res.token ?? null;
+  return res.data.token;
 }
 
 export async function resetPasswordWithToken(token: string, newPassword: string): Promise<{ ok: boolean; message?: string }> {

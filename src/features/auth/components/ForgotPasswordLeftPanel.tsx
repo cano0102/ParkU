@@ -6,7 +6,7 @@ import {
 } from "@tabler/icons-react";
 import logoSena from "@/assets/images/logoSena.png";
 
-const HIGHLIGHTS = ["Enlace seguro y privado", "Recuperación rápida", "Protección institucional"];
+const HIGHLIGHTS = ["Verificación instantánea", "Sin esperar ningún correo", "Protección institucional"];
 
 /** Columna izquierda decorativa de la pantalla de recuperación de contraseña (oculta en móvil). */
 export function ForgotPasswordLeftPanel() {
@@ -60,8 +60,8 @@ export function ForgotPasswordLeftPanel() {
           </h1>
 
           <p style={{ fontSize: 14, lineHeight: 1.7, color: "rgba(255,255,255,.92)", maxWidth: 420 }}>
-            Recupera el acceso a tu cuenta institucional de ParkU mediante
-            un enlace de recuperación seguro y de un solo uso.
+            Recupera el acceso a tu cuenta institucional de ParkU verificando
+            tu identidad con los datos que ya tenemos de ti.
           </p>
 
           <div style={{ marginTop: "1.8rem", display: "grid", gap: "0.6rem" }}>

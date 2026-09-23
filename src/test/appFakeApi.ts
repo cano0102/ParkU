@@ -214,6 +214,8 @@ function createAuthBackend() {
         numero_telefonico: body.numero ?? null,
         rol_id: ROLES.CONDUCTOR,
         estado: 'ACTIVO',
+        tipo_documento: body.tipo_documento ?? null,
+        numero_documento: body.numero_documento ?? null,
       });
       return { success: true, message: 'Registro exitoso', data: {} } as unknown as R;
     }
@@ -266,11 +268,18 @@ function createAuthBackend() {
       return { success: true, existe } as unknown as R;
     }
 
-    if (method === 'POST' && path === '/auth/recuperar-password') {
+    if (method === 'POST' && path === '/auth/verificar-identidad') {
       const account = findAccount(body.correo);
-      const token = account ? `reset-${account.id}-${Math.random().toString(36).slice(2)}` : undefined;
-      if (account && token) resetTokens.set(token, account.correo.trim().toLowerCase());
-      return { success: true, message: 'Si el correo existe, se generó un enlace', ...(token ? { token } : {}) } as unknown as R;
+      const coincide = !!account
+        && account.tipo_documento && account.tipo_documento.toUpperCase() === (body.tipoDocumento ?? '').toString().trim().toUpperCase()
+        && account.numero_documento && account.numero_documento === (body.numeroDocumento ?? '').toString().trim()
+        && account.nombre.trim().toLowerCase() === (body.nombre ?? '').toString().trim().toLowerCase();
+      if (!coincide) {
+        throw new Error('Los datos no coinciden con ninguna cuenta registrada');
+      }
+      const token = `reset-${account!.id}-${Math.random().toString(36).slice(2)}`;
+      resetTokens.set(token, account!.correo.trim().toLowerCase());
+      return { success: true, message: 'Identidad verificada. Ya puedes definir tu nueva contraseña.', data: { token } } as unknown as R;
     }
 
     if (method === 'POST' && path === '/auth/restablecer-password') {

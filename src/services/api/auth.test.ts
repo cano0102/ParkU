@@ -67,10 +67,19 @@ describe('services/auth', () => {
     expect(getToken()).toBe('t');
   });
 
-  it('requestPasswordReset devuelve null cuando la API no incluye token (comportamiento de producción)', async () => {
-    apiFetchMock.mockResolvedValue({ success: true, message: 'Si el correo existe, se generó un enlace' });
-    const token = await auth.requestPasswordReset('alguien@sena.edu.co');
-    expect(token).toBeNull();
+  it('verificarIdentidad devuelve el token cuando los datos coinciden con una cuenta', async () => {
+    apiFetchMock.mockResolvedValue({ success: true, message: 'Identidad verificada.', data: { token: 'un-token' } });
+    const token = await auth.verificarIdentidad({
+      correo: 'alguien@sena.edu.co', tipoDocumento: 'CC', numeroDocumento: '123456789', nombre: 'Alguien',
+    });
+    expect(token).toBe('un-token');
+  });
+
+  it('verificarIdentidad propaga el error cuando los datos no coinciden con ninguna cuenta', async () => {
+    apiFetchMock.mockRejectedValue(new Error('Los datos no coinciden con ninguna cuenta registrada'));
+    await expect(
+      auth.verificarIdentidad({ correo: 'alguien@sena.edu.co', tipoDocumento: 'CC', numeroDocumento: '000', nombre: 'Nadie' }),
+    ).rejects.toThrow('Los datos no coinciden con ninguna cuenta registrada');
   });
 
   it('resetPasswordWithToken reporta ok:false con el mensaje de la API si el token no es válido', async () => {

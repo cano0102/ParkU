@@ -1,46 +1,58 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
+import { TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, validarNumeroDocumento } from "@/utils/validation";
 
 // Corrección: antes solo se aceptaban correos "@sena.edu.co", pero el sistema
 // también registra usuarios externos válidos (p. ej. "@ext.com") que quedaban
 // sin forma de recuperar su contraseña. Se usa el mismo formato general que Login.
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Formulario de recuperación: valida solo el FORMATO del correo (nunca si existe una cuenta)
- * y le pide al backend que envíe el enlace de un solo uso POR CORREO
- * (`POST /auth/recuperar-password`). El backend responde igual exista o no la cuenta, para no
- * permitir enumerar correos, así que la pantalla de éxito tampoco lo distingue: dice "si el
- * correo tiene una cuenta, te enviamos el enlace".
- *
- * Antes la pantalla de éxito decía que el enlace "se muestra aquí" porque no había servidor de
- * correo, pero el backend nunca devuelve el token: la persona se quedaba sin enlace y sin la
- * indicación de revisar su correo. Y si la petición fallaba (sin conexión, demasiados intentos
- * seguidos), el botón se quedaba en "Generando..." para siempre. */
+/** Formulario de recuperación: verifica la identidad de la persona con datos que ya tiene
+ * el sistema (correo, tipo/número de documento y nombre) -- sin enviar nada por correo ni
+ * SMS. Si los datos coinciden con una cuenta (`POST /auth/verificar-identidad`), el backend
+ * entrega un token de recuperación en la misma respuesta y se navega directo a la pantalla
+ * de nueva contraseña con ese token. Si no coinciden, el backend lo dice explícitamente
+ * (a diferencia del flujo por correo, aquí no hay forma de responder "puede que sí, puede
+ * que no": es el precio de no depender de un canal externo). */
 export function useForgotPasswordForm() {
-  const [email, setEmail] = useState("");
+  const navigate = useNavigate();
+  const [correo, setCorreo] = useState("");
+  const [tipoDocumento, setTipoDocumento] = useState<string>(TIPOS_DOCUMENTO[0]);
+  const [numeroDocumento, setNumeroDocumento] = useState("");
+  const [nombre, setNombre] = useState("");
   const [loading, setLoading] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const [touched, setTouched] = useState(false);
-  const { requestPasswordReset } = useAuth();
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const { verificarIdentidad } = useAuth();
 
   // Validación en tiempo real: se recalcula en cada cambio; la visibilidad
-  // del mensaje se controla con `touched` (ver el componente del formulario).
-  const errors = useMemo((): { email?: string } => {
-    const newErrors: { email?: string } = {};
-    const trimmed = email.trim().toLowerCase();
+  // de cada mensaje se controla con `touched` (ver el componente del formulario).
+  const errors = useMemo(() => {
+    const newErrors: { correo?: string; numeroDocumento?: string; nombre?: string } = {};
+    const correoTrim = correo.trim().toLowerCase();
 
-    if (!trimmed) {
-      newErrors.email = "El correo electrónico es obligatorio";
-    } else if (!EMAIL_REGEX.test(trimmed)) {
-      newErrors.email = "Ingresa un correo electrónico válido";
+    if (!correoTrim) {
+      newErrors.correo = "El correo electrónico es obligatorio";
+    } else if (!EMAIL_REGEX.test(correoTrim)) {
+      newErrors.correo = "Ingresa un correo electrónico válido";
+    }
+
+    if (!numeroDocumento.trim()) {
+      newErrors.numeroDocumento = "El número de documento es obligatorio";
+    } else if (!validarNumeroDocumento(numeroDocumento)) {
+      newErrors.numeroDocumento = "Ingresa un número de documento válido";
+    }
+
+    if (!nombre.trim()) {
+      newErrors.nombre = "El nombre completo es obligatorio";
     }
 
     return newErrors;
-  }, [email]);
+  }, [correo, numeroDocumento, nombre]);
 
   const validateForm = (): boolean => {
-    setTouched(true);
+    setTouched({ correo: true, numeroDocumento: true, nombre: true });
     return Object.keys(errors).length === 0;
   };
 
@@ -54,29 +66,33 @@ export function useForgotPasswordForm() {
 
     setLoading(true);
     try {
-      await requestPasswordReset(email);
-      setEmailSent(true);
+      const token = await verificarIdentidad({ correo, tipoDocumento, numeroDocumento, nombre });
+      navigate(`/reset-password?token=${encodeURIComponent(token)}`);
     } catch (error) {
-      // Un fallo real (red caída, 429 por demasiadas solicitudes seguidas, 500). No revela si
-      // la cuenta existe: para un correo sin cuenta el backend responde 200 igual.
-      toast.error(error instanceof Error && error.message ? error.message : "No se pudo enviar el enlace. Intenta de nuevo.");
+      toast.error(error instanceof Error && error.message ? error.message : "No se pudo verificar tu identidad. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
   };
 
-  /** Vuelve al formulario con el mismo correo, para pedir otro enlace. */
-  const volverAEnviar = () => setEmailSent(false);
+  const handleCorreoChange = (e: React.ChangeEvent<HTMLInputElement>) => setCorreo(e.target.value);
+  const handleTipoDocumentoChange = (value: string) => setTipoDocumento(value);
+  // Solo dígitos y como mucho diez: el mismo formato que valida validarNumeroDocumento.
+  const handleNumeroDocumentoChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setNumeroDocumento(e.target.value.replace(/\D/g, "").slice(0, NUMERO_DOCUMENTO_MAX));
+  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => setNombre(e.target.value);
 
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
+  const handleBlur = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
+
+  const visibleErrors = {
+    correo: touched.correo ? errors.correo : undefined,
+    numeroDocumento: touched.numeroDocumento ? errors.numeroDocumento : undefined,
+    nombre: touched.nombre ? errors.nombre : undefined,
   };
 
-  const handleBlur = () => {
-    setTouched(true);
+  return {
+    correo, tipoDocumento, numeroDocumento, nombre,
+    loading, errors: visibleErrors,
+    handleSubmit, handleCorreoChange, handleTipoDocumentoChange, handleNumeroDocumentoChange, handleNombreChange, handleBlur,
   };
-
-  const visibleErrors = touched ? errors : {};
-
-  return { email, loading, emailSent, errors: visibleErrors, handleSubmit, handleEmailChange, handleBlur, volverAEnviar };
 }

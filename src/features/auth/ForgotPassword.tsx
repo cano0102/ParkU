@@ -5,7 +5,6 @@ import { useForgotPasswordForm } from "./hooks/useForgotPasswordForm";
 import { forgotPasswordStyles } from "./lib/styles";
 import { ForgotPasswordLeftPanel } from "./components/ForgotPasswordLeftPanel";
 import { ForgotPasswordRequestForm } from "./components/ForgotPasswordRequestForm";
-import { ForgotPasswordSuccess } from "./components/ForgotPasswordSuccess";
 
 const COLORS = theme;
 
@@ -68,11 +67,7 @@ export function ForgotPassword() {
                 Volver
               </button>
 
-              {!form.emailSent ? (
-                <ForgotPasswordRequestForm form={form} />
-              ) : (
-                <ForgotPasswordSuccess email={form.email} onVolverAEnviar={form.volverAEnviar} />
-              )}
+              <ForgotPasswordRequestForm form={form} />
 
               <div style={{ marginTop: "1.2rem", paddingTop: "1.2rem", borderTop: `1px solid ${COLORS.border}` }}>
                 <p style={{ textAlign: "center", color: COLORS.textLight, fontSize: 12 }}>
