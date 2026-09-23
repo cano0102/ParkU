@@ -31,7 +31,7 @@ export function ConductorIncidentes() {
         })
         .map((celda) => celda.id),
     ),
-    [data.celdas, data.misVehiculos, data.ocupanteDeCelda],
+    [data],
   );
   const dialogs = useIncidenteDialogs(data, { celdaIdsPermitidas: celdasDelConductor, puedeClasificar: false, modoConductor: true });
 

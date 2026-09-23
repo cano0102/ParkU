@@ -84,9 +84,11 @@ describe('features/incidentes', () => {
 
     const descripcionUnica = `Incidente de prueba ${Date.now()}`;
     await user.type(screen.getByLabelText('Descripción *'), descripcionUnica);
-    // El parqueadero ya no se elige aparte: se deriva de la celda elegida aquí. M-002 (única
-    // sin incidente abierto en la semilla) evita chocar con la validación de duplicados.
-    await elegirEnBuscador(user, 'Celda / vehículo estacionado', 'M-002');
+    // Parqueadero es obligatorio; la celda se elige dentro de él. M-001 (única celda de
+    // PQ-1 Torre A sin incidente abierto en la semilla) evita chocar con la validación de
+    // duplicados.
+    await elegirEnBuscador(user, 'Parqueadero *', 'PQ-1 Torre A');
+    await elegirEnBuscador(user, 'Celda', 'M-001');
     // Tipo y prioridad son obligatorios: un incidente hay que poder clasificarlo y ordenarlo.
     await user.selectOptions(screen.getByLabelText('Tipo *'), 'danio');
     await user.selectOptions(screen.getByLabelText('Prioridad'), 'alta');

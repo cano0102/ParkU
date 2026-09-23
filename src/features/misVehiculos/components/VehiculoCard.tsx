@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { IconCrown as Crown, IconUsers as Users, IconEye as Eye, IconPencil as Pencil } from "@tabler/icons-react";
 import type { DataListColumn } from "@/components/data";
-import { COLORS, getTipoVehiculoStyle } from "@/features/conductores/lib/helpers";
+import { COLORS, getTipoVehiculoStyle } from "@/features/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 
 /**
