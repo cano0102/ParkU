@@ -15,7 +15,6 @@ import { useParqueaderosPage } from "./hooks/useParqueaderosPage";
 import { ParqueaderosHero } from "./components/ParqueaderosHero";
 import { ParqueaderosTopbar } from "./components/ParqueaderosTopbar";
 import type { Parqueadero } from "@/services/api/parqueaderos";
-import { ParkingMap } from "./components/map/ParkingMap";
 import { ParqueaderosTable } from "./components/ParqueaderosTable";
 import { ParqueaderoFormModal } from "./components/modals/ParqueaderoFormModal";
 import { IngresoModal } from "./components/modals/IngresoModal";
@@ -106,8 +105,6 @@ export default function Parqueaderos() {
             onSearchChange={filters.setSearch}
             filterTipo={filters.filterTipo}
             onFilterTipoChange={filters.setFilterTipo}
-            activeTab={filters.activeTab}
-            onActiveTabChange={filters.setActiveTab}
             activeFilters={filters.activeFilters}
             onClearFilters={filters.clearFilters}
             onOpenCreate={pqFormState.openCreate}
@@ -144,35 +141,33 @@ export default function Parqueaderos() {
               </p>
             )}
 
-            {filters.activeTab === "table" && (
-              <ParqueaderosTable
-                parqueaderos={filters.paginatedPqsConCeldas}
-                celdas={
-                  filters.search.trim() ? filters.filteredCeldas : celdasVisibles
-                }
-                getOcupante={modal.getOcupante}
-                onEdit={pqFormState.openEdit}
-                onDelete={pqFormState.handleDeleteRequest}
-                onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
-                onReportar={
-                  !esConductor && hasPermission("incidentes")
-                    ? (pq: Parqueadero) =>
-                        incidente.abrirReporte({
-                          parqueaderoId: pq.id,
-                          etiqueta: pq.nombre,
-                        })
-                    : undefined
-                }
-                onCellClick={handleCellClick}
-                cellMatchesSearch={filters.cellMatchesSearch}
-                celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
-                canManage={hasPermission("celdas")}
-                misVehiculosPorCelda={data.misVehiculosPorCelda}
-                vistaSimplificada={esConductor}
-              />
-            )}
+            <ParqueaderosTable
+              parqueaderos={filters.paginatedPqsConCeldas}
+              celdas={
+                filters.search.trim() ? filters.filteredCeldas : celdasVisibles
+              }
+              getOcupante={modal.getOcupante}
+              onEdit={pqFormState.openEdit}
+              onDelete={pqFormState.handleDeleteRequest}
+              onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
+              onReportar={
+                !esConductor && hasPermission("incidentes")
+                  ? (pq: Parqueadero) =>
+                      incidente.abrirReporte({
+                        parqueaderoId: pq.id,
+                        etiqueta: pq.nombre,
+                      })
+                  : undefined
+              }
+              onCellClick={handleCellClick}
+              cellMatchesSearch={filters.cellMatchesSearch}
+              celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
+              canManage={hasPermission("celdas")}
+              misVehiculosPorCelda={data.misVehiculosPorCelda}
+              vistaSimplificada={esConductor}
+            />
 
-            {filters.activeTab === "table" && filters.filteredPqsConCeldas.length > 0 && (
+            {filters.filteredPqsConCeldas.length > 0 && (
               <DataPagination
                 currentPage={filters.currentPage}
                 totalPages={filters.totalPages}
@@ -185,19 +180,6 @@ export default function Parqueaderos() {
               />
             )}
 
-            {filters.activeTab === "map" && (
-              <ParkingMap
-                parqueaderos={filters.filteredPqsConCeldas}
-                celdas={celdasVisibles}
-                getOcupante={modal.getOcupante}
-                onCellClick={handleCellClick}
-                cellMatchesSearch={filters.cellMatchesSearch}
-                celdaTieneIncidenteAbierto={filters.celdaTieneIncidenteAbierto}
-                marcasDeReserva={modal.marcasDeReserva}
-                onToggleEstado={pqFormState.handleToggleEstadoParqueadero}
-                canManage={hasPermission("celdas")}
-              />
-            )}
           </>
         )}
       </div>

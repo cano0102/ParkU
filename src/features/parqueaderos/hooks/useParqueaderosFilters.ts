@@ -10,11 +10,10 @@ interface ParqueaderosFiltersOptions {
   soloConCeldas?: boolean;
 }
 
-/** Pestaña activa, búsqueda/filtro de tipo, listas filtradas y estadísticas de ocupación. */
+/** Búsqueda/filtro de tipo, listas filtradas y estadísticas de ocupación. */
 export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (celdaId: string) => { vehiculo: { placa: string }; conductor?: { nombre: string } } | null, options?: ParqueaderosFiltersOptions) {
   const { parqueaderos, celdas, incidentes } = data;
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<"map" | "table">("table");
   const [search, setSearch] = useState(() => searchParams.get("q") || "");
   const [filterTipo, setFilterTipo] = useState("Todos");
   const [currentPage, setCurrentPage] = useState(1);
@@ -84,15 +83,13 @@ export function useParqueaderosFilters(data: ParqueaderosData, getOcupante: (cel
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
-  // Solo la vista de tabla se pagina: el plano (mapa) necesita ver todos los parqueaderos a
-  // la vez, partirlo en páginas dejaría el layout espacial incompleto y confuso.
+  // La vista de lista se pagina para mantener manejable el listado de parqueaderos.
   const paginatedPqsConCeldas = useMemo(
     () => filteredPqsConCeldas.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
     [filteredPqsConCeldas, currentPage, itemsPerPage]
   );
 
   return {
-    activeTab, setActiveTab,
     search, setSearch,
     filterTipo, setFilterTipo,
     stats, cellMatchesSearch, celdaTieneIncidenteAbierto,

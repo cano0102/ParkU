@@ -83,19 +83,12 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     expect(screen.getByText('Gestión de Parqueaderos')).toBeInTheDocument();
   });
 
-  it('cambia entre la vista de lista y la vista de plano con el toggle', async () => {
-    const user = userEvent.setup();
+  it('muestra únicamente la vista de lista para administradores y vigilantes', async () => {
     renderPage();
     await screen.findByText('PQ-1 Torre A');
 
-    // En tabla no existen los controles de zoom del plano.
     expect(screen.queryByLabelText('Acercar')).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Plano' }));
-    expect(await screen.findByLabelText('Acercar')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Lista' }));
-    await waitFor(() => expect(screen.queryByLabelText('Acercar')).not.toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: 'Plano' })).not.toBeInTheDocument();
     expect(screen.getByText('PQ-1 Torre A')).toBeInTheDocument();
   });
 
@@ -183,24 +176,6 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     const celdaM001 = screen.getByText('M-001');
     expect(within(celdaC001.closest('button') as HTMLElement).getByTitle('Lleva más de 16 horas estacionado — considera generar un incidente')).toBeInTheDocument();
     expect(within(celdaM001.closest('button') as HTMLElement).queryByTitle('Lleva más de 16 horas estacionado — considera generar un incidente')).not.toBeInTheDocument();
-  });
-
-  it('también muestra el aviso de incidente abierto en la vista de plano', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText('PQ-1 Torre A');
-
-    await user.click(screen.getByRole('button', { name: 'Plano' }));
-    await screen.findByLabelText('Acercar');
-
-    // El plano SVG usa el mismo texto accesible que la tabla para el mismo aviso, pero como
-    // <title> anidado dentro de un <g> (no hijo directo de <svg>) `getByTitle` no lo encuentra
-    // — se busca el elemento <title> directo por contenido, igual que un lector de pantalla lo
-    // asociaría con la celda. Aparece dos veces (C-001 y C-002, ambas con novedad PENDIENTE).
-    const titulos = Array.from(document.querySelectorAll('title')).filter(
-      (t) => t.textContent === 'Tiene un incidente abierto reportado'
-    );
-    expect(titulos).toHaveLength(2);
   });
 
   it('el botón "Nuevo Parqueadero" abre el modal de creación', async () => {

@@ -1,10 +1,4 @@
-import {
-  IconLayoutGrid as LayoutGrid,
-  IconMap as MapIcon,
-  IconPlus as Plus,
-  IconSearch as Search,
-  IconX as X,
-} from "@tabler/icons-react";
+import { IconPlus as Plus, IconSearch as Search, IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { TIPOS_PARQUEADERO, capitalizar } from "../lib/helpers";
 
@@ -15,8 +9,6 @@ interface ParqueaderosTopbarProps {
   onSearchChange: (value: string) => void;
   filterTipo: string;
   onFilterTipoChange: (value: string) => void;
-  activeTab: "map" | "table";
-  onActiveTabChange: (tab: "map" | "table") => void;
   activeFilters: number;
   onClearFilters: () => void;
   onOpenCreate: () => void;
@@ -28,14 +20,9 @@ interface ParqueaderosTopbarProps {
   /** true si el rol puede usar la asignación inteligente (permiso "asignaciones"). */
 }
 
-const TABS = [
-  { id: "table" as const, label: "Lista", icon: <LayoutGrid size={14} /> },
-  { id: "map" as const, label: "Plano", icon: <MapIcon size={14} /> },
-];
-
-/** Buscador + filtro de tipo + toggle lista/plano + accesos a asignación inteligente y crear parqueadero. */
+/** Buscador + filtro de tipo + acciones de gestión de parqueaderos. */
 export function ParqueaderosTopbar({
-  search, onSearchChange, filterTipo, onFilterTipoChange, activeTab, onActiveTabChange,
+  search, onSearchChange, filterTipo, onFilterTipoChange,
   activeFilters, onClearFilters, onOpenCreate,
   canCrearParqueadero,
   ocultarBusqueda = false,
@@ -65,22 +52,6 @@ export function ParqueaderosTopbar({
         <option value="Todos">Todos los tipos</option>
         {TIPOS_PARQUEADERO.map((t) => <option key={t} value={t}>{capitalizar(t)}</option>)}
       </select>
-
-      <div className="pq-view-toggle">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => onActiveTabChange(t.id)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", fontSize: 12, fontWeight: 700,
-              border: "none", background: activeTab === t.id ? C.primary : "transparent", color: activeTab === t.id ? "#fff" : C.textLight,
-              cursor: "pointer", fontFamily: "inherit", transition: "all .15s",
-            }}
-          >
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </div>
 
       {activeFilters > 0 && (
         <button onClick={onClearFilters} style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`, background: "#fff", cursor: "pointer", color: C.textLight, fontSize: 12, fontFamily: "inherit" }}>
