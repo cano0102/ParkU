@@ -66,6 +66,7 @@ describe('services/usuarios', () => {
     const call = apiFetchMock.mock.calls.find(([path, opts]) => path === '/usuarios' && (opts as any)?.method === 'POST');
     const body = (call?.[1] as any).body;
     expect(body.contrasena).toBe('Pass1234');
+    expect(body.password).toBe('Pass1234');
     expect(body.confirmar_contrasena).toBe('Pass1234');
   });
 

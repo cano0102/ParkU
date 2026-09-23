@@ -105,6 +105,11 @@ export async function create(data: Omit<Usuario, 'id'>): Promise<Usuario> {
     body: {
       correo: data.correo.trim().toLowerCase(),
       contrasena: data.password,
+      // El endpoint administrativo usa `password` para inicializar el hash de acceso,
+      // mientras que el endpoint de login recibe `contrasena`. Enviar ambos mantiene
+      // compatibles las dos rutas y evita que una cuenta recién creada quede sin una
+      // contraseña válida para iniciar sesión.
+      password: data.password,
       // Requerido por la API: sin este campo responde 400 "Debes confirmar la contraseña
       // (envía confirmar_contrasena)" y la cuenta no se crea. Se manda la confirmación que
       // escribió el usuario; si quien llama no la trae, se repite la contraseña.
