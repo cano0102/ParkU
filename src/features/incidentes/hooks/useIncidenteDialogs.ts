@@ -23,7 +23,7 @@ const emptyFormData = () => ({
   justificacionCierre: "",
 });
 
-/** Los tres modales de Incidentes: crear/editar (con su validación en vivo), ver detalle y confirmar eliminación. */
+/** Los modales de Incidentes: crear/editar, ver detalle y confirmar desactivación. */
 export function useIncidenteDialogs(
   data: IncidentesData,
   options?: {
@@ -40,7 +40,7 @@ export function useIncidenteDialogs(
 ) {
   const puedeClasificar = options?.puedeClasificar ?? true;
   const {
-    celdas, incidentes, addIncidente, updateIncidente, deleteIncidente, ocupanteDeCelda,
+    celdas, incidentes, addIncidente, updateIncidente, ocupanteDeCelda,
     cambiarEstado, usuariosReportantes,
   } = data;
 
@@ -276,8 +276,8 @@ export function useIncidenteDialogs(
   const confirmDeleteAction = async () => {
     if (!confirmDelete) return;
     try {
-      await deleteIncidente(confirmDelete.id);
-      toast.success("Incidente eliminado");
+      await updateIncidente(confirmDelete.id, { activo: false });
+      toast.success("Incidente desactivado correctamente");
       setConfirmDelete(null);
     } catch (error) {
       console.error("Error deleting incidente:", error);

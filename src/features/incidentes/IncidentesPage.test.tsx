@@ -221,22 +221,22 @@ describe('features/incidentes', () => {
     });
   }, 15000);
 
-  it('elimina un incidente mediante el modal de confirmación', async () => {
+  it('desactiva un incidente mediante el modal de confirmación', async () => {
     const user = userEvent.setup();
     renderIncidentes();
     await waitFor(() =>
       expect(screen.getAllByText('Vehículo mal estacionado bloqueando entrada').length).toBeGreaterThan(0)
     );
 
-    // Filtra a un único incidente para que "Eliminar incidente" sea inequívoco.
+    // Filtra a un único incidente para que "Desactivar incidente" sea inequívoco.
     const search = screen.getByLabelText('Buscar incidente');
     await user.type(search, 'aceite');
-    await waitFor(() => expect(screen.getAllByLabelText('Eliminar incidente')).toHaveLength(1));
+    await waitFor(() => expect(screen.getAllByLabelText('Desactivar incidente')).toHaveLength(1));
 
-    await user.click(screen.getByLabelText('Eliminar incidente'));
-    expect(await screen.findByText('¿Eliminar incidente?')).toBeInTheDocument();
+    await user.click(screen.getByLabelText('Desactivar incidente'));
+    expect(await screen.findByText('¿Desactivar incidente?')).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Eliminar' }));
+    await user.click(screen.getByRole('button', { name: 'Desactivar' }));
 
     await waitFor(() =>
       expect(screen.queryByText('Derrame de aceite con posible caída de vehículo')).not.toBeInTheDocument()

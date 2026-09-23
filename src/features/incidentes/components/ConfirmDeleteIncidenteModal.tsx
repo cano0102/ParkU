@@ -1,4 +1,4 @@
-import { IconTrash as Trash2 } from "@tabler/icons-react";
+import { IconPower as Power, IconX as X } from "@tabler/icons-react";
 import { theme } from "@/styles/theme";
 import { useEnCurso } from "@/hooks/useEnCurso";
 
@@ -10,22 +10,37 @@ interface ConfirmDeleteIncidenteModalProps {
   onConfirm: () => void | Promise<unknown>;
 }
 
-/** Confirmación de eliminación de un incidente. */
+/** Confirmación de desactivación de un incidente. */
 export function ConfirmDeleteIncidenteModal({ descripcion, onCancel, onConfirm }: ConfirmDeleteIncidenteModalProps) {
   const [confirmar, enCurso] = useEnCurso(onConfirm);
   return (
-    <div style={{ padding: "1.8rem" }}>
+    <div style={{ padding: "1.8rem", position: "relative" }}>
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={enCurso}
+        aria-label="Cerrar modal"
+        title="Cerrar"
+        style={{
+          position: "absolute", top: 12, right: 12, width: 30, height: 30,
+          border: "none", borderRadius: 8, background: "transparent", color: C.textLight,
+          cursor: enCurso ? "not-allowed" : "pointer", display: "flex",
+          alignItems: "center", justifyContent: "center",
+        }}
+      >
+        <X size={18} />
+      </button>
       <div style={{
         width: 44, height: 44, borderRadius: 12, background: "#FEE2E2",
         display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 14,
       }}>
-        <Trash2 size={20} color={C.danger} />
+        <Power size={20} color={C.danger} />
       </div>
       <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text, marginBottom: 6 }}>
-        ¿Eliminar incidente?
+        ¿Desactivar incidente?
       </h3>
       <p style={{ fontSize: 12, color: C.textLight, marginBottom: 20, lineHeight: 1.5 }}>
-        "{descripcion}" se eliminará permanentemente. Esta acción no se puede revertir.
+        "{descripcion}" dejará de mostrarse en la lista, pero se conservará su historial.
       </p>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
         <button
@@ -50,7 +65,7 @@ export function ConfirmDeleteIncidenteModal({ descripcion, onCancel, onConfirm }
             fontSize: 13, fontWeight: 700, cursor: enCurso ? "wait" : "pointer", opacity: enCurso ? 0.7 : 1, fontFamily: "inherit",
           }}
         >
-          {enCurso ? "Eliminando…" : "Eliminar"}
+          {enCurso ? "Desactivando…" : "Desactivar"}
         </button>
       </div>
     </div>

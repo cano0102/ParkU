@@ -32,6 +32,7 @@ export type EstadoNovedad = 'pendiente' | 'en_proceso' | 'resuelto' | 'rechazado
 
 export interface Incidente {
   id: string;
+  activo?: boolean;
   clase: ClaseNovedad;
   tipoNovedad: TipoNovedad;
   /** En qué consiste, cuando el tipo es "otro". Vacío en cualquier otro caso. */
@@ -61,6 +62,7 @@ const ESTADO_A_API: Record<EstadoNovedad, string> = {
 
 interface ApiNovedad {
   id: number;
+  activo?: boolean;
   clase?: string;
   tipo_novedad: string | null;
   tipo_otro?: string | null;
@@ -79,6 +81,7 @@ interface ApiNovedad {
 function toFrontend(n: ApiNovedad): Incidente {
   return {
     id: String(n.id),
+    activo: n.activo !== false,
     clase: (n.clase?.toLowerCase() as ClaseNovedad) ?? 'incidente',
     tipoNovedad: (n.tipo_novedad ? TIPO_DESDE_API[n.tipo_novedad] : undefined) ?? 'otro',
     tipoOtro: n.tipo_otro ?? '',
@@ -97,6 +100,7 @@ function toFrontend(n: ApiNovedad): Incidente {
 
 function toApiPayload(data: Partial<Omit<Incidente, 'id'>>): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
+  if (data.activo !== undefined) payload.activo = data.activo;
   if (data.clase !== undefined) payload.clase = data.clase.toUpperCase();
   if (data.tipoNovedad !== undefined) payload.tipo_novedad = data.tipoNovedad.toUpperCase();
   if (data.tipoOtro !== undefined) payload.tipo_otro = data.tipoOtro || null;

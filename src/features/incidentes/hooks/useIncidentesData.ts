@@ -12,7 +12,6 @@ import {
   useIncidentes,
   useCreateIncidente,
   useUpdateIncidente,
-  useRemoveIncidente,
 } from "./useIncidentes";
 import { ESTADO_CONFIG, type EstadoIncidente } from "../lib/constants";
 import { compararIncidentes } from "../lib/orden";
@@ -49,13 +48,11 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const { data: incidentes = [], isLoading, isError } = useIncidentes({ silentError: options?.silentIncidentesError });
   const createIncidenteMutation = useCreateIncidente();
   const updateIncidenteMutation = useUpdateIncidente();
-  const removeIncidenteMutation = useRemoveIncidente();
   // `mutateAsync` (no `.mutate`): quien llama necesita el `await`/try-catch para no
   // mostrar un toast de "éxito" ni cerrar su diálogo cuando la mutación en realidad falla.
   const addIncidente = (data: Omit<Incidente, "id" | "fecha">) => createIncidenteMutation.mutateAsync({ ...data, fecha: new Date().toISOString() });
   const updateIncidente = (id: string, data: Partial<Omit<Incidente, "id">>) =>
     updateIncidenteMutation.mutateAsync({ id, data });
-  const deleteIncidente = (id: string) => removeIncidenteMutation.mutateAsync(id);
 
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoIncidente>("todos");
@@ -195,6 +192,7 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const filteredIncidentes = useMemo(
     () =>
       incidentes
+        .filter((inc) => inc.activo !== false)
         .filter((inc) => {
           const q = search.toLowerCase();
           const pqNombre = nombreParqueadero(inc.parqueaderoId).toLowerCase();
@@ -253,7 +251,6 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     incidentes,
     addIncidente,
     updateIncidente,
-    deleteIncidente,
     search,
     setSearch,
     filterEstado,

@@ -7,7 +7,6 @@ import {
   IconEye as Eye,
   IconLock as Lock,
   IconMapPin as MapPin,
-  IconTrash as Trash2,
   IconUser as User,
   IconUserPlus as UserPlus,
 } from "@tabler/icons-react";
@@ -288,17 +287,23 @@ export function IncidenteCard({
             </button>
             <button
               className="delete-btn"
-              title="Eliminar"
-              aria-label="Eliminar incidente"
+              title="Desactivar"
+              aria-label="Desactivar incidente"
               onClick={onDelete}
               style={{
-                width: 28, height: 28, borderRadius: 7,
-                border: "none", background: "transparent",
-                color: C.danger, cursor: "pointer",
+                width: 36, height: 20, borderRadius: 999,
+                border: "none", background: incidente.activo !== false ? C.primary : "#CBD5E1",
+                cursor: "pointer", position: "relative", transition: "background .2s",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
             >
-              <Trash2 size={13} />
+              <span
+                style={{
+                  position: "absolute", top: 3, left: incidente.activo !== false ? 18 : 3,
+                  width: 14, height: 14, borderRadius: "50%", background: "#fff",
+                  transition: "left .2s", boxShadow: "0 1px 3px rgba(0,0,0,.2)",
+                }}
+              />
             </button>
           </div>
         </div>
