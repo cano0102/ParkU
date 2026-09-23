@@ -15,7 +15,17 @@ function avisarError(error: unknown, fallback: string) {
 
 export type { Parqueadero };
 
-const hooks = createQueryHooks<Parqueadero>('parqueaderos', parqueaderosService, { staleTime: STALE_TIME.MAESTRO });
+/* `estado` (activo/inactivo) sí importa verlo sin recargar: si un admin/vigilante
+ * desactiva un parqueadero desde otro equipo, quien ya tiene esta pantalla abierta debe
+ * dejar de poder operarlo (el backend ya rechaza ingreso/reserva nueva, ver
+ * entradaSalida.service.js y reserva.service.js) sin tener que navegar fuera y volver. Por
+ * eso, a diferencia del resto de catálogos "MAESTRO", esta lista sí hace polling; 60s cabe
+ * de sobra en la cuota del backend (100 req/15min por IP) y React Query lo pausa solo con
+ * la pestaña en segundo plano. */
+const hooks = createQueryHooks<Parqueadero>('parqueaderos', parqueaderosService, {
+  staleTime: STALE_TIME.MAESTRO,
+  refetchInterval: 60_000,
+});
 
 export const useParqueaderos = hooks.useList;
 

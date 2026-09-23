@@ -46,6 +46,13 @@ export const STALE_TIME = {
 interface QueryHooksOptions {
   /** Ver {@link STALE_TIME}. Si se omite, manda el valor por defecto del QueryClient. */
   staleTime?: number;
+  /** Vuelve a pedir la lista cada tantos ms mientras la pestaña esté visible (React Query
+   *  pausa el intervalo con la pestaña en segundo plano por defecto, así que no suma contra
+   *  la cuota del backend mientras nadie mira la pantalla). Pensado para listas cuyo cambio
+   *  lo puede disparar OTRO usuario desde otro equipo y que sí importa ver sin recargar —
+   *  p. ej. si un parqueadero se desactiva, un vigilante con la pantalla abierta debe dejar
+   *  de poder operarlo sin tener que navegar fuera y volver. Si se omite, no hay polling. */
+  refetchInterval?: number;
 }
 
 export function createQueryHooks<T extends { id: string }>(queryKey: string, service: CrudService<T>, opciones: QueryHooksOptions = {}) {
@@ -72,6 +79,7 @@ export function createQueryHooks<T extends { id: string }>(queryKey: string, ser
       // QueryClient (React Query mezcla las opciones con spread) y deja la lista siempre
       // caducada — es decir, una petición nueva en cada montaje.
       ...(opciones.staleTime !== undefined ? { staleTime: opciones.staleTime } : {}),
+      ...(opciones.refetchInterval !== undefined ? { refetchInterval: opciones.refetchInterval } : {}),
       meta: { silentError: options?.silentError ?? false },
     });
   }
