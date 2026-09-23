@@ -66,6 +66,9 @@ interface IngresoModalProps {
   /** Motivo por el que no se puede estacionar este vehículo aquí ahora mismo (celda reservada
    *  para otro vehículo, o el conductor ya tiene otro vehículo suyo en uso), o null si no aplica. */
   motivoBloqueoLive: string | null;
+  /** En vuelo el registro del vehículo — deshabilita el botón para que un segundo clic no lo
+   *  duplique. */
+  registrando?: boolean;
   onClose: () => void;
   onOpenScanner: () => void;
   onSubmit: () => void;
@@ -76,7 +79,7 @@ export function IngresoModal({
   ingresoPlacaOk, ingresoValid, ingresoPlacaHint, placaYaEstacionada,
   vehiculoEncontrado, sugerenciasPlaca, conductorIdentificado, conductores, conductorQuery, onConductorQueryChange,
   onSelectConductor, onCambiarConductor, onCrearConductor, onCrearVehiculo, onSelectVehiculo, vehiculosConductor,
-  parqueaderoInactivo, motivoBloqueoLive,
+  parqueaderoInactivo, motivoBloqueoLive, registrando = false,
   onClose, onOpenScanner, onSubmit,
 }: IngresoModalProps) {
   const conductorInactivo = conductorIdentificado?.estado === "inactivo";
@@ -245,7 +248,7 @@ export function IngresoModal({
         <button onClick={onClose} style={{ padding: "10px 20px", borderRadius: 12, border: `1px solid ${C.border}`, background: "#fff", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>Cancelar</button>
         <button disabled={!ingresoValid} onClick={onSubmit}
           style={{ padding: "10px 24px", borderRadius: 12, border: "none", background: ingresoValid ? C.primary : "#E2E8F0", color: ingresoValid ? "#fff" : C.textLight, fontSize: 13, fontWeight: 800, cursor: ingresoValid ? "pointer" : "not-allowed", fontFamily: "inherit", boxShadow: ingresoValid ? "0 6px 18px rgba(57,169,0,.22)" : undefined }}>
-          Estacionar Vehículo
+          {registrando ? "Registrando…" : "Estacionar Vehículo"}
         </button>
       </div>
     </Modal>

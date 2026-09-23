@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useEnCurso } from "@/hooks/useEnCurso";
 import type { Celda } from "@/services/api/celdas";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import type { Vehiculo } from "@/services/api/vehiculos";
@@ -239,7 +240,7 @@ export function useIngresoVehiculo(
     }
   };
 
-  const registrarVehiculo = async () => {
+  const registrarVehiculoBase = async () => {
     if (!celdaActiva) return;
     if (await registrarEnCelda(celdaActiva, vehiculoForm.placa, vehiculoForm.conductor, vehiculoForm.esOficial, {
       marca: vehiculoForm.marca, modelo: vehiculoForm.modelo, color: vehiculoForm.color,
@@ -247,6 +248,10 @@ export function useIngresoVehiculo(
       setOpenModal(null);
     }
   };
+  // Evita el doble envío (doble clic, o una conexión lenta): useEnCurso usa una ref, no solo
+  // estado, así que bloquea incluso dos clics en el mismo tick, antes de que React
+  // re-renderice el botón deshabilitado.
+  const [registrarVehiculo, registrandoVehiculo] = useEnCurso(registrarVehiculoBase);
 
   const resetWizardConductor = () => {
     setConductorSeleccionadoId(null);
@@ -470,7 +475,7 @@ export function useIngresoVehiculo(
   // también — mismo criterio que ya aplica al crear un vehículo desde Conductores.
   const datosVehiculoNuevoOk = !!vehiculoEncontrado || (vehiculoForm.marca.trim() !== "" && vehiculoForm.color.trim() !== "");
   const parqueaderoIngresoActivo = parqueaderoActivo?.estado === "activo";
-  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo && !placaYaEstacionada && !motivoBloqueoLive && datosVehiculoNuevoOk;
+  const ingresoValid = ingresoPlacaOk && ingresoConductorOk && parqueaderoIngresoActivo && !placaYaEstacionada && !motivoBloqueoLive && datosVehiculoNuevoOk && !registrandoVehiculo;
   const ingresoPlacaHint = celdaActiva
     ? (celdaActiva.tipo === "moto" ? "Formato moto: 3 letras + 2 números + letra final opcional (ABC12D o ABC12)"
       : celdaActiva.tipo === "carro" ? "Formato carro: 3 letras + 3 números (ABC123)"
@@ -482,6 +487,7 @@ export function useIngresoVehiculo(
     registrarEnCelda, registrarVehiculo, abrirIngresoOficial, abrirIngresoVisitante, abrirIngresoReservado,
     conductoresSugeridos, vehiculoEncontrado, sugerenciasPlaca, conductorEncontrado, conductorIdentificado, vehiculosConductor,
     ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo, placaYaEstacionada,
+    registrandoVehiculo,
     motivoBloqueoLive,
     conductorQuery, setConductorQuery, seleccionarConductor, cambiarConductor, seleccionarVehiculo,
   };
