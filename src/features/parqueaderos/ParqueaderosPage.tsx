@@ -16,6 +16,7 @@ import { ParqueaderosHero } from "./components/ParqueaderosHero";
 import { ParqueaderosTopbar } from "./components/ParqueaderosTopbar";
 import type { Parqueadero } from "@/services/api/parqueaderos";
 import { ParqueaderosTable } from "./components/ParqueaderosTable";
+import { CeldasDisponibles } from "./components/CeldasDisponibles";
 import { ParqueaderoFormModal } from "./components/modals/ParqueaderoFormModal";
 import { IngresoModal } from "./components/modals/IngresoModal";
 import { CeldaInfoModal } from "./components/modals/CeldaInfoModal";
@@ -141,7 +142,14 @@ export default function Parqueaderos() {
               </p>
             )}
 
-            <ParqueaderosTable
+            {esConductor ? (
+              <CeldasDisponibles
+                celdas={celdasVisibles}
+                parqueaderos={data.parqueaderos}
+                onCellClick={handleCellClick}
+              />
+            ) : (
+              <ParqueaderosTable
               parqueaderos={filters.paginatedPqsConCeldas}
               celdas={
                 filters.search.trim() ? filters.filteredCeldas : celdasVisibles
@@ -165,9 +173,10 @@ export default function Parqueaderos() {
               canManage={hasPermission("celdas")}
               misVehiculosPorCelda={data.misVehiculosPorCelda}
               vistaSimplificada={esConductor}
-            />
+              />
+            )}
 
-            {filters.filteredPqsConCeldas.length > 0 && (
+            {!esConductor && filters.filteredPqsConCeldas.length > 0 && (
               <DataPagination
                 currentPage={filters.currentPage}
                 totalPages={filters.totalPages}
