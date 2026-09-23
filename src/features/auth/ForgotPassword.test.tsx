@@ -115,8 +115,43 @@ describe('ForgotPassword', () => {
     await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), CUENTA_SEMBRADA.correo);
     await user.click(screen.getByRole('button', { name: 'Verificar identidad' }));
 
-    expect(await screen.findByText('El nombre completo es obligatorio')).toBeInTheDocument();
+    expect(await screen.findByText('El nombre es obligatorio')).toBeInTheDocument();
     expect(screen.getByText('El número de documento es obligatorio')).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un nombre demasiado corto (mismo mínimo que en Registro)', async () => {
+    const user = userEvent.setup();
+    await renderForgotPassword();
+
+    await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), CUENTA_SEMBRADA.correo);
+    await user.type(screen.getByPlaceholderText('Como aparece en tu cuenta'), 'Al');
+    await user.type(screen.getByPlaceholderText('1001234567'), CUENTA_SEMBRADA.numeroDocumento);
+    await user.click(screen.getByRole('button', { name: 'Verificar identidad' }));
+
+    expect(await screen.findByText('El nombre debe tener al menos 3 caracteres')).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('descarta los dígitos que se escriban en el campo de nombre', async () => {
+    const user = userEvent.setup();
+    await renderForgotPassword();
+
+    await user.type(screen.getByPlaceholderText('Como aparece en tu cuenta'), 'Ana123');
+
+    expect(screen.getByPlaceholderText('Como aparece en tu cuenta')).toHaveValue('Ana');
+  });
+
+  it('rechaza un número de documento con menos de 6 dígitos', async () => {
+    const user = userEvent.setup();
+    await renderForgotPassword();
+
+    await user.type(screen.getByPlaceholderText('correo@sena.edu.co'), CUENTA_SEMBRADA.correo);
+    await user.type(screen.getByPlaceholderText('Como aparece en tu cuenta'), CUENTA_SEMBRADA.nombre);
+    await user.type(screen.getByPlaceholderText('1001234567'), '123');
+    await user.click(screen.getByRole('button', { name: 'Verificar identidad' }));
+
+    expect(await screen.findByText('El número de documento debe tener entre 6 y 10 dígitos')).toBeInTheDocument();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 });

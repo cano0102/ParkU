@@ -2,12 +2,10 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MAX, validarNumeroDocumento } from "@/utils/validation";
-
-// Corrección: antes solo se aceptaban correos "@sena.edu.co", pero el sistema
-// también registra usuarios externos válidos (p. ej. "@ext.com") que quedaban
-// sin forma de recuperar su contraseña. Se usa el mismo formato general que Login.
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import {
+  TIPOS_DOCUMENTO, NUMERO_DOCUMENTO_MIN, NUMERO_DOCUMENTO_MAX, NOMBRE_MAX, CORREO_MAX,
+  validarNumeroDocumento, validarNombrePersona, validarCorreo, quitarDigitos,
+} from "@/utils/validation";
 
 /** Formulario de recuperación: verifica la identidad de la persona con datos que ya tiene
  * el sistema (correo, tipo/número de documento y nombre) -- sin enviar nada por correo ni
@@ -15,7 +13,13 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * entrega un token de recuperación en la misma respuesta y se navega directo a la pantalla
  * de nueva contraseña con ese token. Si no coinciden, el backend lo dice explícitamente
  * (a diferencia del flujo por correo, aquí no hay forma de responder "puede que sí, puede
- * que no": es el precio de no depender de un canal externo). */
+ * que no": es el precio de no depender de un canal externo).
+ *
+ * Usa los mismos validadores compartidos que Registro (validarCorreo, validarNombrePersona)
+ * en vez de un chequeo suelto de formato: el backend compara estos datos EXACTOS contra la
+ * cuenta (correo, documento y nombre tal como quedaron guardados), así que dejar pasar un
+ * nombre con dígitos o símbolos, o un correo sin el largo máximo de la columna, solo termina
+ * en el mismo "los datos no coinciden" del backend -- pero sin decir por qué. */
 export function useForgotPasswordForm() {
   const navigate = useNavigate();
   const [correo, setCorreo] = useState("");
@@ -30,23 +34,18 @@ export function useForgotPasswordForm() {
   // de cada mensaje se controla con `touched` (ver el componente del formulario).
   const errors = useMemo(() => {
     const newErrors: { correo?: string; numeroDocumento?: string; nombre?: string } = {};
-    const correoTrim = correo.trim().toLowerCase();
 
-    if (!correoTrim) {
-      newErrors.correo = "El correo electrónico es obligatorio";
-    } else if (!EMAIL_REGEX.test(correoTrim)) {
-      newErrors.correo = "Ingresa un correo electrónico válido";
-    }
+    const errorCorreo = validarCorreo(correo);
+    if (errorCorreo) newErrors.correo = errorCorreo;
 
     if (!numeroDocumento.trim()) {
       newErrors.numeroDocumento = "El número de documento es obligatorio";
     } else if (!validarNumeroDocumento(numeroDocumento)) {
-      newErrors.numeroDocumento = "Ingresa un número de documento válido";
+      newErrors.numeroDocumento = `El número de documento debe tener entre ${NUMERO_DOCUMENTO_MIN} y ${NUMERO_DOCUMENTO_MAX} dígitos`;
     }
 
-    if (!nombre.trim()) {
-      newErrors.nombre = "El nombre completo es obligatorio";
-    }
+    const errorNombre = validarNombrePersona(nombre);
+    if (errorNombre) newErrors.nombre = errorNombre;
 
     return newErrors;
   }, [correo, numeroDocumento, nombre]);
@@ -75,12 +74,15 @@ export function useForgotPasswordForm() {
     }
   };
 
-  const handleCorreoChange = (e: React.ChangeEvent<HTMLInputElement>) => setCorreo(e.target.value);
+  const handleCorreoChange = (e: React.ChangeEvent<HTMLInputElement>) => setCorreo(e.target.value.slice(0, CORREO_MAX));
   const handleTipoDocumentoChange = (value: string) => setTipoDocumento(value);
   // Solo dígitos y como mucho diez: el mismo formato que valida validarNumeroDocumento.
   const handleNumeroDocumentoChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setNumeroDocumento(e.target.value.replace(/\D/g, "").slice(0, NUMERO_DOCUMENTO_MAX));
-  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => setNombre(e.target.value);
+  // Sin dígitos (un nombre de persona no lleva números) y con el mismo tope que
+  // validarNombrePersona: mismo criterio que usa el nombre en Registro.
+  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setNombre(quitarDigitos(e.target.value).slice(0, NOMBRE_MAX));
 
   const handleBlur = (field: string) => setTouched((t) => ({ ...t, [field]: true }));
 
