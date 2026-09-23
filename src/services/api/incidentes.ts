@@ -62,7 +62,7 @@ const ESTADO_A_API: Record<EstadoNovedad, string> = {
 
 interface ApiNovedad {
   id: number;
-  activo?: boolean;
+  activo?: boolean | number | string | null;
   clase?: string;
   tipo_novedad: string | null;
   tipo_otro?: string | null;
@@ -78,10 +78,18 @@ interface ApiNovedad {
   justificacion_cierre: string | null;
 }
 
+function estaActivo(value: ApiNovedad["activo"]): boolean {
+  if (value === false || value === 0) return false;
+  if (typeof value === "string") {
+    return !["false", "0", "inactivo", "inactive", "desactivado", "desactivada"].includes(value.trim().toLowerCase());
+  }
+  return true;
+}
+
 function toFrontend(n: ApiNovedad): Incidente {
   return {
     id: String(n.id),
-    activo: n.activo !== false,
+    activo: estaActivo(n.activo),
     clase: (n.clase?.toLowerCase() as ClaseNovedad) ?? 'incidente',
     tipoNovedad: (n.tipo_novedad ? TIPO_DESDE_API[n.tipo_novedad] : undefined) ?? 'otro',
     tipoOtro: n.tipo_otro ?? '',

@@ -37,6 +37,19 @@ describe('services/incidentes (novedades)', () => {
     expect(all.map((i) => i.estado)).toEqual(expect.arrayContaining(['pendiente', 'resuelto']));
   });
 
+  it('traduce correctamente los formatos de activo que puede devolver la API', async () => {
+    apiFetchMock.mockResolvedValueOnce([
+      { ...seed[0], id: 10, activo: false },
+      { ...seed[0], id: 11, activo: 'INACTIVO' },
+      { ...seed[0], id: 12, activo: 0 },
+      { ...seed[0], id: 13, activo: true },
+    ]);
+
+    const all = await incidentes.getAll();
+
+    expect(all.map((item) => item.activo)).toEqual([false, false, false, true]);
+  });
+
   it('create envía la fecha calculada por el llamador como fecha_hora (antes se perdía en toApiPayload)', async () => {
     const fecha = '2025-03-04T10:00:00.000Z';
     const creado = await incidentes.create({
