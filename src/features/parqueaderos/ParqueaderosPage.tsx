@@ -218,6 +218,25 @@ export default function Parqueaderos() {
         }
       />
 
+      {/* Confirmación antes de liberar una celda ocupada: registra la salida y no se deshace. */}
+      <ConfirmDialog
+        open={reserva.liberarPendiente && modal.openModal === "info" && !!modal.celdaActiva}
+        onConfirm={reserva.confirmarLiberar}
+        onCancel={reserva.cancelarLiberar}
+        title="Confirmar salida"
+        message={(() => {
+          const celda = modal.celdaActiva;
+          if (!celda) return "";
+          const placa = modal.ocupanteActivo?.vehiculo.placa;
+          const conductor = modal.ocupanteActivo?.conductor?.nombre;
+          return placa
+            ? `¿Registrar la salida del vehículo ${placa}${conductor ? ` de ${conductor}` : ""} y liberar la celda ${celda.numero}? Esta acción no se puede deshacer.`
+            : `¿Liberar la celda ${celda.numero}? Esta acción no se puede deshacer.`;
+        })()}
+        confirmLabel="Liberar celda"
+        tone="danger"
+      />
+
       <ConfirmDialog
         open={!!pqFormState.pqAEliminar}
         onConfirm={pqFormState.confirmDeleteParqueadero}
@@ -360,13 +379,13 @@ export default function Parqueaderos() {
             data.conductores.find((c) => c.id === r.conductorId)?.nombre ?? "",
         }))}
         parqueaderoActivo={modal.parqueaderoActivo}
-        onClose={() => modal.setOpenModal(null)}
+        onClose={() => { reserva.cancelarLiberar(); modal.setOpenModal(null); }}
         onCancelarReserva={reserva.handleCancelarReserva}
         onEstacionarOficial={ingreso.abrirIngresoOficial}
         onNavigateConductor={(nombre) =>
           navigate(`/app/conductores?q=${encodeURIComponent(nombre)}`)
         }
-        onLiberar={reserva.handleRequestLiberar}
+        onLiberar={reserva.pedirLiberar}
         onReportarIncidente={() => modal.setOpenModal("incidente")}
         onEstacionarVehiculo={ingreso.abrirIngresoVisitante}
         onEstacionarReservado={() => {

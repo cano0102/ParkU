@@ -218,9 +218,21 @@ export function useReservaCelda(
     }
   }, [celdaActiva, data, getOcupante, updateControlSalida, setOpenModal]);
 
+  /* Liberar la celda registra la salida del vehículo y no se deshace: el botón "Liberar
+     Celda" solo la pide, y se ejecuta al confirmarla en el diálogo (igual que en Entrada /
+     Salida). */
+  const [liberarPendiente, setLiberarPendiente] = useState(false);
+  const pedirLiberar = useCallback(() => setLiberarPendiente(true), []);
+  const cancelarLiberar = useCallback(() => setLiberarPendiente(false), []);
+  const confirmarLiberar = useCallback(async () => {
+    await handleRequestLiberar();
+    setLiberarPendiente(false);
+  }, [handleRequestLiberar]);
+
   return {
     reservaForm, setReservaForm, reservaError,
     openReservaFromCelda, handleCrearReserva, handleCancelarReserva, confirmarCancelarReserva,
     reservaACancelar, handleRequestLiberar,
+    liberarPendiente, pedirLiberar, cancelarLiberar, confirmarLiberar,
   };
 }
