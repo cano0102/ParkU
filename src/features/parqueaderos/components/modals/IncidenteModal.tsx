@@ -40,6 +40,9 @@ interface IncidenteModalProps {
   puedeRegistrarNovedades?: boolean;
   /** Lo que se está mirando al reportar (celda, vehículo, o solo el parqueadero). */
   etiquetaContexto?: string;
+  /** En vuelo el reporte (addIncidente + subida de evidencias) — deshabilita el botón para
+   *  que un segundo clic no lo duplique. */
+  registrando?: boolean;
   onClose: () => void;
   onSubmit: () => void;
 }
@@ -48,7 +51,7 @@ export function IncidenteModal({
   open, celdaActiva, ocupanteActivo, parqueaderoActivo, incidenteForm, setIncidenteForm,
   incidenteError, usuariosAsignables, usuariosReportantes = [], puedeRegistrarNovedades = false,
   vehiculosDelReportante = [], vehiculoFijado = false, evidencias = [], onEvidenciasChange,
-  etiquetaContexto, onClose, onSubmit,
+  etiquetaContexto, registrando = false, onClose, onSubmit,
 }: IncidenteModalProps) {
   const entrada = ocupanteActivo ? formatearFechaHora(ocupanteActivo.fechaEntrada) : null;
   /* Una novedad es una observación de la operación: no ocurre sobre una celda ni un vehículo,
@@ -56,7 +59,8 @@ export function IncidenteModal({
   const esNovedad = incidenteForm.clase === "novedad";
   const puedeEnviar = !incidenteError && !!incidenteForm.descripcion.trim()
     && (esNovedad || (!!incidenteForm.tipoNovedad
-      && (incidenteForm.tipoNovedad !== "otro" || !!incidenteForm.tipoOtro.trim())));
+      && (incidenteForm.tipoNovedad !== "otro" || !!incidenteForm.tipoOtro.trim())))
+    && !registrando;
   return (
     <Modal open={open} onClose={onClose} maxWidth={520}>
       <ModalHeader
@@ -261,7 +265,7 @@ export function IncidenteModal({
           }}
         >
           <FileText size={16} />
-          {esNovedad ? "Registrar Novedad" : "Registrar Incidente"}
+          {registrando ? "Registrando…" : (esNovedad ? "Registrar Novedad" : "Registrar Incidente")}
         </button>
       </div>
     </Modal>

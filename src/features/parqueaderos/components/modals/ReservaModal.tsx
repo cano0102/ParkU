@@ -44,12 +44,15 @@ interface ReservaModalProps {
   reservaForm: ReservaFormState;
   setReservaForm: React.Dispatch<React.SetStateAction<ReservaFormState>>;
   reservaError: string | null;
+  /** En vuelo la reserva (POST + los dos PATCH encadenados en useReservaCelda) — deshabilita
+   *  el botón para que un segundo clic no dispare otra reserva antes de que cierre el modal. */
+  creandoReserva?: boolean;
   onClose: () => void;
   onSubmit: () => void;
 }
 
 export function ReservaModal({
-  open, celdaActiva, parqueaderoActivo, vehiculos, conductores, reservaForm, setReservaForm, reservaError, onClose, onSubmit,
+  open, celdaActiva, parqueaderoActivo, vehiculos, conductores, reservaForm, setReservaForm, reservaError, creandoReserva = false, onClose, onSubmit,
 }: ReservaModalProps) {
   const [vehiculoQuery, setVehiculoQuery] = useState("");
   const [vehiculoAbierto, setVehiculoAbierto] = useState(false);
@@ -346,19 +349,20 @@ export function ReservaModal({
           </button>
           <button
             onClick={onSubmit}
-            disabled={!formValido}
+            disabled={!formValido || creandoReserva}
             style={{
               padding: "10px 24px", borderRadius: 12,
               border: "none",
               background: formValido ? C.primary : "#E2E8F0",
               color: formValido ? "#fff" : C.textLight,
               fontSize: 13, fontWeight: 800,
-              cursor: formValido ? "pointer" : "not-allowed",
+              cursor: formValido && !creandoReserva ? "pointer" : "not-allowed",
               fontFamily: "inherit",
               boxShadow: formValido ? "0 6px 18px rgba(57,169,0,.22)" : undefined,
+              opacity: creandoReserva ? 0.75 : 1,
             }}
           >
-            📅 Crear Reserva
+            {creandoReserva ? "Creando…" : "📅 Crear Reserva"}
           </button>
         </div>
       </div>
