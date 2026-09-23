@@ -9,9 +9,11 @@ interface IncidentesToolbarProps {
   search: string;
   onSearchChange: (value: string) => void;
   filterEstado: "todos" | EstadoIncidente;
+  filterActivo: "todos" | "activos" | "desactivados";
   filterClase: "todos" | ClaseNovedad;
   onFilterClaseChange: (clase: "todos" | ClaseNovedad) => void;
   onFilterEstadoChange: (value: "todos" | EstadoIncidente) => void;
+  onFilterActivoChange: (value: "todos" | "activos" | "desactivados") => void;
   activeFiltersCount: number;
   onClearFilters: () => void;
   onCreate: () => void;
@@ -20,7 +22,7 @@ interface IncidentesToolbarProps {
 /** Buscador + filtro de estado + botón "Registrar Incidente". */
 export function IncidentesToolbar({
   search, onSearchChange, filterEstado, onFilterEstadoChange, filterClase, onFilterClaseChange,
-  activeFiltersCount, onClearFilters, onCreate,
+  filterActivo, onFilterActivoChange, activeFiltersCount, onClearFilters, onCreate,
 }: IncidentesToolbarProps) {
   return (
     <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -66,6 +68,20 @@ export function IncidentesToolbar({
         <option value="resuelto">Resueltos</option>
         <option value="rechazado">Rechazados</option>
         <option value="cancelado">Cancelados</option>
+      </select>
+
+      <select
+        aria-label="Filtrar por activación"
+        value={filterActivo}
+        onChange={(e) => onFilterActivoChange(e.target.value as "todos" | "activos" | "desactivados")}
+        style={{
+          padding: "10px 14px", borderRadius: 11, border: `1px solid ${C.border}`,
+          fontSize: 13, background: "#fff", fontFamily: "inherit", cursor: "pointer",
+        }}
+      >
+        <option value="todos">Activos y desactivados</option>
+        <option value="activos">Solo activos</option>
+        <option value="desactivados">Solo desactivados</option>
       </select>
 
       {/* Una avería y una observación de turno se atienden distinto: poder mirar solo unas u

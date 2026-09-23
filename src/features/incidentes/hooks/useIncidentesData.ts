@@ -56,6 +56,7 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
 
   const [search, setSearch] = useState("");
   const [filterEstado, setFilterEstado] = useState<"todos" | EstadoIncidente>("todos");
+  const [filterActivo, setFilterActivo] = useState<"todos" | "activos" | "desactivados">("todos");
   /* Incidentes y novedades conviven en la misma lista pero se atienden distinto: sin poder
      separarlos, una observación de turno estorba a quien busca averías por resolver. */
   const [filterClase, setFilterClase] = useState<"todos" | ClaseNovedad>("todos");
@@ -203,20 +204,23 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
             celdaNumero.includes(q) ||
             placa.includes(q);
           const matchesEstado = filterEstado === "todos" ? true : inc.estado === filterEstado;
+          const matchesActivo =
+            filterActivo === "todos" ||
+            (filterActivo === "activos" ? inc.activo !== false : inc.activo === false);
           const matchesClase = filterClase === "todos" ? true : inc.clase === filterClase;
-          return matchesSearch && matchesEstado && matchesClase;
+          return matchesSearch && matchesEstado && matchesActivo && matchesClase;
         })
         .sort(compararIncidentes),
     // nombreParqueadero/celdaDe/vehiculoDe son funciones nuevas en cada render, pero lo que
     // de verdad cambia el resultado son los mapas que consultan, ya declarados aquí.
     // Depender de las funciones haría que este memo se recalculara siempre.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [incidentes, search, filterEstado, filterClase, parqueaderoPorId, celdaPorId, vehiculoPorId]
+    [incidentes, search, filterEstado, filterActivo, filterClase, parqueaderoPorId, celdaPorId, vehiculoPorId]
   );
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [search, filterEstado, filterClase]);
+  }, [search, filterEstado, filterActivo, filterClase]);
 
   const totalPages = Math.max(1, Math.ceil(filteredIncidentes.length / itemsPerPage));
 
@@ -232,11 +236,14 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const activeFiltersCount = [
     search,
     filterEstado !== "todos" ? filterEstado : "",
+    filterActivo !== "todos" ? filterActivo : "",
     filterClase !== "todos" ? filterClase : "",
   ].filter(Boolean).length;
   const clearFilters = () => {
     setSearch("");
     setFilterEstado("todos");
+    setFilterActivo("todos");
+    setFilterClase("todos");
   };
 
   return {
@@ -254,6 +261,8 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
     setSearch,
     filterEstado,
     filterClase,
+    filterActivo,
+    setFilterActivo,
     setFilterClase,
     setFilterEstado,
     nombreParqueadero,

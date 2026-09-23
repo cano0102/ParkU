@@ -47,6 +47,8 @@ export function Incidentes() {
           onSearchChange={p.setSearch}
           filterEstado={p.filterEstado}
           onFilterEstadoChange={p.setFilterEstado}
+          filterActivo={p.filterActivo}
+          onFilterActivoChange={p.setFilterActivo}
           filterClase={p.filterClase}
           onFilterClaseChange={p.setFilterClase}
           activeFiltersCount={p.activeFiltersCount}
