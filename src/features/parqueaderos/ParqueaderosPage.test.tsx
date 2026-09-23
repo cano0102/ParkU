@@ -133,6 +133,28 @@ describe('features/parqueaderos — Parqueaderos (punto de entrada)', () => {
     expect(within(dialog).getByRole('button', { name: 'Liberar Celda' })).toBeInTheDocument();
   });
 
+  it('"Liberar Celda" pide confirmación antes de registrar la salida', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('PQ-1 Torre A');
+    await user.click(screen.getByText('PQ-1 Torre A'));
+    const celdaBoton = (await screen.findByText('C-001')).closest('button');
+    await user.click(celdaBoton as HTMLButtonElement);
+
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Liberar Celda' }));
+
+    // Aparece la confirmación con la placa y la celda; todavía no se liberó nada.
+    expect(await screen.findByText(/¿Registrar la salida del vehículo ABC123 de Carlos López M\. y liberar la celda C-001\?/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Cancelar' }));
+    await waitFor(() =>
+      expect(screen.queryByText(/¿Registrar la salida del vehículo ABC123/)).not.toBeInTheDocument(),
+    );
+    // Sigue abierto el detalle de la celda, con el vehículo dentro.
+    expect(within(await screen.findByRole('dialog')).getAllByText('ABC123').length).toBeGreaterThan(0);
+  });
+
   it('muestra el aviso de incidente abierto sobre una celda con una novedad pendiente', async () => {
     const user = userEvent.setup();
     renderPage();

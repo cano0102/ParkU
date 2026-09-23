@@ -223,6 +223,54 @@ describe('useReservaCelda — handleRequestLiberar', () => {
   });
 });
 
+describe('useReservaCelda — confirmación antes de liberar', () => {
+  it('pedirLiberar solo abre la confirmación: no registra la salida ni libera la celda', () => {
+    const data = buildData();
+    const updateControlSalida = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useReservaCelda(data, celdaOcupada, vi.fn().mockReturnValue({ controlId: 'cs1' }), updateControlSalida, vi.fn())
+    );
+
+    act(() => result.current.pedirLiberar());
+
+    expect(result.current.liberarPendiente).toBe(true);
+    expect(updateControlSalida).not.toHaveBeenCalled();
+    expect(data.updateCelda).not.toHaveBeenCalled();
+  });
+
+  it('cancelarLiberar cierra la confirmación sin tocar nada', () => {
+    const data = buildData();
+    const updateControlSalida = vi.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() =>
+      useReservaCelda(data, celdaOcupada, vi.fn().mockReturnValue({ controlId: 'cs1' }), updateControlSalida, vi.fn())
+    );
+
+    act(() => result.current.pedirLiberar());
+    act(() => result.current.cancelarLiberar());
+
+    expect(result.current.liberarPendiente).toBe(false);
+    expect(updateControlSalida).not.toHaveBeenCalled();
+    expect(data.updateCelda).not.toHaveBeenCalled();
+  });
+
+  it('confirmarLiberar registra la salida, libera la celda y cierra la confirmación', async () => {
+    const data = buildData();
+    const updateControlSalida = vi.fn().mockResolvedValue(undefined);
+    const setOpenModal = vi.fn();
+    const { result } = renderHook(() =>
+      useReservaCelda(data, celdaOcupada, vi.fn().mockReturnValue({ controlId: 'cs1' }), updateControlSalida, setOpenModal)
+    );
+
+    act(() => result.current.pedirLiberar());
+    await act(async () => { await result.current.confirmarLiberar(); });
+
+    expect(updateControlSalida).toHaveBeenCalledWith('cs1', expect.objectContaining({ estado: 'finalizado' }));
+    expect(data.updateCelda).toHaveBeenCalledWith('5', { estado: 'disponible', ocupada: false });
+    expect(setOpenModal).toHaveBeenCalledWith(null);
+    expect(result.current.liberarPendiente).toBe(false);
+  });
+});
+
 /* ============================================================
    handleCrearReserva — compatibilidad vehículo/celda y conductor
 ============================================================ */
