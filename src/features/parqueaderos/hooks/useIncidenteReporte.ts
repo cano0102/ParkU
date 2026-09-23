@@ -181,11 +181,12 @@ export function useIncidenteReporte(
         clase: incidenteForm.clase,
         descripcion: incidenteForm.descripcion.trim(),
         parqueaderoId: objetivo.parqueaderoId,
-        // Una novedad no ocurre "sobre" una celda ni un vehículo: no los arrastra.
-        celdaId: esNovedad ? "" : (objetivo.celdaId ?? ""),
-        // El del contexto manda (se reporta sobre un vehículo concreto); si no hay, el que se
-        // haya elegido a mano entre los de quien reporta.
-        vehiculoId: esNovedad ? "" : (objetivo.vehiculoId || incidenteForm.vehiculoId),
+        // Cuando se reporta desde Entrada y Salida, la novedad conserva la celda y el vehículo
+        // que dieron origen al formulario para mantener la trazabilidad del reporte.
+        celdaId: objetivo.celdaId ?? "",
+        // El del contexto manda (se reporta sobre un vehículo concreto); si no hay, se usa el
+        // que se haya elegido a mano entre los de quien reporta.
+        vehiculoId: objetivo.vehiculoId || incidenteForm.vehiculoId,
         // Comunidad SENA no elige prioridad ni encargado: los pone el personal autorizado al
         // aceptar el reporte, y mandarlos vacíos hace que ni siquiera viajen.
         usuarioAsignadoId: esConductor ? "" : incidenteForm.usuarioAsignadoId,

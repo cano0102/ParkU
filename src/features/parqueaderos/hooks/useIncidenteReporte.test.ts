@@ -187,7 +187,7 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({ tipoOtro: 'Fuga de agua' }));
   });
 
-  it('una novedad no pide tipo ni prioridad, y no arrastra celda ni vehículo', async () => {
+  it('una novedad no pide tipo ni prioridad y conserva la celda y vehículo del contexto', async () => {
     const data = { addIncidente: vi.fn().mockResolvedValue(undefined) };
     const { result } = setup(data);
 
@@ -197,7 +197,7 @@ describe('useIncidenteReporte — lo que exige cada clase de reporte', () => {
     await act(async () => { await result.current.registrarIncidente(); });
 
     expect(data.addIncidente).toHaveBeenCalledWith(expect.objectContaining({
-      clase: 'novedad', celdaId: '', vehiculoId: '',
+      clase: 'novedad', celdaId: celdaActiva.id, vehiculoId: ocupanteActivo.vehiculo.id,
     }));
   });
 
