@@ -287,8 +287,8 @@ export function IncidenteCard({
             </button>
             <button
               className="delete-btn"
-              title="Desactivar"
-              aria-label="Desactivar incidente"
+              title={incidente.activo !== false ? "Desactivar" : "Activar"}
+              aria-label={incidente.activo !== false ? "Desactivar incidente" : "Activar incidente"}
               onClick={onDelete}
               style={{
                 width: 36, height: 20, borderRadius: 999,

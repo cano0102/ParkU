@@ -192,7 +192,6 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
   const filteredIncidentes = useMemo(
     () =>
       incidentes
-        .filter((inc) => inc.activo !== false)
         .filter((inc) => {
           const q = search.toLowerCase();
           const pqNombre = nombreParqueadero(inc.parqueaderoId).toLowerCase();

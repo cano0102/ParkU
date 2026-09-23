@@ -271,7 +271,18 @@ export function useIncidenteDialogs(
     }
   };
 
-  const handleDelete = (incidente: Incidente) => setConfirmDelete(incidente);
+  const handleDelete = async (incidente: Incidente) => {
+    if (incidente.activo === false) {
+      try {
+        await updateIncidente(incidente.id, { activo: true });
+        toast.success("Incidente activado correctamente");
+      } catch (error) {
+        console.error("Error activating incidente:", error);
+      }
+      return;
+    }
+    setConfirmDelete(incidente);
+  };
 
   const confirmDeleteAction = async () => {
     if (!confirmDelete) return;

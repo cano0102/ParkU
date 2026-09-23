@@ -239,8 +239,9 @@ describe('features/incidentes', () => {
     await user.click(screen.getByRole('button', { name: 'Desactivar' }));
 
     await waitFor(() =>
-      expect(screen.queryByText('Derrame de aceite con posible caída de vehículo')).not.toBeInTheDocument()
+      expect(screen.getByText('Derrame de aceite con posible caída de vehículo')).toBeInTheDocument()
     );
+    expect(screen.getByLabelText('Activar incidente')).toBeInTheDocument();
   });
 });
 
