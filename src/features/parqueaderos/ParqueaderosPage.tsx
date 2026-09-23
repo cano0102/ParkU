@@ -271,6 +271,7 @@ export default function Parqueaderos() {
         vehiculosConductor={ingreso.vehiculosConductor}
         parqueaderoInactivo={!ingreso.parqueaderoIngresoActivo}
         motivoBloqueoLive={ingreso.motivoBloqueoLive}
+        registrando={ingreso.registrandoVehiculo}
         onClose={() => modal.setOpenModal(null)}
         onOpenScanner={() => scanner.abrirScannerDesde("ingreso")}
         onSubmit={ingreso.registrarVehiculo}
@@ -449,6 +450,7 @@ export default function Parqueaderos() {
         reservaForm={reserva.reservaForm}
         setReservaForm={reserva.setReservaForm}
         reservaError={reserva.reservaError}
+        creandoReserva={reserva.creandoReserva}
         onClose={() => modal.setOpenModal(null)}
         onSubmit={reserva.handleCrearReserva}
       />
@@ -469,6 +471,7 @@ export default function Parqueaderos() {
         evidencias={incidente.evidencias}
         onEvidenciasChange={incidente.setEvidencias}
         etiquetaContexto={incidente.objetivo?.etiqueta}
+        registrando={incidente.registrandoIncidente}
         onClose={incidente.closeIncidenteModal}
         onSubmit={incidente.registrarIncidente}
       />

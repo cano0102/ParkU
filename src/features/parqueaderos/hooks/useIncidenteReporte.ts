@@ -12,6 +12,7 @@ import { subirVarias } from "@/services/api/evidencias";
 import type { ParqueaderosData } from "./useParqueaderosData";
 import type { ModalKind } from "./useModalController";
 import { validarTextoLargo, validarTextoCorto, DESCRIPCION_MIN, DESCRIPCION_MAX } from "@/utils/validation";
+import { useEnCurso } from "@/hooks/useEnCurso";
 
 /**
  * De dónde sale un reporte. La celda del plano es solo uno de los sitios: también se reporta
@@ -155,7 +156,7 @@ export function useIncidenteReporte(
     }
     : null), [contexto, celdaActiva, ocupanteActivo]);
 
-  const registrarIncidente = useCallback(async () => {
+  const registrarIncidenteBase = useCallback(async () => {
     if (esConductor) {
       toast.error("No puedes reportar incidentes del parqueadero desde este rol.");
       return;
@@ -225,6 +226,11 @@ export function useIncidenteReporte(
     }
   }, [objetivo, incidenteForm, evidencias, esConductor, incidenteAbiertoExisteParaCeldaActiva, data, closeIncidenteModal]);
 
+  // Evita el doble envío (doble clic, o una conexión lenta): useEnCurso usa una ref, no solo
+  // estado, así que bloquea incluso dos clics en el mismo tick, antes de que React
+  // re-renderice el botón deshabilitado.
+  const [registrarIncidente, registrandoIncidente] = useEnCurso(registrarIncidenteBase);
+
   /* Los vehículos de quien reporta. Un conductor se identifica por su cuenta de usuario, así
      que se llega a sus vehículos por ahí: ofrecer la flota entera obligaba a buscar una placa
      entre cientos cuando casi siempre es uno de los suyos. */
@@ -237,7 +243,7 @@ export function useIncidenteReporte(
   return {
     incidenteForm, setIncidenteForm, incidenteError,
     evidencias, setEvidencias,
-    vehiculosDelReportante,
+    vehiculosDelReportante, registrandoIncidente,
     closeIncidenteModal, registrarIncidente, abrirReporte,
     incidenteAbiertoExisteParaCeldaActiva,
     objetivo, puedeRegistrarNovedades,

@@ -9,6 +9,7 @@ import { vehiculoNoDisponible, otroVehiculoDelConductorEnUso } from "@/features/
 import { buscarConflictoHorario, validarFranja, franjaSugerida } from "@/features/reservas";
 import { HORA_OPERACION_INICIO, HORA_OPERACION_FIN, motivoCeldaPreferencialNoApta } from "../lib/helpers";
 import { validarTextoLargo, MOTIVO_MIN, MOTIVO_MAX } from "@/utils/validation";
+import { useEnCurso } from "@/hooks/useEnCurso";
 
 /** Reservar una celda, cancelar su reserva, y liberar una celda ocupada. */
 export function useReservaCelda(
@@ -43,7 +44,7 @@ export function useReservaCelda(
     setOpenModal("reserva");
   }, [setOpenModal]);
 
-  const handleCrearReserva = useCallback(async () => {
+  const handleCrearReservaBase = useCallback(async () => {
     if (!reservaForm.vehiculoId) return setReservaError("Selecciona un vehículo");
     if (!reservaForm.celdaId) return setReservaError("Selecciona una celda");
     if (!reservaForm.fechaReserva) return setReservaError("La fecha es requerida");
@@ -166,6 +167,11 @@ export function useReservaCelda(
     }
   }, [reservaForm, data, celdaActiva, setOpenModal]);
 
+  // Evita el doble envío (doble clic, o una conexión lenta): useEnCurso usa una ref, no solo
+  // estado, así que bloquea incluso dos clics en el mismo tick, antes de que React
+  // re-renderice el botón deshabilitado.
+  const [handleCrearReserva, creandoReserva] = useEnCurso(handleCrearReservaBase);
+
   /** La reserva viva de la celda abierta: es la que se cancelaría desde aquí. */
   /* Cuál se está cancelando. Una celda puede tener varias reservas el mismo día, así que la
      elige quien pulsa: derivarla ("la que rige", "la primera de la lista") cancelaba una
@@ -230,7 +236,7 @@ export function useReservaCelda(
   }, [handleRequestLiberar]);
 
   return {
-    reservaForm, setReservaForm, reservaError,
+    reservaForm, setReservaForm, reservaError, creandoReserva,
     openReservaFromCelda, handleCrearReserva, handleCancelarReserva, confirmarCancelarReserva,
     reservaACancelar, handleRequestLiberar,
     liberarPendiente, pedirLiberar, cancelarLiberar, confirmarLiberar,
