@@ -4,7 +4,7 @@ import { IconArrowLeft as ArrowLeft, IconLoader2 as Loader2 } from "@tabler/icon
 import logoSena from "@/assets/images/logoSena.png";
 import { theme } from "@/styles/theme";
 import { useRegisterForm } from "../hooks/useRegisterForm";
-import { VehiculoAsociadoFields } from "@/features/conductores/components/VehiculoAsociadoFields";
+import { VehiculoAsociadoFields } from "@/features/conductores";
 import { IdentidadFields } from "./IdentidadFields";
 import { NombreCorreoTelefonoFields } from "./NombreCorreoTelefonoFields";
 import { PasswordFields } from "./PasswordFields";

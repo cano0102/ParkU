@@ -1,7 +1,6 @@
 import { IconCar as Car, IconUserPlus as UserPlus } from "@tabler/icons-react";
 import { EntityFormModal } from "@/components/data";
-import { VehiculoAsociadoFields } from "@/features/conductores/components/VehiculoAsociadoFields";
-import { COLORS } from "@/features/conductores/lib/helpers";
+import { VehiculoAsociadoFields, COLORS } from "@/features/conductores";
 import type { useCrearMiVehiculo } from "../hooks/useCrearMiVehiculo";
 
 interface CrearMiVehiculoModalProps {

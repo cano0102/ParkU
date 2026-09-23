@@ -1,12 +1,11 @@
 import { useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
-import { useConductoresData } from "@/features/conductores/hooks/useConductoresData";
-import { vehiculosDeConductor } from "@/features/conductores/lib/ocupacion";
 import {
+  useConductoresData, vehiculosDeConductor,
   validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
-} from "@/features/conductores/lib/helpers";
-import type { VehiculoFormState } from "@/features/conductores/components/VehiculoFormModal";
+} from "@/features/conductores";
+import type { VehiculoFormState } from "@/features/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import { useCrearMiVehiculo } from "./useCrearMiVehiculo";
 

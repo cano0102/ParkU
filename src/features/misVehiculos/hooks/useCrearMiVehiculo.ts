@@ -4,7 +4,7 @@ import type { Conductor } from "@/services/api/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 import {
   validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
-} from "@/features/conductores/lib/helpers";
+} from "@/features/conductores";
 import type { ConductoresData } from "@/features/conductores";
 
 interface CrearMiVehiculoForm {

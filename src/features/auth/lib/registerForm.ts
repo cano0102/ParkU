@@ -9,7 +9,7 @@ import {
 } from "@/utils/validation";
 import {
   validarPlacaColombiana, validarPlacaPorTipo, tipoVehiculoDesdePlaca,
-} from "@/features/conductores/lib/helpers";
+} from "@/features/conductores";
 import type { Vehiculo } from "@/services/api/vehiculos";
 
 export interface FormState {
