@@ -54,19 +54,6 @@ export function ReservaViewModal({
           label: "Teléfono",
           value: usuario.numeroTelefonico || "Sin teléfono",
         },
-        {
-          label: "Centro de formación",
-          value: usuario.centroFormacion || "Sin centro",
-        },
-        {
-          label: "Regional",
-          value: usuario.regionalFormacion || "Sin regional",
-        },
-        {
-          label: "Programa",
-          value: usuario.programaFormacion || "Sin programa",
-        },
-        { label: "Dirección", value: usuario.direccion || "Sin dirección" },
       ]
     : [];
 
