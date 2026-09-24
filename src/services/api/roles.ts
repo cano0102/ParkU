@@ -164,15 +164,22 @@ interface ApiRolPermiso {
  * Ids de los permisos que el rol tiene asignados. La fuente principal es `permiso_ids`
  * del propio rol; si esa respuesta no lo trae (backend anterior), se recurre a la tabla
  * intermedia `GET /roles-permisos/rol/:id`.
+ *
+ * Devuelve un array (no un `Set`): esto es dato de React Query, y la caché de queries se
+ * persiste en localStorage como JSON (ver services/core/cacheQueries.ts) — un `Set` no
+ * sobrevive ese viaje (`JSON.stringify(new Set(...))` da `"{}"`), así que al restaurar la
+ * caché en una sesión nueva `permisosGuardados` dejaba de ser iterable y `new Set(...)` en
+ * useRolForm/RolFormModal reventaba con "object is not iterable". El array sí es JSON-safe;
+ * el `Set` que necesita la UI se arma en el momento de usarlo, nunca se guarda como tal.
  */
-export async function getPermisosDeRol(rolId: string): Promise<Set<string>> {
+export async function getPermisosDeRol(rolId: string): Promise<string[]> {
   const rol = await apiFetch<ApiRol>(`/roles/${rolId}`);
   if (Array.isArray(rol?.permiso_ids)) {
-    return new Set(rol.permiso_ids.map(String));
+    return rol.permiso_ids.map(String);
   }
 
   const rows = await apiFetch<ApiRolPermiso[]>(`/roles-permisos/rol/${rolId}`);
-  return new Set(rows.map((r) => String(r.permiso)));
+  return rows.map((r) => String(r.permiso));
 }
 
 /**

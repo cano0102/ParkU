@@ -24,7 +24,10 @@ interface RolFormModalProps {
 export const RolFormModal = memo(({ initial, onSave, onCancel, title, isEditing = false, existingRoles, editingRolId = null }: RolFormModalProps) => {
   const { data: permisosCatalogo = [], isLoading: catalogoLoading } = usePermisosCatalogo();
   const { data: permisosGuardados, isLoading: asignadosLoading } = usePermisosDeRol(editingRolId);
-  const idsGuardados = useMemo(() => permisosGuardados ?? new Set<string>(), [permisosGuardados]);
+  // `permisosGuardados` es un array (dato de React Query, persistido en localStorage como
+  // JSON — ver la nota en services/api/roles.ts#getPermisosDeRol): el Set que necesita el
+  // formulario se arma aquí, nunca se guarda como tal en la caché.
+  const idsGuardados = useMemo(() => new Set(permisosGuardados ?? []), [permisosGuardados]);
   const {
     form, permisosSeleccionados, togglePermiso, toggleModulo,
     setDescripcion, setEstado, nombreErrorVisible, permisosError, formInvalido,

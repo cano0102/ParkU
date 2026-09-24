@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { toast } from 'sonner';
+import { ROLES } from '@/services/core/roles';
 import type { Incidente } from '@/services/api/incidentes';
 import { useIncidenteDialogs } from './useIncidenteDialogs';
 import type { IncidentesData } from './useIncidentesData';
 
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
+
+const useAuthMock = vi.hoisted(() => vi.fn());
+vi.mock('@/context/AuthContext', () => ({ useAuth: useAuthMock }));
 
 function incidenteBase(overrides: Partial<Incidente>): Incidente {
   return {
@@ -18,13 +22,14 @@ function incidenteBase(overrides: Partial<Incidente>): Incidente {
   };
 }
 
-function buildData(overrides: Partial<{ celdas: { id: string; parqueaderoId: string }[]; incidentes: Incidente[]; addIncidente: ReturnType<typeof vi.fn>; updateIncidente: ReturnType<typeof vi.fn> }> = {}) {
+function buildData(overrides: Partial<{ celdas: { id: string; parqueaderoId: string }[]; incidentes: Incidente[]; addIncidente: ReturnType<typeof vi.fn>; updateIncidente: ReturnType<typeof vi.fn>; cambiarEstado: ReturnType<typeof vi.fn> }> = {}) {
   return {
     celdas: [],
     incidentes: [],
     addIncidente: vi.fn().mockResolvedValue(undefined),
     updateIncidente: vi.fn().mockResolvedValue(undefined),
     deleteIncidente: vi.fn(),
+    cambiarEstado: vi.fn().mockResolvedValue(undefined),
     ocupanteDeCelda: vi.fn().mockReturnValue(undefined),
     usuariosReportantes: [{ id: '1', nombre: 'Administrador ParkU' }],
     ...overrides,
@@ -43,7 +48,10 @@ function llenarForm(result: ReturnType<typeof renderHook<ReturnType<typeof useIn
 }
 
 describe('useIncidenteDialogs — bloqueo de incidente duplicado al crear', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthMock.mockReturnValue({ user: { id: '1', rol: ROLES.ADMIN } });
+  });
 
   it('bloquea con un toast si ya hay un incidente abierto (pendiente) para la misma celda', async () => {
     const data = buildData({ incidentes: [incidenteBase({ id: 'dup', celdaId: '5', estado: 'pendiente' })] });
@@ -110,7 +118,10 @@ describe('useIncidenteDialogs — bloqueo de incidente duplicado al crear', () =
 });
 
 describe('useIncidenteDialogs — celdas permitidas para el conductor', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthMock.mockReturnValue({ user: { id: '5', rol: ROLES.CONDUCTOR } });
+  });
 
   it('rechaza guardar un incidente en una celda fuera de la flota permitida', async () => {
     const data = buildData({
@@ -134,7 +145,10 @@ describe('useIncidenteDialogs — celdas permitidas para el conductor', () => {
 });
 
 describe('useIncidenteDialogs — puedeClasificar: false (ConductorIncidentes)', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthMock.mockReturnValue({ user: { id: '5', rol: ROLES.CONDUCTOR } });
+  });
 
   /* Bug real: con `puedeClasificar: false` el formulario de ConductorIncidentes oculta el
      selector de prioridad (la define quien recibe el reporte, no quien lo hace) — pero antes
@@ -177,5 +191,74 @@ describe('useIncidenteDialogs — puedeClasificar: false (ConductorIncidentes)',
     expect(result.current.formInvalido).toBe(true);
     expect(result.current.formErrors.prioridad).toBe('');
     expect(result.current.formErrors.tipoOtro).not.toBe('');
+  });
+});
+
+describe('useIncidenteDialogs — un Vigilante se asigna solo al cambiar de estado (no puede elegir a otra persona)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthMock.mockReturnValue({ user: { id: '9', nombre: 'Vigilante de turno', rol: ROLES.VIGILANTE } });
+  });
+
+  it('pasa a "en_proceso" solo, sin abrir el asistente de encargado', () => {
+    const pendiente = incidenteBase({ id: 'i1', estado: 'pendiente', usuarioAsignadoId: '' });
+    const data = buildData({ incidentes: [pendiente] });
+    const { result } = renderHook(() => useIncidenteDialogs(data));
+
+    act(() => result.current.solicitarCambioEstado('i1', 'en_proceso'));
+
+    // Nunca se abre CambioEstadoIncidenteModal: no hay a nadie más a quien preguntarle.
+    expect(result.current.cambioEstado).toBeNull();
+    expect(data.cambiarEstado).toHaveBeenCalledWith('i1', 'en_proceso', { usuarioAsignadoId: '9' });
+  });
+
+  it('al resolverlo, el encargado que queda registrado es quien hizo el cambio', () => {
+    const enProceso = incidenteBase({ id: 'i1', estado: 'en_proceso', usuarioAsignadoId: '' });
+    const data = buildData({ incidentes: [enProceso] });
+    const { result } = renderHook(() => useIncidenteDialogs(data));
+
+    act(() => result.current.solicitarCambioEstado('i1', 'resuelto'));
+
+    expect(result.current.cambioEstado).toBeNull();
+    expect(data.cambiarEstado).toHaveBeenCalledWith('i1', 'resuelto', { usuarioAsignadoId: '9' });
+  });
+
+  it('no se reasigna solo si el incidente ya tiene un encargado (no le quita el caso a quien ya lo tenía)', () => {
+    const enProceso = incidenteBase({ id: 'i1', estado: 'en_proceso', usuarioAsignadoId: '2' });
+    const data = buildData({ incidentes: [enProceso] });
+    const { result } = renderHook(() => useIncidenteDialogs(data));
+
+    act(() => result.current.solicitarCambioEstado('i1', 'resuelto'));
+
+    expect(data.cambiarEstado).toHaveBeenCalledWith('i1', 'resuelto');
+  });
+
+  it('rechazar/cancelar sigue pidiendo el motivo (el auto-asignado no se salta ese paso)', () => {
+    const pendiente = incidenteBase({ id: 'i1', estado: 'pendiente', usuarioAsignadoId: '' });
+    const data = buildData({ incidentes: [pendiente] });
+    const { result } = renderHook(() => useIncidenteDialogs(data));
+
+    act(() => result.current.solicitarCambioEstado('i1', 'rechazado'));
+
+    expect(data.cambiarEstado).not.toHaveBeenCalled();
+    expect(result.current.cambioEstado).toEqual({ incidente: pendiente, destino: 'rechazado' });
+  });
+});
+
+describe('useIncidenteDialogs — un Administrador sigue pudiendo elegir a cualquier encargado', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAuthMock.mockReturnValue({ user: { id: '1', nombre: 'Administrador ParkU', rol: ROLES.ADMIN } });
+  });
+
+  it('abre el asistente de encargado en vez de auto-asignarse', () => {
+    const pendiente = incidenteBase({ id: 'i1', estado: 'pendiente', usuarioAsignadoId: '' });
+    const data = buildData({ incidentes: [pendiente] });
+    const { result } = renderHook(() => useIncidenteDialogs(data));
+
+    act(() => result.current.solicitarCambioEstado('i1', 'en_proceso'));
+
+    expect(data.cambiarEstado).not.toHaveBeenCalled();
+    expect(result.current.cambioEstado).toEqual({ incidente: pendiente, destino: 'en_proceso' });
   });
 });

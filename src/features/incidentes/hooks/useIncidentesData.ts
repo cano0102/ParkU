@@ -73,20 +73,27 @@ export function useIncidentesData(options?: UseIncidentesDataOptions) {
      completo se conserva aparte para resolver el nombre de un incidente ya asignado, aunque
      esa persona haya cambiado de rol después.
 
-     `GET /usuarios` es solo para Administrador, así que a un Vigilante esta lista le llega
-     vacía; para que pueda hacerse cargo igual, se añade su propia cuenta. Es además la
-     operación normal: el vigilante de turno toma el incidente que va a atender. */
+     Un Vigilante solo puede hacerse cargo de lo suyo: no tiene forma de dejarle un incidente
+     o novedad a otro compañero (ni a otro vigilante ni a un administrador) — repartir el
+     trabajo del equipo es cosa del Administrador, que sí ve y puede elegir a cualquier
+     gestor. Por eso, para Vigilante, esta lista queda reducida a su propia cuenta: el
+     selector de "Encargado" (al crear/editar y al cambiar de estado) deja de ofrecer a nadie
+     más, y `solicitarCambioEstado` (useIncidenteDialogs.ts) usa esto para asignarse solo,
+     automáticamente, sin ni preguntar. */
   const usuariosAsignables = useMemo(() => {
+    if (!user || (user.rol !== ROLES.VIGILANTE && user.rol !== ROLES.ADMIN)) return [];
+
     const gestores = usuarios.filter((u) => u.rol === ROLES.VIGILANTE || u.rol === ROLES.ADMIN);
-    const puedeEncargarse = user && (user.rol === ROLES.VIGILANTE || user.rol === ROLES.ADMIN);
-    if (puedeEncargarse && !gestores.some((u) => u.id === user.id)) {
-      const propia: Usuario = {
-        id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
-        password: "", numero: user.numero ?? "", estado: "activo",
-      };
-      return [propia, ...gestores];
-    }
-    return gestores;
+    // `GET /usuarios` no siempre trae la propia cuenta de quien pregunta (o, para un
+    // Vigilante recién creado, puede no traer nada todavía) — se añade a mano para que
+    // siempre pueda hacerse cargo de lo suyo, sea cual sea el estado de esa lista.
+    const propia: Usuario = {
+      id: user.id, nombre: user.nombre, correo: user.correo, rol: user.rol,
+      password: "", numero: user.numero ?? "", estado: "activo",
+    };
+    const conPropia = gestores.some((u) => u.id === user.id) ? gestores : [propia, ...gestores];
+
+    return user.rol === ROLES.VIGILANTE ? conPropia.filter((u) => u.id === user.id) : conPropia;
   }, [usuarios, user]);
 
   const nombreParqueadero = (id: string) => parqueaderoPorId.get(id)?.nombre ?? "—";
