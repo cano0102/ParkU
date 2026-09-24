@@ -81,6 +81,20 @@ describe('services/roles — permisos del rol', () => {
     expect([...asignados]).toEqual(['5']);
     expect(apiFetchMock.mock.calls[1][0]).toBe('/roles-permisos/rol/13');
   });
+
+  it('devuelve un array plano, no un Set: es dato de React Query y la caché de queries se '
+    + 'persiste en localStorage como JSON (un Set no sobrevive ese viaje: JSON.stringify(new '
+    + 'Set(...)) da "{}", y al restaurarlo "new Set({})" revienta con "object is not iterable")', async () => {
+    apiFetchMock.mockClear();
+    apiFetchMock.mockResolvedValueOnce({ id: 13, nombre: 'Supervisor', descripcion: null, estado: true, permiso_ids: [1, 4] });
+
+    const asignados = await roles.getPermisosDeRol('13');
+
+    expect(Array.isArray(asignados)).toBe(true);
+    // El propio round-trip que hace el persister de React Query (createSyncStoragePersister)
+    // sobre lo que devuelve esta función: si esto dejara de ser JSON-safe, esta igualdad fallaría.
+    expect(JSON.parse(JSON.stringify(asignados))).toEqual(asignados);
+  });
 });
 
 describeCrudContract<Rol>(

@@ -59,8 +59,12 @@ interface IngresoModalProps {
   onCrearVehiculo: () => void;
   /** Selecciona uno de los vehículos ya registrados del conductor identificado. */
   onSelectVehiculo: (vehiculo: Vehiculo) => void;
-  /** Vehículos ya registrados a nombre del conductor identificado. */
+  /** Vehículos ya registrados a nombre del conductor identificado, compatibles con esta celda. */
   vehiculosConductor: Vehiculo[];
+  /** true si el conductor tiene vehículos registrados pero ninguno del tipo que admite esta
+   *  celda (p. ej. solo tiene carro y la celda es de moto) — para no decir "no tiene
+   *  vehículos registrados" cuando en realidad sí tiene, solo que no caben aquí. */
+  tieneVehiculosDeOtroTipo: boolean;
   /** true si el parqueadero de la celda activa está desactivado (no acepta nuevos registros). */
   parqueaderoInactivo: boolean;
   /** Motivo por el que no se puede estacionar este vehículo aquí ahora mismo (celda reservada
@@ -79,7 +83,7 @@ export function IngresoModal({
   ingresoPlacaOk, ingresoValid, ingresoPlacaHint, placaYaEstacionada,
   vehiculoEncontrado, sugerenciasPlaca, conductorIdentificado, conductores, conductorQuery, onConductorQueryChange,
   onSelectConductor, onCambiarConductor, onCrearConductor, onCrearVehiculo, onSelectVehiculo, vehiculosConductor,
-  parqueaderoInactivo, motivoBloqueoLive, registrando = false,
+  tieneVehiculosDeOtroTipo, parqueaderoInactivo, motivoBloqueoLive, registrando = false,
   onClose, onOpenScanner, onSubmit,
 }: IngresoModalProps) {
   const conductorInactivo = conductorIdentificado?.estado === "inactivo";
@@ -219,7 +223,11 @@ export function IngresoModal({
               </div>
             )}
             {otrosVehiculos.length === 0 && !vehiculoEncontrado && (
-              <p style={{ fontSize: 11, color: C.textLight, marginBottom: 8 }}>{conductorIdentificado.nombre} no tiene vehículos registrados todavía.</p>
+              <p style={{ fontSize: 11, color: C.textLight, marginBottom: 8 }}>
+                {tieneVehiculosDeOtroTipo
+                  ? `${conductorIdentificado.nombre} tiene vehículos registrados, pero ninguno del tipo que admite esta celda (${celdaActiva?.tipo ?? ""}). Agrega uno nuevo o elige una celda para su tipo de vehículo.`
+                  : `${conductorIdentificado.nombre} no tiene vehículos registrados todavía.`}
+              </p>
             )}
             <button type="button" onClick={onCrearVehiculo} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 10, border: `1px dashed ${C.border}`, background: "transparent", color: C.primaryDark, fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}>
               <Plus size={14} /> Agregar vehículo nuevo

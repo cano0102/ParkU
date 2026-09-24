@@ -453,6 +453,16 @@ export function useIngresoVehiculo(
     );
   }, [conductorIdentificado, vehiculos, celdaActiva]);
 
+  /* El conductor puede tener vehículos registrados que simplemente no caben en ESTA celda
+   * (p. ej. solo tiene un carro y la celda activa es de moto) — sin este chequeo,
+   * `vehiculosConductor` vacío se veía en el modal como "no tiene vehículos registrados
+   * todavía", que es engañoso: el conductor sí tiene, solo que ninguno es del tipo que acepta
+   * esta celda. Se usa para distinguir ese caso de uno que sí está realmente sin vehículos. */
+  const tieneVehiculosDeOtroTipo = useMemo(() => {
+    if (!conductorIdentificado || vehiculosConductor.length > 0) return false;
+    return vehiculosOperables(vehiculos).some((v) => esDeConductor(v, conductorIdentificado.id));
+  }, [conductorIdentificado, vehiculos, vehiculosConductor]);
+
   /* Validación en vivo del formulario de registro de vehículo: la placa debe coincidir
      con el tipo de la celda seleccionada (carro/moto) y el conductor debe tener nombre completo
      (o, si ya es un conductor real identificado —por placa o por nombre exacto—, ese nombre ya
@@ -486,6 +496,7 @@ export function useIngresoVehiculo(
     vehiculoForm, setVehiculoForm, placaError, setPlacaError,
     registrarEnCelda, registrarVehiculo, abrirIngresoOficial, abrirIngresoVisitante, abrirIngresoReservado,
     conductoresSugeridos, vehiculoEncontrado, sugerenciasPlaca, conductorEncontrado, conductorIdentificado, vehiculosConductor,
+    tieneVehiculosDeOtroTipo,
     ingresoPlacaOk, ingresoConductorOk, ingresoValid, ingresoPlacaHint, parqueaderoIngresoActivo, placaYaEstacionada,
     registrandoVehiculo,
     motivoBloqueoLive,

@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES } from "@/services/core/roles";
 import type { Incidente, TipoNovedad, PrioridadNovedad, ClaseNovedad } from "@/services/api/incidentes";
 import { ESTADOS_ABIERTOS, type EstadoIncidente } from "../lib/constants";
 import { recomiendaEncargado, requiereMotivo } from "../lib/transiciones";
@@ -38,6 +40,7 @@ export function useIncidenteDialogs(
     modoConductor?: boolean;
   }
 ) {
+  const { user } = useAuth();
   const puedeClasificar = options?.puedeClasificar ?? true;
   const {
     celdas, incidentes, addIncidente, updateIncidente, ocupanteDeCelda,
@@ -55,6 +58,17 @@ export function useIncidenteDialogs(
     if (!incidente || incidente.estado === destino) return;
 
     const faltaEncargado = recomiendaEncargado(destino) && !incidente.usuarioAsignadoId;
+
+    // Un Vigilante no tiene a quién más preguntarle: no puede dejarle el incidente a otro
+    // compañero (ver usuariosAsignables en useIncidentesData.ts), así que el único encargado
+    // posible es él mismo. En vez de abrir el asistente solo para que confirme su propio
+    // nombre, se asigna solo automáticamente y el cambio de estado queda registrado como
+    // suyo de una — es lo que después se lee en la tarjeta ("A cargo de …").
+    if (faltaEncargado && user?.rol === ROLES.VIGILANTE && !requiereMotivo(destino)) {
+      cambiarEstado(id, destino, { usuarioAsignadoId: user.id });
+      return;
+    }
+
     if (faltaEncargado || requiereMotivo(destino)) {
       setCambioEstado({ incidente, destino });
       return;
