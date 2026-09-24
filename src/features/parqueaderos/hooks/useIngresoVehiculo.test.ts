@@ -219,6 +219,23 @@ describe('useIngresoVehiculo — asistente de búsqueda estructurada de conducto
     expect(result.current.vehiculoForm.placa).toBe('');
   });
 
+  it('tieneVehiculosDeOtroTipo distingue "no tiene ninguno" de "tiene, pero no del tipo de esta celda"', () => {
+    const carroDeMaria: Vehiculo = { ...vehiculoDeMaria, id: 'v5', placa: 'ABC123', tipo: 'carro' };
+    const dataSinNinguno = buildData({ conductores: [conductorMaria], vehiculos: [] });
+    const sinNinguno = renderHook(() => useIngresoVehiculo(dataSinNinguno, celdaMoto, parqueadero, vi.fn()));
+    act(() => sinNinguno.result.current.seleccionarConductor(conductorMaria));
+    expect(sinNinguno.result.current.vehiculosConductor).toEqual([]);
+    expect(sinNinguno.result.current.tieneVehiculosDeOtroTipo).toBe(false);
+
+    // María solo tiene un carro, pero la celda activa es de moto: sí tiene vehículos, solo
+    // que ninguno cabe aquí.
+    const dataOtroTipo = buildData({ conductores: [conductorMaria], vehiculos: [carroDeMaria] });
+    const otroTipo = renderHook(() => useIngresoVehiculo(dataOtroTipo, celdaMoto, parqueadero, vi.fn()));
+    act(() => otroTipo.result.current.seleccionarConductor(conductorMaria));
+    expect(otroTipo.result.current.vehiculosConductor).toEqual([]);
+    expect(otroTipo.result.current.tieneVehiculosDeOtroTipo).toBe(true);
+  });
+
   it('seleccionarConductor con varios vehículos prefiere uno que no esté ya estacionado', () => {
     const motoEstacionada: Vehiculo = { ...vehiculoDeMaria, id: 'v1', placa: 'XYZ12D' };
     const motoLibre: Vehiculo = { ...vehiculoDeMaria, id: 'v9', placa: 'QWE34F' };

@@ -269,6 +269,7 @@ export default function Parqueaderos() {
         onCrearVehiculo={abrirCrearVehiculo}
         onSelectVehiculo={ingreso.seleccionarVehiculo}
         vehiculosConductor={ingreso.vehiculosConductor}
+        tieneVehiculosDeOtroTipo={ingreso.tieneVehiculosDeOtroTipo}
         parqueaderoInactivo={!ingreso.parqueaderoIngresoActivo}
         motivoBloqueoLive={ingreso.motivoBloqueoLive}
         registrando={ingreso.registrandoVehiculo}
